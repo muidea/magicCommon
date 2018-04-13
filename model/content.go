@@ -27,6 +27,7 @@ type Media Unit
 // Summary 摘要信息
 type Summary struct {
 	Unit
+	Type       string `json:"type"`
 	Catalog    []int  `json:"catalog"`
 	CreateDate string `json:"createDate"`
 	Creater    int    `json:"creater"`
