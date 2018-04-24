@@ -11,6 +11,7 @@ type ACL struct {
 	ID     int    `json:"id"`
 	URL    string `json:"url"`
 	Method string `json:"method"`
+	Status int    `json:"status"`
 }
 
 // ACLView acl
@@ -22,7 +23,6 @@ type ACLView struct {
 type ACLDetail struct {
 	ACL
 	Module    string `json:"module"`
-	Status    int    `json:"status"`
 	AuthGroup int    `json:"authGroup"`
 }
 
