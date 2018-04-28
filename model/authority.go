@@ -30,9 +30,9 @@ type ACLDetail struct {
 // ACLDetailView ACL显示信息
 type ACLDetailView struct {
 	ACLDetail
-	Status    Status `json:"status"`
-	Module    Module `json:"module"`
-	AuthGroup Unit   `json:"authGroup"`
+	Status    Status    `json:"status"`
+	Module    Module    `json:"module"`
+	AuthGroup AuthGroup `json:"authGroup"`
 }
 
 // ModuleUserInfo 模块的用户信息
