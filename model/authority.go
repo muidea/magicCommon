@@ -17,6 +17,7 @@ type ACL struct {
 // ACLView acl
 type ACLView struct {
 	ACL
+	Status Status `json:"status"`
 }
 
 // ACLDetail 访问控制列表
@@ -29,6 +30,7 @@ type ACLDetail struct {
 // ACLDetailView ACL显示信息
 type ACLDetailView struct {
 	ACLDetail
+	Status    Status `json:"status"`
 	Module    Module `json:"module"`
 	AuthGroup Unit   `json:"authGroup"`
 }
@@ -60,6 +62,7 @@ type UserAuthGroupView struct {
 // ModuleUserAuthGroupView 模块的用户授权组显示信息
 type ModuleUserAuthGroupView struct {
 	ModuleDetail
+	Status        Status
 	UserAuthGroup []UserAuthGroupView `json:"userAuthGroup"`
 }
 

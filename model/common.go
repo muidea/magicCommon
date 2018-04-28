@@ -7,3 +7,6 @@ type Unit struct {
 	// Name 名称
 	Name string `json:"name"`
 }
+
+// Status 状态
+type Status Unit

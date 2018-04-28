@@ -6,17 +6,6 @@ const USER = "user"
 // GROUP 分组类型
 const GROUP = "group"
 
-const (
-	// NEW 新建用户，未激活状态
-	NEW = iota
-	// ACTIVE 用户已经激活
-	ACTIVE
-	// DEACTIVE 用户未激活
-	DEACTIVE
-	// DISABLE 用户被禁用
-	DISABLE
-)
-
 // NewEmptyUser 新建空用户
 func NewEmptyUser() UserDetail {
 	return UserDetail{}
@@ -50,7 +39,8 @@ type UserDetail struct {
 type UserDetailView struct {
 	UserDetail
 
-	Group []Group `json:"group"`
+	Group  []Group `json:"group"`
+	Status Status  `json:"status"`
 }
 
 const (
