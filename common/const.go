@@ -74,3 +74,41 @@ func GetStatus(id int) model.Status {
 		return status
 	}
 }
+
+// 模块类型
+const (
+	// 内核模块，不能被禁用
+	KERNEL = iota
+	// 内置模块，属于系统自带可选模块，可以被禁用
+	INTERNAL
+	// 外部模块，通过外部接口注册进来的模块，可以被禁用
+	EXTERNAL
+)
+
+// KernelModule 内核模块
+var KernelModule = model.ModuleType{ID: KERNEL, Name: "内核模块"}
+
+// InternalModule 内置模块
+var InternalModule = model.ModuleType{ID: INTERNAL, Name: "内置模块"}
+
+// ExternalModule 外部模块
+var ExternalModule = model.ModuleType{ID: EXTERNAL, Name: "外部模块"}
+
+// InvalidModule 非法模块
+var InvalidModule = model.ModuleType{Name: "非法模块"}
+
+// GetModuleType 获取模块类型
+func GetModuleType(id int) model.ModuleType {
+	switch id {
+	case KERNEL:
+		return KernelModule
+	case INTERNAL:
+		return InternalModule
+	case EXTERNAL:
+		return ExternalModule
+	default:
+		moduleType := InvalidModule
+		moduleType.ID = id
+		return moduleType
+	}
+}

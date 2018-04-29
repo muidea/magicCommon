@@ -10,3 +10,6 @@ type Unit struct {
 
 // Status 状态
 type Status Unit
+
+// ModuleType 模块类型
+type ModuleType Unit

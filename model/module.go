@@ -27,3 +27,10 @@ type ModuleDetail struct {
 	Type        int    `json:"type"`
 	Status      int    `json:"status"`
 }
+
+// ModuleDetailView 模块详情视图
+type ModuleDetailView struct {
+	ModuleDetail
+	Type   ModuleType `json:"type"`
+	Status Status     `json:"status"`
+}
