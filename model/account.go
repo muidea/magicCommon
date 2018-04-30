@@ -6,23 +6,25 @@ const USER = "user"
 // GROUP 分组类型
 const GROUP = "group"
 
-// NewEmptyAccount 新建空用户
-func NewEmptyAccount() AccountDetail {
-	return AccountDetail{}
+// NewEmptyUser 新建空用户
+func NewEmptyUser() UserDetail {
+	return UserDetail{}
 }
 
-// NewAccount 新建用户
-func NewAccount(account, email string, groups []int, status int) AccountDetail {
-	return AccountDetail{Account: Account{ID: -1, Name: account}, Email: email, Group: groups, Status: status}
+// NewUser 新建用户
+func NewUser(account, email string, groups []int, status int) UserDetail {
+	return UserDetail{Account: account, Email: email, Group: groups, Status: status}
 }
 
-// Account 用户信息
-type Account Unit
+// User 用户信息
+type User Unit
 
-// AccountDetail 用户详细信息
-type AccountDetail struct {
-	Account
+// UserDetail 用户详细信息
+type UserDetail struct {
+	User
 
+	// Account 用户账号，不允许重复，唯一标示该用户
+	Account string `json:"account"`
 	//EMail 用户邮箱
 	Email string `json:"email"`
 	//Groups 所属分组
@@ -33,9 +35,9 @@ type AccountDetail struct {
 	RegisterTime string `json:"registerTime"`
 }
 
-// AccountDetailView 用户详情显示信息
-type AccountDetailView struct {
-	AccountDetail
+// UserDetailView 用户详情显示信息
+type UserDetailView struct {
+	UserDetail
 
 	Group  []Group `json:"group"`
 	Status Status  `json:"status"`
