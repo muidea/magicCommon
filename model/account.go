@@ -13,7 +13,7 @@ func NewEmptyUser() UserDetail {
 
 // NewUser 新建用户
 func NewUser(account, email string, groups []int, status int) UserDetail {
-	return UserDetail{Account: account, Email: email, Group: groups, Status: status}
+	return UserDetail{User: User{ID: -1, Name: account}, Email: email, Group: groups, Status: status}
 }
 
 // User 用户信息
@@ -23,8 +23,6 @@ type User Unit
 type UserDetail struct {
 	User
 
-	// Account 用户账号，不允许重复，唯一标示该用户
-	Account string `json:"account"`
 	//EMail 用户邮箱
 	Email string `json:"email"`
 	//Groups 所属分组
