@@ -37,7 +37,7 @@ type Summary struct {
 type SummaryView struct {
 	Summary
 	Catalog []Catalog `json:"catalog"`
-	Creater User      `json:"creater"`
+	Creater Account      `json:"creater"`
 }
 
 // ArticleDetail 文章
@@ -51,7 +51,7 @@ type ArticleDetail struct {
 type ArticleDetailView struct {
 	ArticleDetail
 	Catalog []Catalog `json:"catalog"`
-	Creater User      `json:"creater"`
+	Creater Account      `json:"creater"`
 }
 
 // CatalogDetail 分类详细信息
@@ -66,7 +66,7 @@ type CatalogDetailView struct {
 	CatalogDetail
 
 	Catalog []Catalog `json:"catalog"`
-	Creater User      `json:"creater"`
+	Creater Account      `json:"creater"`
 }
 
 // LinkDetail 链接
@@ -82,7 +82,7 @@ type LinkDetailView struct {
 	LinkDetail
 
 	Catalog []Catalog `json:"catalog"`
-	Creater User      `json:"creater"`
+	Creater Account      `json:"creater"`
 }
 
 // MediaDetail 文件信息
@@ -97,7 +97,7 @@ type MediaDetailView struct {
 	MediaDetail
 
 	Catalog []Catalog `json:"catalog"`
-	Creater User      `json:"creater"`
+	Creater Account      `json:"creater"`
 }
 
 // ContentSummary 内容摘要信息

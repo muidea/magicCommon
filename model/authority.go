@@ -35,46 +35,46 @@ type ACLDetailView struct {
 	AuthGroup AuthGroup `json:"authGroup"`
 }
 
-// ModuleUserInfo 模块的用户信息
-type ModuleUserInfo struct {
-	Module string `json:"module"`
-	User   []int  `json:"user"`
+// ModuleAccountInfo 模块的用户信息
+type ModuleAccountInfo struct {
+	Module  string `json:"module"`
+	Account []int  `json:"account"`
 }
 
-// ModuleUserInfoView 模块的用户信息
-type ModuleUserInfoView struct {
+// ModuleAccountInfoView 模块的用户信息
+type ModuleAccountInfoView struct {
 	Module
-	User []User `json:"user"`
+	Account []Account `json:"account"`
 }
 
-// UserAuthGroup 用户授权组
-type UserAuthGroup struct {
-	User      int `json:"user"`
+// AccountAuthGroup 用户授权组
+type AccountAuthGroup struct {
+	Account   int `json:"account"`
 	AuthGroup int `json:"authGroup"`
 }
 
-// UserAuthGroupView 用户授权组显示信息
-type UserAuthGroupView struct {
-	User
+// AccountAuthGroupView 用户授权组显示信息
+type AccountAuthGroupView struct {
+	Account
 	AuthGroup AuthGroup `json:"authGroup"`
 }
 
-// ModuleUserAuthGroupView 模块的用户授权组显示信息
-type ModuleUserAuthGroupView struct {
+// ModuleAccountAuthGroupView 模块的用户授权组显示信息
+type ModuleAccountAuthGroupView struct {
 	ModuleDetail
-	Status        Status
-	UserAuthGroup []UserAuthGroupView `json:"userAuthGroup"`
+	Status           Status
+	AccountAuthGroup []AccountAuthGroupView `json:"accountAuthGroup"`
 }
 
-// UserModuleInfo 用户模块信息
-type UserModuleInfo struct {
-	User   int      `json:"user"`
-	Module []string `json:"module"`
+// AccountModuleInfo 用户模块信息
+type AccountModuleInfo struct {
+	Account int      `json:"account"`
+	Module  []string `json:"module"`
 }
 
-// UserModuleInfoView 用户模块信息
-type UserModuleInfoView struct {
-	User
+// AccountModuleInfoView 用户模块信息
+type AccountModuleInfoView struct {
+	Account
 	Module []Module `json:"module"`
 }
 
@@ -90,8 +90,8 @@ type ModuleAuthGroupView struct {
 	AuthGroup AuthGroup `json:"authGroup"`
 }
 
-// UserModuleAuthGroupView 用户的模块授权组显示信息
-type UserModuleAuthGroupView struct {
-	UserDetailView
+// AccountModuleAuthGroupView 用户的模块授权组显示信息
+type AccountModuleAuthGroupView struct {
+	AccountDetailView
 	ModuleAuthGroup []ModuleAuthGroupView `json:"moduleAuthGroup"`
 }
