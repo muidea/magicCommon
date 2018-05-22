@@ -27,10 +27,11 @@ type Media Unit
 // Summary 摘要信息
 type Summary struct {
 	Unit
-	Type       string `json:"type"`
-	Catalog    []int  `json:"catalog"`
-	CreateDate string `json:"createDate"`
-	Creater    int    `json:"creater"`
+	Description string `json:"description"`
+	Type        string `json:"type"`
+	Catalog     []int  `json:"catalog"`
+	CreateDate  string `json:"createDate"`
+	Creater     int    `json:"creater"`
 }
 
 // SummaryView 摘要信息显示视图
@@ -57,8 +58,6 @@ type ArticleDetailView struct {
 // CatalogDetail 分类详细信息
 type CatalogDetail struct {
 	Summary
-
-	Description string `json:"description"`
 }
 
 // CatalogDetailView 分类详细信息显示信息
@@ -88,8 +87,8 @@ type LinkDetailView struct {
 // MediaDetail 文件信息
 type MediaDetail struct {
 	Summary
-	URL         string `json:"url"`
-	Description string `json:"description"`
+	URL        string `json:"url"`
+	Expiration int    `json:"expiration"`
 }
 
 // MediaDetailView 文件信息显示信息

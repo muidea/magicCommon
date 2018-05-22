@@ -40,7 +40,7 @@ func GetAuthGroup(id int) model.AuthGroup {
 }
 
 // DefaultContentCatalog 系统默认的Content分组，UpdataCatalog时，如果需要创建Catalog,则默认指定的ParentCatalog
-var DefaultContentCatalog = model.CatalogDetail{Summary: model.Summary{Unit: model.Unit{ID: 0, Name: "默认Content分组"}, CreateDate: "", Creater: 0}, Description: "系统默认的Content分组"}
+var DefaultContentCatalog = model.CatalogDetail{Summary: model.Summary{Unit: model.Unit{ID: 0, Name: "默认Content分组"}, Description: "系统默认的Content分组", CreateDate: "", Creater: 0}}
 
 // NewStatus 新建状态
 var NewStatus = model.Status{ID: NEW, Name: "新建"}
