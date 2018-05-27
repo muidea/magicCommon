@@ -7,7 +7,7 @@ type Endpoint struct {
 	Description string `json:"description"`
 	User        []int  `json:"user"`
 	Status      int    `json:"status"`
-	AccessToken string `json:"accessToken"`
+	AuthToken   string `json:"authToken"`
 }
 
 // EndpointView 终端视图
