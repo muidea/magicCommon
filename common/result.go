@@ -5,10 +5,15 @@ const (
 	Success = iota
 	// Failed 失败
 	Failed
+	// IllegalParam 非法参数
+	IllegalParam
 	// InvalidAuthority 非法授权
 	InvalidAuthority
 	// NoExist 对象不存在
 	NoExist
+
+	// 对象转移
+	Redirect
 )
 
 // Result 处理结果
