@@ -1,10 +1,13 @@
 package net
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime"
 	"net/http"
 
@@ -105,6 +108,160 @@ func ParsePostJSON(req *http.Request, param interface{}) error {
 
 	default:
 		return errors.New("invalid contentType, contentType:" + contentType)
+	}
+
+	return nil
+}
+
+// HTTPGet http get request
+func HTTPGet(httpClient *http.Client, url string, result interface{}) error {
+	response, err := httpClient.Get(url)
+	if err != nil {
+		log.Printf("get request failed, err:%s", err.Error())
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return errors.New(msg)
+	}
+
+	if result != nil {
+		content, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("read respose data failed, err:%s", err.Error())
+			return err
+		}
+
+		err = json.Unmarshal(content, result)
+		if err != nil {
+			log.Printf("unmarshal data failed, err:%s", err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
+// HTTPPost http post request
+func HTTPPost(httpClient *http.Client, url string, param interface{}, result interface{}) error {
+	data, err := json.Marshal(param)
+	if err != nil {
+		log.Printf("marshal param failed, err:%s", err.Error())
+		return err
+	}
+
+	bufferReader := bytes.NewBuffer(data)
+	request, err := http.NewRequest("POST", url, bufferReader)
+	if err != nil {
+		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		return err
+	}
+
+	request.Header.Set("content-type", "application/json")
+	response, err := httpClient.Do(request)
+	if err != nil {
+		log.Printf("post request failed, err:%s", err.Error())
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return errors.New(msg)
+	}
+
+	if result != nil {
+		content, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("read respose data failed, err:%s", err.Error())
+			return err
+		}
+
+		err = json.Unmarshal(content, result)
+		if err != nil {
+			log.Printf("unmarshal data failed, err:%s", err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
+// HTTPPut http post request
+func HTTPPut(httpClient *http.Client, url string, param interface{}, result interface{}) error {
+	data, err := json.Marshal(param)
+	if err != nil {
+		log.Printf("marshal param failed, err:%s", err.Error())
+		return err
+	}
+
+	bufferReader := bytes.NewBuffer(data)
+	request, err := http.NewRequest("PUT", url, bufferReader)
+	if err != nil {
+		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		return err
+	}
+
+	request.Header.Set("content-type", "application/json")
+	response, err := httpClient.Do(request)
+	if err != nil {
+		log.Printf("post request failed, err:%s", err.Error())
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return errors.New(msg)
+	}
+
+	if result != nil {
+		content, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("read respose data failed, err:%s", err.Error())
+			return err
+		}
+
+		err = json.Unmarshal(content, result)
+		if err != nil {
+			log.Printf("unmarshal data failed, err:%s", err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
+// HTTPDelete http delete request
+func HTTPDelete(httpClient *http.Client, url string, result interface{}) error {
+	request, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		return err
+	}
+
+	response, err := httpClient.Do(request)
+	if err != nil {
+		log.Printf("post request failed, err:%s", err.Error())
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return errors.New(msg)
+	}
+
+	if result != nil {
+		content, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("read respose data failed, err:%s", err.Error())
+			return err
+		}
+
+		err = json.Unmarshal(content, result)
+		if err != nil {
+			log.Printf("unmarshal data failed, err:%s", err.Error())
+			return err
+		}
 	}
 
 	return nil
