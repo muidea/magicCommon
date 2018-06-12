@@ -11,8 +11,7 @@ const (
 	InvalidAuthority
 	// NoExist 对象不存在
 	NoExist
-
-	// 对象转移
+	// Redirect 对象转移
 	Redirect
 )
 
