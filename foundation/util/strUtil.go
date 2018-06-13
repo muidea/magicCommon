@@ -6,6 +6,17 @@ import (
 	"strings"
 )
 
+// ExtractSummary 抽取摘要
+func ExtractSummary(content string) string {
+	content = strings.TrimLeft(content, "\n")
+	offset := strings.Index(content, "\n")
+	if offset > 0 {
+		return content[:offset]
+	}
+
+	return content
+}
+
 func cleanStr(str string) string {
 	size := len(str)
 	if size == 0 {
