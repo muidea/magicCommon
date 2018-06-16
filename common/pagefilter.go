@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	defaultPageSize   = 10
-	defaultPagination = 1
+	defaultPageSize = 10
+	defaultPage     = 1
 )
 
 // PageFilter 页面过滤器
@@ -15,7 +15,7 @@ type PageFilter struct {
 	// 单页条目数
 	PageSize int `json:"pageSize"`
 	// 页码
-	Pagination int `json:"pagination"`
+	Page int `json:"page"`
 }
 
 // Parse 从request里解析PageFilter
@@ -27,10 +27,10 @@ func (s *PageFilter) Parse(request *http.Request) {
 	}
 	s.PageSize = sizeValue
 
-	pagination := request.URL.Query().Get("pagination")
-	paginationValue, err := strconv.Atoi(pagination)
+	page := request.URL.Query().Get("page")
+	pageValue, err := strconv.Atoi(page)
 	if err != nil {
-		paginationValue = defaultPagination
+		pageValue = defaultPage
 	}
-	s.Pagination = paginationValue
+	s.Page = pageValue
 }
