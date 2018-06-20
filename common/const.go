@@ -2,6 +2,15 @@ package common
 
 import "muidea.com/magicCommon/model"
 
+// SessionID 会话ID
+const SessionID = "sessionID"
+
+// AuthTokenID 鉴权Token
+const AuthTokenID = "authToken"
+
+// ExpiryDate 会话有效期
+const ExpiryDate = "expiryDate"
+
 const (
 	// NEW 新建状态
 	NEW = iota
