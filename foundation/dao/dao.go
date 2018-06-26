@@ -3,6 +3,7 @@ package dao
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	_ "github.com/go-sql-driver/mysql" //引入Mysql驱动
 )
@@ -37,6 +38,11 @@ func Fetch(user string, password string, address string, dbName string) (Dao, er
 	} else {
 		//log.Print("open database connection...")
 		i.dbHandle = db
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Printf("ping database failed, err:%s", err.Error())
 	}
 
 	return &i, err
