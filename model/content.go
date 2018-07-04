@@ -84,10 +84,19 @@ type LinkDetailView struct {
 	Creater User      `json:"creater"`
 }
 
+// MediaItem 单个文件项
+type MediaItem struct {
+	Name        string `json:"name"`
+	FileToken   string `json:"fileToken"`
+	Description string `json:"description"`
+	Expiration  int    `json:"expiration"`
+	Catalog     []int  `json:"catalog"`
+}
+
 // MediaDetail 文件信息
 type MediaDetail struct {
 	Summary
-	URL        string `json:"url"`
+	FileToken  string `json:"fileToken"`
 	Expiration int    `json:"expiration"`
 }
 
