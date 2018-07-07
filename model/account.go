@@ -50,25 +50,25 @@ const (
 	CommonGroup
 )
 
+// Group 分组信息
+type Group Unit
+
 // NewEmptyGroup 新建空组
 func NewEmptyGroup() GroupDetail {
-	return GroupDetail{Unit: Unit{ID: InvalidGroup}}
+	return GroupDetail{Group: Group{ID: InvalidGroup}}
 }
 
 // NewGroup 新建组
 func NewGroup(name, description string, catalog int) GroupDetail {
-	return GroupDetail{Unit: Unit{ID: InvalidGroup, Name: name}, Description: description, Catalog: catalog}
+	return GroupDetail{Group: Group{ID: InvalidGroup, Name: name}, Description: description, Catalog: catalog}
 }
-
-// Group 分组信息
-type Group Unit
 
 // GroupDetail 分组详情
 // Name 名称
 // Description 描述
 // Catalog 类型（管理组，普通组)
 type GroupDetail struct {
-	Unit
+	Group
 	Description string `json:"description"`
 	Catalog     int    `json:"catalog"`
 }

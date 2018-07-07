@@ -22,17 +22,20 @@ const (
 	DISABLE
 )
 
+// BuildinUserGroup 系统内置用户分组
+var BuildinUserGroup = model.GroupDetail{Group: model.Group{ID: 0, Name: "系统内置分组"}, Description: "系统内置分组", Catalog: 0}
+
 // VisitorAuthGroup 访客权限组
-var VisitorAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 0, Name: "访客权限组"}, Description: "允许查看公开权限的内容，无须登录"}
+var VisitorAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 0, Name: "访客组权限"}, Description: "允许查看公开权限的内容，无须登录"}
 
 // UserAuthGroup 用户权限组
-var UserAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 1, Name: "用户权限组"}, Description: "允许查看用户权限的内容以及公开权限的内容，要求预先进行登录"}
+var UserAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 1, Name: "用户组权限"}, Description: "允许查看用户权限的内容以及公开权限的内容，要求预先进行登录"}
 
 // MaintainerAuthGroup 维护权限组
-var MaintainerAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 2, Name: "维护权限组"}, Description: "允许查看和编辑内容，要求预先进行登录"}
+var MaintainerAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 2, Name: "维护组权限"}, Description: "允许查看和编辑内容，要求预先进行登录"}
 
 // UnknownAuthGroup 未知授权组
-var UnknownAuthGroup = model.AuthGroup{Unit: model.Unit{ID: -1, Name: "未知权限组"}, Description: "不是合法的授权组，原因是由于查询提供的ID不是有效值"}
+var UnknownAuthGroup = model.AuthGroup{Unit: model.Unit{ID: -1, Name: "未知权限"}, Description: "不是合法的授权组，原因是由于查询提供的ID不是有效值"}
 
 // GetAuthGroup 获取指定授权组
 func GetAuthGroup(id int) model.AuthGroup {
