@@ -23,7 +23,7 @@ const (
 )
 
 // BuildinUserGroup 系统内置用户分组
-var BuildinUserGroup = model.GroupDetail{Group: model.Group{ID: 0, Name: "系统内置分组"}, Description: "系统内置分组", Catalog: 0}
+var BuildinUserGroup = model.GroupDetail{Group: model.Group{ID: 0, Name: "系统基础分组"}, Description: "系统基础分组", Catalog: 0}
 
 // VisitorAuthGroup 访客权限组
 var VisitorAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 0, Name: "访客组权限"}, Description: "允许查看公开权限的内容，无须登录"}
@@ -52,7 +52,7 @@ func GetAuthGroup(id int) model.AuthGroup {
 }
 
 // BuildinContentCatalog 系统默认的Content分组，UpdataCatalog时，如果需要创建Catalog,则默认指定的ParentCatalog
-var BuildinContentCatalog = model.CatalogDetail{Summary: model.Summary{Unit: model.Unit{ID: 0, Name: "系统内置Content分类"}, Description: "系统内置Content分类", CreateDate: "", Creater: 0}}
+var BuildinContentCatalog = model.CatalogDetail{Summary: model.Summary{Unit: model.Unit{ID: 0, Name: "Content基础分类"}, Description: "Content基础分类", Type: model.CATALOG}}
 
 // NewStatus 新建状态
 var NewStatus = model.Status{ID: NEW, Name: "新建"}
