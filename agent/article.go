@@ -31,11 +31,12 @@ func (s *center) QueryArticle(id int) (model.ArticleDetailView, bool) {
 	return result.Article, false
 }
 
-func (s *center) CreateArticle(title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) CreateArticle(title, content string, catalog []model.Catalog, creater int) (model.SummaryView, bool) {
 	type createParam struct {
 		Name    string          `json:"name"`
 		Content string          `json:"content"`
 		Catalog []model.Catalog `json:"catalog"`
+		Creater int             `json:"creater"`
 	}
 
 	type createResult struct {
@@ -43,9 +44,9 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, a
 		Article model.SummaryView `json:"article"`
 	}
 
-	param := &createParam{Name: title, Content: content, Catalog: catalog}
+	param := &createParam{Name: title, Content: content, Catalog: catalog, Creater: creater}
 	result := &createResult{}
-	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/article/", authToken, sessionID)
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/article/", s.authToken, s.sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("create article failed, err:%s", err.Error())
@@ -60,21 +61,22 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, a
 	return result.Article, false
 }
 
-func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type createParam struct {
+func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, updater int) (model.SummaryView, bool) {
+	type updateParam struct {
 		Name    string          `json:"name"`
 		Content string          `json:"content"`
 		Catalog []model.Catalog `json:"catalog"`
+		Updater int             `json:"updater"`
 	}
 
-	type createResult struct {
+	type updateResult struct {
 		common_result.Result
 		Article model.SummaryView `json:"article"`
 	}
 
-	param := &createParam{Name: title, Content: content, Catalog: catalog}
-	result := &createResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
+	param := &updateParam{Name: title, Content: content, Catalog: catalog, Updater: updater}
+	result := &updateResult{}
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, s.authToken, s.sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("update article failed, err:%s", err.Error())
@@ -89,7 +91,7 @@ func (s *center) UpdateArticle(id int, title, content string, catalog []model.Ca
 	return result.Article, false
 }
 
-func (s *center) DeleteArticle(id int, authToken, sessionID string) bool {
+func (s *center) DeleteArticle(id int) bool {
 	type deleteResult struct {
 		common_result.Result
 	}

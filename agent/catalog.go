@@ -9,28 +9,6 @@ import (
 	"muidea.com/magicCommon/model"
 )
 
-func (s *center) FetchCatalog(name string) (model.CatalogDetailView, bool) {
-	type fetchResult struct {
-		common_result.Result
-		Catalog model.CatalogDetailView `json:"catalog"`
-	}
-
-	result := &fetchResult{}
-	url := fmt.Sprintf("%s/%s?name=%s&authToken=%s&sessionID=%s", s.baseURL, "content/catalog/", name, s.authToken, s.sessionID)
-	err := net.HTTPGet(s.httpClient, url, result)
-	if err != nil {
-		log.Printf("fetch catalog failed, err:%s", err.Error())
-		return result.Catalog, false
-	}
-
-	if result.ErrorCode == common_result.Success {
-		return result.Catalog, true
-	}
-
-	log.Printf("fetch catalog failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
-	return result.Catalog, false
-}
-
 func (s *center) QueryCatalog(catalogID int) (model.CatalogDetailView, bool) {
 	type queryResult struct {
 		common_result.Result
@@ -53,11 +31,12 @@ func (s *center) QueryCatalog(catalogID int) (model.CatalogDetailView, bool) {
 	return result.Catalog, false
 }
 
-func (s *center) CreateCatalog(name, description string, parent []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) CreateCatalog(name, description string, parent []model.Catalog, creater int) (model.SummaryView, bool) {
 	type createParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		Catalog     []model.Catalog `json:"catalog"`
+		Creater     int             `json:"creater"`
 	}
 
 	type createResult struct {
@@ -65,9 +44,9 @@ func (s *center) CreateCatalog(name, description string, parent []model.Catalog,
 		Catalog model.SummaryView `json:"catalog"`
 	}
 
-	param := &createParam{Name: name, Description: description, Catalog: parent}
+	param := &createParam{Name: name, Description: description, Catalog: parent, Creater: creater}
 	result := &createResult{}
-	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/catalog/", authToken, sessionID)
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/catalog/", s.authToken, s.sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("create catalog failed, err:%s", err.Error())
@@ -82,21 +61,22 @@ func (s *center) CreateCatalog(name, description string, parent []model.Catalog,
 	return result.Catalog, false
 }
 
-func (s *center) UpdateCatalog(id int, name, description string, parent []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type createParam struct {
+func (s *center) UpdateCatalog(id int, name, description string, parent []model.Catalog, updater int) (model.SummaryView, bool) {
+	type updateParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		Catalog     []model.Catalog `json:"catalog"`
+		Updater     int             `json:"updater"`
 	}
 
-	type createResult struct {
+	type updateResult struct {
 		common_result.Result
 		Catalog model.SummaryView `json:"catalog"`
 	}
 
-	param := &createParam{Name: name, Description: description, Catalog: parent}
-	result := &createResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
+	param := &updateParam{Name: name, Description: description, Catalog: parent, Updater: updater}
+	result := &updateResult{}
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, s.authToken, s.sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("update catalog failed, err:%s", err.Error())
@@ -111,7 +91,7 @@ func (s *center) UpdateCatalog(id int, name, description string, parent []model.
 	return result.Catalog, false
 }
 
-func (s *center) DeleteCatalog(id int, authToken, sessionID string) bool {
+func (s *center) DeleteCatalog(id int) bool {
 	type deleteResult struct {
 		common_result.Result
 	}

@@ -18,27 +18,36 @@ type Agent interface {
 	LoginAccount(account, password string) (model.AccountOnlineView, string, string, bool)
 	LogoutAccount(authToken, sessionID string) bool
 	StatusAccount(authToken, sessionID string) (model.AccountOnlineView, bool)
+	BindAccount(user *model.User)
+	UnbindAccount()
 
-	QuerySummary(catalogID int) []model.SummaryView
+	FetchSummary(name string) (model.SummaryView, bool)
+	QuerySummaryDetail(id int) []model.SummaryView
 
-	FetchCatalog(name string) (model.CatalogDetailView, bool)
 	QueryCatalog(catalogID int) (model.CatalogDetailView, bool)
-	CreateCatalog(name, description string, parent []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
-	UpdateCatalog(id int, name, description string, parent []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
-	DeleteCatalog(id int, authToken, sessionID string) bool
+	CreateCatalog(name, description string, parent []model.Catalog, creater int) (model.SummaryView, bool)
+	UpdateCatalog(id int, name, description string, parent []model.Catalog, updater int) (model.SummaryView, bool)
+	DeleteCatalog(id int) bool
 
 	QueryArticle(id int) (model.ArticleDetailView, bool)
-	CreateArticle(title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
-	UpdateArticle(id int, title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
-	DeleteArticle(id int, authToken, sessionID string) bool
+	CreateArticle(title, content string, catalog []model.Catalog, creater int) (model.SummaryView, bool)
+	UpdateArticle(id int, title, content string, catalog []model.Catalog, updater int) (model.SummaryView, bool)
+	DeleteArticle(id int) bool
 
 	QueryLink(id int) (model.LinkDetailView, bool)
+	CreateLink(name, description, url, logo string, catalog []model.Catalog, creater int) (model.SummaryView, bool)
+	UpdateLink(id int, name, description, url, logo string, catalog []model.Catalog, updater int) (model.SummaryView, bool)
+	DeleteLink(id int) bool
 
 	QueryMedia(id int) (model.MediaDetailView, bool)
+	CreateMedia(name, description, fileToken string, expiration int, catalog []model.Catalog, creater int) (model.SummaryView, bool)
+	BatchCreateMedia(media []model.MediaItem, description string, catalog []model.Catalog, expiration, privacy, creater int) ([]model.SummaryView, bool)
+	UpdateMedia(id int, name, description, fileToken string, expiration int, catalog []model.Catalog, updater int) (model.SummaryView, bool)
+	DeleteMedia(id int) bool
 }
 
-// NewCenterAgent 新建Agent
-func NewCenterAgent() Agent {
+// New 新建Agent
+func New() Agent {
 	return &center{}
 }
 
@@ -48,6 +57,7 @@ type center struct {
 	endpointID string
 	authToken  string
 	sessionID  string
+	bindUser   *model.User
 }
 
 func (s *center) Start(centerServer, endpointID, authToken string) bool {
@@ -90,26 +100,4 @@ func (s *center) verify() (string, bool) {
 
 	log.Printf("verify endpoint failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return "", false
-}
-
-func (s *center) QuerySummary(catalogID int) []model.SummaryView {
-	type queryResult struct {
-		common_result.Result
-		Summary []model.SummaryView `json:"summary"`
-	}
-
-	result := &queryResult{Summary: []model.SummaryView{}}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/summary", catalogID, s.authToken, s.sessionID)
-	err := net.HTTPGet(s.httpClient, url, result)
-	if err != nil {
-		log.Printf("query summary failed, err:%s", err.Error())
-		return result.Summary
-	}
-
-	if result.ErrorCode == common_result.Success {
-		return result.Summary
-	}
-
-	log.Printf("query summary failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
-	return result.Summary
 }

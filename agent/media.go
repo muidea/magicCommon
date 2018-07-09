@@ -30,3 +30,120 @@ func (s *center) QueryMedia(id int) (model.MediaDetailView, bool) {
 	log.Printf("query media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Media, false
 }
+
+func (s *center) CreateMedia(name, description, fileToken string, expiration int, catalog []model.Catalog, creater int) (model.SummaryView, bool) {
+	type createParam struct {
+		Name        string          `json:"name"`
+		Description string          `json:"description"`
+		FileToken   string          `json:"fileToken"`
+		Expiration  int             `json:"expiration"`
+		Catalog     []model.Catalog `json:"catalog"`
+		Creater     int             `json:"creater"`
+	}
+
+	type createResult struct {
+		common_result.Result
+		Media model.SummaryView `json:"media"`
+	}
+
+	param := &createParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog, Creater: creater}
+	result := &createResult{}
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", s.authToken, s.sessionID)
+	err := net.HTTPPost(s.httpClient, url, param, result)
+	if err != nil {
+		log.Printf("create media failed, err:%s", err.Error())
+		return result.Media, false
+	}
+
+	if result.ErrorCode == common_result.Success {
+		return result.Media, true
+	}
+
+	log.Printf("create media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
+	return result.Media, false
+}
+
+func (s *center) BatchCreateMedia(media []model.MediaItem, description string, catalog []model.Catalog, expiration, privacy, creater int) ([]model.SummaryView, bool) {
+	type batchCreateParam struct {
+		Media       []model.MediaItem `json:"media"`
+		Description string            `json:"description"`
+		Expiration  int               `json:"expiration"`
+		Catalog     []model.Catalog   `json:"catalog"`
+		Privacy     int               `json:"privacy"`
+		Creater     int               `json:"creater"`
+	}
+
+	type batchCreateResult struct {
+		common_result.Result
+		Media []model.SummaryView `json:"media"`
+	}
+
+	param := &batchCreateParam{Media: media, Description: description, Expiration: expiration, Catalog: catalog, Privacy: privacy, Creater: creater}
+	result := &batchCreateResult{}
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", s.authToken, s.sessionID)
+	err := net.HTTPPost(s.httpClient, url, param, result)
+	if err != nil {
+		log.Printf("create media failed, err:%s", err.Error())
+		return result.Media, false
+	}
+
+	if result.ErrorCode == common_result.Success {
+		return result.Media, true
+	}
+
+	log.Printf("create media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
+	return result.Media, false
+}
+
+func (s *center) UpdateMedia(id int, name, description, fileToken string, expiration int, catalog []model.Catalog, updater int) (model.SummaryView, bool) {
+	type updateParam struct {
+		Name        string          `json:"name"`
+		Description string          `json:"description"`
+		FileToken   string          `json:"fileToken"`
+		Expiration  int             `json:"expiration"`
+		Catalog     []model.Catalog `json:"catalog"`
+		Updater     int             `json:"updater"`
+	}
+
+	type updateResult struct {
+		common_result.Result
+		Media model.SummaryView `json:"media"`
+	}
+
+	param := &updateParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog, Updater: updater}
+	result := &updateResult{}
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, s.authToken, s.sessionID)
+	err := net.HTTPPut(s.httpClient, url, param, result)
+	if err != nil {
+		log.Printf("update media failed, err:%s", err.Error())
+		return result.Media, false
+	}
+
+	if result.ErrorCode == common_result.Success {
+		return result.Media, true
+	}
+
+	log.Printf("update media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
+	return result.Media, false
+}
+
+func (s *center) DeleteMedia(id int) bool {
+	type deleteResult struct {
+		common_result.Result
+	}
+
+	result := &deleteResult{}
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, s.authToken, s.sessionID)
+	err := net.HTTPDelete(s.httpClient, url, result)
+	if err != nil {
+		log.Printf("delete media failed, url:%s, err:%s", url, err.Error())
+		return false
+	}
+
+	if result.ErrorCode == common_result.Success {
+		return true
+	}
+
+	log.Printf("query media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
+	return false
+}
