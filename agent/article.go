@@ -9,14 +9,14 @@ import (
 	"muidea.com/magicCommon/model"
 )
 
-func (s *center) QueryArticle(id int) (model.ArticleDetailView, bool) {
+func (s *center) QueryArticle(id int, authToken, sessionID string) (model.ArticleDetailView, bool) {
 	type queryResult struct {
 		common_result.Result
 		Article model.ArticleDetailView `json:"article"`
 	}
 
 	result := &queryResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query article failed, err:%s", err.Error())
@@ -31,7 +31,7 @@ func (s *center) QueryArticle(id int) (model.ArticleDetailView, bool) {
 	return result.Article, false
 }
 
-func (s *center) CreateArticle(title, content string, catalog []model.Catalog, creater int) (model.SummaryView, bool) {
+func (s *center) CreateArticle(title, content string, catalog []model.Catalog, creater int, authToken, sessionID string) (model.SummaryView, bool) {
 	type createParam struct {
 		Name    string          `json:"name"`
 		Content string          `json:"content"`
@@ -46,7 +46,7 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, c
 
 	param := &createParam{Name: title, Content: content, Catalog: catalog, Creater: creater}
 	result := &createResult{}
-	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/article/", s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/article/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("create article failed, err:%s", err.Error())
@@ -61,7 +61,7 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, c
 	return result.Article, false
 }
 
-func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, updater int) (model.SummaryView, bool) {
+func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, updater int, authToken, sessionID string) (model.SummaryView, bool) {
 	type updateParam struct {
 		Name    string          `json:"name"`
 		Content string          `json:"content"`
@@ -76,7 +76,7 @@ func (s *center) UpdateArticle(id int, title, content string, catalog []model.Ca
 
 	param := &updateParam{Name: title, Content: content, Catalog: catalog, Updater: updater}
 	result := &updateResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("update article failed, err:%s", err.Error())
@@ -91,13 +91,13 @@ func (s *center) UpdateArticle(id int, title, content string, catalog []model.Ca
 	return result.Article, false
 }
 
-func (s *center) DeleteArticle(id int) bool {
+func (s *center) DeleteArticle(id int, authToken, sessionID string) bool {
 	type deleteResult struct {
 		common_result.Result
 	}
 
 	result := &deleteResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("delete article failed, url:%s, err:%s", url, err.Error())

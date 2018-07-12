@@ -9,14 +9,14 @@ import (
 	"muidea.com/magicCommon/model"
 )
 
-func (s *center) QueryCatalog(catalogID int) (model.CatalogDetailView, bool) {
+func (s *center) QueryCatalog(catalogID int, authToken, sessionID string) (model.CatalogDetailView, bool) {
 	type queryResult struct {
 		common_result.Result
 		Catalog model.CatalogDetailView `json:"catalog"`
 	}
 
 	result := &queryResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", catalogID, s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", catalogID, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query catalog failed, err:%s", err.Error())
@@ -31,7 +31,7 @@ func (s *center) QueryCatalog(catalogID int) (model.CatalogDetailView, bool) {
 	return result.Catalog, false
 }
 
-func (s *center) CreateCatalog(name, description string, parent []model.Catalog, creater int) (model.SummaryView, bool) {
+func (s *center) CreateCatalog(name, description string, parent []model.Catalog, creater int, authToken, sessionID string) (model.SummaryView, bool) {
 	type createParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
@@ -46,7 +46,7 @@ func (s *center) CreateCatalog(name, description string, parent []model.Catalog,
 
 	param := &createParam{Name: name, Description: description, Catalog: parent, Creater: creater}
 	result := &createResult{}
-	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/catalog/", s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/catalog/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("create catalog failed, err:%s", err.Error())
@@ -61,7 +61,7 @@ func (s *center) CreateCatalog(name, description string, parent []model.Catalog,
 	return result.Catalog, false
 }
 
-func (s *center) UpdateCatalog(id int, name, description string, parent []model.Catalog, updater int) (model.SummaryView, bool) {
+func (s *center) UpdateCatalog(id int, name, description string, parent []model.Catalog, updater int, authToken, sessionID string) (model.SummaryView, bool) {
 	type updateParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
@@ -76,7 +76,7 @@ func (s *center) UpdateCatalog(id int, name, description string, parent []model.
 
 	param := &updateParam{Name: name, Description: description, Catalog: parent, Updater: updater}
 	result := &updateResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("update catalog failed, err:%s", err.Error())
@@ -91,13 +91,13 @@ func (s *center) UpdateCatalog(id int, name, description string, parent []model.
 	return result.Catalog, false
 }
 
-func (s *center) DeleteCatalog(id int) bool {
+func (s *center) DeleteCatalog(id int, authToken, sessionID string) bool {
 	type deleteResult struct {
 		common_result.Result
 	}
 
 	result := &deleteResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("delete catalog failed, url:%s, err:%s", url, err.Error())

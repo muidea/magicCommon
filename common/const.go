@@ -22,8 +22,11 @@ const (
 	DISABLE
 )
 
-// BuildinUserGroup 系统内置用户分组
-var BuildinUserGroup = model.GroupDetail{Group: model.Group{ID: 0, Name: "系统基础分组"}, Description: "系统基础分组", Catalog: 0}
+// BuildinAccountGroup 系统内置分组
+var BuildinAccountGroup = model.GroupDetail{Group: model.Group{ID: 0, Name: "系统基础分组"}, Description: "系统基础分组", Catalog: 0}
+
+// BuildinAccountUser 系统内置用户
+var BuildinAccountUser = model.UserDetail{User: model.User{ID: 0, Name: "admin"}, Email: "rangh@foxmail.com", Group: []int{0}, Status: ACTIVE}
 
 // VisitorAuthGroup 访客权限组
 var VisitorAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 0, Name: "访客组权限"}, Description: "允许查看公开权限的内容，无须登录"}

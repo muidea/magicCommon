@@ -9,14 +9,14 @@ import (
 	"muidea.com/magicCommon/model"
 )
 
-func (s *center) QueryLink(id int) (model.LinkDetailView, bool) {
+func (s *center) QueryLink(id int, authToken, sessionID string) (model.LinkDetailView, bool) {
 	type queryResult struct {
 		common_result.Result
 		Link model.LinkDetailView `json:"link"`
 	}
 
 	result := &queryResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query link failed, err:%s", err.Error())
@@ -31,7 +31,7 @@ func (s *center) QueryLink(id int) (model.LinkDetailView, bool) {
 	return result.Link, false
 }
 
-func (s *center) CreateLink(name, description, url, logo string, catalog []model.Catalog, creater int) (model.SummaryView, bool) {
+func (s *center) CreateLink(name, description, url, logo string, catalog []model.Catalog, creater int, authToken, sessionID string) (model.SummaryView, bool) {
 	type createParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
@@ -48,7 +48,7 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 
 	param := &createParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog, Creater: creater}
 	result := &createResult{}
-	httpURL := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/link/", s.authToken, s.sessionID)
+	httpURL := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/link/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, httpURL, param, result)
 	if err != nil {
 		log.Printf("create link failed, err:%s", err.Error())
@@ -63,7 +63,7 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 	return result.Link, false
 }
 
-func (s *center) UpdateLink(id int, name, description, url, logo string, catalog []model.Catalog, updater int) (model.SummaryView, bool) {
+func (s *center) UpdateLink(id int, name, description, url, logo string, catalog []model.Catalog, updater int, authToken, sessionID string) (model.SummaryView, bool) {
 	type updateParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
@@ -80,7 +80,7 @@ func (s *center) UpdateLink(id int, name, description, url, logo string, catalog
 
 	param := &updateParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog, Updater: updater}
 	result := &updateResult{}
-	httpURL := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, s.authToken, s.sessionID)
+	httpURL := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, httpURL, param, result)
 	if err != nil {
 		log.Printf("update link failed, err:%s", err.Error())
@@ -95,13 +95,13 @@ func (s *center) UpdateLink(id int, name, description, url, logo string, catalog
 	return result.Link, false
 }
 
-func (s *center) DeleteLink(id int) bool {
+func (s *center) DeleteLink(id int, authToken, sessionID string) bool {
 	type deleteResult struct {
 		common_result.Result
 	}
 
 	result := &deleteResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, s.authToken, s.sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("delete link failed, url:%s, err:%s", url, err.Error())
