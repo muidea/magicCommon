@@ -1,4 +1,4 @@
-package common
+package def
 
 const (
 	// Success 成功

@@ -31,14 +31,14 @@ func (s *center) QueryMedia(id int, authToken, sessionID string) (model.MediaDet
 	return result.Media, false
 }
 
-func (s *center) CreateMedia(name, description, fileToken string, expiration int, catalog []model.Catalog, creater int, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) CreateMedia(name, description, fileToken string, expiration, privacy int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
 	type createParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		FileToken   string          `json:"fileToken"`
 		Expiration  int             `json:"expiration"`
+		Privacy     int             `json:"privacy"`
 		Catalog     []model.Catalog `json:"catalog"`
-		Creater     int             `json:"creater"`
 	}
 
 	type createResult struct {
@@ -46,7 +46,7 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration int
 		Media model.SummaryView `json:"media"`
 	}
 
-	param := &createParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog, Creater: creater}
+	param := &createParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Privacy: privacy, Catalog: catalog}
 	result := &createResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
@@ -63,14 +63,13 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration int
 	return result.Media, false
 }
 
-func (s *center) BatchCreateMedia(media []model.MediaItem, description string, catalog []model.Catalog, expiration, privacy, creater int, authToken, sessionID string) ([]model.SummaryView, bool) {
+func (s *center) BatchCreateMedia(media []model.MediaItem, description string, catalog []model.Catalog, expiration, privacy int, authToken, sessionID string) ([]model.SummaryView, bool) {
 	type batchCreateParam struct {
 		Media       []model.MediaItem `json:"media"`
 		Description string            `json:"description"`
 		Expiration  int               `json:"expiration"`
-		Catalog     []model.Catalog   `json:"catalog"`
 		Privacy     int               `json:"privacy"`
-		Creater     int               `json:"creater"`
+		Catalog     []model.Catalog   `json:"catalog"`
 	}
 
 	type batchCreateResult struct {
@@ -78,7 +77,7 @@ func (s *center) BatchCreateMedia(media []model.MediaItem, description string, c
 		Media []model.SummaryView `json:"media"`
 	}
 
-	param := &batchCreateParam{Media: media, Description: description, Expiration: expiration, Catalog: catalog, Privacy: privacy, Creater: creater}
+	param := &batchCreateParam{Media: media, Description: description, Expiration: expiration, Privacy: privacy, Catalog: catalog}
 	result := &batchCreateResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
@@ -95,14 +94,14 @@ func (s *center) BatchCreateMedia(media []model.MediaItem, description string, c
 	return result.Media, false
 }
 
-func (s *center) UpdateMedia(id int, name, description, fileToken string, expiration int, catalog []model.Catalog, updater int, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) UpdateMedia(id int, name, description, fileToken string, expiration, privacy int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
 	type updateParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		FileToken   string          `json:"fileToken"`
 		Expiration  int             `json:"expiration"`
+		Privacy     int             `json:"privacy"`
 		Catalog     []model.Catalog `json:"catalog"`
-		Updater     int             `json:"updater"`
 	}
 
 	type updateResult struct {
@@ -110,7 +109,7 @@ func (s *center) UpdateMedia(id int, name, description, fileToken string, expira
 		Media model.SummaryView `json:"media"`
 	}
 
-	param := &updateParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog, Updater: updater}
+	param := &updateParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Privacy: privacy, Catalog: catalog}
 	result := &updateResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)

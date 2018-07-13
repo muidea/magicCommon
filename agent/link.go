@@ -31,14 +31,13 @@ func (s *center) QueryLink(id int, authToken, sessionID string) (model.LinkDetai
 	return result.Link, false
 }
 
-func (s *center) CreateLink(name, description, url, logo string, catalog []model.Catalog, creater int, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) CreateLink(name, description, url, logo string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
 	type createParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		URL         string          `json:"url"`
 		Logo        string          `json:"logo"`
 		Catalog     []model.Catalog `json:"catalog"`
-		Creater     int             `json:"creater"`
 	}
 
 	type createResult struct {
@@ -46,7 +45,7 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 		Link model.SummaryView `json:"link"`
 	}
 
-	param := &createParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog, Creater: creater}
+	param := &createParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
 	result := &createResult{}
 	httpURL := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/link/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, httpURL, param, result)
@@ -63,14 +62,13 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 	return result.Link, false
 }
 
-func (s *center) UpdateLink(id int, name, description, url, logo string, catalog []model.Catalog, updater int, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) UpdateLink(id int, name, description, url, logo string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
 	type updateParam struct {
 		Name        string          `json:"name"`
 		Description string          `json:"description"`
 		URL         string          `json:"url"`
 		Logo        string          `json:"logo"`
 		Catalog     []model.Catalog `json:"catalog"`
-		Updater     int             `json:"updater"`
 	}
 
 	type updateResult struct {
@@ -78,7 +76,7 @@ func (s *center) UpdateLink(id int, name, description, url, logo string, catalog
 		Link model.SummaryView `json:"link"`
 	}
 
-	param := &updateParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog, Updater: updater}
+	param := &updateParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
 	result := &updateResult{}
 	httpURL := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, httpURL, param, result)

@@ -31,12 +31,11 @@ func (s *center) QueryArticle(id int, authToken, sessionID string) (model.Articl
 	return result.Article, false
 }
 
-func (s *center) CreateArticle(title, content string, catalog []model.Catalog, creater int, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) CreateArticle(title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
 	type createParam struct {
 		Name    string          `json:"name"`
 		Content string          `json:"content"`
 		Catalog []model.Catalog `json:"catalog"`
-		Creater int             `json:"creater"`
 	}
 
 	type createResult struct {
@@ -44,7 +43,7 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, c
 		Article model.SummaryView `json:"article"`
 	}
 
-	param := &createParam{Name: title, Content: content, Catalog: catalog, Creater: creater}
+	param := &createParam{Name: title, Content: content, Catalog: catalog}
 	result := &createResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/article/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
@@ -61,12 +60,11 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, c
 	return result.Article, false
 }
 
-func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, updater int, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
 	type updateParam struct {
 		Name    string          `json:"name"`
 		Content string          `json:"content"`
 		Catalog []model.Catalog `json:"catalog"`
-		Updater int             `json:"updater"`
 	}
 
 	type updateResult struct {
@@ -74,7 +72,7 @@ func (s *center) UpdateArticle(id int, title, content string, catalog []model.Ca
 		Article model.SummaryView `json:"article"`
 	}
 
-	param := &updateParam{Name: title, Content: content, Catalog: catalog, Updater: updater}
+	param := &updateParam{Name: title, Content: content, Catalog: catalog}
 	result := &updateResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)
