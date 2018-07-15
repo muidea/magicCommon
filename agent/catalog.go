@@ -9,9 +9,9 @@ import (
 	"muidea.com/magicCommon/model"
 )
 
-func (s *center) QueryCatalog(catalogID int, authToken, sessionID string) (model.CatalogDetailView, bool) {
+func (s *center) QueryCatalog(id int, authToken, sessionID string) (model.CatalogDetailView, bool) {
 	result := &common_def.QueryCatalogResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", catalogID, authToken, sessionID)
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query catalog failed, err:%s", err.Error())
