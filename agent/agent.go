@@ -41,9 +41,9 @@ type Agent interface {
 	DeleteLink(id int, authToken, sessionID string) bool
 
 	QueryMedia(id int, authToken, sessionID string) (model.MediaDetailView, bool)
-	CreateMedia(name, description, fileToken string, expiration, privacy int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
-	BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.Catalog, expiration, privacy int, authToken, sessionID string) ([]model.SummaryView, bool)
-	UpdateMedia(id int, name, description, fileToken string, expiration, privacy int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
+	CreateMedia(name, description, fileToken string, expiration int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
+	BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.Catalog, expiration int, authToken, sessionID string) ([]model.SummaryView, bool)
+	UpdateMedia(id int, name, description, fileToken string, expiration int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteMedia(id int, authToken, sessionID string) bool
 }
 
