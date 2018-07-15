@@ -133,15 +133,15 @@ type CreateMediaResult struct {
 	Media model.SummaryView `json:"media"`
 }
 
-// MediaItem mediaItem
-type MediaItem struct {
+// MediaInfo MediaInfo
+type MediaInfo struct {
 	Name      string `json:"name"`
 	FileToken string `json:"fileToken"`
 }
 
 // BatchCreateMediaParam 批量新建Media参数
 type BatchCreateMediaParam struct {
-	Medias      []MediaItem     `json:"medias"`
+	Medias      []MediaInfo     `json:"medias"`
 	Description string          `json:"description"`
 	Expiration  int             `json:"expiration"`
 	Catalog     []model.Catalog `json:"catalog"`

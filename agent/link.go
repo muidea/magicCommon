@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	common_result "muidea.com/magicCommon/common"
+	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
 	"muidea.com/magicCommon/model"
 )
 
 func (s *center) QueryLink(id int, authToken, sessionID string) (model.LinkDetailView, bool) {
-	type queryResult struct {
-		common_result.Result
-		Link model.LinkDetailView `json:"link"`
-	}
-
-	result := &queryResult{}
+	result := &common_def.QueryLinkResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
@@ -23,7 +18,7 @@ func (s *center) QueryLink(id int, authToken, sessionID string) (model.LinkDetai
 		return result.Link, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Link, true
 	}
 
@@ -32,21 +27,8 @@ func (s *center) QueryLink(id int, authToken, sessionID string) (model.LinkDetai
 }
 
 func (s *center) CreateLink(name, description, url, logo string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type createParam struct {
-		Name        string          `json:"name"`
-		Description string          `json:"description"`
-		URL         string          `json:"url"`
-		Logo        string          `json:"logo"`
-		Catalog     []model.Catalog `json:"catalog"`
-	}
-
-	type createResult struct {
-		common_result.Result
-		Link model.SummaryView `json:"link"`
-	}
-
-	param := &createParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
-	result := &createResult{}
+	param := &common_def.CreateLinkParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
+	result := &common_def.CreateLinkResult{}
 	httpURL := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/link/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, httpURL, param, result)
 	if err != nil {
@@ -54,7 +36,7 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 		return result.Link, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Link, true
 	}
 
@@ -63,21 +45,8 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 }
 
 func (s *center) UpdateLink(id int, name, description, url, logo string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type updateParam struct {
-		Name        string          `json:"name"`
-		Description string          `json:"description"`
-		URL         string          `json:"url"`
-		Logo        string          `json:"logo"`
-		Catalog     []model.Catalog `json:"catalog"`
-	}
-
-	type updateResult struct {
-		common_result.Result
-		Link model.SummaryView `json:"link"`
-	}
-
-	param := &updateParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
-	result := &updateResult{}
+	param := &common_def.UpdateLinkParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
+	result := &common_def.UpdateLinkResult{}
 	httpURL := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, httpURL, param, result)
 	if err != nil {
@@ -85,7 +54,7 @@ func (s *center) UpdateLink(id int, name, description, url, logo string, catalog
 		return result.Link, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Link, true
 	}
 
@@ -94,11 +63,7 @@ func (s *center) UpdateLink(id int, name, description, url, logo string, catalog
 }
 
 func (s *center) DeleteLink(id int, authToken, sessionID string) bool {
-	type deleteResult struct {
-		common_result.Result
-	}
-
-	result := &deleteResult{}
+	result := &common_def.DestroyLinkResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
@@ -106,7 +71,7 @@ func (s *center) DeleteLink(id int, authToken, sessionID string) bool {
 		return false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return true
 	}
 

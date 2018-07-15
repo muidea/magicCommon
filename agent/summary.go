@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	common_result "muidea.com/magicCommon/common"
+	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
 	"muidea.com/magicCommon/model"
 )
 
 func (s *center) FetchSummary(name, summaryType, authToken, sessionID string) (model.SummaryView, bool) {
-	type fetchResult struct {
-		common_result.Result
-		Summary model.SummaryView `json:"summary"`
-	}
-
-	result := &fetchResult{}
+	result := &common_def.QuerySummaryResult{}
 	url := fmt.Sprintf("%s/%s?name=%s&type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/", name, summaryType, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
@@ -23,7 +18,7 @@ func (s *center) FetchSummary(name, summaryType, authToken, sessionID string) (m
 		return result.Summary, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Summary, true
 	}
 
@@ -32,12 +27,7 @@ func (s *center) FetchSummary(name, summaryType, authToken, sessionID string) (m
 }
 
 func (s *center) QuerySummaryContent(id int, summaryType, authToken, sessionID string) []model.SummaryView {
-	type queryResult struct {
-		common_result.Result
-		Summary []model.SummaryView `json:"summary"`
-	}
-
-	result := &queryResult{Summary: []model.SummaryView{}}
+	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
 	url := fmt.Sprintf("%s/%s/%d?type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/detail", id, summaryType, authToken, sessionID)
 	if s.bindUser != nil {
 		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
@@ -49,7 +39,7 @@ func (s *center) QuerySummaryContent(id int, summaryType, authToken, sessionID s
 		return result.Summary
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Summary
 	}
 
@@ -58,12 +48,7 @@ func (s *center) QuerySummaryContent(id int, summaryType, authToken, sessionID s
 }
 
 func (s *center) QuerySummaryContentByCatalog(id int, summaryType string, catalog int, authToken, sessionID string) []model.SummaryView {
-	type queryResult struct {
-		common_result.Result
-		Summary []model.SummaryView `json:"summary"`
-	}
-
-	result := &queryResult{Summary: []model.SummaryView{}}
+	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
 	url := fmt.Sprintf("%s/%s/%d?type=%s&catalog=%d&authToken=%s&sessionID=%s", s.baseURL, "content/summary/detail", id, summaryType, catalog, authToken, sessionID)
 	if s.bindUser != nil {
 		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
@@ -75,7 +60,7 @@ func (s *center) QuerySummaryContentByCatalog(id int, summaryType string, catalo
 		return result.Summary
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Summary
 	}
 

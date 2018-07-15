@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	common_result "muidea.com/magicCommon/common"
+	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
 	"muidea.com/magicCommon/model"
 )
 
 func (s *center) QueryMedia(id int, authToken, sessionID string) (model.MediaDetailView, bool) {
-	type queryResult struct {
-		common_result.Result
-		Media model.MediaDetailView `json:"media"`
-	}
-
-	result := &queryResult{}
+	result := &common_def.QueryMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
@@ -23,7 +18,7 @@ func (s *center) QueryMedia(id int, authToken, sessionID string) (model.MediaDet
 		return result.Media, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Media, true
 	}
 
@@ -32,22 +27,8 @@ func (s *center) QueryMedia(id int, authToken, sessionID string) (model.MediaDet
 }
 
 func (s *center) CreateMedia(name, description, fileToken string, expiration, privacy int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type createParam struct {
-		Name        string          `json:"name"`
-		Description string          `json:"description"`
-		FileToken   string          `json:"fileToken"`
-		Expiration  int             `json:"expiration"`
-		Privacy     int             `json:"privacy"`
-		Catalog     []model.Catalog `json:"catalog"`
-	}
-
-	type createResult struct {
-		common_result.Result
-		Media model.SummaryView `json:"media"`
-	}
-
-	param := &createParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Privacy: privacy, Catalog: catalog}
-	result := &createResult{}
+	param := &common_def.CreateMediaParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog}
+	result := &common_def.CreateMediaResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
@@ -55,7 +36,7 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration, pr
 		return result.Media, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Media, true
 	}
 
@@ -63,22 +44,9 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration, pr
 	return result.Media, false
 }
 
-func (s *center) BatchCreateMedia(media []model.MediaItem, description string, catalog []model.Catalog, expiration, privacy int, authToken, sessionID string) ([]model.SummaryView, bool) {
-	type batchCreateParam struct {
-		Media       []model.MediaItem `json:"media"`
-		Description string            `json:"description"`
-		Expiration  int               `json:"expiration"`
-		Privacy     int               `json:"privacy"`
-		Catalog     []model.Catalog   `json:"catalog"`
-	}
-
-	type batchCreateResult struct {
-		common_result.Result
-		Media []model.SummaryView `json:"media"`
-	}
-
-	param := &batchCreateParam{Media: media, Description: description, Expiration: expiration, Privacy: privacy, Catalog: catalog}
-	result := &batchCreateResult{}
+func (s *center) BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.Catalog, expiration, privacy int, authToken, sessionID string) ([]model.SummaryView, bool) {
+	param := &common_def.BatchCreateMediaParam{Medias: media, Description: description, Expiration: expiration, Catalog: catalog}
+	result := &common_def.BatchCreateMediaResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
@@ -86,7 +54,7 @@ func (s *center) BatchCreateMedia(media []model.MediaItem, description string, c
 		return result.Media, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Media, true
 	}
 
@@ -95,22 +63,8 @@ func (s *center) BatchCreateMedia(media []model.MediaItem, description string, c
 }
 
 func (s *center) UpdateMedia(id int, name, description, fileToken string, expiration, privacy int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type updateParam struct {
-		Name        string          `json:"name"`
-		Description string          `json:"description"`
-		FileToken   string          `json:"fileToken"`
-		Expiration  int             `json:"expiration"`
-		Privacy     int             `json:"privacy"`
-		Catalog     []model.Catalog `json:"catalog"`
-	}
-
-	type updateResult struct {
-		common_result.Result
-		Media model.SummaryView `json:"media"`
-	}
-
-	param := &updateParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Privacy: privacy, Catalog: catalog}
-	result := &updateResult{}
+	param := &common_def.UpdateMediaParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog}
+	result := &common_def.UpdateMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
@@ -118,7 +72,7 @@ func (s *center) UpdateMedia(id int, name, description, fileToken string, expira
 		return result.Media, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Media, true
 	}
 
@@ -127,11 +81,7 @@ func (s *center) UpdateMedia(id int, name, description, fileToken string, expira
 }
 
 func (s *center) DeleteMedia(id int, authToken, sessionID string) bool {
-	type deleteResult struct {
-		common_result.Result
-	}
-
-	result := &deleteResult{}
+	result := &common_def.DestroyMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
@@ -139,7 +89,7 @@ func (s *center) DeleteMedia(id int, authToken, sessionID string) bool {
 		return false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return true
 	}
 

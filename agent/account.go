@@ -4,25 +4,14 @@ import (
 	"fmt"
 	"log"
 
-	common_result "muidea.com/magicCommon/common"
+	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
 	"muidea.com/magicCommon/model"
 )
 
 func (s *center) LoginAccount(account, password string) (model.AccountOnlineView, string, string, bool) {
-	type loginParam struct {
-		Account  string `json:"account"`
-		Password string `json:"password"`
-	}
-
-	type loginResult struct {
-		common_result.Result
-		OnlineUser model.AccountOnlineView `json:"onlineUser"`
-		SessionID  string                  `json:"sessionID"`
-	}
-
-	param := &loginParam{Account: account, Password: password}
-	result := &loginResult{}
+	param := &common_def.LoginAccountParam{Account: account, Password: password}
+	result := &common_def.LoginAccountResult{}
 	url := fmt.Sprintf("%s/%s", s.baseURL, "cas/user/")
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
@@ -30,7 +19,7 @@ func (s *center) LoginAccount(account, password string) (model.AccountOnlineView
 		return result.OnlineUser, "", "", false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.OnlineUser, result.OnlineUser.AuthToken, result.SessionID, true
 	}
 
@@ -39,16 +28,12 @@ func (s *center) LoginAccount(account, password string) (model.AccountOnlineView
 }
 
 func (s *center) LogoutAccount(authToken, sessionID string) bool {
-	type logoutResult struct {
-		common_result.Result
-	}
-
 	if len(authToken) == 0 || len(sessionID) == 0 {
 		log.Print("illegal authToken or sessionID")
 		return false
 	}
 
-	result := &logoutResult{}
+	result := &common_def.LogoutAccountResult{}
 	url := fmt.Sprintf("%s/%s/?authToken=%s&sessionID=%s", s.baseURL, "cas/user", authToken, sessionID)
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
@@ -56,7 +41,7 @@ func (s *center) LogoutAccount(authToken, sessionID string) bool {
 		return false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return true
 	}
 
@@ -65,13 +50,7 @@ func (s *center) LogoutAccount(authToken, sessionID string) bool {
 }
 
 func (s *center) StatusAccount(authToken, sessionID string) (model.AccountOnlineView, bool) {
-	type statusResult struct {
-		common_result.Result
-		OnlineUser model.AccountOnlineView `json:"onlineUser"`
-		SessionID  string                  `json:"sessionID"`
-	}
-
-	result := &statusResult{}
+	result := &common_def.StatusAccountResult{}
 	if len(authToken) == 0 || len(sessionID) == 0 {
 		log.Print("illegal authToken or sessionID")
 		return result.OnlineUser, false
@@ -84,7 +63,7 @@ func (s *center) StatusAccount(authToken, sessionID string) (model.AccountOnline
 		return result.OnlineUser, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.OnlineUser, true
 	}
 

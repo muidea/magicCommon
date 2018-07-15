@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	common_result "muidea.com/magicCommon/common"
+	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
 	"muidea.com/magicCommon/model"
 )
 
 func (s *center) QueryArticle(id int, authToken, sessionID string) (model.ArticleDetailView, bool) {
-	type queryResult struct {
-		common_result.Result
-		Article model.ArticleDetailView `json:"article"`
-	}
-
-	result := &queryResult{}
+	result := &common_def.QueryArticleResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
@@ -23,7 +18,7 @@ func (s *center) QueryArticle(id int, authToken, sessionID string) (model.Articl
 		return result.Article, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Article, true
 	}
 
@@ -32,19 +27,8 @@ func (s *center) QueryArticle(id int, authToken, sessionID string) (model.Articl
 }
 
 func (s *center) CreateArticle(title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type createParam struct {
-		Name    string          `json:"name"`
-		Content string          `json:"content"`
-		Catalog []model.Catalog `json:"catalog"`
-	}
-
-	type createResult struct {
-		common_result.Result
-		Article model.SummaryView `json:"article"`
-	}
-
-	param := &createParam{Name: title, Content: content, Catalog: catalog}
-	result := &createResult{}
+	param := &common_def.CreateArticleParam{Name: title, Content: content, Catalog: catalog}
+	result := &common_def.CreateArticleResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/article/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
@@ -52,7 +36,7 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, a
 		return result.Article, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Article, true
 	}
 
@@ -61,19 +45,8 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, a
 }
 
 func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type updateParam struct {
-		Name    string          `json:"name"`
-		Content string          `json:"content"`
-		Catalog []model.Catalog `json:"catalog"`
-	}
-
-	type updateResult struct {
-		common_result.Result
-		Article model.SummaryView `json:"article"`
-	}
-
-	param := &updateParam{Name: title, Content: content, Catalog: catalog}
-	result := &updateResult{}
+	param := &common_def.UpdateArticleParam{Name: title, Content: content, Catalog: catalog}
+	result := &common_def.UpdateArticleResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
@@ -81,7 +54,7 @@ func (s *center) UpdateArticle(id int, title, content string, catalog []model.Ca
 		return result.Article, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Article, true
 	}
 
@@ -90,11 +63,7 @@ func (s *center) UpdateArticle(id int, title, content string, catalog []model.Ca
 }
 
 func (s *center) DeleteArticle(id int, authToken, sessionID string) bool {
-	type deleteResult struct {
-		common_result.Result
-	}
-
-	result := &deleteResult{}
+	result := &common_def.DestoryArticleResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
@@ -102,7 +71,7 @@ func (s *center) DeleteArticle(id int, authToken, sessionID string) bool {
 		return false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return true
 	}
 

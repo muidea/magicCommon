@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	common_result "muidea.com/magicCommon/common"
+	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
 	"muidea.com/magicCommon/model"
 )
 
 func (s *center) QueryCatalog(catalogID int, authToken, sessionID string) (model.CatalogDetailView, bool) {
-	type queryResult struct {
-		common_result.Result
-		Catalog model.CatalogDetailView `json:"catalog"`
-	}
-
-	result := &queryResult{}
+	result := &common_def.QueryCatalogResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", catalogID, authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
@@ -23,7 +18,7 @@ func (s *center) QueryCatalog(catalogID int, authToken, sessionID string) (model
 		return result.Catalog, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Catalog, true
 	}
 
@@ -32,19 +27,8 @@ func (s *center) QueryCatalog(catalogID int, authToken, sessionID string) (model
 }
 
 func (s *center) CreateCatalog(name, description string, parent []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type createParam struct {
-		Name        string          `json:"name"`
-		Description string          `json:"description"`
-		Catalog     []model.Catalog `json:"catalog"`
-	}
-
-	type createResult struct {
-		common_result.Result
-		Catalog model.SummaryView `json:"catalog"`
-	}
-
-	param := &createParam{Name: name, Description: description, Catalog: parent}
-	result := &createResult{}
+	param := &common_def.CreateCatalogParam{Name: name, Description: description, Catalog: parent}
+	result := &common_def.CreateCatalogResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/catalog/", authToken, sessionID)
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
@@ -52,7 +36,7 @@ func (s *center) CreateCatalog(name, description string, parent []model.Catalog,
 		return result.Catalog, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Catalog, true
 	}
 
@@ -61,19 +45,8 @@ func (s *center) CreateCatalog(name, description string, parent []model.Catalog,
 }
 
 func (s *center) UpdateCatalog(id int, name, description string, parent []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	type updateParam struct {
-		Name        string          `json:"name"`
-		Description string          `json:"description"`
-		Catalog     []model.Catalog `json:"catalog"`
-	}
-
-	type updateResult struct {
-		common_result.Result
-		Catalog model.SummaryView `json:"catalog"`
-	}
-
-	param := &updateParam{Name: name, Description: description, Catalog: parent}
-	result := &updateResult{}
+	param := &common_def.UpdateCatalogParam{Name: name, Description: description, Catalog: parent}
+	result := &common_def.UpdateCatalogResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
 	err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
@@ -81,7 +54,7 @@ func (s *center) UpdateCatalog(id int, name, description string, parent []model.
 		return result.Catalog, false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.Catalog, true
 	}
 
@@ -90,11 +63,7 @@ func (s *center) UpdateCatalog(id int, name, description string, parent []model.
 }
 
 func (s *center) DeleteCatalog(id int, authToken, sessionID string) bool {
-	type deleteResult struct {
-		common_result.Result
-	}
-
-	result := &deleteResult{}
+	result := &common_def.DestroyCatalogResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
@@ -102,7 +71,7 @@ func (s *center) DeleteCatalog(id int, authToken, sessionID string) bool {
 		return false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return true
 	}
 

@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	common_result "muidea.com/magicCommon/common"
+	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
 	"muidea.com/magicCommon/model"
 )
@@ -42,7 +42,7 @@ type Agent interface {
 
 	QueryMedia(id int, authToken, sessionID string) (model.MediaDetailView, bool)
 	CreateMedia(name, description, fileToken string, expiration, privacy int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
-	BatchCreateMedia(media []model.MediaItem, description string, catalog []model.Catalog, expiration, privacy int, authToken, sessionID string) ([]model.SummaryView, bool)
+	BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.Catalog, expiration, privacy int, authToken, sessionID string) ([]model.SummaryView, bool)
 	UpdateMedia(id int, name, description, fileToken string, expiration, privacy int, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteMedia(id int, authToken, sessionID string) bool
 }
@@ -76,12 +76,7 @@ func (s *center) Stop() {
 }
 
 func (s *center) verify(endpointID, authToken string) (string, bool) {
-	type verifyResult struct {
-		common_result.Result
-		SessionID string `json:"sessionID"`
-	}
-
-	result := &verifyResult{}
+	result := &common_def.VerifyEndpointResult{}
 	url := fmt.Sprintf("%s/%s/%s?authToken=%s", s.baseURL, "authority/endpoint/verify", endpointID, authToken)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
@@ -89,7 +84,7 @@ func (s *center) verify(endpointID, authToken string) (string, bool) {
 		return "", false
 	}
 
-	if result.ErrorCode == common_result.Success {
+	if result.ErrorCode == common_def.Success {
 		return result.SessionID, true
 	}
 
