@@ -61,7 +61,7 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration int
 func (s *center) BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.Catalog, expiration int, authToken, sessionID string) ([]model.SummaryView, bool) {
 	param := &common_def.BatchCreateMediaParam{Medias: media, Description: description, Expiration: expiration, Catalog: catalog}
 	result := &common_def.BatchCreateMediaResult{}
-	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", authToken, sessionID)
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/batch/", authToken, sessionID)
 	if s.bindUser != nil {
 		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
 	}
