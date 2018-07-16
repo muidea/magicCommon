@@ -12,6 +12,13 @@ import (
 func (s *center) FetchSummary(name, summaryType, authToken, sessionID string) (model.SummaryView, bool) {
 	result := &common_def.QuerySummaryResult{}
 	url := fmt.Sprintf("%s/%s?name=%s&type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/", name, summaryType, authToken, sessionID)
+	if s.bindUser != nil {
+		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
+	}
+	if s.strictCatalog != nil {
+		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
+	}
+
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("fetch catalog failed, err:%s", err.Error())
@@ -31,6 +38,9 @@ func (s *center) QuerySummaryContent(id int, summaryType, authToken, sessionID s
 	url := fmt.Sprintf("%s/%s/%d?type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/detail", id, summaryType, authToken, sessionID)
 	if s.bindUser != nil {
 		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
+	}
+	if s.strictCatalog != nil {
+		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
 
 	err := net.HTTPGet(s.httpClient, url, result)
@@ -52,6 +62,9 @@ func (s *center) QuerySummaryContentByCatalog(id int, summaryType string, catalo
 	url := fmt.Sprintf("%s/%s/%d?type=%s&catalog=%d&authToken=%s&sessionID=%s", s.baseURL, "content/summary/detail", id, summaryType, catalog, authToken, sessionID)
 	if s.bindUser != nil {
 		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
+	}
+	if s.strictCatalog != nil {
+		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
 
 	err := net.HTTPGet(s.httpClient, url, result)

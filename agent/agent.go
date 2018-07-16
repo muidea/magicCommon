@@ -21,13 +21,16 @@ type Agent interface {
 	BindAccount(user *model.User)
 	UnbindAccount()
 
+	StrictCatalog(catalog *model.Catalog)
+	UnstrictCatalog()
+
 	FetchSummary(name, summaryType, authToken, sessionID string) (model.SummaryView, bool)
 	QuerySummaryContent(id int, summaryType, authToken, sessionID string) []model.SummaryView
 	QuerySummaryContentByCatalog(id int, summaryType string, catalog int, authToken, sessionID string) []model.SummaryView
 
 	QueryCatalog(id int, authToken, sessionID string) (model.CatalogDetailView, bool)
-	CreateCatalog(name, description string, parent []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
-	UpdateCatalog(id int, name, description string, parent []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
+	CreateCatalog(name, description string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
+	UpdateCatalog(id int, name, description string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteCatalog(id int, authToken, sessionID string) bool
 
 	QueryArticle(id int, authToken, sessionID string) (model.ArticleDetailView, bool)
@@ -53,9 +56,10 @@ func New() Agent {
 }
 
 type center struct {
-	httpClient *http.Client
-	baseURL    string
-	bindUser   *model.User
+	httpClient    *http.Client
+	baseURL       string
+	bindUser      *model.User
+	strictCatalog *model.Catalog
 }
 
 func (s *center) Start(centerServer, endpointID, authToken string) (string, bool) {
@@ -90,4 +94,12 @@ func (s *center) verify(endpointID, authToken string) (string, bool) {
 
 	log.Printf("verify endpoint failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return "", false
+}
+
+func (s *center) StrictCatalog(catalog *model.Catalog) {
+	s.strictCatalog = catalog
+}
+
+func (s *center) UnstrictCatalog() {
+	s.strictCatalog = nil
 }
