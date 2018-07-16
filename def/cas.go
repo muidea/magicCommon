@@ -11,9 +11,9 @@ type LoginAccountParam struct {
 // LoginAccountResult 账号登陆结果
 type LoginAccountResult struct {
 	Result
-	OnlineUser  model.AccountOnlineView `json:"onlineUser"`
-	SessionID   string                  `json:"sessionID"`
-	AuthTokenID string                  `json:"authToken"`
+	OnlineUser model.AccountOnlineView `json:"onlineUser"`
+	SessionID  string                  `json:"sessionID"`
+	AuthToken  string                  `json:"authToken"`
 }
 
 // LogoutAccountResult 账号登出结果

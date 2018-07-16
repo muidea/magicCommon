@@ -17,7 +17,7 @@ type Agent interface {
 
 	LoginAccount(account, password string) (model.AccountOnlineView, string, string, bool)
 	LogoutAccount(authToken, sessionID string) bool
-	StatusAccount(authToken, sessionID string) (model.AccountOnlineView, bool)
+	StatusAccount(authToken, sessionID string) (model.AccountOnlineView, string, bool)
 	BindAccount(user *model.User)
 	UnbindAccount()
 

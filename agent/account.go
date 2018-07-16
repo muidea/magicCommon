@@ -49,26 +49,26 @@ func (s *center) LogoutAccount(authToken, sessionID string) bool {
 	return false
 }
 
-func (s *center) StatusAccount(authToken, sessionID string) (model.AccountOnlineView, bool) {
+func (s *center) StatusAccount(authToken, sessionID string) (model.AccountOnlineView, string, bool) {
 	result := &common_def.StatusAccountResult{}
 	if len(authToken) == 0 || len(sessionID) == 0 {
 		log.Print("illegal authToken or sessionID")
-		return result.OnlineUser, false
+		return result.OnlineUser, "", false
 	}
 
 	url := fmt.Sprintf("%s/%s/?authToken=%s&sessionID=%s", s.baseURL, "cas/user", authToken, sessionID)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("get status failed, err:%s", err.Error())
-		return result.OnlineUser, false
+		return result.OnlineUser, "", false
 	}
 
 	if result.ErrorCode == common_def.Success {
-		return result.OnlineUser, true
+		return result.OnlineUser, "", true
 	}
 
 	log.Printf("status account failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
-	return result.OnlineUser, false
+	return result.OnlineUser, result.SessionID, false
 }
 
 func (s *center) BindAccount(user *model.User) {
