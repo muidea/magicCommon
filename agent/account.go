@@ -70,11 +70,3 @@ func (s *center) StatusAccount(authToken, sessionID string) (model.AccountOnline
 	log.Printf("status account failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.OnlineUser, result.SessionID, false
 }
-
-func (s *center) BindAccount(user *model.User) {
-	s.bindUser = user
-}
-
-func (s *center) UnbindAccount() {
-	s.bindUser = nil
-}

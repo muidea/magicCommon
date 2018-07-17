@@ -12,9 +12,6 @@ import (
 func (s *center) QueryLink(id int, authToken, sessionID string) (model.LinkDetailView, bool) {
 	result := &common_def.QueryLinkResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -37,9 +34,6 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 	param := &common_def.CreateLinkParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
 	result := &common_def.CreateLinkResult{}
 	httpURL := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/link/", authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -62,9 +56,6 @@ func (s *center) UpdateLink(id int, name, description, url, logo string, catalog
 	param := &common_def.UpdateLinkParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
 	result := &common_def.UpdateLinkResult{}
 	httpURL := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -86,9 +77,6 @@ func (s *center) UpdateLink(id int, name, description, url, logo string, catalog
 func (s *center) DeleteLink(id int, authToken, sessionID string) bool {
 	result := &common_def.DestroyLinkResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}

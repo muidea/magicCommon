@@ -12,9 +12,6 @@ import (
 func (s *center) FetchSummary(name, summaryType, authToken, sessionID string) (model.SummaryView, bool) {
 	result := &common_def.QuerySummaryResult{}
 	url := fmt.Sprintf("%s/%s?name=%s&type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/", name, summaryType, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -36,9 +33,6 @@ func (s *center) FetchSummary(name, summaryType, authToken, sessionID string) (m
 func (s *center) QuerySummaryContent(id int, summaryType, authToken, sessionID string) []model.SummaryView {
 	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
 	url := fmt.Sprintf("%s/%s/%d?type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/detail", id, summaryType, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -57,12 +51,9 @@ func (s *center) QuerySummaryContent(id int, summaryType, authToken, sessionID s
 	return result.Summary
 }
 
-func (s *center) QuerySummaryContentByCatalog(id int, summaryType string, catalog int, authToken, sessionID string) []model.SummaryView {
+func (s *center) QuerySummaryContentByUser(id int, summaryType, authToken, sessionID string, user int) []model.SummaryView {
 	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
-	url := fmt.Sprintf("%s/%s/%d?type=%s&catalog=%d&authToken=%s&sessionID=%s", s.baseURL, "content/summary/detail", id, summaryType, catalog, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
+	url := fmt.Sprintf("%s/%s/%d?type=%s&user=%d&authToken=%s&sessionID=%s", s.baseURL, "content/summary/detail", id, summaryType, user, authToken, sessionID)
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}

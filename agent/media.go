@@ -12,9 +12,6 @@ import (
 func (s *center) QueryMedia(id int, authToken, sessionID string) (model.MediaDetailView, bool) {
 	result := &common_def.QueryMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -37,9 +34,6 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration int
 	param := &common_def.CreateMediaParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog}
 	result := &common_def.CreateMediaResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -62,9 +56,6 @@ func (s *center) BatchCreateMedia(media []common_def.MediaInfo, description stri
 	param := &common_def.BatchCreateMediaParam{Medias: media, Description: description, Expiration: expiration, Catalog: catalog}
 	result := &common_def.BatchCreateMediaResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/batch/", authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -87,9 +78,6 @@ func (s *center) UpdateMedia(id int, name, description, fileToken string, expira
 	param := &common_def.UpdateMediaParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog}
 	result := &common_def.UpdateMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -111,9 +99,6 @@ func (s *center) UpdateMedia(id int, name, description, fileToken string, expira
 func (s *center) DeleteMedia(id int, authToken, sessionID string) bool {
 	result := &common_def.DestroyMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}

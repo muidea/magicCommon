@@ -18,15 +18,13 @@ type Agent interface {
 	LoginAccount(account, password string) (model.AccountOnlineView, string, string, bool)
 	LogoutAccount(authToken, sessionID string) bool
 	StatusAccount(authToken, sessionID string) (model.AccountOnlineView, string, bool)
-	BindAccount(user *model.User)
-	UnbindAccount()
 
 	StrictCatalog(catalog *model.Catalog)
 	UnstrictCatalog()
 
 	FetchSummary(name, summaryType, authToken, sessionID string) (model.SummaryView, bool)
 	QuerySummaryContent(id int, summaryType, authToken, sessionID string) []model.SummaryView
-	QuerySummaryContentByCatalog(id int, summaryType string, catalog int, authToken, sessionID string) []model.SummaryView
+	QuerySummaryContentByUser(id int, summaryType, authToken, sessionID string, user int) []model.SummaryView
 
 	QueryCatalog(id int, authToken, sessionID string) (model.CatalogDetailView, bool)
 	CreateCatalog(name, description string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool)
@@ -58,7 +56,6 @@ func New() Agent {
 type center struct {
 	httpClient    *http.Client
 	baseURL       string
-	bindUser      *model.User
 	strictCatalog *model.Catalog
 }
 

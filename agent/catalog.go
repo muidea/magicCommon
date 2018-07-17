@@ -12,9 +12,6 @@ import (
 func (s *center) QueryCatalog(id int, authToken, sessionID string) (model.CatalogDetailView, bool) {
 	result := &common_def.QueryCatalogResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -37,9 +34,6 @@ func (s *center) CreateCatalog(name, description string, catalog []model.Catalog
 	param := &common_def.CreateCatalogParam{Name: name, Description: description, Catalog: catalog}
 	result := &common_def.CreateCatalogResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/catalog/", authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -62,9 +56,6 @@ func (s *center) UpdateCatalog(id int, name, description string, catalog []model
 	param := &common_def.UpdateCatalogParam{Name: name, Description: description, Catalog: catalog}
 	result := &common_def.UpdateCatalogResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
@@ -86,9 +77,6 @@ func (s *center) UpdateCatalog(id int, name, description string, catalog []model
 func (s *center) DeleteCatalog(id int, authToken, sessionID string) bool {
 	result := &common_def.DestroyCatalogResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)
-	if s.bindUser != nil {
-		url = fmt.Sprintf("%s&user=%d", url, s.bindUser.ID)
-	}
 	if s.strictCatalog != nil {
 		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
 	}
