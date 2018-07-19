@@ -8,3 +8,6 @@ type AccountOnlineView struct {
 	Address    string `json:"address"`    // 访问IP
 	AuthToken  string `json:"authToken"`
 }
+
+// CasSummary Cas摘要
+type CasSummary []UnitSummary

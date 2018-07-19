@@ -22,7 +22,6 @@ type UnitTrend struct {
 // StatisticsView 系统统计信息
 type StatisticsView struct {
 	SystemSummary []UnitSummary `json:"systemSummary"`
-	SystemTrend   []UnitTrend   `json:"systemTrend"`
 	LastContent   []ContentUnit `json:"lastContent"`
 	LastAccount   []AccountUnit `json:"lastAccount"`
 }
