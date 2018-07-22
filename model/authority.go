@@ -84,6 +84,3 @@ type UserModuleAuthGroupView struct {
 	UserDetailView
 	ModuleAuthGroup []ModuleAuthGroupView `json:"moduleAuthGroup"`
 }
-
-// AuthoritySummary 授权摘要
-type AuthoritySummary []UnitSummary

@@ -15,3 +15,6 @@ type EndpointView struct {
 	Endpoint
 	User []User `json:"user"`
 }
+
+// EndpointSummary endpoint管理摘要
+type EndpointSummary []UnitSummary
