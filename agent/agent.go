@@ -78,7 +78,7 @@ func (s *center) Stop() {
 
 func (s *center) verify(endpointID, authToken string) (string, bool) {
 	result := &common_def.VerifyEndpointResult{}
-	url := fmt.Sprintf("%s/%s/%s?authToken=%s", s.baseURL, "authority/endpoint/verify", endpointID, authToken)
+	url := fmt.Sprintf("%s/%s/%s?authToken=%s", s.baseURL, "cas/endpoint/", endpointID, authToken)
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("verify endpoint failed, err:%s", err.Error())

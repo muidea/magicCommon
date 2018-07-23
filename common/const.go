@@ -8,6 +8,9 @@ const SessionID = "sessionID"
 // AuthToken 鉴权Token
 const AuthToken = "authToken"
 
+// IdentifyID 标识ID
+const IdentifyID = "identifyID"
+
 // ExpiryDate 会话有效期
 const ExpiryDate = "expiryDate"
 
