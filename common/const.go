@@ -22,14 +22,14 @@ const (
 	DISABLE
 )
 
-// SystemAccountUser 系统内置用户
-var SystemAccountUser = model.User{ID: 0, Name: "system"}
-
 // SystemAccountGroup 系统内置分组
-var SystemAccountGroup = model.Group{ID: 0, Name: "基础账号分组"}
+var SystemAccountGroup = model.GroupDetail{Group: model.Group{ID: 0, Name: "基础账号分组"}, Description: "系统内置，基础账号分组，该分组信息只读，不可编辑", Catalog: 0}
+
+// SystemAccountUser 系统内置用户
+var SystemAccountUser = model.UserDetail{User: model.User{ID: 0, Name: "system"}, Email: "rangh@foxmail.com", Group: []int{SystemAccountGroup.ID}, Status: ACTIVE, RegisterTime: "2017-05-17 08:30:00"}
 
 // SystemContentCatalog 系统默认的Content分组，UpdataCatalog时，如果需要创建Catalog,则默认指定的ParentCatalog
-var SystemContentCatalog = model.Catalog{ID: 0, Name: "基础内容分类"}
+var SystemContentCatalog = model.CatalogDetail{Summary: model.Summary{Unit: model.Unit{ID: 0, Name: "基础内容分类"}, Description: "系统内置，基础内容分类，该分类信息只读，不可编辑", Type: model.CATALOG, Catalog: []int{0}, CreateDate: "2017-05-17 08:30:00", Creater: SystemAccountUser.ID}}
 
 // VisitorAuthGroup 访客权限组
 var VisitorAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 0, Name: "访客组权限"}, Description: "允许查看公开权限的内容，无须登录"}
