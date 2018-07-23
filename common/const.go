@@ -22,11 +22,14 @@ const (
 	DISABLE
 )
 
-// BuildinAccountGroup 系统内置分组
-var BuildinAccountGroup = model.GroupDetail{Group: model.Group{ID: 0, Name: "系统基础分组"}, Description: "系统基础分组", Catalog: 0}
+// SystemAccountUser 系统内置用户
+var SystemAccountUser = model.User{ID: 0, Name: "system"}
 
-// BuildinAccountUser 系统内置用户
-var BuildinAccountUser = model.UserDetail{User: model.User{ID: 0, Name: "admin"}, Email: "rangh@foxmail.com", Group: []int{0}, Status: ACTIVE}
+// SystemAccountGroup 系统内置分组
+var SystemAccountGroup = model.Group{ID: 0, Name: "基础账号分组"}
+
+// SystemContentCatalog 系统默认的Content分组，UpdataCatalog时，如果需要创建Catalog,则默认指定的ParentCatalog
+var SystemContentCatalog = model.Catalog{ID: 0, Name: "基础内容分类"}
 
 // VisitorAuthGroup 访客权限组
 var VisitorAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 0, Name: "访客组权限"}, Description: "允许查看公开权限的内容，无须登录"}
@@ -53,9 +56,6 @@ func GetAuthGroup(id int) model.AuthGroup {
 		return UnknownAuthGroup
 	}
 }
-
-// BuildinContentCatalog 系统默认的Content分组，UpdataCatalog时，如果需要创建Catalog,则默认指定的ParentCatalog
-var BuildinContentCatalog = model.CatalogDetail{Summary: model.Summary{Unit: model.Unit{ID: 0, Name: "Content基础分类"}, Description: "Content基础分类", Type: model.CATALOG}}
 
 // NewStatus 新建状态
 var NewStatus = model.Status{ID: NEW, Name: "新建"}
