@@ -11,20 +11,16 @@ type LoginAccountParam struct {
 // LoginAccountResult 账号登陆结果
 type LoginAccountResult struct {
 	Result
-	OnlineUser model.AccountOnlineView `json:"onlineUser"`
-	SessionID  string                  `json:"sessionID"`
-	AuthToken  string                  `json:"authToken"`
+	OnlineEntry model.OnlineEntryView `json:"onlineEntry"`
+	SessionID   string                `json:"sessionID"`
+	AuthToken   string                `json:"authToken"`
 }
 
 // LogoutAccountResult 账号登出结果
 type LogoutAccountResult Result
 
 // StatusAccountResult 获取账号状态结果
-type StatusAccountResult struct {
-	Result
-	OnlineUser model.AccountOnlineView `json:"onlineUser"`
-	SessionID  string                  `json:"sessionID"`
-}
+type StatusAccountResult LoginAccountResult
 
 // LoginEndpointParam Endpoint登陆请求
 type LoginEndpointParam struct {
@@ -38,3 +34,9 @@ type LoginEndpointResult struct {
 	SessionID string `json:"sessionID"`
 	AuthToken string `json:"authToken"`
 }
+
+// LogoutEndpointResult Endpoint登出结果
+type LogoutEndpointResult Result
+
+// StatusEndpointResult 获取Endpoint状态结果
+type StatusEndpointResult LoginEndpointResult

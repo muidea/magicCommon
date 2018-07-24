@@ -15,9 +15,9 @@ type Agent interface {
 	Start(centerServer, endpointID, authToken string) (string, bool)
 	Stop()
 
-	LoginAccount(account, password string) (model.AccountOnlineView, string, string, bool)
+	LoginAccount(account, password string) (model.OnlineEntryView, string, string, bool)
 	LogoutAccount(authToken, sessionID string) bool
-	StatusAccount(authToken, sessionID string) (model.AccountOnlineView, string, bool)
+	StatusAccount(authToken, sessionID string) (model.OnlineEntryView, string, string, bool)
 
 	StrictCatalog(catalog *model.Catalog)
 	UnstrictCatalog()
