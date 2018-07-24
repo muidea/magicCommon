@@ -12,7 +12,7 @@ import (
 
 // Agent Center访问代理
 type Agent interface {
-	Start(centerServer, endpointID, authToken string) (string, bool)
+	Start(centerServer, endpointID, authToken string) (string, string, bool)
 	Stop()
 
 	LoginAccount(account, password string) (model.OnlineEntryView, string, string, bool)
@@ -59,39 +59,39 @@ type center struct {
 	strictCatalog *model.Catalog
 }
 
-func (s *center) Start(centerServer, endpointID, authToken string) (string, bool) {
+func (s *center) Start(centerServer, endpointID, authToken string) (string, string, bool) {
 	s.httpClient = &http.Client{}
 	s.baseURL = fmt.Sprintf("http://%s", centerServer)
 
-	sessionID, ok := s.verify(endpointID, authToken)
+	authToken, sessionID, ok := s.verify(endpointID, authToken)
 	if !ok {
-		return "", false
+		return "", "", false
 	}
 
 	log.Print("start centerAgent ok")
-	return sessionID, true
+	return authToken, sessionID, true
 }
 
 func (s *center) Stop() {
 
 }
 
-func (s *center) verify(endpointID, authToken string) (string, bool) {
+func (s *center) verify(endpointID, authToken string) (string, string, bool) {
 	param := &common_def.LoginEndpointParam{IdentifyID: endpointID, AuthToken: authToken}
 	result := &common_def.LoginEndpointResult{}
 	url := fmt.Sprintf("%s/%s", s.baseURL, "cas/endpoint/")
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("verify endpoint failed, err:%s", err.Error())
-		return "", false
+		return "", "", false
 	}
 
 	if result.ErrorCode == common_def.Success {
-		return result.SessionID, true
+		return result.AuthToken, result.SessionID, true
 	}
 
 	log.Printf("verify endpoint failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
-	return "", false
+	return "", "", false
 }
 
 func (s *center) StrictCatalog(catalog *model.Catalog) {
