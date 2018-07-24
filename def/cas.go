@@ -25,3 +25,16 @@ type StatusAccountResult struct {
 	OnlineUser model.AccountOnlineView `json:"onlineUser"`
 	SessionID  string                  `json:"sessionID"`
 }
+
+// LoginEndpointParam Endpoint登陆请求
+type LoginEndpointParam struct {
+	IdentifyID string `json:"identifyID"`
+	AuthToken  string `json:"authToken"`
+}
+
+// LoginEndpointResult Endpoint登陆结果
+type LoginEndpointResult struct {
+	Result
+	SessionID string `json:"sessionID"`
+	AuthToken string `json:"authToken"`
+}
