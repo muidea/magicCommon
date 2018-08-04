@@ -16,7 +16,10 @@ const MEDIA = "media"
 const COMMENT = "comment"
 
 // Article 文章
-type Article Unit
+type Article struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+}
 
 // Catalog 分类
 type Catalog Unit
@@ -28,7 +31,10 @@ type Link Unit
 type Media Unit
 
 // Comment 注释
-type Comment Unit
+type Comment struct {
+	ID      int    `json:"id"`
+	Subject string `json:"subject"`
+}
 
 // Summary 摘要信息
 type Summary struct {
@@ -49,7 +55,7 @@ type SummaryView struct {
 
 // ArticleDetail 文章
 type ArticleDetail struct {
-	Unit
+	Article
 	Catalog    []int  `json:"catalog"`
 	CreateDate string `json:"createDate"`
 	Creater    int    `json:"creater"`
@@ -132,8 +138,8 @@ type MediaDetailView struct {
 
 // CommentDetail 注释
 type CommentDetail struct {
-	Unit
-	Comment    string `json:"comment"`
+	Comment
+	Content    string `json:"content"`
 	Catalog    []int  `json:"catalog"`
 	CreateDate string `json:"createDate"`
 	Creater    int    `json:"creater"`

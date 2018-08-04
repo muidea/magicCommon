@@ -16,7 +16,7 @@ type QueryArticleListResult struct {
 
 // CreateArticleParam 新建Article参数
 type CreateArticleParam struct {
-	Name    string          `json:"name"`
+	Title   string          `json:"title"`
 	Content string          `json:"content"`
 	Catalog []model.Catalog `json:"catalog"`
 }
