@@ -12,6 +12,9 @@ const LINK = "link"
 // MEDIA 图像类型
 const MEDIA = "media"
 
+// COMMENT 注释类型
+const COMMENT = "comment"
+
 // Article 文章
 type Article Unit
 
@@ -23,6 +26,9 @@ type Link Unit
 
 // Media 文件
 type Media Unit
+
+// Comment 注释
+type Comment Unit
 
 // Summary 摘要信息
 type Summary struct {
@@ -43,7 +49,10 @@ type SummaryView struct {
 
 // ArticleDetail 文章
 type ArticleDetail struct {
-	Summary
+	Unit
+	Catalog    []int  `json:"catalog"`
+	CreateDate string `json:"createDate"`
+	Creater    int    `json:"creater"`
 
 	Content string `json:"content"`
 }
@@ -57,7 +66,11 @@ type ArticleDetailView struct {
 
 // CatalogDetail 分类详细信息
 type CatalogDetail struct {
-	Summary
+	Unit
+	Description string `json:"description"`
+	Catalog     []int  `json:"catalog"`
+	CreateDate  string `json:"createDate"`
+	Creater     int    `json:"creater"`
 }
 
 // CatalogDetailView 分类详细信息显示信息
@@ -70,7 +83,11 @@ type CatalogDetailView struct {
 
 // LinkDetail 链接
 type LinkDetail struct {
-	Summary
+	Unit
+	Description string `json:"description"`
+	Catalog     []int  `json:"catalog"`
+	CreateDate  string `json:"createDate"`
+	Creater     int    `json:"creater"`
 
 	URL  string `json:"url"`
 	Logo string `json:"logo"`
@@ -95,7 +112,12 @@ type MediaItem struct {
 
 // MediaDetail 文件信息
 type MediaDetail struct {
-	Summary
+	Unit
+	Description string `json:"description"`
+	Catalog     []int  `json:"catalog"`
+	CreateDate  string `json:"createDate"`
+	Creater     int    `json:"creater"`
+
 	FileToken  string `json:"fileToken"`
 	Expiration int    `json:"expiration"`
 }
@@ -103,6 +125,23 @@ type MediaDetail struct {
 // MediaDetailView 文件信息显示信息
 type MediaDetailView struct {
 	MediaDetail
+
+	Catalog []Catalog `json:"catalog"`
+	Creater User      `json:"creater"`
+}
+
+// CommentDetail 注释
+type CommentDetail struct {
+	Unit
+	Comment    string `json:"comment"`
+	Catalog    []int  `json:"catalog"`
+	CreateDate string `json:"createDate"`
+	Creater    int    `json:"creater"`
+}
+
+// CommentDetailView 注释显示信息
+type CommentDetailView struct {
+	CommentDetail
 
 	Catalog []Catalog `json:"catalog"`
 	Creater User      `json:"creater"`
