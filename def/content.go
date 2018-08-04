@@ -162,6 +162,26 @@ type UpdateMediaResult CreateMediaResult
 // DestroyMediaResult 删除Media结果
 type DestroyMediaResult Result
 
+// CreateCommentParam 新建Comment参数
+type CreateCommentParam struct {
+	Subject   string `json:"subject"`
+	Content   string `json:"description"`
+	OwnerID   int    `json:"owerID"`
+	OwnerType string `json:"ownerType"`
+}
+
+// CreateCommentResult 新建Comment结果
+type CreateCommentResult struct {
+	Result
+	Comment model.SummaryView `json:"comment"`
+}
+
+// UpdateCommentParam 更新Comment请求
+type UpdateCommentParam CreateCommentParam
+
+// UpdateCommentResult 更新Comment结果
+type UpdateCommentResult CreateCommentResult
+
 // QuerySummaryResult 查询Summary结果
 type QuerySummaryResult struct {
 	Result

@@ -143,6 +143,7 @@ type CommentDetail struct {
 	Catalog    []int  `json:"catalog"`
 	CreateDate string `json:"createDate"`
 	Creater    int    `json:"creater"`
+	Flag       int    `json:"flag"`
 }
 
 // CommentDetailView 注释显示信息
