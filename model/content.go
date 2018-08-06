@@ -1,5 +1,7 @@
 package model
 
+import "muidea.com/magicCommon/foundation/util"
+
 // ARTICLE 文章类型
 const ARTICLE = "article"
 
@@ -74,6 +76,11 @@ type ArticleDetail struct {
 	Content string `json:"content"`
 }
 
+// Summary 转换成Summary
+func (s *ArticleDetail) Summary() *Summary {
+	return &Summary{Unit: Unit{ID: s.ID, Name: s.Title}, Description: util.ExtractSummary(s.Content), Type: CATALOG, Catalog: s.Catalog, CreateDate: s.CreateDate, Creater: s.Creater}
+}
+
 // CatalogUnit 转换成CatalogUnit
 func (s *ArticleDetail) CatalogUnit() *CatalogUnit {
 	return &CatalogUnit{ID: s.ID, Type: ARTICLE}
@@ -125,6 +132,11 @@ type LinkDetail struct {
 	Logo string `json:"logo"`
 }
 
+// Summary 转换成Summary
+func (s *LinkDetail) Summary() *Summary {
+	return &Summary{Unit: s.Unit, Description: s.Description, Type: LINK, Catalog: s.Catalog, CreateDate: s.CreateDate, Creater: s.Creater}
+}
+
 // CatalogUnit 转换成CatalogUnit
 func (s *LinkDetail) CatalogUnit() *CatalogUnit {
 	return &CatalogUnit{ID: s.ID, Type: LINK}
@@ -159,6 +171,11 @@ type MediaDetail struct {
 	Expiration int    `json:"expiration"`
 }
 
+// Summary 转换成Summary
+func (s *MediaDetail) Summary() *Summary {
+	return &Summary{Unit: s.Unit, Description: s.Description, Type: LINK, Catalog: s.Catalog, CreateDate: s.CreateDate, Creater: s.Creater}
+}
+
 // CatalogUnit 转换成CatalogUnit
 func (s *MediaDetail) CatalogUnit() *CatalogUnit {
 	return &CatalogUnit{ID: s.ID, Type: MEDIA}
@@ -180,6 +197,11 @@ type CommentDetail struct {
 	CreateDate string        `json:"createDate"`
 	Creater    int           `json:"creater"`
 	Flag       int           `json:"flag"`
+}
+
+// Summary 转换成Summary
+func (s *CommentDetail) Summary() *Summary {
+	return &Summary{Unit: Unit{ID: s.ID, Name: s.Subject}, Description: util.ExtractSummary(s.Content), Type: CATALOG, Catalog: s.Catalog, CreateDate: s.CreateDate, Creater: s.Creater}
 }
 
 // CommentDetailView 注释显示信息
