@@ -32,7 +32,7 @@ var SystemAccountGroup = model.GroupDetail{Group: model.Group{ID: 0, Name: "基�
 var SystemAccountUser = model.UserDetail{User: model.User{ID: 0, Name: "system"}, Email: "rangh@foxmail.com", Group: []int{SystemAccountGroup.ID}, Status: ACTIVE, RegisterTime: "2017-05-17 08:30:00"}
 
 // SystemContentCatalog 系统默认的Content分组，UpdataCatalog时，如果需要创建Catalog,则默认指定的ParentCatalog
-var SystemContentCatalog = model.CatalogDetail{Unit: model.Unit{ID: 0, Name: "基础内容分类"}, Description: "系统内置，基础内容分类，该分类信息只读，不可编辑", Catalog: []int{0}, CreateDate: "2017-05-17 08:30:00", Creater: SystemAccountUser.ID}
+var SystemContentCatalog = model.CatalogDetail{Unit: model.Unit{ID: 0, Name: "基础内容分类"}, Description: "系统内置，基础内容分类，该分类信息只读，不可编辑", Catalog: []model.CatalogUnit{model.CatalogUnit{ID: 0, Type: model.CATALOG}}, CreateDate: "2017-05-17 08:30:00", Creater: SystemAccountUser.ID}
 
 // VisitorAuthGroup 访客权限组
 var VisitorAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 0, Name: "访客组权限"}, Description: "允许查看公开权限的内容，无须登录"}

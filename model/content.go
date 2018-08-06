@@ -15,6 +15,12 @@ const MEDIA = "media"
 // COMMENT 注释类型
 const COMMENT = "comment"
 
+// CatalogUnit 类型单元
+type CatalogUnit struct {
+	ID   int    `json:"id"`
+	Type string `json:"type"`
+}
+
 // Article 文章
 type Article struct {
 	ID    int    `json:"id"`
@@ -39,118 +45,148 @@ type Comment struct {
 // Summary 摘要信息
 type Summary struct {
 	Unit
-	Description string `json:"description"`
-	Type        string `json:"type"`
-	Catalog     []int  `json:"catalog"`
-	CreateDate  string `json:"createDate"`
-	Creater     int    `json:"creater"`
+	Description string        `json:"description"`
+	Type        string        `json:"type"`
+	Catalog     []CatalogUnit `json:"catalog"`
+	CreateDate  string        `json:"createDate"`
+	Creater     int           `json:"creater"`
+}
+
+// CatalogUnit 转换成CatalogUnit
+func (s *Summary) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: s.Type}
 }
 
 // SummaryView 摘要信息显示视图
 type SummaryView struct {
 	Summary
-	Catalog []Catalog `json:"catalog"`
+	Catalog []Summary `json:"catalog"`
 	Creater User      `json:"creater"`
 }
 
 // ArticleDetail 文章
 type ArticleDetail struct {
 	Article
-	Catalog    []int  `json:"catalog"`
-	CreateDate string `json:"createDate"`
-	Creater    int    `json:"creater"`
+	Catalog    []CatalogUnit `json:"catalog"`
+	CreateDate string        `json:"createDate"`
+	Creater    int           `json:"creater"`
 
 	Content string `json:"content"`
+}
+
+// CatalogUnit 转换成CatalogUnit
+func (s *ArticleDetail) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: ARTICLE}
 }
 
 // ArticleDetailView 文章显示信息
 type ArticleDetailView struct {
 	ArticleDetail
-	Catalog []Catalog `json:"catalog"`
+	Catalog []Summary `json:"catalog"`
 	Creater User      `json:"creater"`
 }
 
 // CatalogDetail 分类详细信息
 type CatalogDetail struct {
 	Unit
-	Description string `json:"description"`
-	Catalog     []int  `json:"catalog"`
-	CreateDate  string `json:"createDate"`
-	Creater     int    `json:"creater"`
+	Description string        `json:"description"`
+	Catalog     []CatalogUnit `json:"catalog"`
+	CreateDate  string        `json:"createDate"`
+	Creater     int           `json:"creater"`
+}
+
+// Summary 转换成Summary
+func (s *CatalogDetail) Summary() *Summary {
+	return &Summary{Unit: s.Unit, Description: s.Description, Type: CATALOG, Catalog: s.Catalog, CreateDate: s.CreateDate, Creater: s.Creater}
+}
+
+// CatalogUnit 转换成CatalogUnit
+func (s *CatalogDetail) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: CATALOG}
 }
 
 // CatalogDetailView 分类详细信息显示信息
 type CatalogDetailView struct {
 	CatalogDetail
 
-	Catalog []Catalog `json:"catalog"`
+	Catalog []Summary `json:"catalog"`
 	Creater User      `json:"creater"`
 }
 
 // LinkDetail 链接
 type LinkDetail struct {
 	Unit
-	Description string `json:"description"`
-	Catalog     []int  `json:"catalog"`
-	CreateDate  string `json:"createDate"`
-	Creater     int    `json:"creater"`
+	Description string        `json:"description"`
+	Catalog     []CatalogUnit `json:"catalog"`
+	CreateDate  string        `json:"createDate"`
+	Creater     int           `json:"creater"`
 
 	URL  string `json:"url"`
 	Logo string `json:"logo"`
+}
+
+// CatalogUnit 转换成CatalogUnit
+func (s *LinkDetail) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: LINK}
 }
 
 // LinkDetailView 链接显示信息
 type LinkDetailView struct {
 	LinkDetail
 
-	Catalog []Catalog `json:"catalog"`
+	Catalog []Summary `json:"catalog"`
 	Creater User      `json:"creater"`
 }
 
 // MediaItem 单个文件项
 type MediaItem struct {
-	Name        string `json:"name"`
-	FileToken   string `json:"fileToken"`
-	Description string `json:"description"`
-	Expiration  int    `json:"expiration"`
-	Catalog     []int  `json:"catalog"`
+	Name        string        `json:"name"`
+	FileToken   string        `json:"fileToken"`
+	Description string        `json:"description"`
+	Expiration  int           `json:"expiration"`
+	Catalog     []CatalogUnit `json:"catalog"`
 }
 
 // MediaDetail 文件信息
 type MediaDetail struct {
 	Unit
-	Description string `json:"description"`
-	Catalog     []int  `json:"catalog"`
-	CreateDate  string `json:"createDate"`
-	Creater     int    `json:"creater"`
+	Description string        `json:"description"`
+	Catalog     []CatalogUnit `json:"catalog"`
+	CreateDate  string        `json:"createDate"`
+	Creater     int           `json:"creater"`
 
 	FileToken  string `json:"fileToken"`
 	Expiration int    `json:"expiration"`
+}
+
+// CatalogUnit 转换成CatalogUnit
+func (s *MediaDetail) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: MEDIA}
 }
 
 // MediaDetailView 文件信息显示信息
 type MediaDetailView struct {
 	MediaDetail
 
-	Catalog []Catalog `json:"catalog"`
+	Catalog []Summary `json:"catalog"`
 	Creater User      `json:"creater"`
 }
 
 // CommentDetail 注释
 type CommentDetail struct {
 	Comment
-	Content    string `json:"content"`
-	Catalog    []int  `json:"catalog"`
-	CreateDate string `json:"createDate"`
-	Creater    int    `json:"creater"`
-	Flag       int    `json:"flag"`
+	Content    string        `json:"content"`
+	Catalog    []CatalogUnit `json:"catalog"`
+	CreateDate string        `json:"createDate"`
+	Creater    int           `json:"creater"`
+	Flag       int           `json:"flag"`
 }
 
 // CommentDetailView 注释显示信息
 type CommentDetailView struct {
 	CommentDetail
 
-	Catalog []Catalog `json:"catalog"`
+	Catalog []Summary `json:"catalog"`
 	Creater User      `json:"creater"`
 }
 

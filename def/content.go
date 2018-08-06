@@ -164,10 +164,9 @@ type DestroyMediaResult Result
 
 // CreateCommentParam 新建Comment参数
 type CreateCommentParam struct {
-	Subject   string `json:"subject"`
-	Content   string `json:"description"`
-	OwnerID   int    `json:"owerID"`
-	OwnerType string `json:"ownerType"`
+	Subject string        `json:"subject"`
+	Content string        `json:"description"`
+	Catalog model.Catalog `json:"catalog"`
 }
 
 // CreateCommentResult 新建Comment结果
@@ -181,6 +180,15 @@ type UpdateCommentParam CreateCommentParam
 
 // UpdateCommentResult 更新Comment结果
 type UpdateCommentResult CreateCommentResult
+
+// QueryCommentListResult 查询CommentList结果
+type QueryCommentListResult struct {
+	Result
+	Comment []model.CommentDetailView `json:"comment"`
+}
+
+// DestroyCommentResult 删除Comment结果
+type DestroyCommentResult Result
 
 // QuerySummaryResult 查询Summary结果
 type QuerySummaryResult struct {
