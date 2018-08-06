@@ -164,9 +164,8 @@ type DestroyMediaResult Result
 
 // CreateCommentParam 新建Comment参数
 type CreateCommentParam struct {
-	Subject string        `json:"subject"`
-	Content string        `json:"description"`
-	Catalog model.Catalog `json:"catalog"`
+	Subject string `json:"subject"`
+	Content string `json:"description"`
 }
 
 // CreateCommentResult 新建Comment结果

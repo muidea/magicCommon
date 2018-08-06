@@ -8,8 +8,8 @@ import (
 	"muidea.com/magicCommon/model"
 )
 
-// DecodeCatalog 解析CatalogUnit
-func DecodeCatalog(request *http.Request) (*model.CatalogUnit, error) {
+// DecodeStrictCatalog 解析CatalogUnit
+func DecodeStrictCatalog(request *http.Request) (*model.CatalogUnit, error) {
 	ret := &model.CatalogUnit{}
 	idStr := request.URL.Query().Get("strictID")
 	typeStr := request.URL.Query().Get("strictType")
@@ -27,7 +27,7 @@ func DecodeCatalog(request *http.Request) (*model.CatalogUnit, error) {
 	return nil, nil
 }
 
-// EncodeCatalog 对catalog进行编码
-func EncodeCatalog(catalog model.CatalogUnit) string {
+// EncodeStrictCatalog 对catalog进行编码
+func EncodeStrictCatalog(catalog model.CatalogUnit) string {
 	return fmt.Sprintf("strictID=%d&strictType=%s", catalog.ID, catalog.Type)
 }
