@@ -31,7 +31,7 @@ func (s *center) QueryArticle(id int, authToken, sessionID string) (model.Articl
 }
 
 func (s *center) CreateArticle(title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	param := &common_def.CreateArticleParam{Name: title, Content: content, Catalog: catalog}
+	param := &common_def.CreateArticleParam{Title: title, Content: content, Catalog: catalog}
 	result := &common_def.CreateArticleResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/article/", authToken, sessionID)
 	if s.strictCatalog != nil {
@@ -53,7 +53,7 @@ func (s *center) CreateArticle(title, content string, catalog []model.Catalog, a
 }
 
 func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
-	param := &common_def.UpdateArticleParam{Name: title, Content: content, Catalog: catalog}
+	param := &common_def.UpdateArticleParam{Title: title, Content: content, Catalog: catalog}
 	result := &common_def.UpdateArticleResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
 	if s.strictCatalog != nil {
