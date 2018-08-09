@@ -30,7 +30,7 @@ func (s *center) QueryCatalog(id int, authToken, sessionID string) (model.Catalo
 	return result.Catalog, false
 }
 
-func (s *center) CreateCatalog(name, description string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) CreateCatalog(name, description string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool) {
 	param := &common_def.CreateCatalogParam{Name: name, Description: description, Catalog: catalog}
 	result := &common_def.CreateCatalogResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/catalog/", authToken, sessionID)
@@ -52,7 +52,7 @@ func (s *center) CreateCatalog(name, description string, catalog []model.Catalog
 	return result.Catalog, false
 }
 
-func (s *center) UpdateCatalog(id int, name, description string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) UpdateCatalog(id int, name, description string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool) {
 	param := &common_def.UpdateCatalogParam{Name: name, Description: description, Catalog: catalog}
 	result := &common_def.UpdateCatalogResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/catalog", id, authToken, sessionID)

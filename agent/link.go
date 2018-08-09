@@ -30,7 +30,7 @@ func (s *center) QueryLink(id int, authToken, sessionID string) (model.LinkDetai
 	return result.Link, false
 }
 
-func (s *center) CreateLink(name, description, url, logo string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) CreateLink(name, description, url, logo string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool) {
 	param := &common_def.CreateLinkParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
 	result := &common_def.CreateLinkResult{}
 	httpURL := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/link/", authToken, sessionID)
@@ -52,7 +52,7 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 	return result.Link, false
 }
 
-func (s *center) UpdateLink(id int, name, description, url, logo string, catalog []model.Catalog, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) UpdateLink(id int, name, description, url, logo string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool) {
 	param := &common_def.UpdateLinkParam{Name: name, Description: description, URL: url, Logo: logo, Catalog: catalog}
 	result := &common_def.UpdateLinkResult{}
 	httpURL := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/link", id, authToken, sessionID)
