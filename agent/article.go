@@ -12,9 +12,6 @@ import (
 func (s *center) QueryArticle(id int, authToken, sessionID string) (model.ArticleDetailView, bool) {
 	result := &common_def.QueryArticleResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
-	if s.strictCatalog != nil {
-		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
-	}
 
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
@@ -30,12 +27,12 @@ func (s *center) QueryArticle(id int, authToken, sessionID string) (model.Articl
 	return result.Article, false
 }
 
-func (s *center) CreateArticle(title, content string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) CreateArticle(title, content string, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool) {
 	param := &common_def.CreateArticleParam{Title: title, Content: content, Catalog: catalog}
 	result := &common_def.CreateArticleResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/article/", authToken, sessionID)
-	if s.strictCatalog != nil {
-		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
+	if strictCatalog != nil {
+		url = fmt.Sprintf("%s&%s", url, common_def.EncodeStrictCatalog(*strictCatalog))
 	}
 
 	err := net.HTTPPost(s.httpClient, url, param, result)
@@ -52,12 +49,12 @@ func (s *center) CreateArticle(title, content string, catalog []model.CatalogUni
 	return result.Article, false
 }
 
-func (s *center) UpdateArticle(id int, title, content string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool) {
+func (s *center) UpdateArticle(id int, title, content string, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool) {
 	param := &common_def.UpdateArticleParam{Title: title, Content: content, Catalog: catalog}
 	result := &common_def.UpdateArticleResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
-	if s.strictCatalog != nil {
-		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
+	if strictCatalog != nil {
+		url = fmt.Sprintf("%s&%s", url, common_def.EncodeStrictCatalog(*strictCatalog))
 	}
 
 	err := net.HTTPPut(s.httpClient, url, param, result)
@@ -77,9 +74,6 @@ func (s *center) UpdateArticle(id int, title, content string, catalog []model.Ca
 func (s *center) DeleteArticle(id int, authToken, sessionID string) bool {
 	result := &common_def.DestoryArticleResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/article", id, authToken, sessionID)
-	if s.strictCatalog != nil {
-		url = fmt.Sprintf("%s&strictCatalog=%d", url, s.strictCatalog.ID)
-	}
 
 	err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {

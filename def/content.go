@@ -16,9 +16,9 @@ type QueryArticleListResult struct {
 
 // CreateArticleParam 新建Article参数
 type CreateArticleParam struct {
-	Title   string              `json:"title"`
-	Content string              `json:"content"`
-	Catalog []model.CatalogUnit `json:"catalog"`
+	Title   string          `json:"title"`
+	Content string          `json:"content"`
+	Catalog []model.Catalog `json:"catalog"`
 }
 
 // CreateArticleResult 新建Article结果
@@ -50,9 +50,9 @@ type QueryCatalogListResult struct {
 
 // CreateCatalogParam 新建Catalog参数
 type CreateCatalogParam struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Catalog     []model.CatalogUnit `json:"catalog"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Catalog     []model.Catalog `json:"catalog"`
 }
 
 // CreateCatalogResult 新建Catalog结果
@@ -84,11 +84,11 @@ type QueryLinkListResult struct {
 
 // CreateLinkParam 新建Link参数
 type CreateLinkParam struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	URL         string              `json:"url"`
-	Logo        string              `json:"logo"`
-	Catalog     []model.CatalogUnit `json:"catalog"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	URL         string          `json:"url"`
+	Logo        string          `json:"logo"`
+	Catalog     []model.Catalog `json:"catalog"`
 }
 
 // CreateLinkResult 新建Link结果
@@ -141,10 +141,10 @@ type MediaInfo struct {
 
 // BatchCreateMediaParam 批量新建Media参数
 type BatchCreateMediaParam struct {
-	Medias      []MediaInfo         `json:"medias"`
-	Description string              `json:"description"`
-	Expiration  int                 `json:"expiration"`
-	Catalog     []model.CatalogUnit `json:"catalog"`
+	Medias      []MediaInfo     `json:"medias"`
+	Description string          `json:"description"`
+	Expiration  int             `json:"expiration"`
+	Catalog     []model.Catalog `json:"catalog"`
 }
 
 // BatchCreateMediaResult 批量新建Media结果
@@ -175,7 +175,10 @@ type CreateCommentResult struct {
 }
 
 // UpdateCommentParam 更新Comment请求
-type UpdateCommentParam CreateCommentParam
+type UpdateCommentParam struct {
+	CreateCommentParam
+	Flag int `json:"flag"`
+}
 
 // UpdateCommentResult 更新Comment结果
 type UpdateCommentResult CreateCommentResult
