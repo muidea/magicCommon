@@ -9,9 +9,9 @@ import (
 	"muidea.com/magicCommon/model"
 )
 
-func (s *center) FetchSummary(name, summaryType, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool) {
+func (s *center) FetchSummary(summaryName, summaryType, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool) {
 	result := &common_def.QuerySummaryResult{}
-	url := fmt.Sprintf("%s/%s?name=%s&type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/", name, summaryType, authToken, sessionID)
+	url := fmt.Sprintf("%s/%s?name=%s&type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/", summaryName, summaryType, authToken, sessionID)
 	if strictCatalog != nil {
 		url = fmt.Sprintf("%s&%s", url, common_def.EncodeStrictCatalog(*strictCatalog))
 	}

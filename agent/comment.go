@@ -11,7 +11,7 @@ import (
 
 func (s *center) QueryComment(authToken, sessionID string, strictCatalog model.CatalogUnit) ([]model.CommentDetailView, bool) {
 	result := &common_def.QueryCommentListResult{}
-	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/comments", authToken, sessionID)
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/comments/", authToken, sessionID)
 
 	strictStr := common_def.EncodeStrictCatalog(strictCatalog)
 	url = fmt.Sprintf("%s&%s", url, strictStr)
