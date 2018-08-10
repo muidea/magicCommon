@@ -6,6 +6,7 @@ import (
 
 	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
+	"muidea.com/magicCommon/foundation/util"
 	"muidea.com/magicCommon/model"
 )
 
@@ -50,7 +51,7 @@ func (s *center) QuerySummaryContent(summary model.CatalogUnit, authToken, sessi
 
 func (s *center) QuerySummaryContentByUser(user int, authToken, sessionID string, strictCatalog *model.CatalogUnit) []model.SummaryView {
 	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
-	url := fmt.Sprintf("%s/%s?user=%d&authToken=%s&sessionID=%s", s.baseURL, "content/summarys/", user, authToken, sessionID)
+	url := fmt.Sprintf("%s/%s?user[]=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summarys/", util.IntArray2Str([]int{user}), authToken, sessionID)
 	if strictCatalog != nil {
 		url = fmt.Sprintf("%s&%s", url, common_def.EncodeStrictCatalog(*strictCatalog))
 	}
