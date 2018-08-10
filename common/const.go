@@ -34,6 +34,11 @@ var SystemAccountUser = model.UserDetail{User: model.User{ID: 0, Name: "system"}
 // SystemContentCatalog 系统默认的Content分组，UpdataCatalog时，如果需要创建Catalog,则默认指定的ParentCatalog
 var SystemContentCatalog = model.CatalogDetail{Unit: model.Unit{ID: 0, Name: "基础内容分类"}, Description: "系统内置，基础内容分类，该分类信息只读，不可编辑", Catalog: []model.CatalogUnit{model.CatalogUnit{ID: 0, Type: model.CATALOG}}, CreateDate: "2017-05-17 08:30:00", Creater: SystemAccountUser.ID}
 
+// IsSystemContentCatalog 是否是系统内置Catalog
+func IsSystemContentCatalog(catalog model.CatalogUnit) bool {
+	return catalog.ID == SystemContentCatalog.ID && catalog.Type == model.CATALOG
+}
+
 // VisitorAuthGroup 访客权限组
 var VisitorAuthGroup = model.AuthGroup{Unit: model.Unit{ID: 0, Name: "访客组权限"}, Description: "允许查看公开权限的内容，无须登录"}
 

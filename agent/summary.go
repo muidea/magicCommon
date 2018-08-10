@@ -33,7 +33,7 @@ func (s *center) FetchSummary(summaryName, summaryType, authToken, sessionID str
 
 func (s *center) QuerySummaryContent(summary model.CatalogUnit, authToken, sessionID string) []model.SummaryView {
 	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
-	url := fmt.Sprintf("%s/%s/%d?type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary/detail", summary.ID, summary.Type, authToken, sessionID)
+	url := fmt.Sprintf("%s/%s/%d?type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary", summary.ID, summary.Type, authToken, sessionID)
 
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
