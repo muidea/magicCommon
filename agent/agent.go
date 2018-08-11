@@ -48,6 +48,9 @@ type Agent interface {
 	CreateComment(subject, content string, authToken, sessionID string, strictCatalog model.CatalogUnit) (model.SummaryView, bool)
 	UpdateComment(id int, subject, content string, flag int, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteComment(id int, authToken, sessionID string) bool
+
+	UploadFile(filePath, authToken, sessionID string) (string, bool)
+	DownloadFile(fileToken, authToken, sessionID string) (string, bool)
 }
 
 // New 新建Agent
