@@ -51,6 +51,7 @@ type Agent interface {
 
 	UploadFile(filePath, authToken, sessionID string) (string, bool)
 	DownloadFile(fileToken, authToken, sessionID string) (string, bool)
+	QueryFile(fileToken, authToken, sessionID string) (string, bool)
 }
 
 // New 新建Agent
