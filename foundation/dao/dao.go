@@ -34,15 +34,17 @@ func Fetch(user string, password string, address string, dbName string) (Dao, er
 	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil}
 	db, err := sql.Open("mysql", connectStr)
 	if err != nil {
-		panic("open database exception, err:" + err.Error())
-	} else {
-		//log.Print("open database connection...")
-		i.dbHandle = db
+		log.Printf("open database exception, err:%s", err.Error())
+		return nil, err
 	}
+
+	//log.Print("open database connection...")
+	i.dbHandle = db
 
 	err = db.Ping()
 	if err != nil {
 		log.Printf("ping database failed, err:%s", err.Error())
+		return nil, err
 	}
 
 	return &i, err
