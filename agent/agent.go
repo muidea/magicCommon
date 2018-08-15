@@ -24,24 +24,24 @@ type Agent interface {
 	QuerySummaryContentByUser(user int, authToken, sessionID string, strictCatalog *model.CatalogUnit) []model.SummaryView
 
 	QueryCatalog(id int, authToken, sessionID string) (model.CatalogDetailView, bool)
-	CreateCatalog(name, description string, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
-	UpdateCatalog(id int, name, description string, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
+	CreateCatalog(name, description string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
+	UpdateCatalog(id int, name, description string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteCatalog(id int, authToken, sessionID string) bool
 
 	QueryArticle(id int, authToken, sessionID string) (model.ArticleDetailView, bool)
-	CreateArticle(title, content string, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
-	UpdateArticle(id int, title, content string, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
+	CreateArticle(title, content string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
+	UpdateArticle(id int, title, content string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteArticle(id int, authToken, sessionID string) bool
 
 	QueryLink(id int, authToken, sessionID string) (model.LinkDetailView, bool)
-	CreateLink(name, description, url, logo string, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
-	UpdateLink(id int, name, description, url, logo string, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
+	CreateLink(name, description, url, logo string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
+	UpdateLink(id int, name, description, url, logo string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteLink(id int, authToken, sessionID string) bool
 
 	QueryMedia(id int, authToken, sessionID string) (model.MediaDetailView, bool)
-	CreateMedia(name, description, fileToken string, expiration int, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
-	BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.Catalog, expiration int, authToken, sessionID string, strictCatalog *model.CatalogUnit) ([]model.SummaryView, bool)
-	UpdateMedia(id int, name, description, fileToken string, expiration int, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
+	CreateMedia(name, description, fileToken string, expiration int, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
+	BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.CatalogUnit, expiration int, authToken, sessionID string) ([]model.SummaryView, bool)
+	UpdateMedia(id int, name, description, fileToken string, expiration int, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteMedia(id int, authToken, sessionID string) bool
 
 	QueryComment(authToken, sessionID string, strictCatalog model.CatalogUnit) ([]model.CommentDetailView, bool)

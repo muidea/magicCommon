@@ -29,19 +29,44 @@ type Article struct {
 	Title string `json:"title"`
 }
 
+// CatalogUnit CatalogUnit
+func (s *Article) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: ARTICLE}
+}
+
 // Catalog 分类
 type Catalog Unit
+
+// CatalogUnit CatalogUnit
+func (s *Catalog) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: CATALOG}
+}
 
 // Link 链接
 type Link Unit
 
+// CatalogUnit CatalogUnit
+func (s *Link) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: LINK}
+}
+
 // Media 文件
 type Media Unit
+
+// CatalogUnit CatalogUnit
+func (s *Media) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: MEDIA}
+}
 
 // Comment 注释
 type Comment struct {
 	ID      int    `json:"id"`
 	Subject string `json:"subject"`
+}
+
+// CatalogUnit CatalogUnit
+func (s *Comment) CatalogUnit() *CatalogUnit {
+	return &CatalogUnit{ID: s.ID, Type: COMMENT}
 }
 
 // Summary 摘要信息

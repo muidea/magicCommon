@@ -27,13 +27,10 @@ func (s *center) QueryMedia(id int, authToken, sessionID string) (model.MediaDet
 	return result.Media, false
 }
 
-func (s *center) CreateMedia(name, description, fileToken string, expiration int, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool) {
+func (s *center) CreateMedia(name, description, fileToken string, expiration int, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool) {
 	param := &common_def.CreateMediaParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog}
 	result := &common_def.CreateMediaResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", authToken, sessionID)
-	if strictCatalog != nil {
-		url = fmt.Sprintf("%s&%s", url, common_def.EncodeStrictCatalog(*strictCatalog))
-	}
 
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
@@ -49,13 +46,10 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration int
 	return result.Media, false
 }
 
-func (s *center) BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.Catalog, expiration int, authToken, sessionID string, strictCatalog *model.CatalogUnit) ([]model.SummaryView, bool) {
+func (s *center) BatchCreateMedia(media []common_def.MediaInfo, description string, catalog []model.CatalogUnit, expiration int, authToken, sessionID string) ([]model.SummaryView, bool) {
 	param := &common_def.BatchCreateMediaParam{Medias: media, Description: description, Expiration: expiration, Catalog: catalog}
 	result := &common_def.BatchCreateMediaResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/batch/", authToken, sessionID)
-	if strictCatalog != nil {
-		url = fmt.Sprintf("%s&%s", url, common_def.EncodeStrictCatalog(*strictCatalog))
-	}
 
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
@@ -71,13 +65,10 @@ func (s *center) BatchCreateMedia(media []common_def.MediaInfo, description stri
 	return result.Medias, false
 }
 
-func (s *center) UpdateMedia(id int, name, description, fileToken string, expiration int, catalog []model.Catalog, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool) {
+func (s *center) UpdateMedia(id int, name, description, fileToken string, expiration int, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool) {
 	param := &common_def.UpdateMediaParam{Name: name, Description: description, FileToken: fileToken, Expiration: expiration, Catalog: catalog}
 	result := &common_def.UpdateMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
-	if strictCatalog != nil {
-		url = fmt.Sprintf("%s&%s", url, common_def.EncodeStrictCatalog(*strictCatalog))
-	}
 
 	err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
