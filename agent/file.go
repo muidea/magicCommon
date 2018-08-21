@@ -8,12 +8,40 @@ import (
 	"muidea.com/magicCommon/foundation/net"
 )
 
-func (s *center) UploadFile(filePath, authToken, sessionID string) (string, bool) {
-	return "", true
+func (s *center) UploadFile(filePath, authToken, sessionID string) bool {
+	result := &common_def.UploadFileResult{}
+	fileItem := "uploadfile"
+	url := fmt.Sprintf("%s/%s?key-name=%s&authToken=%s&sessionID=%s", s.baseURL, "fileregistry/file/", fileItem, authToken, sessionID)
+
+	err := net.HTTPUpload(s.httpClient, url, fileItem, filePath, result)
+	if err != nil {
+		log.Printf("upload file failed, err:%s", err.Error())
+		return false
+	}
+
+	if result.ErrorCode == common_def.Success {
+		return true
+	}
+
+	log.Printf("upload file failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
+	return false
 }
 
-func (s *center) DownloadFile(fileToken, authToken, sessionID string) (string, bool) {
-	return "", true
+func (s *center) DownloadFile(fileToken, filePath, authToken, sessionID string) (string, bool) {
+	fileURL, ok := s.QueryFile(fileToken, authToken, sessionID)
+	if !ok {
+		return "", false
+	}
+
+	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, fileURL, authToken, sessionID)
+
+	downloadFile, err := net.HTTPDownload(s.httpClient, url, filePath)
+	if err != nil {
+		log.Printf("download file failed, err:%s", err.Error())
+		return "", false
+	}
+
+	return downloadFile, true
 }
 
 func (s *center) QueryFile(fileToken, authToken, sessionID string) (string, bool) {

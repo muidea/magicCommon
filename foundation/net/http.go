@@ -9,7 +9,9 @@ import (
 	"io/ioutil"
 	"log"
 	"mime"
+	"mime/multipart"
 	"net/http"
+	"os"
 
 	"muidea.com/magicCommon/foundation/util"
 )
@@ -245,6 +247,87 @@ func HTTPDelete(httpClient *http.Client, url string, result interface{}) error {
 		return err
 	}
 
+	if response.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return errors.New(msg)
+	}
+
+	if result != nil {
+		content, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			log.Printf("read respose data failed, err:%s", err.Error())
+			return err
+		}
+
+		err = json.Unmarshal(content, result)
+		if err != nil {
+			log.Printf("unmarshal data failed, err:%s", err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
+// HTTPDownload http download file
+func HTTPDownload(httpClient *http.Client, url string, filePath string) (string, error) {
+	response, err := httpClient.Get(url)
+	if err != nil {
+		log.Printf("get request failed, err:%s", err.Error())
+		return "", err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return "", errors.New(msg)
+	}
+
+	f, err := os.OpenFile(filePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Printf("open destination file failed, err:%s", err.Error())
+		return "", err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, response.Body)
+	if err != nil {
+		log.Printf("write destination file content exception, err:%s", err.Error())
+		return "", err
+	}
+
+	return filePath, nil
+}
+
+// HTTPUpload http upload file
+func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result interface{}) error {
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+
+	//关键的一步操作
+	fileWriter, err := bodyWriter.CreateFormFile(fileItem, filePath)
+	if err != nil {
+		fmt.Println("error writing to buffer")
+		return err
+	}
+
+	//打开文件句柄操作
+	fh, err := os.Open(filePath)
+	if err != nil {
+		fmt.Println("error opening file")
+		return err
+	}
+	defer fh.Close()
+
+	//iocopy
+	_, err = io.Copy(fileWriter, fh)
+	if err != nil {
+		return err
+	}
+
+	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+
+	response, err := http.Post(url, contentType, bodyBuf)
 	if response.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
 		return errors.New(msg)

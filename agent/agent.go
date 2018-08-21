@@ -49,8 +49,8 @@ type Agent interface {
 	UpdateComment(id int, subject, content string, flag int, authToken, sessionID string) (model.SummaryView, bool)
 	DeleteComment(id int, authToken, sessionID string) bool
 
-	UploadFile(filePath, authToken, sessionID string) (string, bool)
-	DownloadFile(fileToken, authToken, sessionID string) (string, bool)
+	UploadFile(filePath, authToken, sessionID string) bool
+	DownloadFile(fileToken, filePath, authToken, sessionID string) (string, bool)
 	QueryFile(fileToken, authToken, sessionID string) (string, bool)
 }
 
