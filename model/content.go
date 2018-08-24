@@ -23,6 +23,15 @@ type CatalogUnit struct {
 	Type string `json:"type"`
 }
 
+// IsSame 判断CatalogUnit是否相同
+func (s *CatalogUnit) IsSame(r *CatalogUnit) bool {
+	if r == nil {
+		return false
+	}
+
+	return s.ID == r.ID && s.Type == r.Type
+}
+
 // Article 文章
 type Article struct {
 	ID    int    `json:"id"`

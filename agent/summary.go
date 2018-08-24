@@ -49,6 +49,27 @@ func (s *center) QuerySummaryContent(summary model.CatalogUnit, authToken, sessi
 	return result.Summary
 }
 
+func (s *center) QuerySummaryContentWithCatalog(summary model.CatalogUnit, authToken, sessionID string, strictCatalog *model.CatalogUnit) []model.SummaryView {
+	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
+	url := fmt.Sprintf("%s/%s/%d?type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary", summary.ID, summary.Type, authToken, sessionID)
+	if strictCatalog != nil {
+		url = fmt.Sprintf("%s&%s", url, common_def.EncodeStrictCatalog(*strictCatalog))
+	}
+
+	err := net.HTTPGet(s.httpClient, url, result)
+	if err != nil {
+		log.Printf("query summary failed, err:%s", err.Error())
+		return result.Summary
+	}
+
+	if result.ErrorCode == common_def.Success {
+		return result.Summary
+	}
+
+	log.Printf("query summary failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
+	return result.Summary
+}
+
 func (s *center) QuerySummaryContentByUser(user int, authToken, sessionID string, strictCatalog *model.CatalogUnit) []model.SummaryView {
 	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
 	url := fmt.Sprintf("%s/%s?user[]=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summarys/", util.IntArray2Str([]int{user}), authToken, sessionID)

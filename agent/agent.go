@@ -21,6 +21,7 @@ type Agent interface {
 
 	FetchSummary(name, summaryType, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
 	QuerySummaryContent(summary model.CatalogUnit, authToken, sessionID string) []model.SummaryView
+	QuerySummaryContentWithCatalog(summary model.CatalogUnit, authToken, sessionID string, strictCatalog *model.CatalogUnit) []model.SummaryView
 	QuerySummaryContentByUser(user int, authToken, sessionID string, strictCatalog *model.CatalogUnit) []model.SummaryView
 
 	QueryCatalog(id int, authToken, sessionID string) (model.CatalogDetailView, bool)
