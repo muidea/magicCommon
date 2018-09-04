@@ -8,7 +8,7 @@ import (
 	"muidea.com/magicCommon/foundation/net"
 )
 
-func (s *center) UploadFile(filePath, authToken, sessionID string) bool {
+func (s *center) UploadFile(filePath, authToken, sessionID string) (string, bool) {
 	result := &common_def.UploadFileResult{}
 	fileItem := "uploadfile"
 	url := fmt.Sprintf("%s/%s?key-name=%s&authToken=%s&sessionID=%s", s.baseURL, "fileregistry/file/", fileItem, authToken, sessionID)
@@ -16,15 +16,15 @@ func (s *center) UploadFile(filePath, authToken, sessionID string) bool {
 	err := net.HTTPUpload(s.httpClient, url, fileItem, filePath, result)
 	if err != nil {
 		log.Printf("upload file failed, err:%s", err.Error())
-		return false
+		return "", false
 	}
 
 	if result.ErrorCode == common_def.Success {
-		return true
+		return result.FileToken, true
 	}
 
 	log.Printf("upload file failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
-	return false
+	return "", false
 }
 
 func (s *center) DownloadFile(fileToken, filePath, authToken, sessionID string) (string, bool) {
