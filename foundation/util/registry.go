@@ -95,7 +95,7 @@ func (s *registry) run() {
 			filter := item.data.(ObjectFilter)
 			for _, val := range objectItemList {
 				if filter.Filter(val.obj) {
-					retList = append(retList, val)
+					retList = append(retList, val.obj)
 				}
 			}
 			item.reply <- &retList
