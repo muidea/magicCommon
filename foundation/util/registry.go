@@ -1,5 +1,9 @@
 package util
 
+import (
+	"sort"
+)
+
 // ObjectList object list
 type ObjectList []interface{}
 
@@ -12,6 +16,7 @@ type ObjectFilter interface {
 type ObjectRegistry interface {
 	Put(id string, object interface{})
 	Get(id string) interface{}
+	Sort(sorter ObjectSorter) *ObjectList
 	FetchList() *ObjectList
 	Filter(filter ObjectFilter) *ObjectList
 	Remove(id string)
@@ -30,6 +35,7 @@ const (
 	getObj
 	fetchObjList
 	filterObj
+	sortObj
 	removeObj
 )
 
@@ -46,37 +52,65 @@ type registry struct {
 	actionChannel actionChannel
 }
 
+type objItem struct {
+	id  string
+	obj interface{}
+}
+
 func (s *registry) run() {
-	objectInfo := map[string]interface{}{}
+	objectItemList := []*objItem{}
 	for {
 		item := <-s.actionChannel
 		switch item.action {
 		case putObj:
-			objectInfo[item.id] = item.data
+			objectItemList = append(objectItemList, &objItem{id: item.id, obj: item.data})
 		case getObj:
-			obj, ok := objectInfo[item.id]
-			if ok {
-				item.reply <- obj
-			} else {
+			found := false
+			for _, val := range objectItemList {
+				if val.id == item.id {
+					item.reply <- val.obj
+					found = true
+				}
+			}
+			if !found {
 				item.reply <- nil
 			}
+		case sortObj:
+			retList := ObjectList{}
+			sorter := item.data.(ObjectSorter)
+			objectItemList = s.sortObjectList(objectItemList, sorter)
+			for _, val := range objectItemList {
+				retList = append(retList, val.obj)
+			}
+
+			item.reply <- &retList
 		case fetchObjList:
 			retList := ObjectList{}
-			for _, val := range objectInfo {
-				retList = append(retList, val)
+			for _, val := range objectItemList {
+				retList = append(retList, val.obj)
 			}
 			item.reply <- &retList
 		case filterObj:
 			retList := ObjectList{}
 			filter := item.data.(ObjectFilter)
-			for _, val := range objectInfo {
-				if filter.Filter(val) {
+			for _, val := range objectItemList {
+				if filter.Filter(val.obj) {
 					retList = append(retList, val)
 				}
 			}
 			item.reply <- &retList
 		case removeObj:
-			delete(objectInfo, item.id)
+			newList := []*objItem{}
+			for idx, val := range objectItemList {
+				if val.id == item.id {
+					newList = append(newList, objectItemList[:idx]...)
+					if idx < len(objectItemList)-1 {
+						newList = append(newList, objectItemList[idx+1:]...)
+						break
+					}
+				}
+			}
+			objectItemList = newList
 		}
 	}
 }
@@ -94,6 +128,20 @@ func (s *registry) Get(id string) interface{} {
 
 	val := <-reply
 	return val
+}
+
+func (s *registry) Sort(sorter ObjectSorter) *ObjectList {
+	reply := make(chan interface{})
+
+	item := &actionObj{action: sortObj, data: sorter, reply: reply}
+	s.actionChannel <- item
+
+	val := <-reply
+	if val == nil {
+		return nil
+	}
+
+	return val.(*ObjectList)
 }
 
 func (s *registry) FetchList() *ObjectList {
@@ -127,4 +175,28 @@ func (s *registry) Filter(filter ObjectFilter) *ObjectList {
 func (s *registry) Remove(id string) {
 	item := &actionObj{action: removeObj, id: id}
 	s.actionChannel <- item
+}
+
+type sortHelper struct {
+	objList []*objItem
+	sorter  ObjectSorter
+}
+
+func (s sortHelper) Len() int {
+	return len(s.objList)
+}
+
+func (s sortHelper) Less(i, j int) bool {
+	return s.sorter.Less(s.objList[i].obj, s.objList[j].obj)
+}
+
+func (s sortHelper) Swap(i, j int) {
+	s.objList[i], s.objList[j] = s.objList[j], s.objList[i]
+}
+
+func (s *registry) sortObjectList(objList []*objItem, sorter ObjectSorter) []*objItem {
+	sortHelper := sortHelper{objList: objList, sorter: sorter}
+
+	sort.Sort(sortHelper)
+	return objList
 }
