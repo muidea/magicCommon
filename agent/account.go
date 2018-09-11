@@ -70,3 +70,21 @@ func (s *center) StatusAccount(authToken, sessionID string) (model.OnlineEntryVi
 	log.Printf("status account failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.OnlineEntry, "", "", false
 }
+
+func (s *center) ChangePassword(accountID int, oldPassword, newPassword, authToken, sessionID string) bool {
+	param := &common_def.ChangeAccountPasswordParam{OldPassword: oldPassword, NewPassword: newPassword}
+	result := &common_def.ChangeAccountPasswordResult{}
+	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "cas/user", accountID, authToken, sessionID)
+	err := net.HTTPPut(s.httpClient, url, param, result)
+	if err != nil {
+		log.Printf("change account password failed, err:%s", err.Error())
+		return false
+	}
+
+	if result.ErrorCode == common_def.Success {
+		return true
+	}
+
+	log.Printf("change account password failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
+	return false
+}

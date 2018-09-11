@@ -22,6 +22,15 @@ type LogoutAccountResult Result
 // StatusAccountResult 获取账号状态结果
 type StatusAccountResult LoginAccountResult
 
+// ChangeAccountPasswordParam 更改密码参数
+type ChangeAccountPasswordParam struct {
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
+// ChangeAccountPasswordResult 更改密码结果
+type ChangeAccountPasswordResult Result
+
 // LoginEndpointParam Endpoint登陆请求
 type LoginEndpointParam struct {
 	IdentifyID string `json:"identifyID"`

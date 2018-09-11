@@ -18,6 +18,7 @@ type Agent interface {
 	LoginAccount(account, password string) (model.OnlineEntryView, string, string, bool)
 	LogoutAccount(authToken, sessionID string) bool
 	StatusAccount(authToken, sessionID string) (model.OnlineEntryView, string, string, bool)
+	ChangePassword(accountID int, oldPassword, newPassword, authToken, sessionID string) bool
 
 	FetchSummary(name, summaryType, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
 	QuerySummaryContent(summary model.CatalogUnit, authToken, sessionID string) []model.SummaryView
