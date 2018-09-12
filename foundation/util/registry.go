@@ -63,7 +63,18 @@ func (s *registry) run() {
 		item := <-s.actionChannel
 		switch item.action {
 		case putObj:
-			objectItemList = append(objectItemList, &objItem{id: item.id, obj: item.data})
+			found := false
+			for idx := range objectItemList {
+				val := objectItemList[idx]
+				if val.id == item.id {
+					objectItemList[idx] = &objItem{id: item.id, obj: item.data}
+					found = true
+					break
+				}
+			}
+			if !found {
+				objectItemList = append(objectItemList, &objItem{id: item.id, obj: item.data})
+			}
 		case getObj:
 			found := false
 			for _, val := range objectItemList {
