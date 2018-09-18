@@ -5,6 +5,11 @@ type ObjectSorter interface {
 	Less(left, right interface{}) bool
 }
 
+// NewSortHelper new SortHelper
+func NewSortHelper(objList []interface{}, sorter ObjectSorter) *SortHelper {
+	return &SortHelper{objList: objList, sorter: sorter}
+}
+
 // SortHelper sortHelper
 type SortHelper struct {
 	objList []interface{}

@@ -1,8 +1,8 @@
 package util
 
 import (
-	"testing"
 	"log"
+	"testing"
 )
 
 func TestRandom(t *testing.T) {
@@ -11,19 +11,19 @@ func TestRandom(t *testing.T) {
 	//if len(t1) != 100 {
 	//	t.Error("create RandomString failed")
 	//}
-	
-	t2 := RandomAscii(32)
-	log.Printf("RandomAscii:%s", t2)
+
+	t2 := RandomAscII(32)
+	log.Printf("RandomAscII:%s", t2)
 	if len(t2) != 32 {
-		t.Error("create RandomAscii failed")
+		t.Error("create RandomAscII failed")
 	}
-	
+
 	t3 := RandomAlphabetic(32)
 	log.Printf("RandomAlphabetic:%s", t3)
 	if len(t3) != 32 {
 		t.Error("create RandomAlphabetic failed")
 	}
-	
+
 	t4 := RandomAlphanumeric(32)
 	log.Printf("RandomAlphanumeric:%s", t4)
 	if len(t4) != 32 {

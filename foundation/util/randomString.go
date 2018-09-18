@@ -1,20 +1,16 @@
 package util
- 
+
 import (
-    _ "errors"
-    _ "fmt"
-    "math"
-    "math/rand"
-    _ "strconv"
-    _ "strings"
-    "time"
+	"math"
+	"math/rand"
+	"time"
 )
- 
+
 var (
-    defaultRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	defaultRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
- 
-// Creates a random string based on a variety of options, using
+
+// RandomSpec0 Creates a random string based on a variety of options, using
 // supplied source of randomness.
 //
 // If start and end are both 0, start and end are set
@@ -30,62 +26,62 @@ var (
 // the same random sequence of strings can be generated repeatedly
 // and predictably.
 func RandomSpec0(count uint, start, end int, letters, numbers bool,
-    chars []rune, rand *rand.Rand) string {
-    if count == 0 {
-        return ""
-    }
-    if start == 0 && end == 0 {
-        end = 'z' + 1
-        start = ' '
-        if !letters && !numbers {
-            start = 0
-            end = math.MaxInt32
-        }
-    }
-    buffer := make([]rune, count)
-    gap := end - start
-    for count != 0 {
-        count--
-        var ch rune
-        if len(chars) == 0 {
-            ch = rune(rand.Intn(gap) + start)
-        } else {
-            ch = chars[rand.Intn(gap)+start]
-        }
-        if letters && ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) ||
-            numbers && (ch >= '0' && ch <= '9') ||
-            (!letters && !numbers) {
-            if ch >= rune(56320) && ch <= rune(57343) {
-                if count == 0 {
-                    count++
-                } else {
-                    buffer[count] = ch
-                    count--
-                    buffer[count] = rune(55296 + rand.Intn(128))
-                }
-            } else if ch >= rune(55296) && ch <= rune(56191) {
-                if count == 0 {
-                    count++
-                } else {
-                    // high surrogate, insert low surrogate before putting it in
-                    buffer[count] = rune(56320 + rand.Intn(128))
-                    count--
-                    buffer[count] = ch
-                }
-            } else if ch >= rune(56192) && ch <= rune(56319) {
-                // private high surrogate, no effing clue, so skip it
-                count++
-            } else {
-                buffer[count] = ch
-            }
-        } else {
-            count++
-        }
-    }
-    return string(buffer)
+	chars []rune, rand *rand.Rand) string {
+	if count == 0 {
+		return ""
+	}
+	if start == 0 && end == 0 {
+		end = 'z' + 1
+		start = ' '
+		if !letters && !numbers {
+			start = 0
+			end = math.MaxInt32
+		}
+	}
+	buffer := make([]rune, count)
+	gap := end - start
+	for count != 0 {
+		count--
+		var ch rune
+		if len(chars) == 0 {
+			ch = rune(rand.Intn(gap) + start)
+		} else {
+			ch = chars[rand.Intn(gap)+start]
+		}
+		if letters && ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) ||
+			numbers && (ch >= '0' && ch <= '9') ||
+			(!letters && !numbers) {
+			if ch >= rune(56320) && ch <= rune(57343) {
+				if count == 0 {
+					count++
+				} else {
+					buffer[count] = ch
+					count--
+					buffer[count] = rune(55296 + rand.Intn(128))
+				}
+			} else if ch >= rune(55296) && ch <= rune(56191) {
+				if count == 0 {
+					count++
+				} else {
+					// high surrogate, insert low surrogate before putting it in
+					buffer[count] = rune(56320 + rand.Intn(128))
+					count--
+					buffer[count] = ch
+				}
+			} else if ch >= rune(56192) && ch <= rune(56319) {
+				// private high surrogate, no effing clue, so skip it
+				count++
+			} else {
+				buffer[count] = ch
+			}
+		} else {
+			count++
+		}
+	}
+	return string(buffer)
 }
- 
-// Creates a random string whose length is the number of characters specified.
+
+// RandomSpec1 Creates a random string whose length is the number of characters specified.
 //
 // Characters will be chosen from the set of alpha-numeric
 // characters as indicated by the arguments.
@@ -98,10 +94,10 @@ func RandomSpec0(count uint, start, end int, letters, numbers bool,
 // Param numbers - if true, generated string will include
 //                 numeric characters
 func RandomSpec1(count uint, start, end int, letters, numbers bool) string {
-    return RandomSpec0(count, start, end, letters, numbers, nil, defaultRand)
+	return RandomSpec0(count, start, end, letters, numbers, nil, defaultRand)
 }
- 
-// Creates a random string whose length is the number of characters specified.
+
+// RandomAlphaOrNumeric Creates a random string whose length is the number of characters specified.
 //
 // Characters will be chosen from the set of alpha-numeric
 // characters as indicated by the arguments.
@@ -112,44 +108,46 @@ func RandomSpec1(count uint, start, end int, letters, numbers bool) string {
 // Param numbers - if true, generated string will include
 //                 numeric characters
 func RandomAlphaOrNumeric(count uint, letters, numbers bool) string {
-    return RandomSpec1(count, 0, 0, letters, numbers)
+	return RandomSpec1(count, 0, 0, letters, numbers)
 }
- 
+
+// RandomString RandomString
 func RandomString(count uint) string {
-    return RandomAlphaOrNumeric(count, false, false)
+	return RandomAlphaOrNumeric(count, false, false)
 }
- 
+
+// RandomStringSpec0 RandomStringSpec0
 func RandomStringSpec0(count uint, set []rune) string {
-    return RandomSpec0(count, 0, len(set)-1, false, false, set, defaultRand)
+	return RandomSpec0(count, 0, len(set)-1, false, false, set, defaultRand)
 }
- 
+
+// RandomStringSpec1 RandomStringSpec1
 func RandomStringSpec1(count uint, set string) string {
-    return RandomStringSpec0(count, []rune(set))
+	return RandomStringSpec0(count, []rune(set))
 }
- 
-// Creates a random string whose length is the number of characters
+
+// RandomAscII Creates a random string whose length is the number of characters
 // specified.
-//
 // Characters will be chosen from the set of characters whose
 // ASCII value is between 32 and 126 (inclusive).
-func RandomAscii(count uint) string {
-    return RandomSpec1(count, 32, 127, false, false)
+func RandomAscII(count uint) string {
+	return RandomSpec1(count, 32, 127, false, false)
 }
- 
-// Creates a random string whose length is the number of characters specified.
+
+// RandomAlphabetic Creates a random string whose length is the number of characters specified.
 // Characters will be chosen from the set of alphabetic characters.
 func RandomAlphabetic(count uint) string {
-    return RandomAlphaOrNumeric(count, true, false)
+	return RandomAlphaOrNumeric(count, true, false)
 }
- 
-// Creates a random string whose length is the number of characters specified.
+
+// RandomAlphanumeric Creates a random string whose length is the number of characters specified.
 // Characters will be chosen from the set of alpha-numeric characters.
 func RandomAlphanumeric(count uint) string {
-    return RandomAlphaOrNumeric(count, true, true)
+	return RandomAlphaOrNumeric(count, true, true)
 }
- 
-// Creates a random string whose length is the number of characters specified.
+
+// RandomNumeric Creates a random string whose length is the number of characters specified.
 // Characters will be chosen from the set of numeric characters.
 func RandomNumeric(count uint) string {
-    return RandomAlphaOrNumeric(count, false, true)
+	return RandomAlphaOrNumeric(count, false, true)
 }
