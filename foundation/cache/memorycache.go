@@ -7,11 +7,9 @@ import (
 	"muidea.com/magicCommon/foundation/util"
 )
 
-// MaxAgeValue 最大存放期限，无限期
-const MaxAgeValue = -1
-
 // Cache 缓存对象
 type Cache interface {
+	// maxAge单位minute
 	PutIn(data interface{}, maxAge float64) string
 	FetchOut(id string) (interface{}, bool)
 	Remove(id string)
@@ -28,17 +26,6 @@ func NewCache() Cache {
 
 	return &cache
 }
-
-type commandAction int
-
-const (
-	putIn        commandAction = iota // 存放数据
-	fetchOut                          // 获取数据
-	remove                            // 删除指定数据
-	clearAll                          // 清除全部数据
-	checkTimeOut                      // 检查超过生命周期的数据
-	end                               // 停止Cache
-)
 
 type putInData struct {
 	data   interface{}
@@ -65,12 +52,6 @@ type removeData struct {
 type cacheData struct {
 	putInData
 	cacheTime time.Time
-}
-
-type commandData struct {
-	action commandAction
-	value  interface{}
-	result chan<- interface{} //单向Channel
 }
 
 // MemoryCache 内存缓存
