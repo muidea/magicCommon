@@ -12,6 +12,9 @@ func TestRandom(t *testing.T) {
 	//	t.Error("create RandomString failed")
 	//}
 
+	val := RandomIdentifyCode()
+	log.Print(val)
+
 	t2 := RandomAscII(32)
 	log.Printf("RandomAscII:%s", t2)
 	if len(t2) != 32 {

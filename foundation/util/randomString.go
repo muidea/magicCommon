@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"time"
@@ -9,6 +10,13 @@ import (
 var (
 	defaultRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
+
+// RandomIdentifyCode 生成6位随机数验证码
+func RandomIdentifyCode() string {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	vcode := fmt.Sprintf("%06v", rnd.Int31n(1000000))
+	return vcode
+}
 
 // RandomSpec0 Creates a random string based on a variety of options, using
 // supplied source of randomness.
