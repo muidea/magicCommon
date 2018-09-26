@@ -15,6 +15,12 @@ var (
 func RandomIdentifyCode() string {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	vcode := fmt.Sprintf("%06v", rnd.Int31n(1000000))
+
+	// 避免首字母出现0的情况
+	if vcode[0] == '0' {
+		vcode = fmt.Sprintf("1%s", vcode[1:])
+	}
+
 	return vcode
 }
 
