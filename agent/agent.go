@@ -75,7 +75,6 @@ func (s *center) Start(centerServer, endpointID, authToken string) (string, stri
 		return "", "", false
 	}
 
-	log.Print("start centerAgent ok")
 	return authToken, sessionID, true
 }
 
@@ -97,6 +96,5 @@ func (s *center) verify(endpointID, authToken string) (string, string, bool) {
 		return result.AuthToken, result.SessionID, true
 	}
 
-	log.Printf("verify endpoint failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return "", "", false
 }

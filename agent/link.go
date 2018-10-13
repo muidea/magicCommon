@@ -23,7 +23,6 @@ func (s *center) QueryLink(id int, authToken, sessionID string) (model.LinkDetai
 		return result.Link, true
 	}
 
-	log.Printf("query link failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Link, false
 }
 
@@ -42,7 +41,6 @@ func (s *center) CreateLink(name, description, url, logo string, catalog []model
 		return result.Link, true
 	}
 
-	log.Printf("create link failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Link, false
 }
 
@@ -61,7 +59,6 @@ func (s *center) UpdateLink(id int, name, description, url, logo string, catalog
 		return result.Link, true
 	}
 
-	log.Printf("update link failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Link, false
 }
 
@@ -79,6 +76,5 @@ func (s *center) DeleteLink(id int, authToken, sessionID string) bool {
 		return true
 	}
 
-	log.Printf("query link failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return false
 }

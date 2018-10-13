@@ -26,7 +26,6 @@ func (s *center) QueryComment(authToken, sessionID string, strictCatalog model.C
 		return result.Comment, true
 	}
 
-	log.Printf("query comment failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Comment, false
 }
 
@@ -48,7 +47,6 @@ func (s *center) CreateComment(subject, content string, authToken, sessionID str
 		return result.Comment, true
 	}
 
-	log.Printf("create comment failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Comment, false
 }
 
@@ -67,7 +65,6 @@ func (s *center) UpdateComment(id int, subject, content string, flag int, authTo
 		return result.Comment, true
 	}
 
-	log.Printf("update comment failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Comment, false
 }
 
@@ -85,6 +82,5 @@ func (s *center) DeleteComment(id int, authToken, sessionID string) bool {
 		return true
 	}
 
-	log.Printf("query comment failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return false
 }

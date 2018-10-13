@@ -23,7 +23,6 @@ func (s *center) LoginAccount(account, password string) (model.OnlineEntryView, 
 		return result.OnlineEntry, result.AuthToken, result.SessionID, true
 	}
 
-	log.Printf("login failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.OnlineEntry, "", "", false
 }
 
@@ -45,7 +44,6 @@ func (s *center) LogoutAccount(authToken, sessionID string) bool {
 		return true
 	}
 
-	log.Printf("logout failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return false
 }
 
@@ -67,7 +65,6 @@ func (s *center) StatusAccount(authToken, sessionID string) (model.OnlineEntryVi
 		return result.OnlineEntry, result.AuthToken, result.SessionID, true
 	}
 
-	log.Printf("status account failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.OnlineEntry, "", "", false
 }
 
@@ -85,6 +82,5 @@ func (s *center) ChangePassword(accountID int, oldPassword, newPassword, authTok
 		return true
 	}
 
-	log.Printf("change account password failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return false
 }

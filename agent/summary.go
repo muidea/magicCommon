@@ -27,7 +27,6 @@ func (s *center) FetchSummary(summaryName, summaryType, authToken, sessionID str
 		return result.Summary, true
 	}
 
-	log.Printf("fetch summary failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Summary, false
 }
 
@@ -45,7 +44,6 @@ func (s *center) QuerySummaryContent(summary model.CatalogUnit, authToken, sessi
 		return result.Summary
 	}
 
-	log.Printf("query summary failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Summary
 }
 
@@ -66,7 +64,6 @@ func (s *center) QuerySummaryContentWithCatalog(summary model.CatalogUnit, authT
 		return result.Summary
 	}
 
-	log.Printf("query summary failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Summary
 }
 
@@ -87,6 +84,5 @@ func (s *center) QuerySummaryContentByUser(user int, authToken, sessionID string
 		return result.Summary
 	}
 
-	log.Printf("query summary failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Summary
 }

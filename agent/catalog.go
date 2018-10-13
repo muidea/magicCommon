@@ -23,7 +23,6 @@ func (s *center) QueryCatalog(id int, authToken, sessionID string) (model.Catalo
 		return result.Catalog, true
 	}
 
-	log.Printf("query catalog failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Catalog, false
 }
 
@@ -42,7 +41,6 @@ func (s *center) CreateCatalog(name, description string, catalog []model.Catalog
 		return result.Catalog, true
 	}
 
-	log.Printf("create catalog failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Catalog, false
 }
 
@@ -61,7 +59,6 @@ func (s *center) UpdateCatalog(id int, name, description string, catalog []model
 		return result.Catalog, true
 	}
 
-	log.Printf("update catalog failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Catalog, false
 }
 
@@ -79,6 +76,5 @@ func (s *center) DeleteCatalog(id int, authToken, sessionID string) bool {
 		return true
 	}
 
-	log.Printf("delete catalog failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return false
 }

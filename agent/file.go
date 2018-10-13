@@ -23,7 +23,6 @@ func (s *center) UploadFile(filePath, authToken, sessionID string) (string, bool
 		return result.FileToken, true
 	}
 
-	log.Printf("upload file failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return "", false
 }
 
@@ -58,6 +57,5 @@ func (s *center) QueryFile(fileToken, authToken, sessionID string) (string, bool
 		return result.RedirectURL, true
 	}
 
-	log.Printf("query file failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.RedirectURL, false
 }

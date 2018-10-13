@@ -23,7 +23,6 @@ func (s *center) QueryMedia(id int, authToken, sessionID string) (model.MediaDet
 		return result.Media, true
 	}
 
-	log.Printf("query media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Media, false
 }
 
@@ -42,7 +41,6 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration int
 		return result.Media, true
 	}
 
-	log.Printf("create media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Media, false
 }
 
@@ -61,7 +59,6 @@ func (s *center) BatchCreateMedia(media []common_def.MediaInfo, description stri
 		return result.Medias, true
 	}
 
-	log.Printf("create media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Medias, false
 }
 
@@ -80,7 +77,6 @@ func (s *center) UpdateMedia(id int, name, description, fileToken string, expira
 		return result.Media, true
 	}
 
-	log.Printf("update media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Media, false
 }
 
@@ -98,6 +94,5 @@ func (s *center) DeleteMedia(id int, authToken, sessionID string) bool {
 		return true
 	}
 
-	log.Printf("query media failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return false
 }

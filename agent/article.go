@@ -23,7 +23,6 @@ func (s *center) QueryArticle(id int, authToken, sessionID string) (model.Articl
 		return result.Article, true
 	}
 
-	log.Printf("query article failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Article, false
 }
 
@@ -42,7 +41,6 @@ func (s *center) CreateArticle(title, content string, catalog []model.CatalogUni
 		return result.Article, true
 	}
 
-	log.Printf("create article failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Article, false
 }
 
@@ -61,7 +59,6 @@ func (s *center) UpdateArticle(id int, title, content string, catalog []model.Ca
 		return result.Article, true
 	}
 
-	log.Printf("update article failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return result.Article, false
 }
 
@@ -79,6 +76,5 @@ func (s *center) DeleteArticle(id int, authToken, sessionID string) bool {
 		return true
 	}
 
-	log.Printf("query article failed, errorCode:%d, reason:%s", result.ErrorCode, result.Reason)
 	return false
 }
