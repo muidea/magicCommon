@@ -11,6 +11,7 @@ type QueryArticleResult struct {
 // QueryArticleListResult 查询ArticleList结果
 type QueryArticleListResult struct {
 	Result
+	Total   int                 `json:"total"`
 	Article []model.SummaryView `json:"article"`
 }
 
@@ -45,6 +46,7 @@ type QueryCatalogResult struct {
 // QueryCatalogListResult 查询CatalogList结果
 type QueryCatalogListResult struct {
 	Result
+	Total   int                 `json:"total"`
 	Catalog []model.SummaryView `json:"catalog"`
 }
 
@@ -79,7 +81,8 @@ type QueryLinkResult struct {
 // QueryLinkListResult 查询LinkList结果
 type QueryLinkListResult struct {
 	Result
-	Link []model.SummaryView `json:"link"`
+	Total int                 `json:"total"`
+	Link  []model.SummaryView `json:"link"`
 }
 
 // CreateLinkParam 新建Link参数
@@ -115,6 +118,7 @@ type QueryMediaResult struct {
 // QueryMediaListResult 查询MediaList结果
 type QueryMediaListResult struct {
 	Result
+	Total int                 `json:"total"`
 	Media []model.SummaryView `json:"media"`
 }
 
@@ -186,6 +190,7 @@ type UpdateCommentResult CreateCommentResult
 // QueryCommentListResult 查询CommentList结果
 type QueryCommentListResult struct {
 	Result
+	Total   int                       `json:"total"`
 	Comment []model.CommentDetailView `json:"comment"`
 }
 
@@ -201,5 +206,6 @@ type QuerySummaryResult struct {
 // QuerySummaryListResult 查询SummaryList结果
 type QuerySummaryListResult struct {
 	Result
+	Total   int                 `json:"total"`
 	Summary []model.SummaryView `json:"summary"`
 }
