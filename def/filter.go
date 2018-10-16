@@ -1,7 +1,9 @@
 package def
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -11,17 +13,19 @@ type Filter struct {
 	ContentFilter *ContentFilter
 }
 
-// Parse 内容过滤器
-func (s *Filter) Parse(request *http.Request) {
+// Decode 内容过滤器
+func (s *Filter) Decode(request *http.Request) bool {
 	pageFilter := &PageFilter{}
-	if pageFilter.Parse(request) {
+	if pageFilter.Decode(request) {
 		s.PageFilter = pageFilter
 	}
 
 	contentFilter := &ContentFilter{}
-	if contentFilter.Parse(request) {
+	if contentFilter.Decode(request) {
 		s.ContentFilter = contentFilter
 	}
+
+	return s.PageFilter != nil || s.ContentFilter != nil
 }
 
 // ContentFilter contentFilter
@@ -29,8 +33,8 @@ type ContentFilter struct {
 	FilterValue string
 }
 
-// Parse 解析内容过滤值
-func (s *ContentFilter) Parse(request *http.Request) bool {
+// Decode 解析内容过滤值
+func (s *ContentFilter) Decode(request *http.Request) bool {
 	s.FilterValue = request.URL.Query().Get("filterValue")
 	return s.FilterValue != ""
 }
@@ -48,10 +52,14 @@ type PageFilter struct {
 	PageNum int `json:"pageNum"`
 }
 
-// Parse 从request里解析PageFilter
-func (s *PageFilter) Parse(request *http.Request) bool {
+// Decode 从request里解析PageFilter
+func (s *PageFilter) Decode(request *http.Request) bool {
 	pageSize := request.URL.Query().Get("pageSize")
 	pageNum := request.URL.Query().Get("pageNum")
+	if pageSize == "" && pageNum == "" {
+		return false
+	}
+
 	sizeValue, err := strconv.Atoi(pageSize)
 	if err != nil {
 		sizeValue = defaultPageSize
@@ -68,4 +76,9 @@ func (s *PageFilter) Parse(request *http.Request) bool {
 	}
 
 	return true
+}
+
+// Encode compile
+func (s *PageFilter) Encode() string {
+	return url.QueryEscape(fmt.Sprintf("pageSize=%d&pageNum=%d", s.PageSize, s.PageNum))
 }

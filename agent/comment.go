@@ -14,7 +14,9 @@ func (s *center) QueryComment(authToken, sessionID string, strictCatalog model.C
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/comments/", authToken, sessionID)
 
 	strictStr := common_def.EncodeStrictCatalog(strictCatalog)
-	url = fmt.Sprintf("%s&%s", url, strictStr)
+	if strictStr != "" {
+		url = fmt.Sprintf("%s&%s", url, strictStr)
+	}
 
 	err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
@@ -35,7 +37,9 @@ func (s *center) CreateComment(subject, content string, authToken, sessionID str
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/comment/", authToken, sessionID)
 
 	strictStr := common_def.EncodeStrictCatalog(strictCatalog)
-	url = fmt.Sprintf("%s&%s", url, strictStr)
+	if strictStr != "" {
+		url = fmt.Sprintf("%s&%s", url, strictStr)
+	}
 
 	err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {

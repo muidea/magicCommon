@@ -1,6 +1,8 @@
 package model
 
-import "muidea.com/magicCommon/foundation/util"
+import (
+	"muidea.com/magicCommon/foundation/util"
+)
 
 // ARTICLE 文章类型
 const ARTICLE = "article"
