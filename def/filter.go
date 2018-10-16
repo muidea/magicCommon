@@ -28,6 +28,23 @@ func (s *Filter) Decode(request *http.Request) bool {
 	return s.PageFilter != nil || s.ContentFilter != nil
 }
 
+// Encode encode filter
+func (s *Filter) Encode() string {
+	retVal := ""
+	if s.PageFilter != nil {
+		retVal = fmt.Sprintf("%s", s.PageFilter.Encode())
+	}
+	if s.ContentFilter != nil {
+		if retVal == "" {
+			retVal = fmt.Sprintf("%s", s.ContentFilter.Encode())
+		} else {
+			retVal = fmt.Sprintf("%s&%s", retVal, s.ContentFilter.Encode())
+		}
+	}
+
+	return retVal
+}
+
 // ContentFilter contentFilter
 type ContentFilter struct {
 	FilterValue string
@@ -37,6 +54,15 @@ type ContentFilter struct {
 func (s *ContentFilter) Decode(request *http.Request) bool {
 	s.FilterValue = request.URL.Query().Get("filterValue")
 	return s.FilterValue != ""
+}
+
+// Encode ContentFilter
+func (s *ContentFilter) Encode() string {
+	if s.FilterValue == "" {
+		return ""
+	}
+
+	return url.QueryEscape(fmt.Sprintf("filterValue=%s", s.FilterValue))
 }
 
 const (
