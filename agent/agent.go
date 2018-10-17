@@ -21,9 +21,9 @@ type Agent interface {
 	ChangePassword(accountID int, oldPassword, newPassword, authToken, sessionID string) bool
 
 	FetchSummary(name, summaryType, authToken, sessionID string, strictCatalog *model.CatalogUnit) (model.SummaryView, bool)
-	QuerySummaryContent(summary model.CatalogUnit, filter *common_def.Filter, authToken, sessionID string) []model.SummaryView
-	QuerySummaryContentWithCatalog(summary model.CatalogUnit, filter *common_def.Filter, authToken, sessionID string, strictCatalog *model.CatalogUnit) []model.SummaryView
-	QuerySummaryContentByUser(user int, filter *common_def.Filter, authToken, sessionID string, strictCatalog *model.CatalogUnit) []model.SummaryView
+	QuerySummaryContent(summary model.CatalogUnit, filter *common_def.Filter, authToken, sessionID string) ([]model.SummaryView, int)
+	QuerySummaryContentWithCatalog(summary model.CatalogUnit, filter *common_def.Filter, authToken, sessionID string, strictCatalog *model.CatalogUnit) ([]model.SummaryView, int)
+	QuerySummaryContentByUser(user int, filter *common_def.Filter, authToken, sessionID string, strictCatalog *model.CatalogUnit) ([]model.SummaryView, int)
 
 	QueryCatalog(id int, authToken, sessionID string) (model.CatalogDetailView, bool)
 	CreateCatalog(name, description string, catalog []model.CatalogUnit, authToken, sessionID string) (model.SummaryView, bool)
