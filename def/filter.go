@@ -66,7 +66,7 @@ func (s *ContentFilter) Encode() string {
 
 const (
 	defaultPageSize = 10
-	defaultPageNum  = 0
+	defaultPageNum  = 1
 )
 
 // PageFilter 页面过滤器
@@ -95,9 +95,9 @@ func (s *PageFilter) Decode(request *http.Request) bool {
 	if err != nil {
 		numValue = defaultPageNum
 	}
-	s.PageNum = numValue - 1
-	if s.PageNum < 0 {
-		s.PageNum = 0
+	s.PageNum = numValue
+	if s.PageNum <= 0 {
+		s.PageNum = 1
 	}
 
 	return true
