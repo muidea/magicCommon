@@ -3,7 +3,6 @@ package def
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"muidea.com/magicCommon/model"
@@ -33,5 +32,5 @@ func EncodeStrictCatalog(catalog model.CatalogUnit) string {
 	if catalog.Type == "" {
 		return ""
 	}
-	return url.QueryEscape(fmt.Sprintf("strictID=%d&strictType=%s", catalog.ID, catalog.Type))
+	return fmt.Sprintf("strictID=%d&strictType=%s", catalog.ID, catalog.Type)
 }

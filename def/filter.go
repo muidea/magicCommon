@@ -3,7 +3,6 @@ package def
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 )
 
@@ -62,7 +61,7 @@ func (s *ContentFilter) Encode() string {
 		return ""
 	}
 
-	return url.QueryEscape(fmt.Sprintf("filterValue=%s", s.FilterValue))
+	return fmt.Sprintf("filterValue=%s", s.FilterValue)
 }
 
 const (
@@ -106,5 +105,5 @@ func (s *PageFilter) Decode(request *http.Request) bool {
 
 // Encode compile
 func (s *PageFilter) Encode() string {
-	return url.QueryEscape(fmt.Sprintf("pageSize=%d&pageNum=%d", s.PageSize, s.PageNum))
+	return fmt.Sprintf("pageSize=%d&pageNum=%d", s.PageSize, s.PageNum)
 }
