@@ -56,14 +56,11 @@ func (s *center) QuerySummaryContent(summary model.CatalogUnit, filter *common_d
 	return result.Summary, result.Total
 }
 
-func (s *center) QuerySummaryContentWithCatalog(summary model.CatalogUnit, filter *common_def.Filter, authToken, sessionID string, strictCatalog *model.CatalogUnit) ([]model.SummaryView, int) {
+func (s *center) QuerySummaryContentWithSpecialType(summary model.CatalogUnit, specialType string, filter *common_def.Filter, authToken, sessionID string) ([]model.SummaryView, int) {
 	result := &common_def.QuerySummaryListResult{Summary: []model.SummaryView{}}
 	url := fmt.Sprintf("%s/%s/%d?type=%s&authToken=%s&sessionID=%s", s.baseURL, "content/summary", summary.ID, summary.Type, authToken, sessionID)
-	if strictCatalog != nil {
-		strictVal := common_def.EncodeStrictCatalog(*strictCatalog)
-		if strictVal != "" {
-			url = fmt.Sprintf("%s&%s", url, strictVal)
-		}
+	if specialType != "" {
+		url = fmt.Sprintf("%s&specialType=%s", url, specialType)
 	}
 	if filter != nil {
 		filterVal := filter.Encode()
