@@ -9,6 +9,8 @@ import (
 const (
 	// AccountKey account key
 	AccountKey = "$account_key$"
+	// TokenKey session token key
+	TokenKey = "$session_token$"
 )
 
 // Session 会话
