@@ -67,6 +67,9 @@ type Agent interface {
 	UploadFile(filePath, sessionToken, sessionID string) (string, bool)
 	DownloadFile(fileToken, filePath, sessionToken, sessionID string) (string, bool)
 	QueryFile(fileToken, sessionToken, sessionID string) (string, bool)
+
+	QuerySyslog(source string, filter *common_def.PageFilter, sessionToken, sessionID string) ([]*model.Syslog, int)
+	InsertSyslog(user, operation, datetime, source, sessionToken, sessionID string) bool
 }
 
 // New 新建Agent
