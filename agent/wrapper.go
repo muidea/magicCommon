@@ -204,3 +204,13 @@ func (s *Wrapper) DownloadFile(fileToken, filePath, sessionToken, sessionID stri
 func (s *Wrapper) QueryFile(fileToken, sessionToken, sessionID string) (string, bool) {
 	return s.agent.QueryFile(fileToken, sessionToken, sessionID)
 }
+
+// QuerySyslog query syslog
+func (s *Wrapper) QuerySyslog(source string, filter *common_def.PageFilter, sessionToken, sessionID string) ([]*model.Syslog, int) {
+	return s.agent.QuerySyslog(source, filter, sessionToken, sessionID)
+}
+
+// InsertSyslog insert syslog
+func (s *Wrapper) InsertSyslog(user, operation, datetime, source, sessionToken, sessionID string) bool {
+	return s.agent.InsertSyslog(user, operation, datetime, source, sessionToken, sessionID)
+}
