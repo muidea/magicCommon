@@ -14,8 +14,8 @@ type UpdateSystemConfigResult Result
 // QuerySyslogResult 查询Syslog结果
 type QuerySyslogResult struct {
 	Result
-	Total  int             `json:"total"`
-	Syslog []*model.Syslog `json:"syslog"`
+	Total  int            `json:"total"`
+	Syslog []model.Syslog `json:"syslog"`
 }
 
 // InsertSyslogParam 插入Syslog参数

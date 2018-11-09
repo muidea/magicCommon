@@ -206,7 +206,7 @@ func (s *Wrapper) QueryFile(fileToken, sessionToken, sessionID string) (string, 
 }
 
 // QuerySyslog query syslog
-func (s *Wrapper) QuerySyslog(source string, filter *common_def.PageFilter, sessionToken, sessionID string) ([]*model.Syslog, int) {
+func (s *Wrapper) QuerySyslog(source string, filter *common_def.PageFilter, sessionToken, sessionID string) ([]model.Syslog, int) {
 	return s.agent.QuerySyslog(source, filter, sessionToken, sessionID)
 }
 
