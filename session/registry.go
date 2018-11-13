@@ -3,6 +3,7 @@ package session
 import (
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	common_const "muidea.com/magicCommon/common"
@@ -28,6 +29,7 @@ func createUUID() string {
 
 type sessionRegistryImpl struct {
 	commandChan commandChanImpl
+	sessionLock sync.RWMutex
 }
 
 // CreateRegistry 创建Session仓库
@@ -73,7 +75,7 @@ func (sm *sessionRegistryImpl) GetSession(w http.ResponseWriter, r *http.Request
 
 // CreateSession 新建Session
 func (sm *sessionRegistryImpl) CreateSession(sessionID string) Session {
-	session := sessionImpl{id: sessionID, context: make(map[string]interface{}), registry: sm}
+	session := sessionImpl{id: sessionID, context: make(map[string]interface{}), registry: sm, sessionLock: &sm.sessionLock}
 
 	session.refresh()
 
@@ -94,9 +96,17 @@ func (sm *sessionRegistryImpl) UpdateSession(session Session) bool {
 		return false
 	}
 
-	for _, key := range session.OptionKey() {
-		cur.context[key], _ = session.GetOption(key)
+	values := make(map[string]interface{})
+	keys := session.OptionKey()
+	for _, key := range keys {
+		values[key], _ = session.GetOption(key)
 	}
+
+	func() {
+		cur.sessionLock.Lock()
+		defer cur.sessionLock.Unlock()
+		cur.context = values
+	}()
 
 	return sm.commandChan.update(cur)
 }
