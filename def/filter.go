@@ -3,18 +3,19 @@ package def
 import (
 	"fmt"
 	"net/http"
-	"strconv"
+
+	"muidea.com/magicCommon/foundation/util"
 )
 
 // Filter 过滤器
 type Filter struct {
-	PageFilter    *PageFilter
+	PageFilter    *util.PageFilter
 	ContentFilter *ContentFilter
 }
 
 // Decode 内容过滤器
 func (s *Filter) Decode(request *http.Request) bool {
-	pageFilter := &PageFilter{}
+	pageFilter := &util.PageFilter{}
 	if pageFilter.Decode(request) {
 		s.PageFilter = pageFilter
 	}
@@ -62,48 +63,4 @@ func (s *ContentFilter) Encode() string {
 	}
 
 	return fmt.Sprintf("filterValue=%s", s.FilterValue)
-}
-
-const (
-	defaultPageSize = 10
-	defaultPageNum  = 1
-)
-
-// PageFilter 页面过滤器
-type PageFilter struct {
-	// 单页条目数
-	PageSize int `json:"pageSize"`
-	// 页码
-	PageNum int `json:"pageNum"`
-}
-
-// Decode 从request里解析PageFilter
-func (s *PageFilter) Decode(request *http.Request) bool {
-	pageSize := request.URL.Query().Get("pageSize")
-	pageNum := request.URL.Query().Get("pageNum")
-	if pageSize == "" && pageNum == "" {
-		return false
-	}
-
-	sizeValue, err := strconv.Atoi(pageSize)
-	if err != nil {
-		sizeValue = defaultPageSize
-	}
-	s.PageSize = sizeValue
-
-	numValue, err := strconv.Atoi(pageNum)
-	if err != nil {
-		numValue = defaultPageNum
-	}
-	s.PageNum = numValue
-	if s.PageNum <= 0 {
-		s.PageNum = 1
-	}
-
-	return true
-}
-
-// Encode compile
-func (s *PageFilter) Encode() string {
-	return fmt.Sprintf("pageSize=%d&pageNum=%d", s.PageSize, s.PageNum)
 }
