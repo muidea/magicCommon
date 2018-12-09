@@ -7,6 +7,7 @@ import (
 
 	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
+	"muidea.com/magicCommon/foundation/util"
 	"muidea.com/magicCommon/model"
 )
 
@@ -68,7 +69,7 @@ type Agent interface {
 	DownloadFile(fileToken, filePath, sessionToken, sessionID string) (string, bool)
 	QueryFile(fileToken, sessionToken, sessionID string) (string, bool)
 
-	QuerySyslog(source string, filter *common_def.PageFilter, sessionToken, sessionID string) ([]model.Syslog, int)
+	QuerySyslog(source string, filter *util.PageFilter, sessionToken, sessionID string) ([]model.Syslog, int)
 	InsertSyslog(user, operation, datetime, source, sessionToken, sessionID string) bool
 }
 

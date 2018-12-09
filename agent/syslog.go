@@ -6,10 +6,11 @@ import (
 
 	common_def "muidea.com/magicCommon/def"
 	"muidea.com/magicCommon/foundation/net"
+	"muidea.com/magicCommon/foundation/util"
 	"muidea.com/magicCommon/model"
 )
 
-func (s *center) QuerySyslog(source string, filter *common_def.PageFilter, sessionToken, sessionID string) ([]model.Syslog, int) {
+func (s *center) QuerySyslog(source string, filter *util.PageFilter, sessionToken, sessionID string) ([]model.Syslog, int) {
 	result := &common_def.QuerySyslogResult{}
 
 	url := fmt.Sprintf("%s/%s/?authToken=%s&sessionID=%s&source=%s", s.baseURL, "system/syslog", sessionToken, sessionID, source)
