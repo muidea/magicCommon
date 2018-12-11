@@ -1,8 +1,6 @@
 package orm
 
 import (
-	"log"
-	"reflect"
 	"testing"
 )
 
@@ -30,20 +28,17 @@ func (s *test) Demo() string {
 }
 
 func TestModel(t *testing.T) {
-	info := getModelInfo(&Unit{T1: &test{val: 123}})
+	intVal := 10
+	info := getModelInfo(&Unit{T1: &test{val: 123}, TimeStamp: &intVal})
 	if info == nil {
 		t.Errorf("getModelInfo failed,")
 		return
 	}
 
+	err := info.verify()
+	if err != nil {
+		t.Errorf("verify failed")
+	}
+
 	info.Dump()
-
-	t1 := test{val: 10}
-	var t2 Test
-	elm1 := reflect.Indirect(reflect.ValueOf(t1))
-	log.Print(elm1.Kind())
-
-	t2 = &t1
-	elm2 := reflect.Indirect(reflect.ValueOf(t2))
-	log.Print(elm2.Kind())
 }

@@ -20,5 +20,4 @@ const (
 	TypeFloatField
 	TypeDecimalField
 	TypeStrictField
-	TypePtrField
 )

@@ -13,6 +13,7 @@ type fieldInfo struct {
 	fieldTypeValue int
 	fieldTypeName  string
 	fieldTag       fieldTag
+	fieldValue     reflect.Value
 }
 
 // field info collection
@@ -23,8 +24,12 @@ type fields struct {
 	fields map[string]*fieldInfo
 }
 
+func (s *fieldInfo) isPrimaryKey() bool {
+	return s.fieldTag.IsPrimaryKey()
+}
+
 func (s *fieldInfo) isReference() bool {
-	return s.fieldTypeValue < TypeStrictField
+	return s.fieldTypeValue >= TypeStrictField
 }
 
 func (s *fieldInfo) Dump() string {
@@ -40,6 +45,18 @@ func (s *fields) append(sf *fieldInfo) {
 	s.fields[sf.fieldName] = sf
 }
 
+func (s *fields) verify() error {
+	if s.pk == nil {
+		return fmt.Errorf("no defined primary key")
+	}
+
+	if len(s.fields) == 0 {
+		return fmt.Errorf("no defined fields")
+	}
+
+	return nil
+}
+
 func (s *fields) Dump() {
 	if s.pk != nil {
 		fmt.Printf("pk:[%s]\n", s.pk.Dump())
@@ -50,20 +67,22 @@ func (s *fields) Dump() {
 	}
 }
 
-func getFieldInfo(idx int, sf *reflect.StructField) *fieldInfo {
+func getFieldInfo(idx int, sf *reflect.StructField, sv *reflect.Value) *fieldInfo {
 	info := &fieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = sf.Name
 	info.fieldTag = newFieldTag(sf.Tag.Get("orm"))
-	tVal, err := getFieldType(sf.Type)
+
+	val := reflect.Indirect(*sv)
+	tVal, err := getFieldType(val.Type())
 	if err != nil {
 		log.Printf("getFieldType failed, idx:%d, name:%s, type:%s, err:%s", idx, sf.Name, sf.Type.Kind(), err.Error())
 		return nil
 	}
 
-	reflect.ValueOf(sf)
 	info.fieldTypeValue = tVal
-	info.fieldTypeName = sf.Type.String()
+	info.fieldTypeName = val.Type().String()
+	info.fieldValue = val
 
 	return info
 }

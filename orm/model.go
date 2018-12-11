@@ -12,6 +12,14 @@ type modelInfo struct {
 	fields *fields
 }
 
+func (s *modelInfo) verify() error {
+	if s.name == "" {
+		return fmt.Errorf("illegal model name")
+	}
+
+	return s.fields.verify()
+}
+
 func (s *modelInfo) Dump() {
 	fmt.Printf("name:%s\n", s.name)
 	s.fields.Dump()
@@ -37,12 +45,17 @@ func getModelInfo(obj interface{}) *modelInfo {
 			break
 		}
 
-		sv := fieldType.Field(idx)
-		fInfo := getFieldInfo(idx, &sv)
+		sv := fieldElem.Field(idx)
+		sf := fieldType.Field(idx)
+		fInfo := getFieldInfo(idx, &sf, &sv)
 		if fInfo != nil {
 			info.fields.append(fInfo)
 		} else {
 			return nil
+		}
+
+		if fInfo.isPrimaryKey() {
+			info.fields.pk = fInfo
 		}
 
 		idx++

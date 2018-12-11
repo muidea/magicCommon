@@ -32,8 +32,6 @@ func getFieldType(val reflect.Type) (ft int, err error) {
 		ft = TypeVarCharField
 	case reflect.Struct:
 		ft = TypeStrictField
-	case reflect.Ptr:
-		ft = TypePtrField
 	default:
 		err = fmt.Errorf("unsupport field type %v, may be miss setting tag", val.Name())
 	}
