@@ -9,12 +9,12 @@ import (
 // Unit 单元信息
 type Unit struct {
 	//ID 唯一标示单元
-	ID int8 `json:"id" orm:"id key"`
+	ID int `json:"id" orm:"id key"`
 	// Name 名称
 	Name      string  `json:"name" orm:"name"`
 	Value     float32 `json:"value" orm:"value"`
-	TimeStamp int     `json:"timeStamp" orm:"timeStamp"`
-	t1        *test   `orm:"t1"`
+	TimeStamp *int    `json:"timeStamp" orm:"timeStamp"`
+	T1        *test   `orm:"t1"`
 }
 
 type Test interface {
@@ -30,7 +30,7 @@ func (s *test) Demo() string {
 }
 
 func TestModel(t *testing.T) {
-	info := getModelInfo(&Unit{t1: &test{val: 123}})
+	info := getModelInfo(&Unit{T1: &test{val: 123}})
 	if info == nil {
 		t.Errorf("getModelInfo failed,")
 		return

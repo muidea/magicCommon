@@ -26,7 +26,7 @@ func getModelInfo(obj interface{}) *modelInfo {
 		return nil
 	}
 
-	info := &modelInfo{name: reflect.Indirect(objVal).Type().Name(), fields: &fields{fields: make(map[string]*fieldInfo)}}
+	info := &modelInfo{name: reflect.Indirect(objVal).Type().String(), fields: &fields{fields: make(map[string]*fieldInfo)}}
 
 	fieldElem := objVal.Elem()
 	fieldType := fieldElem.Type()
@@ -37,9 +37,8 @@ func getModelInfo(obj interface{}) *modelInfo {
 			break
 		}
 
-		sf := fieldElem.Field(idx)
 		sv := fieldType.Field(idx)
-		fInfo := getFieldInfo(idx, &sv, &sf)
+		fInfo := getFieldInfo(idx, &sv)
 		if fInfo != nil {
 			info.fields.append(fInfo)
 		} else {

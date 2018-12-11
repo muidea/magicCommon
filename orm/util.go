@@ -6,10 +6,8 @@ import (
 )
 
 // return field type as type constant from reflect.Value
-func getFieldType(val reflect.Value) (ft int, err error) {
-
-	elm := reflect.Indirect(val)
-	switch elm.Kind() {
+func getFieldType(val reflect.Type) (ft int, err error) {
+	switch val.Kind() {
 	case reflect.Int8:
 		ft = TypeBitField
 	case reflect.Int16:
@@ -34,8 +32,10 @@ func getFieldType(val reflect.Value) (ft int, err error) {
 		ft = TypeVarCharField
 	case reflect.Struct:
 		ft = TypeStrictField
+	case reflect.Ptr:
+		ft = TypePtrField
 	default:
-		err = fmt.Errorf("unsupport field type %v, may be miss setting tag", val)
+		err = fmt.Errorf("unsupport field type %v, may be miss setting tag", val.Name())
 	}
 
 	return

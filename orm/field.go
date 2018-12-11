@@ -8,10 +8,11 @@ import (
 
 // single field info
 type fieldInfo struct {
-	fieldIndex int
-	fieldName  string
-	fieldType  int
-	fieldTag   fieldTag
+	fieldIndex     int
+	fieldName      string
+	fieldTypeValue int
+	fieldTypeName  string
+	fieldTag       fieldTag
 }
 
 // field info collection
@@ -23,11 +24,11 @@ type fields struct {
 }
 
 func (s *fieldInfo) isReference() bool {
-	return false
+	return s.fieldTypeValue < TypeStrictField
 }
 
 func (s *fieldInfo) Dump() string {
-	return fmt.Sprintf("index:%d,name:%s,type:%d,tag:%s", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag)
+	return fmt.Sprintf("index:%d,name:%s,typeValue:%d, typeName:%s,tag:%s", s.fieldIndex, s.fieldName, s.fieldTypeValue, s.fieldTypeName, s.fieldTag)
 }
 
 func (s *fields) append(sf *fieldInfo) {
@@ -49,18 +50,20 @@ func (s *fields) Dump() {
 	}
 }
 
-func getFieldInfo(idx int, sf *reflect.StructField, sv *reflect.Value) *fieldInfo {
+func getFieldInfo(idx int, sf *reflect.StructField) *fieldInfo {
 	info := &fieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = sf.Name
 	info.fieldTag = newFieldTag(sf.Tag.Get("orm"))
-	tVal, err := getFieldType(*sv)
+	tVal, err := getFieldType(sf.Type)
 	if err != nil {
-		log.Printf("getFieldType failed, idx:%d, name:%s, type:%s, err:%s", idx, sf.Name, sf.Type.Name(), err.Error())
+		log.Printf("getFieldType failed, idx:%d, name:%s, type:%s, err:%s", idx, sf.Name, sf.Type.Kind(), err.Error())
 		return nil
 	}
-	log.Printf("idx:%d, name:%s, type:%s", idx, sf.Name, sf.Type.Name())
-	info.fieldType = tVal
+
+	reflect.ValueOf(sf)
+	info.fieldTypeValue = tVal
+	info.fieldTypeName = sf.Type.String()
 
 	return info
 }

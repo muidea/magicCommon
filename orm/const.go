@@ -20,11 +20,5 @@ const (
 	TypeFloatField
 	TypeDecimalField
 	TypeStrictField
-	TypeJSONField
-	TypeJsonbField
-	RelForeignKey
-	RelOneToOne
-	RelManyToMany
-	RelReverseOne
-	RelReverseMany
+	TypePtrField
 )
