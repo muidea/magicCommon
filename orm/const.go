@@ -19,6 +19,7 @@ const (
 	TypePositiveBigIntegerField
 	TypeFloatField
 	TypeDecimalField
+	TypeStrictField
 	TypeJSONField
 	TypeJsonbField
 	RelForeignKey
@@ -26,12 +27,4 @@ const (
 	RelManyToMany
 	RelReverseOne
 	RelReverseMany
-)
-
-// Define some logic enum
-const (
-	IsIntegerField         = ^-TypePositiveBigIntegerField >> 6 << 7
-	IsPositiveIntegerField = ^-TypePositiveBigIntegerField >> 10 << 11
-	IsRelField             = ^-RelReverseMany >> 18 << 19
-	IsFieldType            = ^-RelReverseMany<<1 + 1
 )

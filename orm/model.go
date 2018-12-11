@@ -26,8 +26,6 @@ func getModelInfo(obj interface{}) *modelInfo {
 		return nil
 	}
 
-	log.Print(reflect.Indirect(objVal).Type().Name())
-
 	info := &modelInfo{name: reflect.Indirect(objVal).Type().Name(), fields: &fields{fields: make(map[string]*fieldInfo)}}
 
 	fieldElem := objVal.Elem()

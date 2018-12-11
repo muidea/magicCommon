@@ -8,10 +8,10 @@ import (
 
 // single field info
 type fieldInfo struct {
-	mi         *modelInfo
 	fieldIndex int
 	fieldName  string
 	fieldType  int
+	fieldTag   fieldTag
 }
 
 // field info collection
@@ -22,8 +22,12 @@ type fields struct {
 	fields map[string]*fieldInfo
 }
 
+func (s *fieldInfo) isReference() bool {
+	return false
+}
+
 func (s *fieldInfo) Dump() string {
-	return fmt.Sprintf("index:%d,name:%s,type:%d", s.fieldIndex, s.fieldName, s.fieldType)
+	return fmt.Sprintf("index:%d,name:%s,type:%d,tag:%s", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag)
 }
 
 func (s *fields) append(sf *fieldInfo) {
@@ -49,12 +53,12 @@ func getFieldInfo(idx int, sf *reflect.StructField, sv *reflect.Value) *fieldInf
 	info := &fieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = sf.Name
-	tVal, err := getFieldType(sv.Addr())
+	info.fieldTag = newFieldTag(sf.Tag.Get("orm"))
+	tVal, err := getFieldType(*sv)
 	if err != nil {
 		log.Printf("getFieldType failed, idx:%d, name:%s, type:%s, err:%s", idx, sf.Name, sf.Type.Name(), err.Error())
 		return nil
 	}
-
 	log.Printf("idx:%d, name:%s, type:%s", idx, sf.Name, sf.Type.Name())
 	info.fieldType = tVal
 
