@@ -14,6 +14,7 @@ type fieldInfo struct {
 	fieldTypeName  string
 	fieldTag       fieldTag
 	fieldValue     reflect.Value
+	fieldPkgPath   string
 }
 
 // field info collection
@@ -33,7 +34,7 @@ func (s *fieldInfo) isReference() bool {
 }
 
 func (s *fieldInfo) Dump() string {
-	return fmt.Sprintf("index:%d,name:%s,typeValue:%d, typeName:%s,tag:%s", s.fieldIndex, s.fieldName, s.fieldTypeValue, s.fieldTypeName, s.fieldTag)
+	return fmt.Sprintf("index:%d,name:%s,typeValue:%d, typeName:%s,tag:%s, pkgPath:%s", s.fieldIndex, s.fieldName, s.fieldTypeValue, s.fieldTypeName, s.fieldTag, s.fieldPkgPath)
 }
 
 func (s *fields) append(sf *fieldInfo) {
@@ -83,6 +84,7 @@ func getFieldInfo(idx int, sf *reflect.StructField, sv *reflect.Value) *fieldInf
 	info.fieldTypeValue = tVal
 	info.fieldTypeName = val.Type().String()
 	info.fieldValue = val
+	info.fieldPkgPath = val.Type().PkgPath()
 
 	return info
 }

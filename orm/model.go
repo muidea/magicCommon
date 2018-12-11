@@ -8,8 +8,9 @@ import (
 
 // single model info
 type modelInfo struct {
-	name   string
-	fields *fields
+	name    string
+	pkgPath string
+	fields  *fields
 }
 
 func (s *modelInfo) verify() error {
@@ -21,7 +22,7 @@ func (s *modelInfo) verify() error {
 }
 
 func (s *modelInfo) Dump() {
-	fmt.Printf("name:%s\n", s.name)
+	fmt.Printf("name:%s, pkgPath:%s\n", s.name, s.pkgPath)
 	s.fields.Dump()
 }
 
@@ -34,7 +35,8 @@ func getModelInfo(obj interface{}) *modelInfo {
 		return nil
 	}
 
-	info := &modelInfo{name: reflect.Indirect(objVal).Type().String(), fields: &fields{fields: make(map[string]*fieldInfo)}}
+	val := reflect.Indirect(objVal)
+	info := &modelInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), fields: &fields{fields: make(map[string]*fieldInfo)}}
 
 	fieldElem := objVal.Elem()
 	fieldType := fieldElem.Type()
