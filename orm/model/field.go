@@ -47,6 +47,60 @@ func (s *FieldInfo) GetFieldTypeValue() int {
 	return s.fieldTypeValue
 }
 
+// GetFieldValueStr GetFieldValueStr
+func (s *FieldInfo) GetFieldValueStr() (ret string) {
+	switch s.fieldTypeValue {
+	case orm.TypeBooleanField:
+		if s.fieldValue.Bool() {
+			ret = "1"
+		} else {
+			ret = "0"
+		}
+		break
+	case orm.TypeVarCharField:
+		ret = fmt.Sprintf("'%s'", s.fieldValue.String())
+		break
+	case orm.TypeDateTimeField:
+		ret = "DATETIME"
+		break
+	case orm.TypeBitField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		break
+	case orm.TypeSmallIntegerField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		break
+	case orm.TypeIntegerField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		break
+	case orm.TypeBigIntegerField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		break
+	case orm.TypePositiveBitField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		break
+	case orm.TypePositiveSmallIntegerField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		break
+	case orm.TypePositiveIntegerField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		break
+	case orm.TypePositiveBigIntegerField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		break
+	case orm.TypeFloatField:
+		ret = fmt.Sprintf("%f", s.fieldValue.Float())
+		break
+	case orm.TypeDoubleField:
+		ret = fmt.Sprintf("%f", s.fieldValue.Float())
+		break
+	default:
+		msg := fmt.Sprintf("no support fileType, %d", s.fieldTypeValue)
+		panic(msg)
+	}
+
+	return
+}
+
 // IsPrimaryKey IsPrimaryKey
 func (s *FieldInfo) IsPrimaryKey() bool {
 	return s.fieldTag.IsPrimaryKey()

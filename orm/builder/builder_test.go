@@ -12,9 +12,15 @@ type Unit struct {
 }
 
 func TestBuilder(t *testing.T) {
-	obj := &Unit{}
+	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456}
 
 	builder := NewBuilder(obj)
 
 	builder.BuildSchema()
+
+	builder.BuildInsert()
+
+	builder.BuildUpdate()
+
+	builder.BuildDelete()
 }

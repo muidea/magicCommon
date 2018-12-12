@@ -5,6 +5,9 @@ import "muidea.com/magicCommon/orm/mysql"
 // Builder orm builder
 type Builder interface {
 	BuildSchema() (string, error)
+	BuildInsert() (string, error)
+	BuildUpdate() (string, error)
+	BuildDelete() (string, error)
 }
 
 // NewBuilder new builder
