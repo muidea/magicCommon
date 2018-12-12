@@ -6,40 +6,40 @@ import (
 	"reflect"
 )
 
-// ModelInfo single model info
-type ModelInfo struct {
+// StructInfo single struct info
+type StructInfo struct {
 	name    string
 	pkgPath string
 	Fields  *Fields
 }
 
 // Verify Verify
-func (s *ModelInfo) Verify() error {
+func (s *StructInfo) Verify() error {
 	if s.name == "" {
-		return fmt.Errorf("illegal model name")
+		return fmt.Errorf("illegal struct name")
 	}
 
 	return s.Fields.Verify()
 }
 
 // Dump Dump
-func (s *ModelInfo) Dump() {
+func (s *StructInfo) Dump() {
 	fmt.Printf("name:%s, pkgPath:%s\n", s.name, s.pkgPath)
 	s.Fields.Dump()
 }
 
-// GetModelInfo GetModelInfo
-func GetModelInfo(obj interface{}) *ModelInfo {
+// GetStructInfo GetStructInfo
+func GetStructInfo(obj interface{}) *StructInfo {
 	objType := reflect.TypeOf(obj)
 	objVal := reflect.ValueOf(obj)
 
 	if objType.Kind() != reflect.Ptr {
-		log.Fatal("illegal model value.")
+		log.Fatal("illegal struct value.")
 		return nil
 	}
 
 	val := reflect.Indirect(objVal)
-	info := &ModelInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), Fields: &Fields{Fields: make(map[string]*FieldInfo)}}
+	info := &StructInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), Fields: &Fields{Fields: make(map[string]*FieldInfo)}}
 
 	fieldElem := objVal.Elem()
 	fieldType := fieldElem.Type()

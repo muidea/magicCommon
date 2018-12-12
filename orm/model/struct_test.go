@@ -32,11 +32,11 @@ func (s *test) Demo() string {
 	return "test demo"
 }
 
-func TestModel(t *testing.T) {
+func TestStruct(t *testing.T) {
 	intVal := 10
-	info := GetModelInfo(&Unit{T1: &test{val: 123}, TimeStamp: &intVal, Demo1: &dd1.Demo{}, Demo2: &dd2.Demo{}})
+	info := GetStructInfo(&Unit{T1: &test{val: 123}, TimeStamp: &intVal, Demo1: &dd1.Demo{}, Demo2: &dd2.Demo{}})
 	if info == nil {
-		t.Errorf("GetModelInfo failed,")
+		t.Errorf("GetStructInfo failed,")
 		return
 	}
 
