@@ -14,7 +14,7 @@ type FieldInfo struct {
 	fieldName      string
 	fieldTypeValue int
 	fieldTypeName  string
-	FieldTag       FieldTag
+	fieldTag       FieldTag
 	fieldValue     reflect.Value
 	fieldPkgPath   string
 }
@@ -27,9 +27,24 @@ type Fields struct {
 	Fields map[string]*FieldInfo
 }
 
+// GetFieldTag GetFieldTag
+func (s *FieldInfo) GetFieldTag() string {
+	return s.fieldTag.Name()
+}
+
+// GetFieldName GetFieldName
+func (s *FieldInfo) GetFieldName() string {
+	return s.fieldName
+}
+
+// GetFieldType GetFieldType
+func (s *FieldInfo) GetFieldType() string {
+	return s.fieldTypeName
+}
+
 // IsPrimaryKey IsPrimaryKey
 func (s *FieldInfo) IsPrimaryKey() bool {
-	return s.FieldTag.IsPrimaryKey()
+	return s.fieldTag.IsPrimaryKey()
 }
 
 // IsReference IsReference
@@ -39,7 +54,7 @@ func (s *FieldInfo) IsReference() bool {
 
 // Dump Dump
 func (s *FieldInfo) Dump() string {
-	return fmt.Sprintf("index:%d,name:%s,typeValue:%d, typeName:%s,tag:%s, pkgPath:%s", s.fieldIndex, s.fieldName, s.fieldTypeValue, s.fieldTypeName, s.FieldTag, s.fieldPkgPath)
+	return fmt.Sprintf("index:%d,name:%s,typeValue:%d, typeName:%s,tag:%s, pkgPath:%s", s.fieldIndex, s.fieldName, s.fieldTypeValue, s.fieldTypeName, s.fieldTag, s.fieldPkgPath)
 }
 
 // Append Append
@@ -81,7 +96,7 @@ func GetFieldInfo(idx int, sf *reflect.StructField, sv *reflect.Value) *FieldInf
 	info := &FieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = sf.Name
-	info.FieldTag = newFieldTag(sf.Tag.Get("orm"))
+	info.fieldTag = newFieldTag(sf.Tag.Get("orm"))
 
 	val := reflect.Indirect(*sv)
 	tVal, err := GetFieldType(val.Type())

@@ -22,6 +22,11 @@ func (s *StructInfo) Verify() error {
 	return s.Fields.Verify()
 }
 
+// GetStructName GetStructName
+func (s *StructInfo) GetStructName() string {
+	return s.name
+}
+
 // Dump Dump
 func (s *StructInfo) Dump() {
 	fmt.Printf("name:%s, pkgPath:%s\n", s.name, s.pkgPath)

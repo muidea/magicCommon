@@ -1,5 +1,7 @@
 package mysql
 
+import "strings"
+
 var mysqlKeyWords = []string{
 	"ADD", "ALL", "ALTER",
 	"ANALYZE", "AND", "AS",
@@ -77,4 +79,15 @@ var mysqlKeyWords = []string{
 	"WITH", "WRITE", "X509",
 	"XOR", "YEAR_MONTH", "ZEROFILL",
 	"ACTION", "BIT", "DATE", "ENUM", "NO", "TEXT", "TIME", "TIMESTAMP",
+}
+
+// IsKeyWord check if a keyword
+func IsKeyWord(str string) bool {
+	for _, val := range mysqlKeyWords {
+		if strings.ToUpper(str) == val {
+			return true
+		}
+	}
+
+	return false
 }
