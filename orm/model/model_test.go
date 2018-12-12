@@ -1,4 +1,4 @@
-package orm
+package model
 
 import (
 	"testing"
@@ -34,15 +34,15 @@ func (s *test) Demo() string {
 
 func TestModel(t *testing.T) {
 	intVal := 10
-	info := getModelInfo(&Unit{T1: &test{val: 123}, TimeStamp: &intVal, Demo1: &dd1.Demo{}, Demo2: &dd2.Demo{}})
+	info := GetModelInfo(&Unit{T1: &test{val: 123}, TimeStamp: &intVal, Demo1: &dd1.Demo{}, Demo2: &dd2.Demo{}})
 	if info == nil {
-		t.Errorf("getModelInfo failed,")
+		t.Errorf("GetModelInfo failed,")
 		return
 	}
 
-	err := info.verify()
+	err := info.Verify()
 	if err != nil {
-		t.Errorf("verify failed")
+		t.Errorf("Verify failed")
 	}
 
 	info.Dump()

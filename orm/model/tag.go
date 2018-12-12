@@ -1,4 +1,4 @@
-package orm
+package model
 
 import (
 	"fmt"
@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-type fieldTag interface {
+// FieldTag FieldTag
+type FieldTag interface {
 	Name() string
 	IsPrimaryKey() bool
 	IsAutoIncrement() bool
@@ -20,7 +21,7 @@ type tag struct {
 }
 
 // name[key][auto]
-func newFieldTag(val string) fieldTag {
+func newFieldTag(val string) FieldTag {
 	items := strings.Split(val, " ")
 	if len(items) < 1 {
 		log.Fatalf("illegal tag value, value:%s", val)

@@ -1,4 +1,4 @@
-package orm
+package mysql
 
 var mysqlKeyWords = []string{
 	"ADD", "ALL", "ALTER",

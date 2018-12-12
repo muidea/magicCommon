@@ -1,4 +1,4 @@
-package orm
+package model
 
 import (
 	"fmt"
@@ -6,27 +6,30 @@ import (
 	"reflect"
 )
 
-// single model info
-type modelInfo struct {
+// ModelInfo single model info
+type ModelInfo struct {
 	name    string
 	pkgPath string
-	fields  *fields
+	Fields  *Fields
 }
 
-func (s *modelInfo) verify() error {
+// Verify Verify
+func (s *ModelInfo) Verify() error {
 	if s.name == "" {
 		return fmt.Errorf("illegal model name")
 	}
 
-	return s.fields.verify()
+	return s.Fields.Verify()
 }
 
-func (s *modelInfo) Dump() {
+// Dump Dump
+func (s *ModelInfo) Dump() {
 	fmt.Printf("name:%s, pkgPath:%s\n", s.name, s.pkgPath)
-	s.fields.Dump()
+	s.Fields.Dump()
 }
 
-func getModelInfo(obj interface{}) *modelInfo {
+// GetModelInfo GetModelInfo
+func GetModelInfo(obj interface{}) *ModelInfo {
 	objType := reflect.TypeOf(obj)
 	objVal := reflect.ValueOf(obj)
 
@@ -36,7 +39,7 @@ func getModelInfo(obj interface{}) *modelInfo {
 	}
 
 	val := reflect.Indirect(objVal)
-	info := &modelInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), fields: &fields{fields: make(map[string]*fieldInfo)}}
+	info := &ModelInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), Fields: &Fields{Fields: make(map[string]*FieldInfo)}}
 
 	fieldElem := objVal.Elem()
 	fieldType := fieldElem.Type()
@@ -49,15 +52,15 @@ func getModelInfo(obj interface{}) *modelInfo {
 
 		sv := fieldElem.Field(idx)
 		sf := fieldType.Field(idx)
-		fInfo := getFieldInfo(idx, &sf, &sv)
+		fInfo := GetFieldInfo(idx, &sf, &sv)
 		if fInfo != nil {
-			info.fields.append(fInfo)
+			info.Fields.Append(fInfo)
 		} else {
 			return nil
 		}
 
-		if fInfo.isPrimaryKey() {
-			info.fields.pk = fInfo
+		if fInfo.IsPrimaryKey() {
+			info.Fields.PrimaryKey = fInfo
 		}
 
 		idx++
