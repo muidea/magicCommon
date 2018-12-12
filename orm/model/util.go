@@ -26,14 +26,21 @@ func GetFieldType(val reflect.Type) (ft int, err error) {
 		ft = orm.TypePositiveIntegerField
 	case reflect.Uint64:
 		ft = orm.TypePositiveBigIntegerField
-	case reflect.Float32, reflect.Float64:
+	case reflect.Float32:
 		ft = orm.TypeFloatField
+	case reflect.Float64:
+		ft = orm.TypeDoubleField
 	case reflect.Bool:
 		ft = orm.TypeBooleanField
 	case reflect.String:
 		ft = orm.TypeVarCharField
 	case reflect.Struct:
-		ft = orm.TypeStrictField
+		switch val.String() {
+		case "time.Time":
+			ft = orm.TypeDateTimeField
+		default:
+			ft = orm.TypeStrictField
+		}
 	default:
 		err = fmt.Errorf("unsupport field type %v, may be miss setting tag", val.Name())
 	}

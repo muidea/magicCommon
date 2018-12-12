@@ -37,9 +37,14 @@ func (s *FieldInfo) GetFieldName() string {
 	return s.fieldName
 }
 
-// GetFieldType GetFieldType
-func (s *FieldInfo) GetFieldType() string {
+// GetFieldTypeName GetFieldTypeName
+func (s *FieldInfo) GetFieldTypeName() string {
 	return s.fieldTypeName
+}
+
+// GetFieldTypeValue GetFieldTypeValue
+func (s *FieldInfo) GetFieldTypeValue() int {
+	return s.fieldTypeValue
 }
 
 // IsPrimaryKey IsPrimaryKey

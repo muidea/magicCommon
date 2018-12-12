@@ -18,6 +18,7 @@ const (
 	TypePositiveIntegerField
 	TypePositiveBigIntegerField
 	TypeFloatField
+	TypeDoubleField
 	TypeDecimalField
 	TypeStrictField
 )
