@@ -16,6 +16,7 @@ type Orm interface {
 	Update(obj interface{}) error
 	Delete(obj interface{}) error
 	Query(obj interface{}, filter ...string) error
+	Release()
 }
 
 var ormManager *manager
@@ -45,6 +46,9 @@ func Uninitialize() {
 // New create new Orm
 func New() (Orm, error) {
 	cfg := ormManager.getServerConfig()
+	if cfg == nil {
+		return nil, fmt.Errorf("not define databaes server config")
+	}
 
 	executor, err := executor.NewExecutor(cfg.user, cfg.password, cfg.address, cfg.dbName)
 	if err != nil {
@@ -73,7 +77,8 @@ func (s *orm) Insert(obj interface{}) error {
 		if err != nil {
 			log.Printf("registerModule failed, err:%s", err.Error())
 		}
-		log.Print(sql)
+
+		s.executor.Execute(sql)
 	}
 
 	sql, err := builder.BuildInsert()
@@ -86,8 +91,6 @@ func (s *orm) Insert(obj interface{}) error {
 	if pk != nil {
 		pk.SetFieldValue(reflect.ValueOf(id))
 	}
-
-	log.Print(sql)
 
 	return nil
 }
@@ -111,14 +114,18 @@ func (s *orm) Update(obj interface{}) error {
 		if err != nil {
 			log.Printf("registerModule failed, err:%s", err.Error())
 		}
-		log.Print(sql)
+		s.executor.Execute(sql)
 	}
 
 	sql, err := builder.BuildUpdate()
 	if err != nil {
 		return err
 	}
-	log.Print(sql)
+
+	num := s.executor.Update(sql)
+	if num != 1 {
+		log.Printf("unexception update, rowNum:%d", num)
+	}
 
 	return nil
 }
@@ -142,14 +149,17 @@ func (s *orm) Delete(obj interface{}) error {
 		if err != nil {
 			log.Printf("registerModule failed, err:%s", err.Error())
 		}
-		log.Print(sql)
+		s.executor.Execute(sql)
 	}
 
 	sql, err := builder.BuildDelete()
 	if err != nil {
 		return err
 	}
-	log.Print(sql)
+	num := s.executor.Delete(sql)
+	if num != 1 {
+		log.Printf("unexception delete, rowNum:%d", num)
+	}
 
 	return nil
 }
@@ -173,14 +183,34 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 		if err != nil {
 			log.Printf("registerModule failed, err:%s", err.Error())
 		}
-		log.Print(sql)
+		s.executor.Execute(sql)
 	}
 
 	sql, err := builder.BuildQuery()
 	if err != nil {
 		return err
 	}
-	log.Print(sql)
+
+	s.executor.Query(sql)
+	if !s.executor.Next() {
+		return fmt.Errorf("no found object")
+	}
+	defer s.executor.Finish()
+
+	items := []interface{}{}
+	fields := modelInfo.GetFields()
+	for _, val := range *fields {
+		items = append(items, val.GetFieldValue())
+	}
+
+	s.executor.GetField(items...)
 
 	return nil
+}
+
+func (s *orm) Release() {
+	if s.executor != nil {
+		s.executor.Release()
+		s.executor = nil
+	}
 }

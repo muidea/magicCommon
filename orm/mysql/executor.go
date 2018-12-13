@@ -289,3 +289,37 @@ func (s *Executor) Delete(sql string) int64 {
 
 	return num
 }
+
+// Execute Execute
+func (s *Executor) Execute(sql string) {
+	if s.rowsHandle != nil {
+		s.rowsHandle.Close()
+	}
+	s.rowsHandle = nil
+
+	if s.dbTx == nil {
+		if s.dbHandle == nil {
+			panic("dbHandle is nil")
+		}
+
+		result, err := s.dbHandle.Exec(sql)
+		if err != nil {
+			panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+		}
+
+		_, err = result.RowsAffected()
+		if err != nil {
+			panic("rows affected exception, err:" + err.Error())
+		}
+	}
+
+	result, err := s.dbTx.Exec(sql)
+	if err != nil {
+		panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+	}
+
+	_, err = result.RowsAffected()
+	if err != nil {
+		panic("rows affected exception, err:" + err.Error())
+	}
+}

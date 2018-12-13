@@ -15,6 +15,7 @@ type Executor interface {
 	Insert(sql string) int64
 	Delete(sql string) int64
 	Update(sql string) int64
+	Execute(sql string)
 }
 
 // NewExecutor NewExecutor

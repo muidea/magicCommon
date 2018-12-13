@@ -47,6 +47,11 @@ func (s *FieldInfo) SetFieldValue(val reflect.Value) {
 	s.fieldValue.Set(val)
 }
 
+// GetFieldValue GetFieldValue
+func (s *FieldInfo) GetFieldValue() reflect.Value {
+	return s.fieldValue
+}
+
 // GetFieldValueStr GetFieldValueStr
 func (s *FieldInfo) GetFieldValueStr() (ret string) {
 	switch s.fieldTypeValue {
