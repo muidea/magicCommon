@@ -20,12 +20,7 @@ type FieldInfo struct {
 }
 
 // Fields field info collection
-type Fields struct {
-	PrimaryKey *FieldInfo
-
-	// name->FieldInfo
-	Fields []*FieldInfo
-}
+type Fields []*FieldInfo
 
 // GetFieldTag GetFieldTag
 func (s *FieldInfo) GetFieldTag() string {
@@ -124,7 +119,7 @@ func (s *FieldInfo) Dump() string {
 // Append Append
 func (s *Fields) Append(sf *FieldInfo) {
 	exist := false
-	for _, val := range s.Fields {
+	for _, val := range *s {
 		if val.fieldTag.Name() == sf.fieldTag.Name() {
 			exist = true
 			break
@@ -134,16 +129,12 @@ func (s *Fields) Append(sf *FieldInfo) {
 		log.Fatalf("duplicate field tag,[%s]", sf.Dump())
 	}
 
-	s.Fields = append(s.Fields, sf)
+	*s = append(*s, sf)
 }
 
 // Verify Verify
 func (s *Fields) Verify() error {
-	if s.PrimaryKey == nil {
-		return fmt.Errorf("no defined primary key")
-	}
-
-	if len(s.Fields) == 0 {
+	if len(*s) == 0 {
 		return fmt.Errorf("no defined Fields")
 	}
 
@@ -152,11 +143,7 @@ func (s *Fields) Verify() error {
 
 // Dump Dump
 func (s *Fields) Dump() {
-	if s.PrimaryKey != nil {
-		fmt.Printf("PrimaryKey:[%s]\n", s.PrimaryKey.Dump())
-	}
-
-	for k, v := range s.Fields {
+	for k, v := range *s {
 		fmt.Printf("key:%d, val:[%s]\n", k, v.Dump())
 	}
 }

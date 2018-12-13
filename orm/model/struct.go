@@ -10,7 +10,10 @@ import (
 type StructInfo struct {
 	name    string
 	pkgPath string
-	Fields  *Fields
+
+	primaryKey *FieldInfo
+
+	fields Fields
 }
 
 // Verify Verify
@@ -19,7 +22,7 @@ func (s *StructInfo) Verify() error {
 		return fmt.Errorf("illegal struct name")
 	}
 
-	return s.Fields.Verify()
+	return s.fields.Verify()
 }
 
 // GetStructName GetStructName
@@ -27,10 +30,23 @@ func (s *StructInfo) GetStructName() string {
 	return s.name
 }
 
+// GetFields GetFields
+func (s *StructInfo) GetFields() *Fields {
+	return &s.fields
+}
+
+// GetPrimaryKey GetPrimaryKey
+func (s *StructInfo) GetPrimaryKey() *FieldInfo {
+	return s.primaryKey
+}
+
 // Dump Dump
 func (s *StructInfo) Dump() {
 	fmt.Printf("name:%s, pkgPath:%s\n", s.name, s.pkgPath)
-	s.Fields.Dump()
+	if s.primaryKey != nil {
+		fmt.Printf("primaryKey:%s", s.primaryKey.Dump())
+	}
+	s.fields.Dump()
 }
 
 // GetStructInfo GetStructInfo
@@ -44,7 +60,7 @@ func GetStructInfo(obj interface{}) *StructInfo {
 	}
 
 	val := reflect.Indirect(objVal)
-	info := &StructInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), Fields: &Fields{Fields: make([]*FieldInfo, 0)}}
+	info := &StructInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), fields: make(Fields, 0)}
 
 	fieldElem := objVal.Elem()
 	fieldType := fieldElem.Type()
@@ -59,13 +75,13 @@ func GetStructInfo(obj interface{}) *StructInfo {
 		sf := fieldType.Field(idx)
 		fInfo := GetFieldInfo(idx, &sf, &sv)
 		if fInfo != nil {
-			info.Fields.Append(fInfo)
+			info.fields.Append(fInfo)
 		} else {
 			return nil
 		}
 
 		if fInfo.IsPrimaryKey() {
-			info.Fields.PrimaryKey = fInfo
+			info.primaryKey = fInfo
 		}
 
 		idx++

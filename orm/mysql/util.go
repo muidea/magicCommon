@@ -22,7 +22,7 @@ func verifyStructInfo(structInfo *model.StructInfo) error {
 		return fmt.Errorf("illegal structName, is a key word.[%s]", name)
 	}
 
-	for _, val := range structInfo.Fields.Fields {
+	for _, val := range *structInfo.GetFields() {
 		err := verifyFieldInfo(val)
 		if err != nil {
 			return err

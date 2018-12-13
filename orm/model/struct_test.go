@@ -17,8 +17,8 @@ type Unit struct {
 	Value     float32    `json:"value" orm:"value"`
 	TimeStamp *time.Time `json:"timeStamp" orm:"timeStamp"`
 	T1        *test      `orm:"t1"`
-	Demo1     *dd1.Demo  `orm:"demo"`
-	Demo2     *dd2.Demo  `orm:"demo"`
+	Demo1     *dd1.Demo  `orm:"demo1"`
+	Demo2     *dd2.Demo  `orm:"demo2"`
 }
 
 type Test interface {
@@ -43,7 +43,7 @@ func TestStruct(t *testing.T) {
 
 	err := info.Verify()
 	if err != nil {
-		t.Errorf("Verify failed")
+		t.Errorf("Verify failed, err:%s", err.Error())
 	}
 
 	info.Dump()
