@@ -67,6 +67,9 @@ func getFieldType(info *model.FieldInfo) (ret string) {
 	case util.TypeIntegerField:
 		ret = "INT"
 		break
+	case util.TypeInteger32Field:
+		ret = "INT"
+		break
 	case util.TypeBigIntegerField:
 		ret = "BIGINT"
 		break
@@ -77,6 +80,9 @@ func getFieldType(info *model.FieldInfo) (ret string) {
 		ret = "INT"
 		break
 	case util.TypePositiveIntegerField:
+		ret = "BIGINT"
+		break
+	case util.TypePositiveInteger32Field:
 		ret = "BIGINT"
 		break
 	case util.TypePositiveBigIntegerField:

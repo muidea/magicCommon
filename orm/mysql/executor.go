@@ -311,6 +311,8 @@ func (s *Executor) Execute(sql string) {
 		if err != nil {
 			panic("rows affected exception, err:" + err.Error())
 		}
+
+		return
 	}
 
 	result, err := s.dbTx.Exec(sql)

@@ -8,6 +8,7 @@ import (
 	"muidea.com/magicCommon/orm/builder"
 	"muidea.com/magicCommon/orm/executor"
 	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/util"
 )
 
 // Orm orm interfalce
@@ -16,6 +17,7 @@ type Orm interface {
 	Update(obj interface{}) error
 	Delete(obj interface{}) error
 	Query(obj interface{}, filter ...string) error
+	Drop(obj interface{}) error
 	Release()
 }
 
@@ -200,10 +202,42 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 	items := []interface{}{}
 	fields := modelInfo.GetFields()
 	for _, val := range *fields {
-		items = append(items, val.GetFieldValue())
+		v := util.GetEmptyValue(val.GetFieldTypeValue())
+		items = append(items, v)
+	}
+	s.executor.GetField(items...)
+
+	idx := 0
+	for _, val := range *fields {
+		v := items[idx]
+		val.SetFieldValue(reflect.Indirect(reflect.ValueOf(v)))
+		idx++
 	}
 
-	s.executor.GetField(items...)
+	return nil
+}
+
+func (s *orm) Drop(obj interface{}) error {
+	modelInfo := model.GetStructInfo(obj)
+	if modelInfo == nil {
+		return fmt.Errorf("illegal model object, [%v]", obj)
+	}
+
+	builder := builder.NewBuilder(obj)
+	_, err := ormManager.findModule(modelInfo.GetStructName())
+	if err == nil {
+		// no exist
+		sql, err := builder.BuildDropSchema()
+		if err != nil {
+			return err
+		}
+
+		err = ormManager.unregisterModule(modelInfo.GetStructName())
+		if err != nil {
+			log.Printf("unregisterModule failed, err:%s", err.Error())
+		}
+		s.executor.Execute(sql)
+	}
 
 	return nil
 }

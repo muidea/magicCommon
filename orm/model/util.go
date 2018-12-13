@@ -14,7 +14,9 @@ func GetFieldType(val reflect.Type) (ft int, err error) {
 		ft = util.TypeBitField
 	case reflect.Int16:
 		ft = util.TypeSmallIntegerField
-	case reflect.Int32, reflect.Int:
+	case reflect.Int32:
+		ft = util.TypeInteger32Field
+	case reflect.Int:
 		ft = util.TypeIntegerField
 	case reflect.Int64:
 		ft = util.TypeBigIntegerField
@@ -22,8 +24,10 @@ func GetFieldType(val reflect.Type) (ft int, err error) {
 		ft = util.TypePositiveBitField
 	case reflect.Uint16:
 		ft = util.TypePositiveSmallIntegerField
-	case reflect.Uint32, reflect.Uint:
+	case reflect.Uint:
 		ft = util.TypePositiveIntegerField
+	case reflect.Uint32:
+		ft = util.TypePositiveInteger32Field
 	case reflect.Uint64:
 		ft = util.TypePositiveBigIntegerField
 	case reflect.Float32:

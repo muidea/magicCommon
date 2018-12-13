@@ -44,7 +44,18 @@ func (s *FieldInfo) GetFieldTypeValue() int {
 
 // SetFieldValue SetFieldValue
 func (s *FieldInfo) SetFieldValue(val reflect.Value) {
-	s.fieldValue.Set(val)
+	if s.fieldValue.Kind() == reflect.Bool {
+		if val.Int() > 0 {
+			s.fieldValue.SetBool(true)
+		} else {
+			s.fieldValue.SetBool(false)
+		}
+	} else if s.fieldValue.Kind() == val.Kind() {
+		s.fieldValue.Set(val)
+	} else {
+		msg := fmt.Sprintf("unexception value, name:%s, pkgPath:%s, type:%s, valueType:%s", s.fieldName, s.fieldPkgPath, s.fieldTypeName, val.Kind())
+		panic(msg)
+	}
 }
 
 // GetFieldValue GetFieldValue
@@ -77,6 +88,9 @@ func (s *FieldInfo) GetFieldValueStr() (ret string) {
 	case util.TypeIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
+	case util.TypeInteger32Field:
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
+		break
 	case util.TypeBigIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
@@ -87,6 +101,9 @@ func (s *FieldInfo) GetFieldValueStr() (ret string) {
 		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypePositiveIntegerField:
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
+		break
+	case util.TypePositiveInteger32Field:
 		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypePositiveBigIntegerField:
