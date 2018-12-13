@@ -5,7 +5,7 @@ import "testing"
 // Unit 单元信息
 type Unit struct {
 	//ID 唯一标示单元
-	ID int `json:"id" orm:"id key"`
+	ID int `json:"id" orm:"id key auto"`
 	// Name 名称
 	Name  string  `json:"name" orm:"name"`
 	Value float32 `json:"value" orm:"value"`
@@ -16,11 +16,15 @@ func TestBuilder(t *testing.T) {
 
 	builder := NewBuilder(obj)
 
-	builder.BuildSchema()
+	builder.BuildCreateSchema()
+
+	builder.BuildDropSchema()
 
 	builder.BuildInsert()
 
 	builder.BuildUpdate()
 
 	builder.BuildDelete()
+
+	builder.BuildQuery()
 }

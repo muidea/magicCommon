@@ -4,10 +4,12 @@ import "muidea.com/magicCommon/orm/mysql"
 
 // Builder orm builder
 type Builder interface {
-	BuildSchema() (string, error)
+	BuildCreateSchema() (string, error)
+	BuildDropSchema() (string, error)
 	BuildInsert() (string, error)
 	BuildUpdate() (string, error)
 	BuildDelete() (string, error)
+	BuildQuery() (string, error)
 }
 
 // NewBuilder new builder

@@ -106,6 +106,11 @@ func (s *FieldInfo) IsPrimaryKey() bool {
 	return s.fieldTag.IsPrimaryKey()
 }
 
+// IsAutoIncrement IsAutoIncrement
+func (s *FieldInfo) IsAutoIncrement() bool {
+	return s.fieldTag.IsAutoIncrement()
+}
+
 // IsReference IsReference
 func (s *FieldInfo) IsReference() bool {
 	return s.fieldTypeValue >= orm.TypeStrictField

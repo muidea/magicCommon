@@ -33,8 +33,13 @@ func verifyStructInfo(structInfo *model.StructInfo) error {
 }
 
 func declareFieldInfo(fieldInfo *model.FieldInfo) string {
+	autoIncrement := ""
+	if fieldInfo.IsAutoIncrement() {
+		autoIncrement = "AUTO_INCREMENT"
+	}
+
 	if fieldInfo.GetFieldTypeValue() < orm.TypeStrictField {
-		str := fmt.Sprintf("`%s` %s NOT NULL", fieldInfo.GetFieldTag(), getFieldType(fieldInfo))
+		str := fmt.Sprintf("`%s` %s NOT NULL %s", fieldInfo.GetFieldTag(), getFieldType(fieldInfo), autoIncrement)
 		return str
 	}
 

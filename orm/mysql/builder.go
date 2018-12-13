@@ -18,8 +18,8 @@ func New(obj interface{}) *Builder {
 	return &Builder{obj: obj}
 }
 
-// BuildSchema  BuildSchema
-func (s *Builder) BuildSchema() (string, error) {
+// BuildCreateSchema  BuildCreateSchema
+func (s *Builder) BuildCreateSchema() (string, error) {
 	info := model.GetStructInfo(s.obj)
 	if info == nil {
 		return "", fmt.Errorf("get structInfo failed")
@@ -53,6 +53,29 @@ func (s *Builder) BuildSchema() (string, error) {
 	return str, nil
 }
 
+// BuildDropSchema  BuildDropSchema
+func (s *Builder) BuildDropSchema() (string, error) {
+	info := model.GetStructInfo(s.obj)
+	if info == nil {
+		return "", fmt.Errorf("get structInfo failed")
+	}
+
+	err := info.Verify()
+	if err != nil {
+		return "", err
+	}
+
+	err = verifyStructInfo(info)
+	if err != nil {
+		return "", err
+	}
+
+	str := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", s.getTableName(info))
+	log.Print(str)
+
+	return str, nil
+}
+
 // BuildInsert  BuildInsert
 func (s *Builder) BuildInsert() (string, error) {
 	info := model.GetStructInfo(s.obj)
@@ -70,7 +93,7 @@ func (s *Builder) BuildInsert() (string, error) {
 		return "", err
 	}
 
-	str := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES (%s)", s.getTableName(info), s.getFieldNames(info), s.getFieldValues(info))
+	str := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES (%s)", s.getTableName(info), s.getFieldNames(info, false), s.getFieldValues(info))
 	log.Print(str)
 
 	return str, nil
@@ -133,13 +156,40 @@ func (s *Builder) BuildDelete() (string, error) {
 	return str, nil
 }
 
+// BuildQuery BuildQuery
+func (s *Builder) BuildQuery() (string, error) {
+	info := model.GetStructInfo(s.obj)
+	if info == nil {
+		return "", fmt.Errorf("get structInfo failed")
+	}
+
+	err := info.Verify()
+	if err != nil {
+		return "", err
+	}
+
+	err = verifyStructInfo(info)
+	if err != nil {
+		return "", err
+	}
+
+	str := fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(info, true), s.getTableName(info), info.Fields.PrimaryKey.GetFieldTag(), info.Fields.PrimaryKey.GetFieldValueStr())
+	log.Print(str)
+
+	return str, nil
+}
+
 func (s *Builder) getTableName(info *model.StructInfo) string {
 	return strings.Join(strings.Split(info.GetStructName(), "."), "_")
 }
 
-func (s *Builder) getFieldNames(info *model.StructInfo) string {
+func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 	str := ""
 	for _, field := range info.Fields.Fields {
+		if field.IsAutoIncrement() && !all {
+			continue
+		}
+
 		if str == "" {
 			str = fmt.Sprintf("`%s`", field.GetFieldTag())
 		} else {
@@ -153,6 +203,10 @@ func (s *Builder) getFieldNames(info *model.StructInfo) string {
 func (s *Builder) getFieldValues(info *model.StructInfo) string {
 	str := ""
 	for _, field := range info.Fields.Fields {
+		if field.IsAutoIncrement() {
+			continue
+		}
+
 		if str == "" {
 			str = fmt.Sprintf("%s", field.GetFieldValueStr())
 		} else {
