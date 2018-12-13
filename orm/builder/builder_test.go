@@ -2,6 +2,7 @@ package builder
 
 import (
 	"testing"
+	"time"
 )
 
 // Unit 单元信息
@@ -9,12 +10,14 @@ type Unit struct {
 	//ID 唯一标示单元
 	ID int `json:"id" orm:"id key auto"`
 	// Name 名称
-	Name  string  `json:"name" orm:"name"`
-	Value float32 `json:"value" orm:"value"`
+	Name      string     `json:"name" orm:"name"`
+	Value     float32    `json:"value" orm:"value"`
+	TimeStamp *time.Time `json:"timeStamp" orm:"ts"`
 }
 
 func TestBuilder(t *testing.T) {
-	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456}
+	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
+	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: &now}
 
 	builder := NewBuilder(obj)
 	if builder == nil {
@@ -23,15 +26,15 @@ func TestBuilder(t *testing.T) {
 
 	str, err := builder.BuildCreateSchema()
 	if err != nil {
-		t.Error("build create schema failed")
+		t.Errorf("build create schema failed, err:%s", err.Error())
 	}
-	if str != "CREATE TABLE `builder_Unit` (\n\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`name` TEXT NOT NULL ,\n\t`value` FLOAT NOT NULL ,\n\tPRIMARY KEY (`id`)\n)\n" {
+	if str != "CREATE TABLE `builder_Unit` (\n\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`name` TEXT NOT NULL ,\n\t`value` FLOAT NOT NULL ,\n\t`ts` DATETIME NOT NULL ,\n\tPRIMARY KEY (`id`)\n)\n" {
 		t.Error("build create schema failed")
 	}
 
 	str, err = builder.BuildDropSchema()
 	if err != nil {
-		t.Error("build drop schema failed")
+		t.Errorf("build drop schema failed, err:%s", err.Error())
 	}
 	if str != "DROP TABLE IF EXISTS `builder_Unit`" {
 		t.Error("build drop schema failed")
@@ -39,23 +42,23 @@ func TestBuilder(t *testing.T) {
 
 	str, err = builder.BuildInsert()
 	if err != nil {
-		t.Error("build insert failed")
+		t.Errorf("build insert failed, err:%s", err.Error())
 	}
-	if str != "INSERT INTO `builder_Unit` (`name`,`value`) VALUES ('Hello world',12.345600)" {
+	if str != "INSERT INTO `builder_Unit` (`name`,`value`,`ts`) VALUES ('Hello world',12.345600,'2018-01-02 15:04:05 +0800 CST')" {
 		t.Error("build insert failed")
 	}
 
 	str, err = builder.BuildUpdate()
 	if err != nil {
-		t.Error("build update failed")
+		t.Errorf("build update failed, err:%s", err.Error())
 	}
-	if str != "UPDATE `builder_Unit` SET `name`='Hello world',`value`=12.345600 WHERE `id`=10" {
+	if str != "UPDATE `builder_Unit` SET `name`='Hello world',`value`=12.345600,`ts`='2018-01-02 15:04:05 +0800 CST' WHERE `id`=10" {
 		t.Error("build update failed")
 	}
 
 	str, err = builder.BuildDelete()
 	if err != nil {
-		t.Error("build delete failed")
+		t.Errorf("build delete failed, err:%s", err.Error())
 	}
 	if str != "DELETE FROM `builder_Unit` WHERE `id`=10" {
 		t.Error("build delete failed")
@@ -63,9 +66,9 @@ func TestBuilder(t *testing.T) {
 
 	str, err = builder.BuildQuery()
 	if err != nil {
-		t.Error("build query failed")
+		t.Errorf("build query failed, err:%s", err.Error())
 	}
-	if str != "SELECT `id`,`name`,`value` FROM `builder_Unit` WHERE `id`=10" {
+	if str != "SELECT `id`,`name`,`value`,`ts` FROM `builder_Unit` WHERE `id`=10" {
 		t.Error("build query failed")
 	}
 }

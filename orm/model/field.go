@@ -42,6 +42,11 @@ func (s *FieldInfo) GetFieldTypeValue() int {
 	return s.fieldTypeValue
 }
 
+// SetFieldValue SetFieldValue
+func (s *FieldInfo) SetFieldValue(val reflect.Value) {
+	s.fieldValue.Set(val)
+}
+
 // GetFieldValueStr GetFieldValueStr
 func (s *FieldInfo) GetFieldValueStr() (ret string) {
 	switch s.fieldTypeValue {
@@ -53,40 +58,40 @@ func (s *FieldInfo) GetFieldValueStr() (ret string) {
 		}
 		break
 	case util.TypeVarCharField:
-		ret = fmt.Sprintf("'%s'", s.fieldValue.String())
+		ret = fmt.Sprintf("'%s'", s.fieldValue.Interface())
 		break
 	case util.TypeDateTimeField:
-		ret = "DATETIME"
+		ret = fmt.Sprintf("'%s'", s.fieldValue.Interface())
 		break
 	case util.TypeBitField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypeSmallIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypeIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypeBigIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypePositiveBitField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypePositiveSmallIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypePositiveIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypePositiveBigIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Int())
+		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
 	case util.TypeFloatField:
-		ret = fmt.Sprintf("%f", s.fieldValue.Float())
+		ret = fmt.Sprintf("%f", s.fieldValue.Interface())
 		break
 	case util.TypeDoubleField:
-		ret = fmt.Sprintf("%f", s.fieldValue.Float())
+		ret = fmt.Sprintf("%f", s.fieldValue.Interface())
 		break
 	default:
 		msg := fmt.Sprintf("no support fileType, %d", s.fieldTypeValue)

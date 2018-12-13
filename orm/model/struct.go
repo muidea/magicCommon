@@ -40,6 +40,18 @@ func (s *StructInfo) GetFields() *Fields {
 	return &s.fields
 }
 
+// UpdateFieldValue UpdateFieldValue
+func (s *StructInfo) UpdateFieldValue(name string, val reflect.Value) error {
+	for _, field := range s.fields {
+		if field.GetFieldName() == name {
+			field.SetFieldValue(val)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("no found field, name:%s", name)
+}
+
 // GetPrimaryKey GetPrimaryKey
 func (s *StructInfo) GetPrimaryKey() *FieldInfo {
 	return s.primaryKey

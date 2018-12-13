@@ -5,7 +5,15 @@ import (
 	"sync"
 )
 
+type serverConfig struct {
+	user     string
+	password string
+	address  string
+	dbName   string
+}
+
 type manager struct {
+	serverConfig *serverConfig
 
 	// name->pkgPath
 	modelInfo map[string]string
@@ -14,6 +22,14 @@ type manager struct {
 
 func newManager() *manager {
 	return &manager{modelInfo: map[string]string{}}
+}
+
+func (s *manager) updateServerConfig(cfg *serverConfig) {
+	s.serverConfig = cfg
+}
+
+func (s *manager) getServerConfig() *serverConfig {
+	return s.serverConfig
 }
 
 func (s *manager) registerModule(name, pkgPath string) error {

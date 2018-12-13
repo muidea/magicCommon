@@ -3,10 +3,11 @@ package orm
 import (
 	"fmt"
 	"log"
+	"reflect"
 
 	"muidea.com/magicCommon/orm/builder"
+	"muidea.com/magicCommon/orm/executor"
 	"muidea.com/magicCommon/orm/model"
-	"muidea.com/magicCommon/orm/mysql"
 )
 
 // Orm orm interfalce
@@ -24,12 +25,33 @@ func init() {
 }
 
 type orm struct {
-	executor mysql.Executor
+	executor executor.Executor
+}
+
+// Initialize InitOrm
+func Initialize(user, password, address, dbName string) error {
+	cfg := &serverConfig{user: user, password: password, address: address, dbName: dbName}
+
+	ormManager.updateServerConfig(cfg)
+
+	return nil
+}
+
+// Uninitialize Uninitialize orm
+func Uninitialize() {
+
 }
 
 // New create new Orm
-func New() Orm {
-	return &orm{}
+func New() (Orm, error) {
+	cfg := ormManager.getServerConfig()
+
+	executor, err := executor.NewExecutor(cfg.user, cfg.password, cfg.address, cfg.dbName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &orm{executor: executor}, nil
 }
 
 func (s *orm) Insert(obj interface{}) error {
@@ -58,6 +80,13 @@ func (s *orm) Insert(obj interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	id := s.executor.Insert(sql)
+	pk := modelInfo.GetPrimaryKey()
+	if pk != nil {
+		pk.SetFieldValue(reflect.ValueOf(id))
+	}
+
 	log.Print(sql)
 
 	return nil
