@@ -44,7 +44,7 @@ func GetStructInfo(obj interface{}) *StructInfo {
 	}
 
 	val := reflect.Indirect(objVal)
-	info := &StructInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), Fields: &Fields{Fields: make(map[string]*FieldInfo)}}
+	info := &StructInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), Fields: &Fields{Fields: make([]*FieldInfo, 0)}}
 
 	fieldElem := objVal.Elem()
 	fieldType := fieldElem.Type()

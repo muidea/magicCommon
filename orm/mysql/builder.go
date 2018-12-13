@@ -44,7 +44,7 @@ func (s *Builder) BuildCreateSchema() (string, error) {
 		}
 	}
 	if info.Fields.PrimaryKey != nil {
-		str = fmt.Sprintf("%s, \n\tPRIMARY KEY (`%s`)", str, (info.Fields.PrimaryKey.GetFieldTag()))
+		str = fmt.Sprintf("%s,\n\tPRIMARY KEY (`%s`)", str, (info.Fields.PrimaryKey.GetFieldTag()))
 	}
 
 	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.getTableName(info), str)

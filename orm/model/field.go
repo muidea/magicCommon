@@ -24,7 +24,7 @@ type Fields struct {
 	PrimaryKey *FieldInfo
 
 	// name->FieldInfo
-	Fields map[string]*FieldInfo
+	Fields []*FieldInfo
 }
 
 // GetFieldTag GetFieldTag
@@ -123,12 +123,18 @@ func (s *FieldInfo) Dump() string {
 
 // Append Append
 func (s *Fields) Append(sf *FieldInfo) {
-	_, ok := s.Fields[sf.fieldName]
-	if ok {
-		log.Fatalf("duplicate field,[%s]", sf.Dump())
+	exist := false
+	for _, val := range s.Fields {
+		if val.fieldTag.Name() == sf.fieldTag.Name() {
+			exist = true
+			break
+		}
+	}
+	if exist {
+		log.Fatalf("duplicate field tag,[%s]", sf.Dump())
 	}
 
-	s.Fields[sf.fieldName] = sf
+	s.Fields = append(s.Fields, sf)
 }
 
 // Verify Verify
@@ -151,7 +157,7 @@ func (s *Fields) Dump() {
 	}
 
 	for k, v := range s.Fields {
-		fmt.Printf("key:%s, val:[%s]\n", k, v.Dump())
+		fmt.Printf("key:%d, val:[%s]\n", k, v.Dump())
 	}
 }
 
