@@ -44,7 +44,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build insert failed, err:%s", err.Error())
 	}
-	if str != "INSERT INTO `builder_Unit` (`name`,`value`,`ts`) VALUES ('Hello world',12.345600,'2018-01-02 15:04:05 +0800 CST')" {
+	if str != "INSERT INTO `builder_Unit` (`name`,`value`,`ts`) VALUES ('Hello world',12.345600,'2018-01-02 15:04:05')" {
 		t.Error("build insert failed")
 	}
 
@@ -52,7 +52,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build update failed, err:%s", err.Error())
 	}
-	if str != "UPDATE `builder_Unit` SET `name`='Hello world',`value`=12.345600,`ts`='2018-01-02 15:04:05 +0800 CST' WHERE `id`=10" {
+	if str != "UPDATE `builder_Unit` SET `name`='Hello world',`value`=12.345600,`ts`='2018-01-02 15:04:05' WHERE `id`=10" {
 		t.Error("build update failed")
 	}
 

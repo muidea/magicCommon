@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"time"
 )
 
 // Define the Type enum
@@ -42,7 +41,7 @@ func GetEmptyValue(typeValue int) (ret interface{}) {
 		ret = &val
 		break
 	case TypeDateTimeField:
-		val := time.Time{}
+		val := ""
 		ret = &val
 		break
 	case TypeBitField:

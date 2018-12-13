@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 
 	"muidea.com/magicCommon/orm/util"
 )
@@ -44,12 +45,15 @@ func (s *FieldInfo) GetFieldTypeValue() int {
 
 // SetFieldValue SetFieldValue
 func (s *FieldInfo) SetFieldValue(val reflect.Value) {
-	if s.fieldValue.Kind() == reflect.Bool {
+	if s.fieldTypeValue == util.TypeBooleanField {
 		if val.Int() > 0 {
 			s.fieldValue.SetBool(true)
 		} else {
 			s.fieldValue.SetBool(false)
 		}
+	} else if s.fieldTypeValue == util.TypeDateTimeField {
+		ts, _ := time.ParseInLocation("2006-01-02 15:04:05", val.String(), time.Local)
+		s.fieldValue.Set(reflect.ValueOf(ts))
 	} else if s.fieldValue.Kind() == val.Kind() {
 		s.fieldValue.Set(val)
 	} else {
@@ -77,7 +81,13 @@ func (s *FieldInfo) GetFieldValueStr() (ret string) {
 		ret = fmt.Sprintf("'%s'", s.fieldValue.Interface())
 		break
 	case util.TypeDateTimeField:
-		ret = fmt.Sprintf("'%s'", s.fieldValue.Interface())
+		ts, ok := s.fieldValue.Interface().(time.Time)
+		if ok {
+			ret = fmt.Sprintf("'%s'", ts.Format("2006-01-02 15:04:05"))
+		} else {
+			msg := fmt.Sprintf("illegal value,[%s]", s.fieldValue.Interface())
+			panic(msg)
+		}
 		break
 	case util.TypeBitField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Interface())

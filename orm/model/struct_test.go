@@ -12,10 +12,10 @@ type Unit struct {
 	//ID 唯一标示单元
 	ID int `json:"id" orm:"id key"`
 	// Name 名称
-	Name      string     `json:"name" orm:"name"`
-	Value     float32    `json:"value" orm:"value"`
-	TimeStamp *time.Time `json:"timeStamp" orm:"timeStamp"`
-	T1        test       `orm:"t1"`
+	Name      string    `json:"name" orm:"name"`
+	Value     float32   `json:"value" orm:"value"`
+	TimeStamp time.Time `json:"timeStamp" orm:"timeStamp"`
+	T1        test      `orm:"t1"`
 }
 
 type Test interface {
@@ -32,7 +32,7 @@ func (s *test) Demo() string {
 
 func TestStruct(t *testing.T) {
 	now := time.Now()
-	info := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: &now})
+	info := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
@@ -48,7 +48,7 @@ func TestStruct(t *testing.T) {
 
 func TestStructValue(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
-	unit := &Unit{T1: test{val: 123}, TimeStamp: &now}
+	unit := &Unit{T1: test{val: 123}, TimeStamp: now}
 	info := GetStructInfo(unit)
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")

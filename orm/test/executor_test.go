@@ -3,6 +3,7 @@ package executor
 import (
 	"log"
 	"testing"
+	"time"
 
 	"muidea.com/magicCommon/orm"
 )
@@ -12,9 +13,9 @@ type Unit struct {
 	//ID 唯一标示单元
 	ID int64 `json:"id" orm:"id key auto"`
 	// Name 名称
-	Name  string  `json:"name" orm:"name"`
-	Value float32 `json:"value" orm:"value"`
-	//TimeStamp *time.Time `json:"timeStamp" orm:"ts"`
+	Name      string    `json:"name" orm:"name"`
+	Value     float32   `json:"value" orm:"value"`
+	TimeStamp time.Time `json:"timeStamp" orm:"ts"`
 }
 
 func TestExecutor(t *testing.T) {
@@ -22,9 +23,9 @@ func TestExecutor(t *testing.T) {
 	orm.Initialize("root", "rootkit", "localhost:3306", "testdb")
 	defer orm.Uninitialize()
 
-	//now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
-	//obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: &now}
-	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456}
+	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
+	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: now}
+	//obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456}
 
 	o1, err := orm.New()
 	defer o1.Release()
