@@ -1,4 +1,4 @@
-package orm
+package util
 
 // Define the Type enum
 const (

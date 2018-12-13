@@ -1,38 +1,157 @@
 package orm
 
-import "muidea.com/magicCommon/foundation/dao"
+import (
+	"fmt"
+	"log"
+
+	"muidea.com/magicCommon/orm/builder"
+	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/mysql"
+)
+
+// Orm orm interfalce
+type Orm interface {
+	Insert(obj interface{}) error
+	Update(obj interface{}) error
+	Delete(obj interface{}) error
+	Query(obj interface{}, filter ...string) error
+}
+
+var ormManager *manager
 
 func init() {
-	initialize()
+	ormManager = newManager()
 }
 
-type DBObject interface {
-	query(dao *dao.Dao) bool
-	insert(dao *dao.Dao) bool
-	update(dao *dao.Dao) bool
-	remove(dao *dao.Dao)
+type orm struct {
+	executor mysql.Executor
 }
 
-type Orm struct {
-	dao *dao.Dao
+// New create new Orm
+func New() Orm {
+	return &orm{}
 }
 
-func New(dao *dao.Dao) *Orm {
-	return &Orm{dao: dao}
+func (s *orm) Insert(obj interface{}) error {
+	modelInfo := model.GetStructInfo(obj)
+	if modelInfo == nil {
+		return fmt.Errorf("illegal model object, [%v]", obj)
+	}
+
+	builder := builder.NewBuilder(obj)
+	_, err := ormManager.findModule(modelInfo.GetStructName())
+	if err != nil {
+		// no exist
+		sql, err := builder.BuildCreateSchema()
+		if err != nil {
+			return err
+		}
+
+		err = ormManager.registerModule(modelInfo.GetStructName(), modelInfo.GetPkgPath())
+		if err != nil {
+			log.Printf("registerModule failed, err:%s", err.Error())
+		}
+		log.Print(sql)
+	}
+
+	sql, err := builder.BuildInsert()
+	if err != nil {
+		return err
+	}
+	log.Print(sql)
+
+	return nil
 }
 
-func (this *Orm) Insert(obj DBObject) bool {
-	return instance.insert(this.dao, obj)
+func (s *orm) Update(obj interface{}) error {
+	modelInfo := model.GetStructInfo(obj)
+	if modelInfo == nil {
+		return fmt.Errorf("illegal model object, [%v]", obj)
+	}
+
+	builder := builder.NewBuilder(obj)
+	_, err := ormManager.findModule(modelInfo.GetStructName())
+	if err != nil {
+		// no exist
+		sql, err := builder.BuildCreateSchema()
+		if err != nil {
+			return err
+		}
+
+		err = ormManager.registerModule(modelInfo.GetStructName(), modelInfo.GetPkgPath())
+		if err != nil {
+			log.Printf("registerModule failed, err:%s", err.Error())
+		}
+		log.Print(sql)
+	}
+
+	sql, err := builder.BuildUpdate()
+	if err != nil {
+		return err
+	}
+	log.Print(sql)
+
+	return nil
 }
 
-func (this *Orm) Update(obj DBObject) bool {
-	return instance.insert(this.dao, obj)
+func (s *orm) Delete(obj interface{}) error {
+	modelInfo := model.GetStructInfo(obj)
+	if modelInfo == nil {
+		return fmt.Errorf("illegal model object, [%v]", obj)
+	}
+
+	builder := builder.NewBuilder(obj)
+	_, err := ormManager.findModule(modelInfo.GetStructName())
+	if err != nil {
+		// no exist
+		sql, err := builder.BuildCreateSchema()
+		if err != nil {
+			return err
+		}
+
+		err = ormManager.registerModule(modelInfo.GetStructName(), modelInfo.GetPkgPath())
+		if err != nil {
+			log.Printf("registerModule failed, err:%s", err.Error())
+		}
+		log.Print(sql)
+	}
+
+	sql, err := builder.BuildDelete()
+	if err != nil {
+		return err
+	}
+	log.Print(sql)
+
+	return nil
 }
 
-func (this *Orm) Query(obj DBObject) bool {
-	return instance.query(this.dao, obj)
-}
+func (s *orm) Query(obj interface{}, filter ...string) error {
+	modelInfo := model.GetStructInfo(obj)
+	if modelInfo == nil {
+		return fmt.Errorf("illegal model object, [%v]", obj)
+	}
 
-func (this *Orm) Remove(obj DBObject) {
-	instance.remove(this.dao, obj)
+	builder := builder.NewBuilder(obj)
+	_, err := ormManager.findModule(modelInfo.GetStructName())
+	if err != nil {
+		// no exist
+		sql, err := builder.BuildCreateSchema()
+		if err != nil {
+			return err
+		}
+
+		err = ormManager.registerModule(modelInfo.GetStructName(), modelInfo.GetPkgPath())
+		if err != nil {
+			log.Printf("registerModule failed, err:%s", err.Error())
+		}
+		log.Print(sql)
+	}
+
+	sql, err := builder.BuildQuery()
+	if err != nil {
+		return err
+	}
+	log.Print(sql)
+
+	return nil
 }

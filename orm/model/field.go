@@ -5,7 +5,7 @@ import (
 	"log"
 	"reflect"
 
-	"muidea.com/magicCommon/orm"
+	"muidea.com/magicCommon/orm/util"
 )
 
 // FieldInfo single field info
@@ -45,47 +45,47 @@ func (s *FieldInfo) GetFieldTypeValue() int {
 // GetFieldValueStr GetFieldValueStr
 func (s *FieldInfo) GetFieldValueStr() (ret string) {
 	switch s.fieldTypeValue {
-	case orm.TypeBooleanField:
+	case util.TypeBooleanField:
 		if s.fieldValue.Bool() {
 			ret = "1"
 		} else {
 			ret = "0"
 		}
 		break
-	case orm.TypeVarCharField:
+	case util.TypeVarCharField:
 		ret = fmt.Sprintf("'%s'", s.fieldValue.String())
 		break
-	case orm.TypeDateTimeField:
+	case util.TypeDateTimeField:
 		ret = "DATETIME"
 		break
-	case orm.TypeBitField:
+	case util.TypeBitField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Int())
 		break
-	case orm.TypeSmallIntegerField:
+	case util.TypeSmallIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Int())
 		break
-	case orm.TypeIntegerField:
+	case util.TypeIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Int())
 		break
-	case orm.TypeBigIntegerField:
+	case util.TypeBigIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Int())
 		break
-	case orm.TypePositiveBitField:
+	case util.TypePositiveBitField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Int())
 		break
-	case orm.TypePositiveSmallIntegerField:
+	case util.TypePositiveSmallIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Int())
 		break
-	case orm.TypePositiveIntegerField:
+	case util.TypePositiveIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Int())
 		break
-	case orm.TypePositiveBigIntegerField:
+	case util.TypePositiveBigIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Int())
 		break
-	case orm.TypeFloatField:
+	case util.TypeFloatField:
 		ret = fmt.Sprintf("%f", s.fieldValue.Float())
 		break
-	case orm.TypeDoubleField:
+	case util.TypeDoubleField:
 		ret = fmt.Sprintf("%f", s.fieldValue.Float())
 		break
 	default:
@@ -108,7 +108,7 @@ func (s *FieldInfo) IsAutoIncrement() bool {
 
 // IsReference IsReference
 func (s *FieldInfo) IsReference() bool {
-	return s.fieldTypeValue >= orm.TypeStrictField
+	return s.fieldTypeValue >= util.TypeStrictField
 }
 
 // Dump Dump

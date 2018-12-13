@@ -3,8 +3,8 @@ package mysql
 import (
 	"fmt"
 
-	"muidea.com/magicCommon/orm"
 	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/util"
 )
 
 func verifyFieldInfo(fieldInfo *model.FieldInfo) error {
@@ -38,7 +38,7 @@ func declareFieldInfo(fieldInfo *model.FieldInfo) string {
 		autoIncrement = "AUTO_INCREMENT"
 	}
 
-	if fieldInfo.GetFieldTypeValue() < orm.TypeStrictField {
+	if fieldInfo.GetFieldTypeValue() < util.TypeStrictField {
 		str := fmt.Sprintf("`%s` %s NOT NULL %s", fieldInfo.GetFieldTag(), getFieldType(fieldInfo), autoIncrement)
 		return str
 	}
@@ -49,43 +49,43 @@ func declareFieldInfo(fieldInfo *model.FieldInfo) string {
 func getFieldType(info *model.FieldInfo) (ret string) {
 	typeValue := info.GetFieldTypeValue()
 	switch typeValue {
-	case orm.TypeBooleanField:
+	case util.TypeBooleanField:
 		ret = "TINYINT"
 		break
-	case orm.TypeVarCharField:
+	case util.TypeVarCharField:
 		ret = "TEXT"
 		break
-	case orm.TypeDateTimeField:
+	case util.TypeDateTimeField:
 		ret = "DATETIME"
 		break
-	case orm.TypeBitField:
+	case util.TypeBitField:
 		ret = "TINYINT"
 		break
-	case orm.TypeSmallIntegerField:
+	case util.TypeSmallIntegerField:
 		ret = "SMALLINT"
 		break
-	case orm.TypeIntegerField:
+	case util.TypeIntegerField:
 		ret = "INT"
 		break
-	case orm.TypeBigIntegerField:
+	case util.TypeBigIntegerField:
 		ret = "BIGINT"
 		break
-	case orm.TypePositiveBitField:
+	case util.TypePositiveBitField:
 		ret = "SMALLINT"
 		break
-	case orm.TypePositiveSmallIntegerField:
+	case util.TypePositiveSmallIntegerField:
 		ret = "INT"
 		break
-	case orm.TypePositiveIntegerField:
+	case util.TypePositiveIntegerField:
 		ret = "BIGINT"
 		break
-	case orm.TypePositiveBigIntegerField:
+	case util.TypePositiveBigIntegerField:
 		ret = "BIGINT"
 		break
-	case orm.TypeFloatField:
+	case util.TypeFloatField:
 		ret = "FLOAT"
 		break
-	case orm.TypeDoubleField:
+	case util.TypeDoubleField:
 		ret = "DOUBLE"
 		break
 	default:

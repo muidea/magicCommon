@@ -30,6 +30,11 @@ func (s *StructInfo) GetStructName() string {
 	return s.name
 }
 
+// GetPkgPath GetPkgPath
+func (s *StructInfo) GetPkgPath() string {
+	return s.pkgPath
+}
+
 // GetFields GetFields
 func (s *StructInfo) GetFields() *Fields {
 	return &s.fields

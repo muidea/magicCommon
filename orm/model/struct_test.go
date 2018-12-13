@@ -3,9 +3,6 @@ package model
 import (
 	"testing"
 	"time"
-
-	dd1 "muidea.com/magicCommon/orm/test1/demo"
-	dd2 "muidea.com/magicCommon/orm/test2/demo"
 )
 
 // Unit 单元信息
@@ -17,8 +14,6 @@ type Unit struct {
 	Value     float32    `json:"value" orm:"value"`
 	TimeStamp *time.Time `json:"timeStamp" orm:"timeStamp"`
 	T1        *test      `orm:"t1"`
-	Demo1     *dd1.Demo  `orm:"demo1"`
-	Demo2     *dd2.Demo  `orm:"demo2"`
 }
 
 type Test interface {
@@ -35,7 +30,7 @@ func (s *test) Demo() string {
 
 func TestStruct(t *testing.T) {
 	now := time.Now()
-	info := GetStructInfo(&Unit{T1: &test{val: 123}, TimeStamp: &now, Demo1: &dd1.Demo{}, Demo2: &dd2.Demo{}})
+	info := GetStructInfo(&Unit{T1: &test{val: 123}, TimeStamp: &now})
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
