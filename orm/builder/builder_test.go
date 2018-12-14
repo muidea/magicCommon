@@ -19,7 +19,7 @@ func TestBuilder(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
 	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: &now}
 
-	builder := NewBuilder(obj)
+	builder := NewBuilder(obj, nil)
 	if builder == nil {
 		t.Error("new Builder failed")
 	}

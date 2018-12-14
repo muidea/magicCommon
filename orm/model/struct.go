@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+
+	"muidea.com/magicCommon/orm/util"
 )
 
-// StructInfo single struct info
+// StructInfo single struct ret
 type StructInfo struct {
 	name    string
 	pkgPath string
@@ -59,50 +61,74 @@ func (s *StructInfo) GetPrimaryKey() *FieldInfo {
 
 // Dump Dump
 func (s *StructInfo) Dump() {
-	fmt.Printf("name:%s, pkgPath:%s\n", s.name, s.pkgPath)
+	fmt.Print("structInfo:\n")
+	fmt.Printf("\tname:%s, pkgPath:%s\n", s.name, s.pkgPath)
 	if s.primaryKey != nil {
-		fmt.Printf("primaryKey:%s", s.primaryKey.Dump())
+		fmt.Printf("primaryKey:\n")
+		fmt.Printf("\t%s\n", s.primaryKey.Dump())
 	}
+	fmt.Print("fields:\n")
 	s.fields.Dump()
 }
 
 // GetStructInfo GetStructInfo
-func GetStructInfo(obj interface{}, cache StructInfoCache) *StructInfo {
-	objType := reflect.TypeOf(obj)
-	objVal := reflect.ValueOf(obj)
+func GetStructInfo(objPtr interface{}, cache StructInfoCache) (ret *StructInfo, depends []*StructInfo) {
+	objType := reflect.TypeOf(objPtr)
+	objVal := reflect.ValueOf(objPtr)
 
 	if objType.Kind() != reflect.Ptr {
-		log.Fatal("illegal struct value.")
-		return nil
+		log.Fatal("illegal struct type. must be a struct ptr")
 	}
 
-	val := reflect.Indirect(objVal)
-	info := &StructInfo{name: val.Type().String(), pkgPath: val.Type().PkgPath(), fields: make(Fields, 0)}
+	structObj := reflect.Indirect(objVal)
+	ret, depends = getStructInfo(structObj)
+	return
+}
 
-	fieldElem := objVal.Elem()
-	fieldType := fieldElem.Type()
+func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructInfo) {
+	ret = &StructInfo{name: structObj.Type().String(), pkgPath: structObj.Type().PkgPath(), fields: make(Fields, 0)}
+	depends = []*StructInfo{}
+
+	structType := structObj.Type()
+	fieldNum := structObj.NumField()
+
 	idx := 0
-	fieldNum := fieldElem.NumField()
+	reference := []reflect.Value{}
 	for {
 		if idx >= fieldNum {
 			break
 		}
 
-		sv := fieldElem.Field(idx)
-		sf := fieldType.Field(idx)
-		fInfo := GetFieldInfo(idx, &sf, &sv)
-		if fInfo != nil {
-			info.fields.Append(fInfo)
+		fieldVal := structObj.Field(idx)
+		fieldType := structType.Field(idx)
+		fieldInfo := GetFieldInfo(idx, &fieldType, &fieldVal)
+		if fieldInfo != nil {
+			ret.fields.Append(fieldInfo)
 		} else {
-			return nil
+			return nil, nil
 		}
 
-		if fInfo.IsPrimaryKey() {
-			info.primaryKey = fInfo
+		if fieldInfo.IsPrimaryKey() {
+			ret.primaryKey = fieldInfo
+		}
+
+		if fieldInfo.GetFieldTypeValue() == util.TypeStrictField {
+			reference = append(reference, fieldInfo.GetFieldValue())
 		}
 
 		idx++
 	}
 
-	return info
+	if len(reference) == 0 {
+		return
+	}
+
+	for _, val := range reference {
+		preRet, preDepends := getStructInfo(val)
+
+		depends = append(preDepends, depends...)
+		depends = append(depends, preRet)
+	}
+
+	return
 }

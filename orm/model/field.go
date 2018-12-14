@@ -45,6 +45,7 @@ func (s *FieldInfo) GetFieldTypeValue() int {
 
 // SetFieldValue SetFieldValue
 func (s *FieldInfo) SetFieldValue(val reflect.Value) {
+	val = reflect.Indirect(val)
 	switch s.fieldTypeValue {
 	case util.TypeBooleanField:
 		if val.Int() > 0 {
@@ -63,6 +64,9 @@ func (s *FieldInfo) SetFieldValue(val reflect.Value) {
 		s.fieldValue.SetUint(val.Uint())
 	case util.TypeStringField:
 		s.fieldValue.SetString(val.String())
+	case util.TypeStrictField:
+		reallyVal := reflect.Indirect(s.fieldValue)
+		reallyVal.Set(val)
 	default:
 		msg := fmt.Sprintf("unexception value, name:%s, pkgPath:%s, type:%s, valueType:%s", s.fieldName, s.fieldPkgPath, s.fieldTypeName, val.Kind())
 		panic(msg)
@@ -124,30 +128,25 @@ func (s *FieldInfo) IsAutoIncrement() bool {
 	return s.fieldTag.IsAutoIncrement()
 }
 
-// IsReference IsReference
-func (s *FieldInfo) IsReference() bool {
-	return s.fieldTypeValue >= util.TypeStrictField
-}
-
 // Dump Dump
 func (s *FieldInfo) Dump() string {
 	return fmt.Sprintf("index:%d,name:%s,typeValue:%d, typeName:%s,tag:%s, pkgPath:%s", s.fieldIndex, s.fieldName, s.fieldTypeValue, s.fieldTypeName, s.fieldTag, s.fieldPkgPath)
 }
 
 // Append Append
-func (s *Fields) Append(sf *FieldInfo) {
+func (s *Fields) Append(fieldType *FieldInfo) {
 	exist := false
 	for _, val := range *s {
-		if val.fieldTag.Name() == sf.fieldTag.Name() {
+		if val.fieldTag.Name() == fieldType.fieldTag.Name() {
 			exist = true
 			break
 		}
 	}
 	if exist {
-		log.Fatalf("duplicate field tag,[%s]", sf.Dump())
+		log.Fatalf("duplicate field tag,[%s]", fieldType.Dump())
 	}
 
-	*s = append(*s, sf)
+	*s = append(*s, fieldType)
 }
 
 // Verify Verify
@@ -162,21 +161,22 @@ func (s *Fields) Verify() error {
 // Dump Dump
 func (s *Fields) Dump() {
 	for k, v := range *s {
-		fmt.Printf("key:%d, val:[%s]\n", k, v.Dump())
+		fmt.Printf("\tkey:%d, val:[%s]\n", k, v.Dump())
 	}
 }
 
 // GetFieldInfo GetFieldInfo
-func GetFieldInfo(idx int, sf *reflect.StructField, sv *reflect.Value) *FieldInfo {
+func GetFieldInfo(idx int, fieldType *reflect.StructField, fieldVal *reflect.Value) *FieldInfo {
 	info := &FieldInfo{}
 	info.fieldIndex = idx
-	info.fieldName = sf.Name
-	info.fieldTag = newFieldTag(sf.Tag.Get("orm"))
+	info.fieldName = fieldType.Name
+	info.fieldTag = newFieldTag(fieldType.Tag.Get("orm"))
 
-	val := reflect.Indirect(*sv)
+	val := reflect.Indirect(*fieldVal)
+	// 这里用val.Type()而不用fieldType.Type来判断是因为Field会是对象的指针，所以通过类型是判断不出真实类型的
 	tVal, err := GetFieldType(val.Type())
 	if err != nil {
-		log.Printf("GetFieldType failed, idx:%d, name:%s, type:%s, err:%s", idx, sf.Name, sf.Type.Kind(), err.Error())
+		log.Printf("GetFieldType failed, idx:%d, name:%s, type:%s, err:%s", idx, fieldType.Name, fieldType.Type.Kind(), err.Error())
 		return nil
 	}
 
