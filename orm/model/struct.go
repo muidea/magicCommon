@@ -72,7 +72,7 @@ func (s *StructInfo) Dump() {
 }
 
 // GetStructInfo GetStructInfo
-func GetStructInfo(objPtr interface{}, cache StructInfoCache) (ret *StructInfo, depends []*StructInfo) {
+func GetStructInfo(objPtr interface{}) (ret *StructInfo, depends []*StructInfo) {
 	objType := reflect.TypeOf(objPtr)
 	objVal := reflect.ValueOf(objPtr)
 
@@ -112,7 +112,7 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 			ret.primaryKey = fieldInfo
 		}
 
-		if fieldInfo.GetFieldTypeValue() == util.TypeStrictField {
+		if fieldInfo.GetFieldTypeValue() == util.TypeStructField {
 			reference = append(reference, fieldInfo.GetFieldValue())
 		}
 
@@ -131,4 +131,19 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 	}
 
 	return
+}
+
+func getStructValue(structObj reflect.Value) reflect.Value {
+	ret, _ := getStructInfo(reflect.Indirect(structObj))
+
+	pk := ret.GetPrimaryKey()
+	if pk == nil {
+		panic("illegal value, struct primary key is null")
+	}
+
+	if pk.GetFieldTypeValue() != util.TypeStructField {
+		return reflect.Indirect(pk.GetFieldValue())
+	}
+
+	return getStructValue(pk.GetFieldValue())
 }

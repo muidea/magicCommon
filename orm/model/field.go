@@ -64,7 +64,7 @@ func (s *FieldInfo) SetFieldValue(val reflect.Value) {
 		s.fieldValue.SetUint(val.Uint())
 	case util.TypeStringField:
 		s.fieldValue.SetString(val.String())
-	case util.TypeStrictField:
+	case util.TypeStructField:
 		reallyVal := reflect.Indirect(s.fieldValue)
 		reallyVal.Set(val)
 	default:
@@ -75,6 +75,10 @@ func (s *FieldInfo) SetFieldValue(val reflect.Value) {
 
 // GetFieldValue GetFieldValue
 func (s *FieldInfo) GetFieldValue() reflect.Value {
+	//if s.fieldTypeValue == util.TypeStructField {
+	//	return getStructValue(s.fieldValue)
+	//}
+
 	return s.fieldValue
 }
 
@@ -136,7 +140,7 @@ func (s *FieldInfo) Verify() error {
 
 	if s.IsAutoIncrement() {
 		switch s.fieldTypeValue {
-		case util.TypeBooleanField, util.TypeStringField, util.TypeDateTimeField, util.TypeFloatField, util.TypeDoubleField, util.TypeStrictField:
+		case util.TypeBooleanField, util.TypeStringField, util.TypeDateTimeField, util.TypeFloatField, util.TypeDoubleField, util.TypeStructField:
 			return fmt.Errorf("illegal auto_increment field type, type:%s", s.fieldTypeName)
 		default:
 		}
@@ -144,7 +148,7 @@ func (s *FieldInfo) Verify() error {
 
 	if s.IsPrimaryKey() {
 		switch s.fieldTypeValue {
-		case util.TypeStrictField:
+		case util.TypeStructField:
 			return fmt.Errorf("illegal primary key field type, type:%s", s.fieldTypeName)
 		default:
 		}

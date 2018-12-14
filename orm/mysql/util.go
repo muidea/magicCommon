@@ -38,7 +38,7 @@ func declareFieldInfo(fieldInfo *model.FieldInfo) string {
 		autoIncrement = "AUTO_INCREMENT"
 	}
 
-	if fieldInfo.GetFieldTypeValue() < util.TypeStrictField {
+	if fieldInfo.GetFieldTypeValue() < util.TypeStructField {
 		str := fmt.Sprintf("`%s` %s NOT NULL %s", fieldInfo.GetFieldTag(), getFieldType(fieldInfo), autoIncrement)
 		return str
 	}

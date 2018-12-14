@@ -21,7 +21,7 @@ const (
 	TypePositiveBigIntegerField
 	TypeFloatField
 	TypeDoubleField
-	TypeStrictField
+	TypeStructField
 )
 
 // GetEmptyValue GetEmptyValue

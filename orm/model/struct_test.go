@@ -16,39 +16,24 @@ type Unit struct {
 	Name      string    `json:"name" orm:"name"`
 	Value     float32   `json:"value" orm:"value"`
 	TimeStamp time.Time `json:"timeStamp" orm:"timeStamp"`
-	T1        *test     `orm:"t1"`
-}
-
-type Test interface {
-	Demo() string
-}
-
-type ba struct {
-	ii int `orm:"ii"`
+	T1        test      `orm:"t1"`
 }
 
 type base struct {
-	ii int `orm:"ii"`
-	ba ba  `orm:"ba"`
-}
-
-type base2 struct {
-	ii int `orm:"ii"`
+	id  int `orm:"id key"`
+	val int `orm:"val"`
 }
 
 type test struct {
-	val   int   `orm:"val"`
-	base  base  `orm:"base"`
-	base2 base2 `orm:"base2"`
-}
-
-func (s *test) Demo() string {
-	return "test demo"
+	id    int  `orm:"id key"`
+	val   int  `orm:"val"`
+	base  base `orm:"b1"`
+	base2 base `orm:"b2"`
 }
 
 func TestStruct(t *testing.T) {
 	now := time.Now()
-	info, depends := GetStructInfo(&Unit{T1: &test{val: 123}, TimeStamp: now}, nil)
+	info, depends := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
@@ -66,6 +51,7 @@ func TestStruct(t *testing.T) {
 			t.Errorf("Verify failed, err:%s", err.Error())
 		}
 
+		fmt.Print("-------------------------------\n")
 		val.Dump()
 	}
 	fmt.Print("------------struct--------------\n")
@@ -74,8 +60,8 @@ func TestStruct(t *testing.T) {
 
 func TestStructValue(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
-	unit := &Unit{T1: &test{val: 123}, TimeStamp: now}
-	info, _ := GetStructInfo(unit, nil)
+	unit := &Unit{T1: test{val: 123}, TimeStamp: now}
+	info, _ := GetStructInfo(unit)
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
@@ -103,7 +89,7 @@ func TestStructValue(t *testing.T) {
 
 func TestReference(t *testing.T) {
 	now := time.Now()
-	info, depends := GetStructInfo(&Unit{T1: &test{val: 123}, TimeStamp: now}, nil)
+	info, depends := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return

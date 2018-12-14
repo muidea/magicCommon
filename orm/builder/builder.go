@@ -16,6 +16,6 @@ type Builder interface {
 }
 
 // NewBuilder new builder
-func NewBuilder(obj interface{}, cache model.StructInfoCache) Builder {
+func NewBuilder(structInfo *model.StructInfo) Builder {
 	return mysql.New(obj, cache)
 }

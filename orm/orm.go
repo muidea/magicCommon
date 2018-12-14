@@ -62,7 +62,7 @@ func New() (Orm, error) {
 
 func (s *orm) Insert(obj interface{}) error {
 	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj, modelInfoCache)
+	modelInfo := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
@@ -97,7 +97,7 @@ func (s *orm) Insert(obj interface{}) error {
 
 func (s *orm) Update(obj interface{}) error {
 	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj, modelInfoCache)
+	modelInfo := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
@@ -131,7 +131,7 @@ func (s *orm) Update(obj interface{}) error {
 
 func (s *orm) Delete(obj interface{}) error {
 	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj, modelInfoCache)
+	modelInfo := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
@@ -164,7 +164,7 @@ func (s *orm) Delete(obj interface{}) error {
 
 func (s *orm) Query(obj interface{}, filter ...string) error {
 	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj, modelInfoCache)
+	modelInfo := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
@@ -214,7 +214,7 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 
 func (s *orm) Drop(obj interface{}) error {
 	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj, modelInfoCache)
+	modelInfo := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
@@ -238,4 +238,17 @@ func (s *orm) Release() {
 		s.executor.Release()
 		s.executor = nil
 	}
+}
+
+func getModuleInfo(obj interface{}) (ret *model.StructInfo, depends []*model.StructInfo, err error) {
+	ret, depends := model.GetStructInfo(obj)
+	if info == nil {
+		return ret, depends, fmt.Errorf("get structInfo failed")
+	}
+
+	err := info.Verify()
+	if err != nil {
+		return nil, "", err
+	}
+
 }
