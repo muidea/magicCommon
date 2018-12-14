@@ -6,8 +6,8 @@ const MaxAgeValue = -1
 type commandAction int
 
 const (
-	putIn        commandAction = iota // 存放数据
-	fetchOut                          // 获取数据
+	putData      commandAction = iota // 存放数据
+	fetchData                         // 获取数据
 	remove                            // 删除指定数据
 	clearAll                          // 清除全部数据
 	checkTimeOut                      // 检查超过生命周期的数据

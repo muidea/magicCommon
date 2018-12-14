@@ -10,8 +10,8 @@ import (
 // Cache 缓存对象
 type Cache interface {
 	// maxAge单位minute
-	PutIn(data interface{}, maxAge float64) string
-	FetchOut(id string) (interface{}, bool)
+	Put(data interface{}, maxAge float64) string
+	Fetch(id string) (interface{}, bool)
 	Remove(id string)
 	ClearAll()
 	Release()
@@ -57,8 +57,8 @@ type cacheData struct {
 // MemoryCache 内存缓存
 type MemoryCache chan commandData
 
-// PutIn 投放数据，返回数据的唯一标示
-func (right *MemoryCache) PutIn(data interface{}, maxAge float64) string {
+// Put 投放数据，返回数据的唯一标示
+func (right *MemoryCache) Put(data interface{}, maxAge float64) string {
 
 	reply := make(chan interface{})
 
@@ -66,21 +66,21 @@ func (right *MemoryCache) PutIn(data interface{}, maxAge float64) string {
 	putInData.data = data
 	putInData.maxAge = maxAge
 
-	*right <- commandData{action: putIn, value: putInData, result: reply}
+	*right <- commandData{action: putData, value: putInData, result: reply}
 
 	result := (<-reply).(*putInResult).value
 	return result
 }
 
-// FetchOut 获取数据
-func (right *MemoryCache) FetchOut(id string) (interface{}, bool) {
+// Fetch 获取数据
+func (right *MemoryCache) Fetch(id string) (interface{}, bool) {
 
 	reply := make(chan interface{})
 
 	fetchOutData := &fetchOutData{}
 	fetchOutData.id = id
 
-	*right <- commandData{action: fetchOut, value: fetchOutData, result: reply}
+	*right <- commandData{action: fetchData, value: fetchOutData, result: reply}
 
 	result := (<-reply).(*fetchOutResult)
 	return result.value, result.found
@@ -112,7 +112,7 @@ func (right *MemoryCache) run() {
 
 	for command := range *right {
 		switch command.action {
-		case putIn:
+		case putData:
 			id := strings.ToLower(util.RandomAlphanumeric(32))
 
 			cacheData := cacheData{}
@@ -125,7 +125,7 @@ func (right *MemoryCache) run() {
 			result.value = id
 
 			command.result <- result
-		case fetchOut:
+		case fetchData:
 			id := command.value.(*fetchOutData).id
 
 			cacheData, found := _cacheData[id]

@@ -7,8 +7,8 @@ import (
 // KVCache 缓存对象
 type KVCache interface {
 	// maxAge单位minute
-	PutIn(key string, data interface{}, maxAge float64) string
-	FetchOut(key string) (interface{}, bool)
+	Put(key string, data interface{}, maxAge float64) string
+	Fetch(key string) (interface{}, bool)
 	Remove(key string)
 	ClearAll()
 	Release()
@@ -55,8 +55,8 @@ type cacheKVData struct {
 // MemoryKVCache 内存缓存
 type MemoryKVCache chan commandData
 
-// PutIn 投放数据，返回数据的唯一标示
-func (right *MemoryKVCache) PutIn(key string, data interface{}, maxAge float64) string {
+// Put 投放数据，返回数据的唯一标示
+func (right *MemoryKVCache) Put(key string, data interface{}, maxAge float64) string {
 
 	reply := make(chan interface{})
 
@@ -65,21 +65,21 @@ func (right *MemoryKVCache) PutIn(key string, data interface{}, maxAge float64) 
 	putInKVData.data = data
 	putInKVData.maxAge = maxAge
 
-	*right <- commandData{action: putIn, value: putInKVData, result: reply}
+	*right <- commandData{action: putData, value: putInKVData, result: reply}
 
 	result := (<-reply).(*putInKVResult).value
 	return result
 }
 
-// FetchOut 获取数据
-func (right *MemoryKVCache) FetchOut(key string) (interface{}, bool) {
+// Fetch 获取数据
+func (right *MemoryKVCache) Fetch(key string) (interface{}, bool) {
 
 	reply := make(chan interface{})
 
 	fetchOutKVData := &fetchOutKVData{}
 	fetchOutKVData.key = key
 
-	*right <- commandData{action: fetchOut, value: fetchOutKVData, result: reply}
+	*right <- commandData{action: fetchData, value: fetchOutKVData, result: reply}
 
 	result := (<-reply).(*fetchOutKVResult)
 	return result.value, result.found
@@ -111,7 +111,7 @@ func (right *MemoryKVCache) run() {
 
 	for command := range *right {
 		switch command.action {
-		case putIn:
+		case putData:
 			cacheKVData := cacheKVData{}
 			cacheKVData.putInKVData = *(command.value.(*putInKVData))
 			cacheKVData.cacheTime = time.Now()
@@ -122,7 +122,7 @@ func (right *MemoryKVCache) run() {
 			result.value = cacheKVData.key
 
 			command.result <- result
-		case fetchOut:
+		case fetchData:
 			key := command.value.(*fetchOutKVData).key
 
 			cacheKVData, found := _cacheData[key]

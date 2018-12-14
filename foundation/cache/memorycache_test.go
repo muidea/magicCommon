@@ -14,29 +14,29 @@ func TestMemoryCache(t *testing.T) {
 
 	time.Sleep(100)
 	data := "memorycache"
-	id := cache.PutIn(data, 0.000)
+	id := cache.Put(data, 0.000)
 	if len(id) == 0 {
-		t.Error("PutIn data to memorycache failed")
+		t.Error("Put data to memorycache failed")
 	}
 
 	timeOutTimer := time.NewTicker(6 * time.Second)
 	select {
 	case <-timeOutTimer.C:
 	}
-	_, found := cache.FetchOut(id)
+	_, found := cache.Fetch(id)
 	if found {
 		t.Error("memorycache maxAge unexpect.")
 	}
 
-	id = cache.PutIn(data, 2)
+	id = cache.Put(data, 2)
 	if len(id) == 0 {
-		t.Error("PutIn data to memorycache failed")
+		t.Error("Put data to memorycache failed")
 	}
 	time.Sleep(100)
 
-	val, found := cache.FetchOut(id)
+	val, found := cache.Fetch(id)
 	if !found {
-		t.Error("memorycache FetchOut unexpect.")
+		t.Error("memorycache Fetch unexpect.")
 	}
 
 	if data != val.(string) {
@@ -44,7 +44,7 @@ func TestMemoryCache(t *testing.T) {
 	}
 
 	cache.Remove(id)
-	_, found = cache.FetchOut(id)
+	_, found = cache.Fetch(id)
 	if found {
 		t.Error("memorycache maxAge unexpect.")
 	}
