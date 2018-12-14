@@ -45,18 +45,25 @@ func (s *FieldInfo) GetFieldTypeValue() int {
 
 // SetFieldValue SetFieldValue
 func (s *FieldInfo) SetFieldValue(val reflect.Value) {
-	if s.fieldTypeValue == util.TypeBooleanField {
+	switch s.fieldTypeValue {
+	case util.TypeBooleanField:
 		if val.Int() > 0 {
 			s.fieldValue.SetBool(true)
 		} else {
 			s.fieldValue.SetBool(false)
 		}
-	} else if s.fieldTypeValue == util.TypeDateTimeField {
+	case util.TypeDoubleField, util.TypeFloatField:
+		s.fieldValue.SetFloat(val.Float())
+	case util.TypeDateTimeField:
 		ts, _ := time.ParseInLocation("2006-01-02 15:04:05", val.String(), time.Local)
 		s.fieldValue.Set(reflect.ValueOf(ts))
-	} else if s.fieldValue.Kind() == val.Kind() {
-		s.fieldValue.Set(val)
-	} else {
+	case util.TypeBitField, util.TypeSmallIntegerField, util.TypeIntegerField, util.TypeInteger32Field, util.TypeBigIntegerField:
+		s.fieldValue.SetInt(val.Int())
+	case util.TypePositiveBitField, util.TypePositiveSmallIntegerField, util.TypePositiveIntegerField, util.TypePositiveInteger32Field, util.TypePositiveBigIntegerField:
+		s.fieldValue.SetUint(val.Uint())
+	case util.TypeStringField:
+		s.fieldValue.SetString(val.String())
+	default:
 		msg := fmt.Sprintf("unexception value, name:%s, pkgPath:%s, type:%s, valueType:%s", s.fieldName, s.fieldPkgPath, s.fieldTypeName, val.Kind())
 		panic(msg)
 	}
@@ -77,7 +84,7 @@ func (s *FieldInfo) GetFieldValueStr() (ret string) {
 			ret = "0"
 		}
 		break
-	case util.TypeVarCharField:
+	case util.TypeStringField:
 		ret = fmt.Sprintf("'%s'", s.fieldValue.Interface())
 		break
 	case util.TypeDateTimeField:
@@ -85,44 +92,18 @@ func (s *FieldInfo) GetFieldValueStr() (ret string) {
 		if ok {
 			ret = fmt.Sprintf("'%s'", ts.Format("2006-01-02 15:04:05"))
 		} else {
-			msg := fmt.Sprintf("illegal value,[%s]", s.fieldValue.Interface())
+			msg := fmt.Sprintf("illegal value,[%v]", s.fieldValue.Interface())
 			panic(msg)
 		}
 		break
-	case util.TypeBitField:
+	case util.TypeBitField, util.TypePositiveBitField,
+		util.TypeSmallIntegerField, util.TypePositiveSmallIntegerField,
+		util.TypeIntegerField, util.TypePositiveIntegerField,
+		util.TypeInteger32Field, util.TypePositiveInteger32Field,
+		util.TypeBigIntegerField, util.TypePositiveBigIntegerField:
 		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
 		break
-	case util.TypeSmallIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypeIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypeInteger32Field:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypeBigIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypePositiveBitField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypePositiveSmallIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypePositiveIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypePositiveInteger32Field:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypePositiveBigIntegerField:
-		ret = fmt.Sprintf("%d", s.fieldValue.Interface())
-		break
-	case util.TypeFloatField:
-		ret = fmt.Sprintf("%f", s.fieldValue.Interface())
-		break
-	case util.TypeDoubleField:
+	case util.TypeFloatField, util.TypeDoubleField:
 		ret = fmt.Sprintf("%f", s.fieldValue.Interface())
 		break
 	default:

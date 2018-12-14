@@ -52,7 +52,7 @@ func getFieldType(info *model.FieldInfo) (ret string) {
 	case util.TypeBooleanField:
 		ret = "TINYINT"
 		break
-	case util.TypeVarCharField:
+	case util.TypeStringField:
 		ret = "TEXT"
 		break
 	case util.TypeDateTimeField:

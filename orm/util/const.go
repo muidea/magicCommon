@@ -7,11 +7,7 @@ import (
 // Define the Type enum
 const (
 	TypeBooleanField = 1 << iota
-	TypeVarCharField
-	TypeCharField
-	TypeTextField
-	TypeTimeField
-	TypeDateField
+	TypeStringField
 	TypeDateTimeField
 	TypeBitField
 	TypeSmallIntegerField
@@ -25,7 +21,6 @@ const (
 	TypePositiveBigIntegerField
 	TypeFloatField
 	TypeDoubleField
-	TypeDecimalField
 	TypeStrictField
 )
 
@@ -36,11 +31,7 @@ func GetEmptyValue(typeValue int) (ret interface{}) {
 		val := 0
 		ret = &val
 		break
-	case TypeVarCharField:
-		val := ""
-		ret = &val
-		break
-	case TypeDateTimeField:
+	case TypeStringField, TypeDateTimeField:
 		val := ""
 		ret = &val
 		break
