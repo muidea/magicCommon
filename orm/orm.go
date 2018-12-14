@@ -61,24 +61,22 @@ func New() (Orm, error) {
 }
 
 func (s *orm) Insert(obj interface{}) error {
-	modelInfo := model.GetStructInfo(obj)
+	modelInfoCache := ormManager.getCache()
+	modelInfo := model.GetStructInfo(obj, modelInfoCache)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj)
-	_, err := ormManager.findModule(modelInfo.GetStructName())
-	if err != nil {
+	builder := builder.NewBuilder(obj, modelInfoCache)
+	info := modelInfoCache.Fetch(modelInfo.GetStructName())
+	if info == nil {
 		// no exist
 		sql, err := builder.BuildCreateSchema()
 		if err != nil {
 			return err
 		}
 
-		err = ormManager.registerModule(modelInfo.GetStructName(), modelInfo.GetPkgPath())
-		if err != nil {
-			log.Printf("registerModule failed, err:%s", err.Error())
-		}
+		modelInfoCache.Put(modelInfo)
 
 		s.executor.Execute(sql)
 	}
@@ -98,24 +96,23 @@ func (s *orm) Insert(obj interface{}) error {
 }
 
 func (s *orm) Update(obj interface{}) error {
-	modelInfo := model.GetStructInfo(obj)
+	modelInfoCache := ormManager.getCache()
+	modelInfo := model.GetStructInfo(obj, modelInfoCache)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj)
-	_, err := ormManager.findModule(modelInfo.GetStructName())
-	if err != nil {
+	builder := builder.NewBuilder(obj, modelInfoCache)
+	info := modelInfoCache.Fetch(modelInfo.GetStructName())
+	if info == nil {
 		// no exist
 		sql, err := builder.BuildCreateSchema()
 		if err != nil {
 			return err
 		}
 
-		err = ormManager.registerModule(modelInfo.GetStructName(), modelInfo.GetPkgPath())
-		if err != nil {
-			log.Printf("registerModule failed, err:%s", err.Error())
-		}
+		modelInfoCache.Put(modelInfo)
+
 		s.executor.Execute(sql)
 	}
 
@@ -133,24 +130,23 @@ func (s *orm) Update(obj interface{}) error {
 }
 
 func (s *orm) Delete(obj interface{}) error {
-	modelInfo := model.GetStructInfo(obj)
+	modelInfoCache := ormManager.getCache()
+	modelInfo := model.GetStructInfo(obj, modelInfoCache)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj)
-	_, err := ormManager.findModule(modelInfo.GetStructName())
-	if err != nil {
+	builder := builder.NewBuilder(obj, modelInfoCache)
+	info := modelInfoCache.Fetch(modelInfo.GetStructName())
+	if info == nil {
 		// no exist
 		sql, err := builder.BuildCreateSchema()
 		if err != nil {
 			return err
 		}
 
-		err = ormManager.registerModule(modelInfo.GetStructName(), modelInfo.GetPkgPath())
-		if err != nil {
-			log.Printf("registerModule failed, err:%s", err.Error())
-		}
+		modelInfoCache.Put(modelInfo)
+
 		s.executor.Execute(sql)
 	}
 
@@ -167,24 +163,23 @@ func (s *orm) Delete(obj interface{}) error {
 }
 
 func (s *orm) Query(obj interface{}, filter ...string) error {
-	modelInfo := model.GetStructInfo(obj)
+	modelInfoCache := ormManager.getCache()
+	modelInfo := model.GetStructInfo(obj, modelInfoCache)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj)
-	_, err := ormManager.findModule(modelInfo.GetStructName())
-	if err != nil {
+	builder := builder.NewBuilder(obj, modelInfoCache)
+	info := modelInfoCache.Fetch(modelInfo.GetStructName())
+	if info == nil {
 		// no exist
 		sql, err := builder.BuildCreateSchema()
 		if err != nil {
 			return err
 		}
 
-		err = ormManager.registerModule(modelInfo.GetStructName(), modelInfo.GetPkgPath())
-		if err != nil {
-			log.Printf("registerModule failed, err:%s", err.Error())
-		}
+		modelInfoCache.Put(modelInfo)
+
 		s.executor.Execute(sql)
 	}
 
@@ -218,24 +213,20 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 }
 
 func (s *orm) Drop(obj interface{}) error {
-	modelInfo := model.GetStructInfo(obj)
+	modelInfoCache := ormManager.getCache()
+	modelInfo := model.GetStructInfo(obj, modelInfoCache)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj)
-	_, err := ormManager.findModule(modelInfo.GetStructName())
-	if err == nil {
-		// no exist
+	builder := builder.NewBuilder(obj, modelInfoCache)
+	info := modelInfoCache.Fetch(modelInfo.GetStructName())
+	if info != nil {
 		sql, err := builder.BuildDropSchema()
 		if err != nil {
 			return err
 		}
 
-		err = ormManager.unregisterModule(modelInfo.GetStructName())
-		if err != nil {
-			log.Printf("unregisterModule failed, err:%s", err.Error())
-		}
 		s.executor.Execute(sql)
 	}
 

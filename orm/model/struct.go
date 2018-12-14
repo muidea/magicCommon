@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-
-	"muidea.com/magicCommon/foundation/cache"
 )
 
 // StructInfo single struct info
@@ -69,7 +67,7 @@ func (s *StructInfo) Dump() {
 }
 
 // GetStructInfo GetStructInfo
-func GetStructInfo(obj interface{}, cache cache.KVCache) *StructInfo {
+func GetStructInfo(obj interface{}, cache StructInfoCache) *StructInfo {
 	objType := reflect.TypeOf(obj)
 	objVal := reflect.ValueOf(obj)
 

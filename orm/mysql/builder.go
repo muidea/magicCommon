@@ -10,17 +10,18 @@ import (
 
 // Builder Builder
 type Builder struct {
-	obj interface{}
+	obj             interface{}
+	structInfoCache model.StructInfoCache
 }
 
 // New create builder
-func New(obj interface{}) *Builder {
-	return &Builder{obj: obj}
+func New(obj interface{}, cache model.StructInfoCache) *Builder {
+	return &Builder{obj: obj, structInfoCache: cache}
 }
 
 // BuildCreateSchema  BuildCreateSchema
 func (s *Builder) BuildCreateSchema() (string, error) {
-	info := model.GetStructInfo(s.obj)
+	info := model.GetStructInfo(s.obj, s.structInfoCache)
 	if info == nil {
 		return "", fmt.Errorf("get structInfo failed")
 	}
@@ -55,7 +56,7 @@ func (s *Builder) BuildCreateSchema() (string, error) {
 
 // BuildDropSchema  BuildDropSchema
 func (s *Builder) BuildDropSchema() (string, error) {
-	info := model.GetStructInfo(s.obj)
+	info := model.GetStructInfo(s.obj, s.structInfoCache)
 	if info == nil {
 		return "", fmt.Errorf("get structInfo failed")
 	}
@@ -78,7 +79,7 @@ func (s *Builder) BuildDropSchema() (string, error) {
 
 // BuildInsert  BuildInsert
 func (s *Builder) BuildInsert() (string, error) {
-	info := model.GetStructInfo(s.obj)
+	info := model.GetStructInfo(s.obj, s.structInfoCache)
 	if info == nil {
 		return "", fmt.Errorf("get structInfo failed")
 	}
@@ -101,7 +102,7 @@ func (s *Builder) BuildInsert() (string, error) {
 
 // BuildUpdate  BuildUpdate
 func (s *Builder) BuildUpdate() (string, error) {
-	info := model.GetStructInfo(s.obj)
+	info := model.GetStructInfo(s.obj, s.structInfoCache)
 	if info == nil {
 		return "", fmt.Errorf("get structInfo failed")
 	}
@@ -135,7 +136,7 @@ func (s *Builder) BuildUpdate() (string, error) {
 
 // BuildDelete  BuildDelete
 func (s *Builder) BuildDelete() (string, error) {
-	info := model.GetStructInfo(s.obj)
+	info := model.GetStructInfo(s.obj, s.structInfoCache)
 	if info == nil {
 		return "", fmt.Errorf("get structInfo failed")
 	}
@@ -158,7 +159,7 @@ func (s *Builder) BuildDelete() (string, error) {
 
 // BuildQuery BuildQuery
 func (s *Builder) BuildQuery() (string, error) {
-	info := model.GetStructInfo(s.obj)
+	info := model.GetStructInfo(s.obj, s.structInfoCache)
 	if info == nil {
 		return "", fmt.Errorf("get structInfo failed")
 	}

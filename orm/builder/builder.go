@@ -1,6 +1,9 @@
 package builder
 
-import "muidea.com/magicCommon/orm/mysql"
+import (
+	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/mysql"
+)
 
 // Builder orm builder
 type Builder interface {
@@ -13,6 +16,6 @@ type Builder interface {
 }
 
 // NewBuilder new builder
-func NewBuilder(obj interface{}) Builder {
-	return mysql.New(obj)
+func NewBuilder(obj interface{}, cache model.StructInfoCache) Builder {
+	return mysql.New(obj, cache)
 }

@@ -8,7 +8,7 @@ type StructInfoCache interface {
 
 	Put(info *StructInfo)
 
-	Find(name string) *StructInfo
+	Fetch(name string) *StructInfo
 }
 
 type impl struct {
@@ -28,7 +28,7 @@ func (s *impl) Put(info *StructInfo) {
 	s.kvCache.Put(info.GetStructName(), info, cache.MaxAgeValue)
 }
 
-func (s *impl) Find(name string) *StructInfo {
+func (s *impl) Fetch(name string) *StructInfo {
 	obj, ok := s.kvCache.Fetch(name)
 	if !ok {
 		return nil

@@ -32,7 +32,7 @@ func (s *test) Demo() string {
 
 func TestStruct(t *testing.T) {
 	now := time.Now()
-	info := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
+	info := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now}, nil)
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
@@ -49,7 +49,7 @@ func TestStruct(t *testing.T) {
 func TestStructValue(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
 	unit := &Unit{T1: test{val: 123}, TimeStamp: now}
-	info := GetStructInfo(unit)
+	info := GetStructInfo(unit, nil)
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
