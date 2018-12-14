@@ -27,60 +27,21 @@ const (
 // GetEmptyValue GetEmptyValue
 func GetEmptyValue(typeValue int) (ret interface{}) {
 	switch typeValue {
-	case TypeBooleanField:
+	case TypeBooleanField,
+		TypeBitField, TypeSmallIntegerField, TypeIntegerField, TypeInteger32Field, TypeBigIntegerField:
 		val := 0
+		ret = &val
+		break
+	case TypePositiveBitField, TypePositiveSmallIntegerField, TypePositiveIntegerField, TypePositiveInteger32Field, TypePositiveBigIntegerField:
+		val := uint(0)
 		ret = &val
 		break
 	case TypeStringField, TypeDateTimeField:
 		val := ""
 		ret = &val
 		break
-	case TypeBitField:
-		val := int8(0)
-		ret = &val
-		break
-	case TypeSmallIntegerField:
-		val := int16(0)
-		ret = &val
-		break
-	case TypeIntegerField:
-		val := int(0)
-		ret = &val
-		break
-	case TypeInteger32Field:
-		val := int32(0)
-		ret = &val
-		break
-	case TypeBigIntegerField:
-		val := int64(0)
-		ret = &val
-		break
-	case TypePositiveBitField:
-		val := uint8(0)
-		ret = &val
-		break
-	case TypePositiveSmallIntegerField:
-		val := uint16(0)
-		ret = &val
-		break
-	case TypePositiveIntegerField:
-		val := uint(0)
-		ret = &val
-		break
-	case TypePositiveInteger32Field:
-		val := uint32(0)
-		ret = &val
-		break
-	case TypePositiveBigIntegerField:
-		val := uint64(0)
-		ret = &val
-		break
-	case TypeFloatField:
-		val := float32(0.00)
-		ret = &val
-		break
-	case TypeDoubleField:
-		val := float64(0.00)
+	case TypeFloatField, TypeDoubleField:
+		val := 0.00
 		ret = &val
 		break
 	default:
