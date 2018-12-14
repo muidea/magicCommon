@@ -128,6 +128,31 @@ func (s *FieldInfo) IsAutoIncrement() bool {
 	return s.fieldTag.IsAutoIncrement()
 }
 
+// Verify Verify
+func (s *FieldInfo) Verify() error {
+	if s.fieldTag.Name() == "" {
+		return fmt.Errorf("no define field tag")
+	}
+
+	if s.IsAutoIncrement() {
+		switch s.fieldTypeValue {
+		case util.TypeBooleanField, util.TypeStringField, util.TypeDateTimeField, util.TypeFloatField, util.TypeDoubleField, util.TypeStrictField:
+			return fmt.Errorf("illegal auto_increment field type, type:%s", s.fieldTypeName)
+		default:
+		}
+	}
+
+	if s.IsPrimaryKey() {
+		switch s.fieldTypeValue {
+		case util.TypeStrictField:
+			return fmt.Errorf("illegal primary key field type, type:%s", s.fieldTypeName)
+		default:
+		}
+	}
+
+	return nil
+}
+
 // Dump Dump
 func (s *FieldInfo) Dump() string {
 	return fmt.Sprintf("index:%d,name:%s,typeValue:%d, typeName:%s,tag:%s, pkgPath:%s", s.fieldIndex, s.fieldName, s.fieldTypeValue, s.fieldTypeName, s.fieldTag, s.fieldPkgPath)
@@ -153,6 +178,13 @@ func (s *Fields) Append(fieldType *FieldInfo) {
 func (s *Fields) Verify() error {
 	if len(*s) == 0 {
 		return fmt.Errorf("no defined Fields")
+	}
+
+	for _, val := range *s {
+		err := val.Verify()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
