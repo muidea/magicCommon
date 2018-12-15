@@ -3,23 +3,41 @@ package builder
 import (
 	"testing"
 	"time"
+
+	"muidea.com/magicCommon/orm/model"
 )
 
 // Unit 单元信息
 type Unit struct {
 	//ID 唯一标示单元
-	ID int `json:"id" orm:"id key auto"`
+	ID int `orm:"id key auto"`
 	// Name 名称
-	Name      string     `json:"name" orm:"name"`
-	Value     float32    `json:"value" orm:"value"`
-	TimeStamp *time.Time `json:"timeStamp" orm:"ts"`
+	Name      string    `orm:"name"`
+	Value     float32   `orm:"value"`
+	TimeStamp time.Time `orm:"ts"`
 }
 
 func TestBuilder(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
-	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: &now}
+	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: now}
 
-	builder := NewBuilder(obj, nil)
+	info, depends := model.GetStructInfo(obj)
+	if info == nil {
+		t.Errorf("GetStructInfo failed,")
+		return
+	}
+
+	if len(depends) != 0 {
+		t.Errorf("GetStructInfo failed,")
+		return
+	}
+
+	err := info.Verify()
+	if err != nil {
+		t.Errorf("Verify StructInfo failed, err:%s", err.Error())
+	}
+
+	builder := NewBuilder(info)
 	if builder == nil {
 		t.Error("new Builder failed")
 	}

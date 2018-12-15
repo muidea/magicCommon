@@ -75,10 +75,6 @@ func (s *FieldInfo) SetFieldValue(val reflect.Value) {
 
 // GetFieldValue GetFieldValue
 func (s *FieldInfo) GetFieldValue() reflect.Value {
-	//if s.fieldTypeValue == util.TypeStructField {
-	//	return getStructValue(s.fieldValue)
-	//}
-
 	return s.fieldValue
 }
 

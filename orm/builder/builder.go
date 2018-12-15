@@ -17,5 +17,5 @@ type Builder interface {
 
 // NewBuilder new builder
 func NewBuilder(structInfo *model.StructInfo) Builder {
-	return mysql.New(obj, cache)
+	return mysql.New(structInfo)
 }
