@@ -59,6 +59,16 @@ func (s *StructInfo) GetPrimaryKey() *FieldInfo {
 	return s.primaryKey
 }
 
+// IsSame IsSame
+func (s *StructInfo) IsSame(info *StructInfo) bool {
+	return s.name == info.name
+}
+
+// IsConflict IsConflict
+func (s *StructInfo) IsConflict(info *StructInfo) bool {
+	return s.name == info.name && s.pkgPath != info.pkgPath
+}
+
 // Dump Dump
 func (s *StructInfo) Dump() {
 	fmt.Print("structInfo:\n")
@@ -125,7 +135,6 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 
 	for _, val := range reference {
 		preRet, preDepends := getStructInfo(val)
-
 		depends = append(preDepends, depends...)
 		depends = append(depends, preRet)
 	}

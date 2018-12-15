@@ -19,21 +19,27 @@ type Unit struct {
 	T1        test      `orm:"t1"`
 }
 
+type bT struct {
+	id  int `orm:"id key"`
+	val int `orm:"val"`
+}
+
 type base struct {
 	id  int `orm:"id key"`
 	val int `orm:"val"`
+	bt  bT  `orm:"bt"`
 }
 
 type test struct {
 	id    int  `orm:"id key"`
 	val   int  `orm:"val"`
 	base  base `orm:"b1"`
-	base2 base `orm:"b2"`
+	base2 bT   `orm:"b2"`
 }
 
 func TestStruct(t *testing.T) {
 	now := time.Now()
-	info, depends := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
+	info, _ := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
@@ -44,17 +50,6 @@ func TestStruct(t *testing.T) {
 		t.Errorf("Verify failed, err:%s", err.Error())
 	}
 
-	fmt.Print("------------depends--------------\n")
-	for _, val := range depends {
-		err := val.Verify()
-		if err != nil {
-			t.Errorf("Verify failed, err:%s", err.Error())
-		}
-
-		fmt.Print("-------------------------------\n")
-		val.Dump()
-	}
-	fmt.Print("------------struct--------------\n")
 	info.Dump()
 }
 
