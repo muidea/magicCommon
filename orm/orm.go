@@ -28,7 +28,8 @@ func init() {
 }
 
 type orm struct {
-	executor executor.Executor
+	executor       executor.Executor
+	modelInfoCache model.StructInfoCache
 }
 
 // Initialize InitOrm
@@ -57,30 +58,43 @@ func New() (Orm, error) {
 		return nil, err
 	}
 
-	return &orm{executor: executor}, nil
+	return &orm{executor: executor, modelInfoCache: ormManager.getCache()}, nil
+}
+
+func (s *orm) batchCreateSchema(modelInfos []*model.StructInfo) error {
+	for _, val := range modelInfos {
+		builder := builder.NewBuilder(val)
+		info := s.modelInfoCache.Fetch(val.GetStructName())
+		if info == nil {
+			// no exist
+			sql, err := builder.BuildCreateSchema()
+			if err != nil {
+				return err
+			}
+
+			s.modelInfoCache.Put(val)
+
+			s.executor.Execute(sql)
+		}
+	}
+
+	return nil
 }
 
 func (s *orm) Insert(obj interface{}) error {
-	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj)
+	modelInfo, modelDepends := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj, modelInfoCache)
-	info := modelInfoCache.Fetch(modelInfo.GetStructName())
-	if info == nil {
-		// no exist
-		sql, err := builder.BuildCreateSchema()
-		if err != nil {
-			return err
-		}
-
-		modelInfoCache.Put(modelInfo)
-
-		s.executor.Execute(sql)
+	allModelInfos := modelDepends
+	allModelInfos = append(allModelInfos, modelInfo)
+	err := s.batchCreateSchema(allModelInfos)
+	if err != nil {
+		return err
 	}
 
+	builder := builder.NewBuilder(modelInfo)
 	sql, err := builder.BuildInsert()
 	if err != nil {
 		return err
@@ -96,26 +110,19 @@ func (s *orm) Insert(obj interface{}) error {
 }
 
 func (s *orm) Update(obj interface{}) error {
-	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj)
+	modelInfo, modelDepends := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj, modelInfoCache)
-	info := modelInfoCache.Fetch(modelInfo.GetStructName())
-	if info == nil {
-		// no exist
-		sql, err := builder.BuildCreateSchema()
-		if err != nil {
-			return err
-		}
-
-		modelInfoCache.Put(modelInfo)
-
-		s.executor.Execute(sql)
+	allModelInfos := modelDepends
+	allModelInfos = append(allModelInfos, modelInfo)
+	err := s.batchCreateSchema(allModelInfos)
+	if err != nil {
+		return err
 	}
 
+	builder := builder.NewBuilder(modelInfo)
 	sql, err := builder.BuildUpdate()
 	if err != nil {
 		return err
@@ -130,26 +137,19 @@ func (s *orm) Update(obj interface{}) error {
 }
 
 func (s *orm) Delete(obj interface{}) error {
-	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj)
+	modelInfo, modelDepends := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj, modelInfoCache)
-	info := modelInfoCache.Fetch(modelInfo.GetStructName())
-	if info == nil {
-		// no exist
-		sql, err := builder.BuildCreateSchema()
-		if err != nil {
-			return err
-		}
-
-		modelInfoCache.Put(modelInfo)
-
-		s.executor.Execute(sql)
+	allModelInfos := modelDepends
+	allModelInfos = append(allModelInfos, modelInfo)
+	err := s.batchCreateSchema(allModelInfos)
+	if err != nil {
+		return err
 	}
 
+	builder := builder.NewBuilder(modelInfo)
 	sql, err := builder.BuildDelete()
 	if err != nil {
 		return err
@@ -163,26 +163,19 @@ func (s *orm) Delete(obj interface{}) error {
 }
 
 func (s *orm) Query(obj interface{}, filter ...string) error {
-	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj)
+	modelInfo, modelDepends := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj, modelInfoCache)
-	info := modelInfoCache.Fetch(modelInfo.GetStructName())
-	if info == nil {
-		// no exist
-		sql, err := builder.BuildCreateSchema()
-		if err != nil {
-			return err
-		}
-
-		modelInfoCache.Put(modelInfo)
-
-		s.executor.Execute(sql)
+	allModelInfos := modelDepends
+	allModelInfos = append(allModelInfos, modelInfo)
+	err := s.batchCreateSchema(allModelInfos)
+	if err != nil {
+		return err
 	}
 
+	builder := builder.NewBuilder(modelInfo)
 	sql, err := builder.BuildQuery()
 	if err != nil {
 		return err
@@ -213,14 +206,13 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 }
 
 func (s *orm) Drop(obj interface{}) error {
-	modelInfoCache := ormManager.getCache()
-	modelInfo := model.GetStructInfo(obj)
+	modelInfo, _ := model.GetStructInfo(obj)
 	if modelInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(obj, modelInfoCache)
-	info := modelInfoCache.Fetch(modelInfo.GetStructName())
+	builder := builder.NewBuilder(modelInfo)
+	info := s.modelInfoCache.Fetch(modelInfo.GetStructName())
 	if info != nil {
 		sql, err := builder.BuildDropSchema()
 		if err != nil {
@@ -238,17 +230,4 @@ func (s *orm) Release() {
 		s.executor.Release()
 		s.executor = nil
 	}
-}
-
-func getModuleInfo(obj interface{}) (ret *model.StructInfo, depends []*model.StructInfo, err error) {
-	ret, depends := model.GetStructInfo(obj)
-	if info == nil {
-		return ret, depends, fmt.Errorf("get structInfo failed")
-	}
-
-	err := info.Verify()
-	if err != nil {
-		return nil, "", err
-	}
-
 }
