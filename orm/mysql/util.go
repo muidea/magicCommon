@@ -91,6 +91,8 @@ func getFieldType(info *model.FieldInfo) (ret string) {
 	case util.TypeDoubleField:
 		ret = "DOUBLE"
 		break
+	case util.TypeStructField:
+		ret = "BIGINT"
 	default:
 		msg := fmt.Sprintf("no support fileType, %d", fType.Value())
 		panic(msg)

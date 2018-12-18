@@ -65,3 +65,15 @@ func GetFieldType(val reflect.Type) (ft int, err error) {
 
 	return
 }
+
+// GetStructValue GetStructValue
+func GetStructValue(val reflect.Value) (ret FieldValue) {
+	structInfo, _ := getStructInfo(reflect.Indirect(val))
+	pk := structInfo.GetPrimaryKey()
+	if pk == nil {
+		panic("illegal structVal, no define PrimaryKey")
+	}
+
+	ret = pk.GetFieldValue()
+	return
+}

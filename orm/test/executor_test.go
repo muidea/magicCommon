@@ -69,3 +69,28 @@ func TestExecutor(t *testing.T) {
 
 	log.Print(*obj2)
 }
+
+type Ext struct {
+	ID   int  `orm:"id key auto"`
+	Unit Unit `orm:"unit"`
+}
+
+func TestDepends(t *testing.T) {
+	orm.Initialize("root", "rootkit", "localhost:3306", "testdb")
+	defer orm.Uninitialize()
+
+	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
+	obj := &Unit{ID: 10, I64: uint64(78962222222), Name: "Hello world", Value: 12.3456, TimeStamp: now, Flag: true}
+	ext := &Ext{Unit: *obj}
+
+	o1, err := orm.New()
+	defer o1.Release()
+	if err != nil {
+		t.Errorf("new Orm failed, err:%s", err.Error())
+	}
+
+	err = o1.Insert(ext)
+	if err != nil {
+		t.Errorf("insert ext failed, err:%s", err.Error())
+	}
+}

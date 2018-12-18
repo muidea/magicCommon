@@ -137,19 +137,3 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 
 	return
 }
-
-func getStructValue(structObj reflect.Value) reflect.Value {
-	ret, _ := getStructInfo(reflect.Indirect(structObj))
-
-	pk := ret.GetPrimaryKey()
-	if pk == nil {
-		panic("illegal value, struct primary key is null")
-	}
-
-	//if pk.GetFieldTypeValue() != util.TypeStructField {
-	//	return reflect.Indirect(pk.GetFieldValue())
-	//}
-
-	fv := pk.GetFieldValue()
-	return getStructValue(fv.GetValue())
-}

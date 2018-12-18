@@ -93,21 +93,22 @@ func (s *valueImpl) GetValue() reflect.Value {
 }
 
 func (s *valueImpl) GetDepend() (ret []reflect.Value) {
-	val := reflect.Indirect(s.value)
-	switch val.Kind() {
+	switch s.value.Kind() {
 	case reflect.Struct:
-		if val.Type().String() != "time.Time" {
+		if s.value.Type().String() != "time.Time" {
 			ret = append(ret, s.value)
 		}
 	case reflect.Slice:
-		pos := val.Len()
+		pos := s.value.Len()
 		for idx := 0; idx < pos; {
-			sv := val.Slice(idx, idx+1)
+			sv := s.value.Slice(idx, idx+1)
 
 			sv = reflect.Indirect(sv)
 			ret = append(ret, sv)
 			idx++
 		}
+	case reflect.Ptr:
+		ret = append(ret, s.value)
 	}
 
 	return
@@ -117,24 +118,24 @@ func (s *valueImpl) GetValueStr() (ret string) {
 	val := reflect.Indirect(s.value)
 	switch val.Kind() {
 	case reflect.Bool:
-		if s.value.Bool() {
+		if val.Bool() {
 			ret = "1"
 		} else {
 			ret = "0"
 		}
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
 		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		ret = fmt.Sprintf("%d", s.value.Interface())
+		ret = fmt.Sprintf("%d", val.Interface())
 	case reflect.Float32, reflect.Float64:
-		ret = fmt.Sprintf("%f", s.value.Interface())
+		ret = fmt.Sprintf("%f", val.Interface())
 	case reflect.String:
-		ret = fmt.Sprintf("'%s'", s.value.Interface())
+		ret = fmt.Sprintf("'%s'", val.Interface())
 	case reflect.Struct:
-		ts, ok := s.value.Interface().(time.Time)
+		ts, ok := val.Interface().(time.Time)
 		if ok {
 			ret = fmt.Sprintf("'%s'", ts.Format("2006-01-02 15:04:05"))
 		} else {
-			msg := fmt.Sprintf("illegal value,[%v]", s.value.Interface())
+			msg := fmt.Sprintf("illegal value,[%v]", val.Interface())
 			panic(msg)
 		}
 	default:

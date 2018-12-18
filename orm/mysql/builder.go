@@ -55,10 +55,14 @@ func (s *Builder) BuildDropSchema() (string, error) {
 
 // BuildInsert  BuildInsert
 func (s *Builder) BuildInsert() (string, error) {
-	str := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES (%s)", s.getTableName(s.structInfo), s.getFieldNames(s.structInfo, false), s.getFieldValues(s.structInfo))
-	log.Print(str)
+	sql := ""
+	vals := s.getFieldValues(s.structInfo)
+	for _, val := range vals {
+		sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.getTableName(s.structInfo), s.getFieldNames(s.structInfo, false), val)
+	}
+	log.Print(sql)
 
-	return str, nil
+	return sql, nil
 }
 
 // BuildUpdate  BuildUpdate
@@ -126,15 +130,19 @@ func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 	return str
 }
 
-func (s *Builder) getFieldValues(info *model.StructInfo) string {
+func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string) {
 	str := ""
-	for _, field := range *s.structInfo.GetFields() {
+	for _, field := range *info.GetFields() {
 		ft := field.GetFieldTag()
 		if ft.IsAutoIncrement() {
 			continue
 		}
 
 		fValue := field.GetFieldValue()
+		if field.IsReference() {
+			fValue = model.GetStructValue(fValue.GetValue())
+		}
+
 		if str == "" {
 			str = fmt.Sprintf("%s", fValue.GetValueStr())
 		} else {
@@ -142,5 +150,7 @@ func (s *Builder) getFieldValues(info *model.StructInfo) string {
 		}
 	}
 
-	return str
+	ret = append(ret, str)
+
+	return
 }

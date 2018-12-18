@@ -27,6 +27,11 @@ func (s *FieldInfo) GetFieldName() string {
 	return s.fieldName
 }
 
+// IsReference IsReference
+func (s *FieldInfo) IsReference() bool {
+	return s.fieldCatalog == util.TypeReferenceField
+}
+
 // GetFieldType GetFieldType
 func (s *FieldInfo) GetFieldType() FieldType {
 	return s.fieldType

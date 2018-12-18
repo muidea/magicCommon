@@ -84,26 +84,26 @@ func (s *orm) batchCreateSchema(modelInfos []*model.StructInfo) error {
 }
 
 func (s *orm) Insert(obj interface{}) error {
-	modelInfo, modelDepends := model.GetStructInfo(obj)
-	if modelInfo == nil {
+	structInfo, structDepends := model.GetStructInfo(obj)
+	if structInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	allModelInfos := modelDepends
-	allModelInfos = append(allModelInfos, modelInfo)
-	err := s.batchCreateSchema(allModelInfos)
+	allStructInfos := structDepends
+	allStructInfos = append(allStructInfos, structInfo)
+	err := s.batchCreateSchema(allStructInfos)
 	if err != nil {
 		return err
 	}
 
-	builder := builder.NewBuilder(modelInfo)
+	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildInsert()
 	if err != nil {
 		return err
 	}
 
 	id := s.executor.Insert(sql)
-	pk := modelInfo.GetPrimaryKey()
+	pk := structInfo.GetPrimaryKey()
 	if pk != nil {
 		pk.SetFieldValue(reflect.ValueOf(id))
 	}
@@ -112,19 +112,19 @@ func (s *orm) Insert(obj interface{}) error {
 }
 
 func (s *orm) Update(obj interface{}) error {
-	modelInfo, modelDepends := model.GetStructInfo(obj)
-	if modelInfo == nil {
+	structInfo, structDepends := model.GetStructInfo(obj)
+	if structInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	allModelInfos := modelDepends
-	allModelInfos = append(allModelInfos, modelInfo)
-	err := s.batchCreateSchema(allModelInfos)
+	allStructInfos := structDepends
+	allStructInfos = append(allStructInfos, structInfo)
+	err := s.batchCreateSchema(allStructInfos)
 	if err != nil {
 		return err
 	}
 
-	builder := builder.NewBuilder(modelInfo)
+	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildUpdate()
 	if err != nil {
 		return err
@@ -139,19 +139,19 @@ func (s *orm) Update(obj interface{}) error {
 }
 
 func (s *orm) Delete(obj interface{}) error {
-	modelInfo, modelDepends := model.GetStructInfo(obj)
-	if modelInfo == nil {
+	structInfo, structDepends := model.GetStructInfo(obj)
+	if structInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	allModelInfos := modelDepends
-	allModelInfos = append(allModelInfos, modelInfo)
-	err := s.batchCreateSchema(allModelInfos)
+	allStructInfos := structDepends
+	allStructInfos = append(allStructInfos, structInfo)
+	err := s.batchCreateSchema(allStructInfos)
 	if err != nil {
 		return err
 	}
 
-	builder := builder.NewBuilder(modelInfo)
+	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildDelete()
 	if err != nil {
 		return err
@@ -165,19 +165,19 @@ func (s *orm) Delete(obj interface{}) error {
 }
 
 func (s *orm) Query(obj interface{}, filter ...string) error {
-	modelInfo, modelDepends := model.GetStructInfo(obj)
-	if modelInfo == nil {
+	structInfo, structDepends := model.GetStructInfo(obj)
+	if structInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	allModelInfos := modelDepends
-	allModelInfos = append(allModelInfos, modelInfo)
-	err := s.batchCreateSchema(allModelInfos)
+	allStructInfos := structDepends
+	allStructInfos = append(allStructInfos, structInfo)
+	err := s.batchCreateSchema(allStructInfos)
 	if err != nil {
 		return err
 	}
 
-	builder := builder.NewBuilder(modelInfo)
+	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildQuery()
 	if err != nil {
 		return err
@@ -190,7 +190,7 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 	defer s.executor.Finish()
 
 	items := []interface{}{}
-	fields := modelInfo.GetFields()
+	fields := structInfo.GetFields()
 	for _, val := range *fields {
 		fType := val.GetFieldType()
 		v := util.GetInitValue(fType.Value())
@@ -209,13 +209,13 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 }
 
 func (s *orm) Drop(obj interface{}) error {
-	modelInfo, _ := model.GetStructInfo(obj)
-	if modelInfo == nil {
+	structInfo, _ := model.GetStructInfo(obj)
+	if structInfo == nil {
 		return fmt.Errorf("illegal model object, [%v]", obj)
 	}
 
-	builder := builder.NewBuilder(modelInfo)
-	info := s.modelInfoCache.Fetch(modelInfo.GetStructName())
+	builder := builder.NewBuilder(structInfo)
+	info := s.modelInfoCache.Fetch(structInfo.GetStructName())
 	if info != nil {
 		sql, err := builder.BuildDropSchema()
 		if err != nil {
