@@ -35,7 +35,8 @@ func (s *Builder) BuildCreateSchema() (string, error) {
 		}
 	}
 	if s.structInfo.GetPrimaryKey() != nil {
-		str = fmt.Sprintf("%s,\n\tPRIMARY KEY (`%s`)", str, (s.structInfo.GetPrimaryKey().GetFieldTag()))
+		fTag := s.structInfo.GetPrimaryKey().GetFieldTag()
+		str = fmt.Sprintf("%s,\n\tPRIMARY KEY (`%s`)", str, fTag.Name())
 	}
 
 	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.getTableName(s.structInfo), str)
@@ -64,16 +65,20 @@ func (s *Builder) BuildInsert() (string, error) {
 func (s *Builder) BuildUpdate() (string, error) {
 	str := ""
 	for _, val := range *s.structInfo.GetFields() {
+		fValue := val.GetFieldValue()
+		fTag := val.GetFieldTag()
 		if val != s.structInfo.GetPrimaryKey() {
 			if str == "" {
-				str = fmt.Sprintf("`%s`=%s", val.GetFieldTag(), val.GetFieldValueStr())
+				str = fmt.Sprintf("`%s`=%s", fTag.Name(), fValue.GetValueStr())
 			} else {
-				str = fmt.Sprintf("%s,`%s`=%s", str, val.GetFieldTag(), val.GetFieldValueStr())
+				str = fmt.Sprintf("%s,`%s`=%s", str, fTag.Name(), fValue.GetValueStr())
 			}
 		}
 	}
 
-	str = fmt.Sprintf("UPDATE `%s` SET %s WHERE `%s`=%s", s.getTableName(s.structInfo), str, s.structInfo.GetPrimaryKey().GetFieldTag(), s.structInfo.GetPrimaryKey().GetFieldValueStr())
+	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
+	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
+	str = fmt.Sprintf("UPDATE `%s` SET %s WHERE `%s`=%s", s.getTableName(s.structInfo), str, pkfTag.Name(), pkfValue.GetValueStr())
 	log.Print(str)
 
 	return str, nil
@@ -81,7 +86,9 @@ func (s *Builder) BuildUpdate() (string, error) {
 
 // BuildDelete  BuildDelete
 func (s *Builder) BuildDelete() (string, error) {
-	str := fmt.Sprintf("DELETE FROM `%s` WHERE `%s`=%s", s.getTableName(s.structInfo), s.structInfo.GetPrimaryKey().GetFieldTag(), s.structInfo.GetPrimaryKey().GetFieldValueStr())
+	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
+	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
+	str := fmt.Sprintf("DELETE FROM `%s` WHERE `%s`=%s", s.getTableName(s.structInfo), pkfTag.Name(), pkfValue.GetValueStr())
 	log.Print(str)
 
 	return str, nil
@@ -89,7 +96,9 @@ func (s *Builder) BuildDelete() (string, error) {
 
 // BuildQuery BuildQuery
 func (s *Builder) BuildQuery() (string, error) {
-	str := fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(s.structInfo, true), s.getTableName(s.structInfo), s.structInfo.GetPrimaryKey().GetFieldTag(), s.structInfo.GetPrimaryKey().GetFieldValueStr())
+	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
+	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
+	str := fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(s.structInfo, true), s.getTableName(s.structInfo), pkfTag.Name(), pkfValue.GetValueStr())
 	log.Print(str)
 
 	return str, nil
@@ -102,14 +111,15 @@ func (s *Builder) getTableName(info *model.StructInfo) string {
 func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 	str := ""
 	for _, field := range *s.structInfo.GetFields() {
-		if field.IsAutoIncrement() && !all {
+		ft := field.GetFieldTag()
+		if ft.IsAutoIncrement() && !all {
 			continue
 		}
 
 		if str == "" {
-			str = fmt.Sprintf("`%s`", field.GetFieldTag())
+			str = fmt.Sprintf("`%s`", ft.Name())
 		} else {
-			str = fmt.Sprintf("%s,`%s`", str, field.GetFieldTag())
+			str = fmt.Sprintf("%s,`%s`", str, ft.Name())
 		}
 	}
 
@@ -119,14 +129,16 @@ func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 func (s *Builder) getFieldValues(info *model.StructInfo) string {
 	str := ""
 	for _, field := range *s.structInfo.GetFields() {
-		if field.IsAutoIncrement() {
+		ft := field.GetFieldTag()
+		if ft.IsAutoIncrement() {
 			continue
 		}
 
+		fValue := field.GetFieldValue()
 		if str == "" {
-			str = fmt.Sprintf("%s", field.GetFieldValueStr())
+			str = fmt.Sprintf("%s", fValue.GetValueStr())
 		} else {
-			str = fmt.Sprintf("%s,%s", str, field.GetFieldValueStr())
+			str = fmt.Sprintf("%s,%s", str, fValue.GetValueStr())
 		}
 	}
 

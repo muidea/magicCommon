@@ -45,8 +45,22 @@ func GetFieldType(val reflect.Type) (ft int, err error) {
 		default:
 			ft = util.TypeStructField
 		}
+	case reflect.Slice:
+		ft = util.TypeSliceField
+	case reflect.Ptr:
+		val = val.Elem()
+		switch val.Kind() {
+		case reflect.Struct:
+			if val.String() == "time.Time" {
+				ft = util.TypeDateTimeField
+			} else {
+				ft = util.TypeStructField
+			}
+		default:
+			err = fmt.Errorf("unsupport field type:[%v], may be miss setting tag", val.Elem().Kind())
+		}
 	default:
-		err = fmt.Errorf("unsupport field type %v, may be miss setting tag", val.Name())
+		err = fmt.Errorf("unsupport field type:[%v], may be miss setting tag", val.Elem().Kind())
 	}
 
 	return

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-
-	"muidea.com/magicCommon/orm/util"
 )
 
 // StructInfo single struct ret
@@ -118,23 +116,21 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 			return nil, nil
 		}
 
-		if fieldInfo.IsPrimaryKey() {
-			ret.primaryKey = fieldInfo
-		}
-
-		if fieldInfo.GetFieldTypeValue() == util.TypeStructField {
-			reference = append(reference, fieldInfo.GetFieldValue())
-		}
+		fv := fieldInfo.GetFieldValue()
+		dvs := fv.GetDepend()
+		reference = append(reference, dvs...)
 
 		idx++
 	}
+
+	ret.primaryKey = ret.fields.GetPrimaryKey()
 
 	if len(reference) == 0 {
 		return
 	}
 
 	for _, val := range reference {
-		preRet, preDepends := getStructInfo(val)
+		preRet, preDepends := getStructInfo(reflect.Indirect(val))
 		depends = append(preDepends, depends...)
 		depends = append(depends, preRet)
 	}
@@ -150,9 +146,10 @@ func getStructValue(structObj reflect.Value) reflect.Value {
 		panic("illegal value, struct primary key is null")
 	}
 
-	if pk.GetFieldTypeValue() != util.TypeStructField {
-		return reflect.Indirect(pk.GetFieldValue())
-	}
+	//if pk.GetFieldTypeValue() != util.TypeStructField {
+	//	return reflect.Indirect(pk.GetFieldValue())
+	//}
 
-	return getStructValue(pk.GetFieldValue())
+	fv := pk.GetFieldValue()
+	return getStructValue(fv.GetValue())
 }

@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"testing"
@@ -54,8 +53,8 @@ func TestStruct(t *testing.T) {
 }
 
 func TestStructValue(t *testing.T) {
-	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
-	unit := &Unit{T1: test{val: 123}, TimeStamp: now}
+	now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
+	unit := &Unit{Name: "AA", T1: test{val: 123}, TimeStamp: now}
 	info, _ := GetStructInfo(unit)
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
@@ -83,27 +82,18 @@ func TestStructValue(t *testing.T) {
 }
 
 func TestReference(t *testing.T) {
-	now := time.Now()
-	info, depends := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
-	if info == nil {
-		t.Errorf("GetStructInfo failed,")
-		return
+	type AB struct {
+		f32 float32 `orm:"ii"`
 	}
 
-	err := info.Verify()
-	if err != nil {
-		t.Errorf("Verify failed, err:%s", err.Error())
+	type Demo struct {
+		ii int   `orm:"ii"`
+		ab *AB   `orm:"ab"`
+		cd []int `orm:"cd"`
+		ef []*AB `orm:"ef"`
 	}
 
-	fmt.Print("------------depends--------------\n")
-	for _, val := range depends {
-		err := val.Verify()
-		if err != nil {
-			t.Errorf("Verify failed, err:%s", err.Error())
-		}
+	info, _ := GetStructInfo(&Demo{ab: &AB{}})
 
-		val.Dump()
-	}
-	fmt.Print("------------struct--------------\n")
 	info.Dump()
 }

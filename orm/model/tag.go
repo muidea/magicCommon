@@ -14,7 +14,7 @@ type FieldTag interface {
 	String() string
 }
 
-type tag struct {
+type tagImpl struct {
 	tagName         string
 	isPrimaryKey    bool
 	isAutoIncrement bool
@@ -24,7 +24,7 @@ type tag struct {
 func newFieldTag(val string) FieldTag {
 	items := strings.Split(val, " ")
 	if len(items) < 1 {
-		log.Fatalf("illegal tag value, value:%s", val)
+		log.Fatalf("illegal tagImpl value, value:%s", val)
 	}
 
 	tagName := items[0]
@@ -47,21 +47,21 @@ func newFieldTag(val string) FieldTag {
 		}
 	}
 
-	return &tag{tagName: tagName, isPrimaryKey: isPrimaryKey, isAutoIncrement: isAutoIncrement}
+	return &tagImpl{tagName: tagName, isPrimaryKey: isPrimaryKey, isAutoIncrement: isAutoIncrement}
 }
 
-func (s *tag) Name() string {
+func (s *tagImpl) Name() string {
 	return s.tagName
 }
 
-func (s *tag) IsPrimaryKey() bool {
+func (s *tagImpl) IsPrimaryKey() bool {
 	return s.isPrimaryKey
 }
 
-func (s *tag) IsAutoIncrement() bool {
+func (s *tagImpl) IsAutoIncrement() bool {
 	return s.isAutoIncrement
 }
 
-func (s *tag) String() string {
+func (s *tagImpl) String() string {
 	return fmt.Sprintf("%s key=%v auto=%v", s.tagName, s.isPrimaryKey, s.isAutoIncrement)
 }
