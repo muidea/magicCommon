@@ -33,6 +33,11 @@ const (
 	TypeReferenceField
 )
 
+// IsSimpleField IsSimpleField
+func IsSimpleField(typeValue int) bool {
+	return typeValue < TypeStructField
+}
+
 // GetInitValue GetInitValue
 func GetInitValue(typeValue int) (ret interface{}) {
 	switch typeValue {

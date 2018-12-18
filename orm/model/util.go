@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 
 	"muidea.com/magicCommon/orm/util"
@@ -47,18 +48,6 @@ func GetFieldType(val reflect.Type) (ft int, err error) {
 		}
 	case reflect.Slice:
 		ft = util.TypeSliceField
-	case reflect.Ptr:
-		val = val.Elem()
-		switch val.Kind() {
-		case reflect.Struct:
-			if val.String() == "time.Time" {
-				ft = util.TypeDateTimeField
-			} else {
-				ft = util.TypeStructField
-			}
-		default:
-			err = fmt.Errorf("unsupport field type:[%v], may be miss setting tag", val.Elem().Kind())
-		}
 	default:
 		err = fmt.Errorf("unsupport field type:[%v], may be miss setting tag", val.Elem().Kind())
 	}
@@ -66,8 +55,49 @@ func GetFieldType(val reflect.Type) (ft int, err error) {
 	return
 }
 
+// IsReference IsReference
+func IsReference(val reflect.Type) bool {
+	switch val.Kind() {
+	case reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int32, reflect.Uint32,
+		reflect.Int64, reflect.Uint64, reflect.Int, reflect.Uint, reflect.Float32, reflect.Float64, reflect.Bool, reflect.String:
+		return false
+	case reflect.Struct:
+		switch val.String() {
+		case "time.Time":
+			return false
+		default:
+			return true
+		}
+	case reflect.Slice:
+		val = val.Elem()
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
+		}
+		switch val.Kind() {
+		case reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int32, reflect.Uint32,
+			reflect.Int64, reflect.Uint64, reflect.Int, reflect.Uint, reflect.Float32, reflect.Float64, reflect.Bool, reflect.String:
+			return false
+		case reflect.Struct:
+			switch val.String() {
+			case "time.Time":
+				return false
+			default:
+				return true
+			}
+		default:
+			err := fmt.Errorf("unsupport slice field type:[%v], may be miss setting tag", val.Kind())
+			panic(err.Error())
+		}
+	default:
+		err := fmt.Errorf("unsupport field type:[%v], may be miss setting tag", val.Kind())
+		panic(err.Error())
+	}
+}
+
 // GetStructValue GetStructValue
 func GetStructValue(val reflect.Value) (ret FieldValue) {
+	log.Print("$$$$$$$$$")
+	log.Print(val)
 	structInfo, _ := getStructInfo(reflect.Indirect(val))
 	pk := structInfo.GetPrimaryKey()
 	if pk == nil {

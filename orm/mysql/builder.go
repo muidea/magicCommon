@@ -115,15 +115,15 @@ func (s *Builder) getTableName(info *model.StructInfo) string {
 func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 	str := ""
 	for _, field := range *s.structInfo.GetFields() {
-		ft := field.GetFieldTag()
-		if ft.IsAutoIncrement() && !all {
+		fTag := field.GetFieldTag()
+		if fTag.IsAutoIncrement() && !all {
 			continue
 		}
 
 		if str == "" {
-			str = fmt.Sprintf("`%s`", ft.Name())
+			str = fmt.Sprintf("`%s`", fTag.Name())
 		} else {
-			str = fmt.Sprintf("%s,`%s`", str, ft.Name())
+			str = fmt.Sprintf("%s,`%s`", str, fTag.Name())
 		}
 	}
 
@@ -133,13 +133,14 @@ func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string) {
 	str := ""
 	for _, field := range *info.GetFields() {
-		ft := field.GetFieldTag()
-		if ft.IsAutoIncrement() {
+		fTag := field.GetFieldTag()
+		if fTag.IsAutoIncrement() {
 			continue
 		}
 
+		fType := field.GetFieldType()
 		fValue := field.GetFieldValue()
-		if field.IsReference() {
+		if fType.IsReference() {
 			fValue = model.GetStructValue(fValue.GetValue())
 		}
 

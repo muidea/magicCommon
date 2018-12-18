@@ -10,9 +10,8 @@ import (
 
 // FieldInfo single field info
 type FieldInfo struct {
-	fieldIndex   int
-	fieldName    string
-	fieldCatalog int
+	fieldIndex int
+	fieldName  string
 
 	fieldType  FieldType
 	fieldTag   FieldTag
@@ -25,11 +24,6 @@ type Fields []*FieldInfo
 // GetFieldName GetFieldName
 func (s *FieldInfo) GetFieldName() string {
 	return s.fieldName
-}
-
-// IsReference IsReference
-func (s *FieldInfo) IsReference() bool {
-	return s.fieldCatalog == util.TypeReferenceField
 }
 
 // GetFieldType GetFieldType
@@ -80,7 +74,7 @@ func (s *FieldInfo) Verify() error {
 
 // Dump Dump
 func (s *FieldInfo) Dump() string {
-	return fmt.Sprintf("index:%d,name:%s,type:%s,tag:%s, catalog:%v", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag, s.fieldCatalog)
+	return fmt.Sprintf("index:%d,name:%s,type:%s,tag:%s", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag)
 }
 
 // Append Append
@@ -140,35 +134,9 @@ func GetFieldInfo(idx int, fieldType *reflect.StructField, fieldVal *reflect.Val
 	info.fieldIndex = idx
 	info.fieldName = fieldType.Name
 
-	val := reflect.Indirect(*fieldVal)
-
-	info.fieldType = newFieldType(val)
+	info.fieldType = newFieldType(fieldType)
 	info.fieldTag = newFieldTag(fieldType.Tag.Get("orm"))
 	info.fieldValue = newFieldValue(*fieldVal)
-
-	switch fieldType.Type.Kind() {
-	case reflect.Ptr:
-		info.fieldCatalog = util.TypeReferenceField
-	case reflect.Struct:
-		if fieldType.Type.String() != "time.Time" {
-			info.fieldCatalog = util.TypeReferenceField
-		} else {
-			info.fieldCatalog = util.TypeInstanceField
-		}
-	case reflect.Slice:
-		elemType, err := GetFieldType(fieldType.Type.Elem())
-		if err != nil {
-			log.Printf("GetFieldType failed, idx:%d, name:%s, type:%s, err:%s", idx, fieldType.Name, fieldType.Type.Kind(), err.Error())
-			return nil
-		}
-		if elemType < util.TypeStructField {
-			info.fieldCatalog = util.TypeInstanceField
-		} else {
-			info.fieldCatalog = util.TypeReferenceField
-		}
-	default:
-		info.fieldCatalog = util.TypeInstanceField
-	}
 
 	return info
 }
