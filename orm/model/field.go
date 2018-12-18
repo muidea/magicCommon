@@ -109,7 +109,7 @@ func (s *Fields) GetPrimaryKey() *FieldInfo {
 // Verify Verify
 func (s *Fields) Verify() error {
 	if len(*s) == 0 {
-		return fmt.Errorf("no defined Fields")
+		return fmt.Errorf("no fields defined")
 	}
 
 	for _, val := range *s {

@@ -8,10 +8,9 @@ import (
 )
 
 func verifyFieldInfo(fieldInfo *model.FieldInfo) error {
-	tag := fieldInfo.GetFieldTag()
-	ft := fieldInfo.GetFieldTag()
-	if IsKeyWord(ft.Name()) {
-		return fmt.Errorf("illegal fieldTag, is a key word.[%s]", tag)
+	fTag := fieldInfo.GetFieldTag()
+	if IsKeyWord(fTag.Name()) {
+		return fmt.Errorf("illegal fieldTag, is a key word.[%s]", fTag)
 	}
 
 	return nil
@@ -35,18 +34,18 @@ func verifyStructInfo(structInfo *model.StructInfo) error {
 
 func declareFieldInfo(fieldInfo *model.FieldInfo) string {
 	autoIncrement := ""
-	ft := fieldInfo.GetFieldTag()
-	if ft.IsAutoIncrement() {
+	fTag := fieldInfo.GetFieldTag()
+	if fTag.IsAutoIncrement() {
 		autoIncrement = "AUTO_INCREMENT"
 	}
 
-	str := fmt.Sprintf("`%s` %s NOT NULL %s", ft.Name(), getFieldType(fieldInfo), autoIncrement)
+	str := fmt.Sprintf("`%s` %s NOT NULL %s", fTag.Name(), getFieldType(fieldInfo), autoIncrement)
 	return str
 }
 
 func getFieldType(info *model.FieldInfo) (ret string) {
-	ft := info.GetFieldType()
-	switch ft.Value() {
+	fType := info.GetFieldType()
+	switch fType.Value() {
 	case util.TypeBooleanField:
 		ret = "TINYINT"
 		break
@@ -93,7 +92,7 @@ func getFieldType(info *model.FieldInfo) (ret string) {
 		ret = "DOUBLE"
 		break
 	default:
-		msg := fmt.Sprintf("no support fileType, %d", ft.Value())
+		msg := fmt.Sprintf("no support fileType, %d", fType.Value())
 		panic(msg)
 	}
 

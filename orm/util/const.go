@@ -74,7 +74,7 @@ func GetValue(typeValue int, val reflect.Value) (ret reflect.Value) {
 		case reflect.Bool:
 			ret = val
 		default:
-			msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+			msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 			panic(msg)
 		}
 	case TypeDateTimeField:
@@ -82,7 +82,7 @@ func GetValue(typeValue int, val reflect.Value) (ret reflect.Value) {
 		case reflect.String:
 			ts, err := time.ParseInLocation("2006-01-02 15:04:05", val.String(), time.Local)
 			if err != nil {
-				msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+				msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 				panic(msg)
 			}
 			ret = reflect.ValueOf(ts)
@@ -90,11 +90,11 @@ func GetValue(typeValue int, val reflect.Value) (ret reflect.Value) {
 			if val.Type().String() == "time.Time" {
 				ret = val
 			} else {
-				msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+				msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 				panic(msg)
 			}
 		default:
-			msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+			msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 			panic(msg)
 		}
 	case TypeBitField, TypeSmallIntegerField, TypeIntegerField, TypeInteger32Field, TypeBigIntegerField,
@@ -113,7 +113,7 @@ func GetValue(typeValue int, val reflect.Value) (ret reflect.Value) {
 				ret.SetUint(val.Uint())
 			}
 		default:
-			msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+			msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 			panic(msg)
 		}
 	case TypeFloatField, TypeDoubleField:
@@ -125,7 +125,7 @@ func GetValue(typeValue int, val reflect.Value) (ret reflect.Value) {
 				ret.SetFloat(val.Float())
 			}
 		default:
-			msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+			msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 			panic(msg)
 		}
 	case TypeStringField:
@@ -137,7 +137,7 @@ func GetValue(typeValue int, val reflect.Value) (ret reflect.Value) {
 				ret.SetString(val.String())
 			}
 		default:
-			msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+			msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 			panic(msg)
 		}
 	case TypeStructField:
@@ -149,11 +149,11 @@ func GetValue(typeValue int, val reflect.Value) (ret reflect.Value) {
 				ret.Set(val)
 			}
 		default:
-			msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+			msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 			panic(msg)
 		}
 	default:
-		msg := fmt.Sprintf("unexception value, type:[%d], [%v]", typeValue, val.Interface())
+		msg := fmt.Sprintf("unexception value, exception type:[%d], current value:[%v]", typeValue, val.Interface())
 		panic(msg)
 	}
 

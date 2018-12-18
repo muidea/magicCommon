@@ -9,6 +9,7 @@ import (
 // FieldValue FieldValue
 type FieldValue interface {
 	IsPtr() bool
+	IsValid() bool
 	SetValue(val reflect.Value)
 	GetValue() reflect.Value
 	GetDepend() []reflect.Value
@@ -25,6 +26,10 @@ func newFieldValue(val reflect.Value) FieldValue {
 
 func (s *valueImpl) IsPtr() bool {
 	return s.value.Type().Kind() == reflect.Ptr
+}
+
+func (s *valueImpl) IsValid() bool {
+	return s.value.IsValid()
 }
 
 func (s *valueImpl) SetValue(val reflect.Value) {
