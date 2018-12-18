@@ -8,7 +8,6 @@ import (
 
 // FieldValue FieldValue
 type FieldValue interface {
-	IsPtr() bool
 	IsValid() bool
 	SetValue(val reflect.Value)
 	GetValue() reflect.Value
@@ -24,10 +23,6 @@ func newFieldValue(val reflect.Value) FieldValue {
 	return &valueImpl{value: val}
 }
 
-func (s *valueImpl) IsPtr() bool {
-	return s.value.Type().Kind() == reflect.Ptr
-}
-
 func (s *valueImpl) IsValid() bool {
 	return s.value.IsValid()
 }
@@ -35,17 +30,58 @@ func (s *valueImpl) IsValid() bool {
 func (s *valueImpl) SetValue(val reflect.Value) {
 	switch val.Type().Kind() {
 	case reflect.Bool:
-		s.value.SetBool(val.Bool())
+		switch s.value.Type().Kind() {
+		case reflect.Bool:
+			s.value.SetBool(val.Bool())
+		default:
+			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			panic(msg)
+		}
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-		s.value.SetInt(val.Int())
+		switch s.value.Type().Kind() {
+		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+			s.value.SetInt(val.Int())
+		default:
+			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			panic(msg)
+		}
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		s.value.SetUint(val.Uint())
+		switch s.value.Type().Kind() {
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+			s.value.SetUint(val.Uint())
+		default:
+			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			panic(msg)
+		}
 	case reflect.Float32, reflect.Float64:
-		s.value.SetFloat(val.Float())
+		switch s.value.Type().Kind() {
+		case reflect.Float32, reflect.Float64:
+			s.value.SetFloat(val.Float())
+		default:
+			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			panic(msg)
+		}
 	case reflect.String:
-		s.value.SetString(val.String())
+		switch s.value.Type().Kind() {
+		case reflect.String:
+			s.value.SetString(val.String())
+		default:
+			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			panic(msg)
+		}
 	case reflect.Struct:
-		s.value.Set(val)
+		switch s.value.Type().Kind() {
+		case reflect.Struct:
+			if val.Type().String() == s.value.Type().String() {
+				s.value.Set(val)
+			} else {
+				msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+				panic(msg)
+			}
+		default:
+			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			panic(msg)
+		}
 	default:
 		msg := fmt.Sprintf("no support fileType, %v", val.Kind())
 		panic(msg)
@@ -65,15 +101,16 @@ func (s *valueImpl) GetDepend() (ret []reflect.Value) {
 		}
 	case reflect.Slice:
 		pos := val.Len()
-		for idx := 0; idx < pos; idx++ {
+		for idx := 0; idx < pos; {
 			sv := val.Slice(idx, idx+1)
 
 			sv = reflect.Indirect(sv)
 			ret = append(ret, sv)
+			idx++
 		}
 	}
 
-	return nil
+	return
 }
 
 func (s *valueImpl) GetValueStr() (ret string) {
