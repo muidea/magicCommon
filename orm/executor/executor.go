@@ -16,6 +16,7 @@ type Executor interface {
 	Delete(sql string) int64
 	Update(sql string) int64
 	Execute(sql string)
+	CheckTableExist(tableName string) bool
 }
 
 // NewExecutor NewExecutor

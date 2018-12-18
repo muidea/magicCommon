@@ -66,15 +66,17 @@ func (s *orm) batchCreateSchema(modelInfos []*model.StructInfo) error {
 		builder := builder.NewBuilder(val)
 		info := s.modelInfoCache.Fetch(val.GetStructName())
 		if info == nil {
-			// no exist
-			sql, err := builder.BuildCreateSchema()
-			if err != nil {
-				return err
+			if !s.executor.CheckTableExist(val.GetStructName()) {
+				// no exist
+				sql, err := builder.BuildCreateSchema()
+				if err != nil {
+					return err
+				}
+
+				s.executor.Execute(sql)
 			}
 
 			s.modelInfoCache.Put(val)
-
-			s.executor.Execute(sql)
 		}
 	}
 
@@ -190,7 +192,8 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 	items := []interface{}{}
 	fields := modelInfo.GetFields()
 	for _, val := range *fields {
-		v := util.GetEmptyValue(val.GetFieldTypeValue())
+		fType := val.GetFieldType()
+		v := util.GetInitValue(fType.Value())
 		items = append(items, v)
 	}
 	s.executor.GetField(items...)

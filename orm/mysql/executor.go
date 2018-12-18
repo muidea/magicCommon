@@ -13,13 +13,14 @@ type Executor struct {
 	dbHandle   *sql.DB
 	dbTx       *sql.Tx
 	rowsHandle *sql.Rows
+	dbName     string
 }
 
 // Fetch 获取一个数据访问对象
 func Fetch(user, password, address, dbName string) (*Executor, error) {
 	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8", user, password, address, dbName)
 
-	i := Executor{dbHandle: nil, dbTx: nil, rowsHandle: nil}
+	i := Executor{dbHandle: nil, dbTx: nil, rowsHandle: nil, dbName: dbName}
 	db, err := sql.Open("mysql", connectStr)
 	if err != nil {
 		log.Printf("open database exception, err:%s", err.Error())
@@ -324,4 +325,19 @@ func (s *Executor) Execute(sql string) {
 	if err != nil {
 		panic("rows affected exception, err:" + err.Error())
 	}
+}
+
+// CheckTableExist CheckTableExist
+func (s *Executor) CheckTableExist(tableName string) (ret bool) {
+	sql := fmt.Sprintf("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME ='%s' and TABLE_SCHEMA ='%s'", tableName, s.dbName)
+
+	s.Query(sql)
+	if s.Next() {
+		ret = true
+	} else {
+		ret = false
+	}
+	s.Finish()
+
+	return
 }
