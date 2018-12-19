@@ -80,7 +80,7 @@ func (s *valueImpl) setUintVal(val reflect.Value) (err error) {
 		s.value.SetUint(val.Uint())
 	case reflect.Bool:
 		boolVal := false
-		if val.Int() > 0 {
+		if val.Uint() != 0 {
 			boolVal = true
 		}
 		s.value.Set(reflect.ValueOf(boolVal))
@@ -91,7 +91,7 @@ func (s *valueImpl) setUintVal(val reflect.Value) (err error) {
 				rawVal.Set(val)
 			} else if rawVal.Type().String() == "bool" {
 				boolVal := false
-				if val.Int() > 0 {
+				if val.Uint() != 0 {
 					boolVal = true
 				}
 				rawVal.Set(reflect.ValueOf(boolVal))
@@ -145,6 +145,13 @@ func (s *valueImpl) setStrVal(val reflect.Value) (err error) {
 			rawVal := reflect.Indirect(s.value)
 			if rawVal.Type().String() == val.Type().String() {
 				rawVal.Set(val)
+			} else if rawVal.Type().String() == "time.Time" {
+				tmVal, err := time.ParseInLocation("2006-01-02 15:04:05", val.String(), time.Local)
+				if err != nil {
+					err = fmt.Errorf("illegal value type, oldType:%v, val:%s, err:%s", s.value.Type(), val.String(), err.Error())
+				} else {
+					rawVal.Set(reflect.ValueOf(tmVal))
+				}
 			} else {
 				err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
 			}

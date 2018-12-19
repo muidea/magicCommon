@@ -114,7 +114,6 @@ func TestSetValue(t *testing.T) {
 	}
 
 	var now time.Time
-	//now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
 	ftimeVal := newFieldValue(reflect.ValueOf(&now))
 	timeVal := "2018-01-02 15:04:05"
 	ftimeVal.SetValue(reflect.ValueOf(&timeVal))

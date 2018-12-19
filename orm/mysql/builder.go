@@ -54,58 +54,86 @@ func (s *Builder) BuildDropSchema() (string, error) {
 }
 
 // BuildInsert  BuildInsert
-func (s *Builder) BuildInsert() (string, error) {
+func (s *Builder) BuildInsert() (ret string, err error) {
 	sql := ""
-	vals := s.getFieldValues(s.structInfo)
-	for _, val := range vals {
-		sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.getTableName(s.structInfo), s.getFieldNames(s.structInfo, false), val)
+	vals, verr := s.getFieldValues(s.structInfo)
+	if verr == nil {
+		for _, val := range vals {
+			sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.getTableName(s.structInfo), s.getFieldNames(s.structInfo, false), val)
+		}
+		log.Print(sql)
+		ret = sql
 	}
-	log.Print(sql)
+	err = verr
 
-	return sql, nil
+	return
 }
 
 // BuildUpdate  BuildUpdate
-func (s *Builder) BuildUpdate() (string, error) {
+func (s *Builder) BuildUpdate() (ret string, err error) {
 	str := ""
 	for _, val := range *s.structInfo.GetFields() {
 		fValue := val.GetFieldValue()
 		fTag := val.GetFieldTag()
 		if val != s.structInfo.GetPrimaryKey() {
+			fStr, ferr := fValue.GetValueStr()
+			if ferr != nil {
+				err = ferr
+				break
+			}
 			if str == "" {
-				str = fmt.Sprintf("`%s`=%s", fTag.Name(), fValue.GetValueStr())
+				str = fmt.Sprintf("`%s`=%s", fTag.Name(), fStr)
 			} else {
-				str = fmt.Sprintf("%s,`%s`=%s", str, fTag.Name(), fValue.GetValueStr())
+				str = fmt.Sprintf("%s,`%s`=%s", str, fTag.Name(), fStr)
 			}
 		}
 	}
 
+	if err != nil {
+		return
+	}
+
 	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
 	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
-	str = fmt.Sprintf("UPDATE `%s` SET %s WHERE `%s`=%s", s.getTableName(s.structInfo), str, pkfTag.Name(), pkfValue.GetValueStr())
-	log.Print(str)
+	pkfStr, pkferr := pkfValue.GetValueStr()
+	if pkferr == nil {
+		str = fmt.Sprintf("UPDATE `%s` SET %s WHERE `%s`=%s", s.getTableName(s.structInfo), str, pkfTag.Name(), pkfStr)
+		log.Print(str)
+	}
 
-	return str, nil
+	ret = str
+	err = pkferr
+
+	return
 }
 
 // BuildDelete  BuildDelete
-func (s *Builder) BuildDelete() (string, error) {
+func (s *Builder) BuildDelete() (ret string, err error) {
 	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
 	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
-	str := fmt.Sprintf("DELETE FROM `%s` WHERE `%s`=%s", s.getTableName(s.structInfo), pkfTag.Name(), pkfValue.GetValueStr())
-	log.Print(str)
+	pkfStr, pkferr := pkfValue.GetValueStr()
+	if pkferr == nil {
+		ret = fmt.Sprintf("DELETE FROM `%s` WHERE `%s`=%s", s.getTableName(s.structInfo), pkfTag.Name(), pkfStr)
+		log.Print(ret)
+	}
 
-	return str, nil
+	err = pkferr
+
+	return
 }
 
 // BuildQuery BuildQuery
-func (s *Builder) BuildQuery() (string, error) {
+func (s *Builder) BuildQuery() (ret string, err error) {
 	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
 	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
-	str := fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(s.structInfo, true), s.getTableName(s.structInfo), pkfTag.Name(), pkfValue.GetValueStr())
-	log.Print(str)
+	pkfStr, pkferr := pkfValue.GetValueStr()
+	if pkferr == nil {
+		ret = fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(s.structInfo, true), s.getTableName(s.structInfo), pkfTag.Name(), pkfStr)
+		log.Print(ret)
+	}
+	err = pkferr
 
-	return str, nil
+	return
 }
 
 func (s *Builder) getTableName(info *model.StructInfo) string {
@@ -130,7 +158,7 @@ func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 	return str
 }
 
-func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string) {
+func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string, err error) {
 	str := ""
 	for _, field := range *info.GetFields() {
 		fTag := field.GetFieldTag()
@@ -141,13 +169,23 @@ func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string) {
 		fType := field.GetFieldType()
 		fValue := field.GetFieldValue()
 		if fType.IsReference() {
-			fValue = model.GetStructValue(fValue.GetValue())
+			fValue, err = model.GetStructValue(fValue.GetValue())
 		}
 
-		if str == "" {
-			str = fmt.Sprintf("%s", fValue.GetValueStr())
+		if err != nil {
+			break
+		}
+
+		fStr, ferr := fValue.GetValueStr()
+		if ferr == nil {
+			if str == "" {
+				str = fmt.Sprintf("%s", fStr)
+			} else {
+				str = fmt.Sprintf("%s,%s", str, fStr)
+			}
 		} else {
-			str = fmt.Sprintf("%s,%s", str, fValue.GetValueStr())
+			err = ferr
+			break
 		}
 	}
 

@@ -21,7 +21,7 @@ func TestBuilder(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
 	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: now}
 
-	info, depends := model.GetStructInfo(obj)
+	info, depends, err := model.GetStructInfo(obj)
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
@@ -32,7 +32,7 @@ func TestBuilder(t *testing.T) {
 		return
 	}
 
-	err := info.Verify()
+	err = info.Verify()
 	if err != nil {
 		t.Errorf("Verify StructInfo failed, err:%s", err.Error())
 	}
@@ -62,7 +62,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build insert failed, err:%s", err.Error())
 	}
-	if str != "INSERT INTO `builder_Unit` (`name`,`value`,`ts`) VALUES ('Hello world',12.345600,'2018-01-02 15:04:05')" {
+	if str != "INSERT INTO `builder_Unit` (`name`,`value`,`ts`) VALUES ('Hello world',12.345600,'2018-01-02 15:04:05');" {
 		t.Error("build insert failed")
 	}
 

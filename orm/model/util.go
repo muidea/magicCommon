@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 
 	"muidea.com/magicCommon/orm/util"
@@ -96,14 +95,14 @@ func IsReference(val reflect.Type) bool {
 
 // GetStructValue GetStructValue
 func GetStructValue(val reflect.Value) (ret FieldValue, err error) {
-	log.Print("$$$$$$$$$")
-	log.Print(val)
 	structInfo, _, err := getStructInfo(reflect.Indirect(val))
-	pk := structInfo.GetPrimaryKey()
-	if pk == nil {
-		panic("illegal structVal, no define PrimaryKey")
-	}
+	if err == nil {
+		pk := structInfo.GetPrimaryKey()
+		if pk == nil {
+			err = fmt.Errorf("illegal structVal, no define PrimaryKey, struct type:%s", structInfo.GetStructName())
+		}
 
-	ret = pk.GetFieldValue()
+		ret = pk.GetFieldValue()
+	}
 	return
 }
