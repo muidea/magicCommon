@@ -38,7 +38,7 @@ type test struct {
 
 func TestStruct(t *testing.T) {
 	now := time.Now()
-	info, _ := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
+	info, _, _ := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
@@ -55,7 +55,7 @@ func TestStruct(t *testing.T) {
 func TestStructValue(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
 	unit := &Unit{Name: "AA", T1: test{val: 123}, TimeStamp: now}
-	info, _ := GetStructInfo(unit)
+	info, _, _ := GetStructInfo(unit)
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
 		return
@@ -93,7 +93,7 @@ func TestReference(t *testing.T) {
 		ef []*AB `orm:"ef"`
 	}
 
-	info, _ := GetStructInfo(&Demo{ab: &AB{}})
+	info, _, _ := GetStructInfo(&Demo{ab: &AB{}})
 
 	info.Dump()
 }

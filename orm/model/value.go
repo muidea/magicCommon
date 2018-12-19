@@ -8,11 +8,10 @@ import (
 
 // FieldValue FieldValue
 type FieldValue interface {
-	IsValid() bool
-	SetValue(val reflect.Value)
+	SetValue(val reflect.Value) error
 	GetValue() reflect.Value
-	GetDepend() []reflect.Value
-	GetValueStr() string
+	GetDepend() ([]reflect.Value, error)
+	GetValueStr() (string, error)
 }
 
 type valueImpl struct {
@@ -20,101 +19,223 @@ type valueImpl struct {
 }
 
 func newFieldValue(val reflect.Value) FieldValue {
-	return &valueImpl{value: val}
+	return &valueImpl{value: reflect.Indirect(val)}
 }
 
-func (s *valueImpl) IsValid() bool {
-	return s.value.IsValid()
-}
-
-func (s *valueImpl) SetValue(val reflect.Value) {
-	switch val.Type().Kind() {
+func (s *valueImpl) setBoolVal(val reflect.Value) (err error) {
+	switch s.value.Type().Kind() {
 	case reflect.Bool:
-		switch s.value.Type().Kind() {
-		case reflect.Bool:
-			s.value.SetBool(val.Bool())
-		default:
-			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
-			panic(msg)
-		}
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-		switch s.value.Type().Kind() {
-		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-			s.value.SetInt(val.Int())
-		default:
-			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
-			panic(msg)
-		}
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		switch s.value.Type().Kind() {
-		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-			s.value.SetUint(val.Uint())
-		default:
-			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
-			panic(msg)
-		}
-	case reflect.Float32, reflect.Float64:
-		switch s.value.Type().Kind() {
-		case reflect.Float32, reflect.Float64:
-			s.value.SetFloat(val.Float())
-		default:
-			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
-			panic(msg)
-		}
-	case reflect.String:
-		switch s.value.Type().Kind() {
-		case reflect.String:
-			s.value.SetString(val.String())
-		default:
-			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
-			panic(msg)
-		}
-	case reflect.Struct:
-		switch s.value.Type().Kind() {
-		case reflect.Struct:
-			if val.Type().String() == s.value.Type().String() {
-				s.value.Set(val)
+		s.value.SetBool(val.Bool())
+	case reflect.Ptr:
+		if !s.value.IsNil() {
+			rawVal := reflect.Indirect(s.value)
+			if rawVal.Type().String() == val.Type().String() {
+				rawVal.Set(val)
 			} else {
-				msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
-				panic(msg)
+				err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
 			}
-		default:
-			msg := fmt.Sprintf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
-			panic(msg)
 		}
 	default:
-		msg := fmt.Sprintf("no support fileType, %v", val.Kind())
-		panic(msg)
+		err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
 	}
+
+	return
+}
+
+func (s *valueImpl) setIntVal(val reflect.Value) (err error) {
+	switch s.value.Type().Kind() {
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+		s.value.SetInt(val.Int())
+	case reflect.Bool:
+		boolVal := false
+		if val.Int() > 0 {
+			boolVal = true
+		}
+		s.value.Set(reflect.ValueOf(boolVal))
+	case reflect.Ptr:
+		if !s.value.IsNil() {
+			rawVal := reflect.Indirect(s.value)
+			if rawVal.Type().String() == val.Type().String() {
+				rawVal.Set(val)
+			} else if rawVal.Type().String() == "bool" {
+				boolVal := false
+				if val.Int() > 0 {
+					boolVal = true
+				}
+				rawVal.Set(reflect.ValueOf(boolVal))
+			} else {
+				err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			}
+		}
+	default:
+		err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+	}
+
+	return
+}
+
+func (s *valueImpl) setUintVal(val reflect.Value) (err error) {
+	switch s.value.Type().Kind() {
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		s.value.SetUint(val.Uint())
+	case reflect.Bool:
+		boolVal := false
+		if val.Int() > 0 {
+			boolVal = true
+		}
+		s.value.Set(reflect.ValueOf(boolVal))
+	case reflect.Ptr:
+		if !s.value.IsNil() {
+			rawVal := reflect.Indirect(s.value)
+			if rawVal.Type().String() == val.Type().String() {
+				rawVal.Set(val)
+			} else if rawVal.Type().String() == "bool" {
+				boolVal := false
+				if val.Int() > 0 {
+					boolVal = true
+				}
+				rawVal.Set(reflect.ValueOf(boolVal))
+			} else {
+				err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			}
+		}
+	default:
+		err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+	}
+	return
+}
+
+func (s *valueImpl) setFltVal(val reflect.Value) (err error) {
+	switch s.value.Type().Kind() {
+	case reflect.Float32, reflect.Float64:
+		s.value.SetFloat(val.Float())
+	case reflect.Ptr:
+		if !s.value.IsNil() {
+			rawVal := reflect.Indirect(s.value)
+			if rawVal.Type().String() == val.Type().String() {
+				rawVal.Set(val)
+			} else {
+				err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			}
+		}
+	default:
+		err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+	}
+
+	return
+}
+
+func (s *valueImpl) setStrVal(val reflect.Value) (err error) {
+	switch s.value.Type().Kind() {
+	case reflect.String:
+		s.value.SetString(val.String())
+	case reflect.Struct:
+		if s.value.Type().String() == "time.Time" {
+			tmVal, err := time.ParseInLocation("2006-01-02 15:04:05", val.String(), time.Local)
+			if err != nil {
+				err = fmt.Errorf("illegal value type, oldType:%v, val:%s, err:%s", s.value.Type(), val.String(), err.Error())
+			} else {
+				s.value.Set(reflect.ValueOf(tmVal))
+			}
+		} else {
+			err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type().String())
+		}
+	case reflect.Ptr:
+		if !s.value.IsNil() {
+			rawVal := reflect.Indirect(s.value)
+			if rawVal.Type().String() == val.Type().String() {
+				rawVal.Set(val)
+			} else {
+				err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			}
+		}
+	default:
+		err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+	}
+
+	return
+}
+
+func (s *valueImpl) setStructVal(val reflect.Value) (err error) {
+	switch s.value.Type().Kind() {
+	case reflect.Struct:
+		if val.Type().String() == s.value.Type().String() {
+			s.value.Set(val)
+		} else {
+			err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+		}
+	case reflect.Ptr:
+		if !s.value.IsNil() {
+			rawVal := reflect.Indirect(s.value)
+			if rawVal.Type().String() == val.Type().String() {
+				rawVal.Set(val)
+			} else {
+				err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			}
+		}
+	default:
+		err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+	}
+
+	return
+}
+
+func (s *valueImpl) SetValue(val reflect.Value) (err error) {
+	val = reflect.Indirect(val)
+	switch val.Type().Kind() {
+	case reflect.Bool:
+		err = s.setBoolVal(val)
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+		err = s.setIntVal(val)
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		err = s.setUintVal(val)
+	case reflect.Float32, reflect.Float64:
+		err = s.setFltVal(val)
+	case reflect.String:
+		err = s.setStrVal(val)
+	case reflect.Struct:
+		err = s.setStructVal(val)
+	default:
+		err = fmt.Errorf("no support fileType, %v", val.Kind().String())
+	}
+
+	return
 }
 
 func (s *valueImpl) GetValue() reflect.Value {
 	return s.value
 }
 
-func (s *valueImpl) GetDepend() (ret []reflect.Value) {
-	switch s.value.Kind() {
+func (s *valueImpl) GetDepend() (ret []reflect.Value, err error) {
+	val := reflect.Indirect(s.value)
+	switch val.Kind() {
 	case reflect.Struct:
-		if s.value.Type().String() != "time.Time" {
-			ret = append(ret, s.value)
+		if val.Type().String() != "time.Time" {
+			ret = append(ret, val)
 		}
 	case reflect.Slice:
-		pos := s.value.Len()
+		pos := val.Len()
 		for idx := 0; idx < pos; {
-			sv := s.value.Slice(idx, idx+1)
+			sv := val.Slice(idx, idx+1)
 
 			sv = reflect.Indirect(sv)
 			ret = append(ret, sv)
 			idx++
 		}
 	case reflect.Ptr:
-		ret = append(ret, s.value)
+		err = fmt.Errorf("no support fileType, %v", val.Type().String())
 	}
 
 	return
 }
 
-func (s *valueImpl) GetValueStr() (ret string) {
+func (s *valueImpl) GetValueStr() (ret string, err error) {
+	if s.value.Kind() == reflect.Ptr {
+		if s.value.IsNil() {
+			return "", fmt.Errorf("can't get nil ptr string value")
+		}
+	}
+
 	val := reflect.Indirect(s.value)
 	switch val.Kind() {
 	case reflect.Bool:
@@ -135,12 +256,10 @@ func (s *valueImpl) GetValueStr() (ret string) {
 		if ok {
 			ret = fmt.Sprintf("'%s'", ts.Format("2006-01-02 15:04:05"))
 		} else {
-			msg := fmt.Sprintf("illegal value,[%v]", val.Interface())
-			panic(msg)
+			err = fmt.Errorf("no support get string value from struct, [%s]", val.Type().String())
 		}
 	default:
-		msg := fmt.Sprintf("no support fileType, %v", val.Kind())
-		panic(msg)
+		err = fmt.Errorf("no support get string value from struct, [%s]", val.Type().String())
 	}
 
 	return

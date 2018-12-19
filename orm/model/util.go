@@ -95,10 +95,10 @@ func IsReference(val reflect.Type) bool {
 }
 
 // GetStructValue GetStructValue
-func GetStructValue(val reflect.Value) (ret FieldValue) {
+func GetStructValue(val reflect.Value) (ret FieldValue, err error) {
 	log.Print("$$$$$$$$$")
 	log.Print(val)
-	structInfo, _ := getStructInfo(reflect.Indirect(val))
+	structInfo, _, err := getStructInfo(reflect.Indirect(val))
 	pk := structInfo.GetPrimaryKey()
 	if pk == nil {
 		panic("illegal structVal, no define PrimaryKey")

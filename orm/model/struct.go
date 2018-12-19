@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 )
 
@@ -80,20 +79,25 @@ func (s *StructInfo) Dump() {
 }
 
 // GetStructInfo GetStructInfo
-func GetStructInfo(objPtr interface{}) (ret *StructInfo, depends []*StructInfo) {
+func GetStructInfo(objPtr interface{}) (ret *StructInfo, depends []*StructInfo, err error) {
 	objType := reflect.TypeOf(objPtr)
 	objVal := reflect.ValueOf(objPtr)
 
 	if objType.Kind() != reflect.Ptr {
-		log.Fatal("illegal struct type. must be a struct ptr")
+		err = fmt.Errorf("illegal obj type. must be a struct ptr")
+		return
 	}
 
 	structObj := reflect.Indirect(objVal)
-	ret, depends = getStructInfo(structObj)
+	if structObj.Kind() != reflect.Struct {
+		err = fmt.Errorf("illegal obj type. must be a struct ptr")
+		return
+	}
+	ret, depends, err = getStructInfo(structObj)
 	return
 }
 
-func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructInfo) {
+func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructInfo, err error) {
 	ret = &StructInfo{name: structObj.Type().String(), pkgPath: structObj.Type().PkgPath(), fields: make(Fields, 0)}
 	depends = []*StructInfo{}
 
@@ -110,14 +114,14 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 		fieldVal := structObj.Field(idx)
 		fieldType := structType.Field(idx)
 		fieldInfo := GetFieldInfo(idx, &fieldType, &fieldVal)
-		if fieldInfo != nil {
-			ret.fields.Append(fieldInfo)
-		} else {
-			return nil, nil
-		}
+		ret.fields.Append(fieldInfo)
 
 		fv := fieldInfo.GetFieldValue()
-		dvs := fv.GetDepend()
+		dvs, err := fv.GetDepend()
+		if err != nil {
+			break
+		}
+
 		reference = append(reference, dvs...)
 
 		idx++
@@ -130,7 +134,11 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 	}
 
 	for _, val := range reference {
-		preRet, preDepends := getStructInfo(reflect.Indirect(val))
+		preRet, preDepends, err := getStructInfo(reflect.Indirect(val))
+		if err != nil {
+			break
+		}
+
 		depends = append(preDepends, depends...)
 		depends = append(depends, preRet)
 	}
