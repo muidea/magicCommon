@@ -251,13 +251,14 @@ func (s *valueImpl) GetValueStr() (ret string, err error) {
 		} else {
 			ret = "0"
 		}
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
-		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		ret = fmt.Sprintf("%d", val.Interface())
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+		ret = fmt.Sprintf("%d", val.Int())
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		ret = fmt.Sprintf("%d", val.Uint())
 	case reflect.Float32, reflect.Float64:
-		ret = fmt.Sprintf("%f", val.Interface())
+		ret = fmt.Sprintf("%f", val.Float())
 	case reflect.String:
-		ret = fmt.Sprintf("'%s'", val.Interface())
+		ret = fmt.Sprintf("'%s'", val.String())
 	case reflect.Struct:
 		ts, ok := val.Interface().(time.Time)
 		if ok {

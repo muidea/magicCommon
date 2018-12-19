@@ -145,9 +145,9 @@ func TestDepend(t *testing.T) {
 		kk *int
 	}
 	val := []*AA{&AA{ii: 12, jj: 23}, &AA{ii: 23, jj: 34}}
-	fv := newFieldValue(reflect.ValueOf(val))
+	slicefv := newFieldValue(reflect.ValueOf(val))
 
-	fds, _ := fv.GetDepend()
+	fds, _ := slicefv.GetDepend()
 	if len(fds) != 2 {
 		t.Errorf("fv.GetDepend failed. fds size:%d", len(fds))
 	}

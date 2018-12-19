@@ -109,9 +109,10 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		if pk != nil {
 			pk.SetFieldValue(reflect.ValueOf(id))
 		}
+		val.Dump()
 	}
 
-	return nil
+	return
 }
 
 func (s *orm) Update(obj interface{}) (err error) {

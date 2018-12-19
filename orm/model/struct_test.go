@@ -83,17 +83,17 @@ func TestStructValue(t *testing.T) {
 
 func TestReference(t *testing.T) {
 	type AB struct {
-		f32 float32 `orm:"ii"`
+		F32 float32 `orm:"ii"`
 	}
 
 	type Demo struct {
-		ii int   `orm:"ii"`
-		ab *AB   `orm:"ab"`
-		cd []int `orm:"cd"`
-		ef []*AB `orm:"ef"`
+		II int   `orm:"ii"`
+		AB *AB   `orm:"ab"`
+		CD []int `orm:"cd"`
+		EF []*AB `orm:"ef"`
 	}
 
-	info, _, _ := GetStructInfo(&Demo{ab: &AB{}})
+	info, _, _ := GetStructInfo(&Demo{AB: &AB{}})
 
 	info.Dump()
 }
