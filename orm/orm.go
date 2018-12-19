@@ -61,12 +61,12 @@ func New() (Orm, error) {
 	return &orm{executor: executor, modelInfoCache: ormManager.getCache()}, nil
 }
 
-func (s *orm) batchCreateSchema(modelInfos []*model.StructInfo) error {
-	for _, val := range modelInfos {
+func (s *orm) batchCreateSchema(structInfos []*model.StructInfo) error {
+	for _, val := range structInfos {
 		builder := builder.NewBuilder(val)
 		info := s.modelInfoCache.Fetch(val.GetStructName())
 		if info == nil {
-			if !s.executor.CheckTableExist(val.GetStructName()) {
+			if !s.executor.CheckTableExist(builder.GetTableName()) {
 				// no exist
 				sql, err := builder.BuildCreateSchema()
 				if err != nil {
@@ -97,16 +97,18 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		return
 	}
 
-	builder := builder.NewBuilder(structInfo)
-	sql, err := builder.BuildInsert()
-	if err != nil {
-		return err
-	}
+	for _, val := range allStructInfos {
+		builder := builder.NewBuilder(val)
+		sql, err := builder.BuildInsert()
+		if err != nil {
+			return err
+		}
 
-	id := s.executor.Insert(sql)
-	pk := structInfo.GetPrimaryKey()
-	if pk != nil {
-		pk.SetFieldValue(reflect.ValueOf(id))
+		id := s.executor.Insert(sql)
+		pk := structInfo.GetPrimaryKey()
+		if pk != nil {
+			pk.SetFieldValue(reflect.ValueOf(id))
+		}
 	}
 
 	return nil
@@ -229,6 +231,8 @@ func (s *orm) Drop(obj interface{}) (err error) {
 
 		s.executor.Execute(sql)
 	}
+
+	s.modelInfoCache.Remove(structInfo.GetStructName())
 
 	return nil
 }

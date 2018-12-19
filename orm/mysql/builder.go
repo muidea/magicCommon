@@ -39,7 +39,7 @@ func (s *Builder) BuildCreateSchema() (string, error) {
 		str = fmt.Sprintf("%s,\n\tPRIMARY KEY (`%s`)", str, fTag.Name())
 	}
 
-	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.getTableName(s.structInfo), str)
+	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetTableName(), str)
 	log.Print(str)
 
 	return str, nil
@@ -47,7 +47,7 @@ func (s *Builder) BuildCreateSchema() (string, error) {
 
 // BuildDropSchema  BuildDropSchema
 func (s *Builder) BuildDropSchema() (string, error) {
-	str := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", s.getTableName(s.structInfo))
+	str := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", s.GetTableName())
 	log.Print(str)
 
 	return str, nil
@@ -59,7 +59,7 @@ func (s *Builder) BuildInsert() (ret string, err error) {
 	vals, verr := s.getFieldValues(s.structInfo)
 	if verr == nil {
 		for _, val := range vals {
-			sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.getTableName(s.structInfo), s.getFieldNames(s.structInfo, false), val)
+			sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.GetTableName(), s.getFieldNames(s.structInfo, false), val)
 		}
 		log.Print(sql)
 		ret = sql
@@ -97,7 +97,7 @@ func (s *Builder) BuildUpdate() (ret string, err error) {
 	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
 	pkfStr, pkferr := pkfValue.GetValueStr()
 	if pkferr == nil {
-		str = fmt.Sprintf("UPDATE `%s` SET %s WHERE `%s`=%s", s.getTableName(s.structInfo), str, pkfTag.Name(), pkfStr)
+		str = fmt.Sprintf("UPDATE `%s` SET %s WHERE `%s`=%s", s.GetTableName(), str, pkfTag.Name(), pkfStr)
 		log.Print(str)
 	}
 
@@ -113,7 +113,7 @@ func (s *Builder) BuildDelete() (ret string, err error) {
 	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
 	pkfStr, pkferr := pkfValue.GetValueStr()
 	if pkferr == nil {
-		ret = fmt.Sprintf("DELETE FROM `%s` WHERE `%s`=%s", s.getTableName(s.structInfo), pkfTag.Name(), pkfStr)
+		ret = fmt.Sprintf("DELETE FROM `%s` WHERE `%s`=%s", s.GetTableName(), pkfTag.Name(), pkfStr)
 		log.Print(ret)
 	}
 
@@ -128,7 +128,7 @@ func (s *Builder) BuildQuery() (ret string, err error) {
 	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
 	pkfStr, pkferr := pkfValue.GetValueStr()
 	if pkferr == nil {
-		ret = fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(s.structInfo, true), s.getTableName(s.structInfo), pkfTag.Name(), pkfStr)
+		ret = fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(s.structInfo, true), s.GetTableName(), pkfTag.Name(), pkfStr)
 		log.Print(ret)
 	}
 	err = pkferr
@@ -136,7 +136,8 @@ func (s *Builder) BuildQuery() (ret string, err error) {
 	return
 }
 
-func (s *Builder) getTableName(info *model.StructInfo) string {
+// GetTableName GetTableName
+func (s *Builder) GetTableName() string {
 	return strings.Join(strings.Split(s.structInfo.GetStructName(), "."), "_")
 }
 

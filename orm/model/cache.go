@@ -9,6 +9,8 @@ type StructInfoCache interface {
 	Put(info *StructInfo)
 
 	Fetch(name string) *StructInfo
+
+	Remove(name string)
 }
 
 type impl struct {
@@ -35,4 +37,8 @@ func (s *impl) Fetch(name string) *StructInfo {
 	}
 
 	return obj.(*StructInfo)
+}
+
+func (s *impl) Remove(name string) {
+	s.kvCache.Remove(name)
 }

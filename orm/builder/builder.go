@@ -13,6 +13,7 @@ type Builder interface {
 	BuildUpdate() (string, error)
 	BuildDelete() (string, error)
 	BuildQuery() (string, error)
+	GetTableName() string
 }
 
 // NewBuilder new builder
