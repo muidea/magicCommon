@@ -83,17 +83,18 @@ func (s *orm) batchCreateSchema(modelInfos []*model.StructInfo) error {
 	return nil
 }
 
-func (s *orm) Insert(obj interface{}) error {
-	structInfo, structDepends := model.GetStructInfo(obj)
-	if structInfo == nil {
-		return fmt.Errorf("illegal model object, [%v]", obj)
+func (s *orm) Insert(obj interface{}) (err error) {
+	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	if structErr != nil {
+		err = structErr
+		return
 	}
 
 	allStructInfos := structDepends
 	allStructInfos = append(allStructInfos, structInfo)
-	err := s.batchCreateSchema(allStructInfos)
+	err = s.batchCreateSchema(allStructInfos)
 	if err != nil {
-		return err
+		return
 	}
 
 	builder := builder.NewBuilder(structInfo)
@@ -111,15 +112,16 @@ func (s *orm) Insert(obj interface{}) error {
 	return nil
 }
 
-func (s *orm) Update(obj interface{}) error {
-	structInfo, structDepends := model.GetStructInfo(obj)
-	if structInfo == nil {
-		return fmt.Errorf("illegal model object, [%v]", obj)
+func (s *orm) Update(obj interface{}) (err error) {
+	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	if structErr != nil {
+		err = structErr
+		return
 	}
 
 	allStructInfos := structDepends
 	allStructInfos = append(allStructInfos, structInfo)
-	err := s.batchCreateSchema(allStructInfos)
+	err = s.batchCreateSchema(allStructInfos)
 	if err != nil {
 		return err
 	}
@@ -138,15 +140,16 @@ func (s *orm) Update(obj interface{}) error {
 	return nil
 }
 
-func (s *orm) Delete(obj interface{}) error {
-	structInfo, structDepends := model.GetStructInfo(obj)
-	if structInfo == nil {
-		return fmt.Errorf("illegal model object, [%v]", obj)
+func (s *orm) Delete(obj interface{}) (err error) {
+	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	if structErr != nil {
+		err = structErr
+		return
 	}
 
 	allStructInfos := structDepends
 	allStructInfos = append(allStructInfos, structInfo)
-	err := s.batchCreateSchema(allStructInfos)
+	err = s.batchCreateSchema(allStructInfos)
 	if err != nil {
 		return err
 	}
@@ -164,15 +167,16 @@ func (s *orm) Delete(obj interface{}) error {
 	return nil
 }
 
-func (s *orm) Query(obj interface{}, filter ...string) error {
-	structInfo, structDepends := model.GetStructInfo(obj)
-	if structInfo == nil {
-		return fmt.Errorf("illegal model object, [%v]", obj)
+func (s *orm) Query(obj interface{}, filter ...string) (err error) {
+	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	if structErr != nil {
+		err = structErr
+		return
 	}
 
 	allStructInfos := structDepends
 	allStructInfos = append(allStructInfos, structInfo)
-	err := s.batchCreateSchema(allStructInfos)
+	err = s.batchCreateSchema(allStructInfos)
 	if err != nil {
 		return err
 	}
@@ -208,10 +212,11 @@ func (s *orm) Query(obj interface{}, filter ...string) error {
 	return nil
 }
 
-func (s *orm) Drop(obj interface{}) error {
-	structInfo, _ := model.GetStructInfo(obj)
-	if structInfo == nil {
-		return fmt.Errorf("illegal model object, [%v]", obj)
+func (s *orm) Drop(obj interface{}) (err error) {
+	structInfo, _, structErr := model.GetStructInfo(obj)
+	if structErr != nil {
+		err = structErr
+		return
 	}
 
 	builder := builder.NewBuilder(structInfo)

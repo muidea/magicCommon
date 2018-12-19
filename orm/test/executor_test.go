@@ -57,7 +57,7 @@ func TestExecutor(t *testing.T) {
 		t.Errorf("query obj failed, err:%s", err.Error())
 	}
 	if obj.Name != obj2.Name || obj.Value != obj2.Value {
-		t.Errorf("query obj failed, err:%s", err.Error())
+		t.Errorf("query obj failed, obj:%v, obj2:%v", obj, obj2)
 	}
 
 	err = o1.Delete(obj)
@@ -93,4 +93,6 @@ func TestDepends(t *testing.T) {
 	if err != nil {
 		t.Errorf("insert ext failed, err:%s", err.Error())
 	}
+
+	defer o1.Drop(ext)
 }
