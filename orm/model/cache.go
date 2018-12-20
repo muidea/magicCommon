@@ -6,7 +6,7 @@ import "muidea.com/magicCommon/foundation/cache"
 type StructInfoCache interface {
 	Reset()
 
-	Put(info *StructInfo)
+	Put(name string, info *StructInfo)
 
 	Fetch(name string) *StructInfo
 
@@ -26,8 +26,8 @@ func (s *impl) Reset() {
 	s.kvCache.ClearAll()
 }
 
-func (s *impl) Put(info *StructInfo) {
-	s.kvCache.Put(info.GetStructName(), info, cache.MaxAgeValue)
+func (s *impl) Put(name string, info *StructInfo) {
+	s.kvCache.Put(name, info, cache.MaxAgeValue)
 }
 
 func (s *impl) Fetch(name string) *StructInfo {

@@ -63,9 +63,11 @@ func New() (Orm, error) {
 
 func (s *orm) createSchema(structInfo *model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
-	info := s.modelInfoCache.Fetch(structInfo.GetStructName())
+	tableName := builder.GetTableName()
+
+	info := s.modelInfoCache.Fetch(tableName)
 	if info == nil {
-		if !s.executor.CheckTableExist(builder.GetTableName()) {
+		if !s.executor.CheckTableExist(tableName) {
 			// no exist
 			sql, err := builder.BuildCreateSchema()
 			if err != nil {
@@ -75,7 +77,29 @@ func (s *orm) createSchema(structInfo *model.StructInfo) (err error) {
 			s.executor.Execute(sql)
 		}
 
-		s.modelInfoCache.Put(structInfo)
+		s.modelInfoCache.Put(tableName, structInfo)
+	}
+
+	return
+}
+
+func (s *orm) createRelationSchema(structInfo *model.StructInfo, relationInfo *model.StructInfo) (err error) {
+	builder := builder.NewBuilder(structInfo)
+	tableName := builder.GetRelationTableName(relationInfo)
+
+	info := s.modelInfoCache.Fetch(tableName)
+	if info == nil {
+		if !s.executor.CheckTableExist(tableName) {
+			// no exist
+			sql, err := builder.BuildCreateRelationSchema(relationInfo)
+			if err != nil {
+				return err
+			}
+
+			s.executor.Execute(sql)
+		}
+
+		s.modelInfoCache.Put(tableName, structInfo)
 	}
 
 	return
@@ -84,6 +108,11 @@ func (s *orm) createSchema(structInfo *model.StructInfo) (err error) {
 func (s *orm) batchCreateSchema(structInfo *model.StructInfo, depends []*model.StructInfo) (err error) {
 	for _, val := range depends {
 		err = s.createSchema(val)
+		if err != nil {
+			return
+		}
+
+		err = s.createRelationSchema(structInfo, val)
 		if err != nil {
 			return
 		}
@@ -269,15 +298,10 @@ func (s *orm) Query(obj interface{}, filter ...string) (err error) {
 	return
 }
 
-func (s *orm) Drop(obj interface{}) (err error) {
-	structInfo, _, structErr := model.GetStructInfo(obj)
-	if structErr != nil {
-		err = structErr
-		return
-	}
-
+func (s *orm) dropSingle(structInfo *model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
-	info := s.modelInfoCache.Fetch(structInfo.GetStructName())
+	tableName := builder.GetTableName()
+	info := s.modelInfoCache.Fetch(tableName)
 	if info != nil {
 		sql, err := builder.BuildDropSchema()
 		if err != nil {
@@ -287,7 +311,47 @@ func (s *orm) Drop(obj interface{}) (err error) {
 		s.executor.Execute(sql)
 	}
 
-	s.modelInfoCache.Remove(structInfo.GetStructName())
+	s.modelInfoCache.Remove(tableName)
+	return
+}
+
+func (s *orm) dropRelation(structInfo *model.StructInfo, relationInfo *model.StructInfo) (err error) {
+	builder := builder.NewBuilder(structInfo)
+	tableName := builder.GetRelationTableName(relationInfo)
+	info := s.modelInfoCache.Fetch(tableName)
+	if info != nil {
+		sql, err := builder.BuildDropRelationSchema(relationInfo)
+		if err != nil {
+			return err
+		}
+
+		s.executor.Execute(sql)
+	}
+
+	s.modelInfoCache.Remove(tableName)
+	return
+}
+
+func (s *orm) Drop(obj interface{}) (err error) {
+	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	if structErr != nil {
+		err = structErr
+		return
+	}
+
+	for _, val := range structDepends {
+		err = s.dropSingle(val)
+		if err != nil {
+			return
+		}
+
+		err = s.dropRelation(structInfo, val)
+		if err != nil {
+			return
+		}
+	}
+
+	s.dropSingle(structInfo)
 
 	return nil
 }

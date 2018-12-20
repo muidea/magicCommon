@@ -137,9 +137,13 @@ func (s *Builder) BuildQuery() (ret string, err error) {
 	return
 }
 
+func (s *Builder) getTableName(info *model.StructInfo) string {
+	return strings.Join(strings.Split(info.GetStructName(), "."), "_")
+}
+
 // GetTableName GetTableName
 func (s *Builder) GetTableName() string {
-	return strings.Join(strings.Split(s.structInfo.GetStructName(), "."), "_")
+	return s.getTableName(s.structInfo)
 }
 
 func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
@@ -195,4 +199,33 @@ func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string, err erro
 	ret = append(ret, str)
 
 	return
+}
+
+// GetRelationTableName GetRelationTableName
+func (s *Builder) GetRelationTableName(relationInfo *model.StructInfo) string {
+	leftName := s.getTableName(s.structInfo)
+	rightName := s.getTableName(relationInfo)
+
+	if strings.Compare(leftName, rightName) < 0 {
+		return fmt.Sprintf("%s2%s", leftName, rightName)
+	}
+
+	return fmt.Sprintf("%s2%s", rightName, leftName)
+}
+
+// BuildCreateRelationSchema BuildCreateRelationSchema
+func (s *Builder) BuildCreateRelationSchema(relationInfo *model.StructInfo) (string, error) {
+	str := "\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`left` INT NOT NULL,\n\t`right` INT NOT NULL,\n\tPRIMARY KEY (`id`)"
+	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetRelationTableName(relationInfo), str)
+	log.Print(str)
+
+	return str, nil
+}
+
+// BuildDropRelationSchema BuildDropRelationSchema
+func (s *Builder) BuildDropRelationSchema(relationInfo *model.StructInfo) (string, error) {
+	str := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", s.GetRelationTableName(relationInfo))
+	log.Print(str)
+
+	return str, nil
 }

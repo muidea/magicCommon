@@ -14,6 +14,9 @@ type Builder interface {
 	BuildDelete() (string, error)
 	BuildQuery() (string, error)
 	GetTableName() string
+	GetRelationTableName(relationInfo *model.StructInfo) string
+	BuildCreateRelationSchema(relationInfo *model.StructInfo) (string, error)
+	BuildDropRelationSchema(relationInfo *model.StructInfo) (string, error)
 }
 
 // NewBuilder new builder
