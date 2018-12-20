@@ -174,18 +174,18 @@ func (s *orm) Delete(obj interface{}) (err error) {
 }
 
 func (s *orm) Query(obj interface{}, filter ...string) (err error) {
-	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	structInfo, _, structErr := model.GetStructInfo(obj)
 	if structErr != nil {
 		err = structErr
 		return
 	}
 
-	allStructInfos := structDepends
-	allStructInfos = append(allStructInfos, structInfo)
-	err = s.batchCreateSchema(allStructInfos)
-	if err != nil {
-		return err
-	}
+	//allStructInfos := structDepends
+	//allStructInfos = append(allStructInfos, structInfo)
+	//err = s.batchCreateSchema(allStructInfos)
+	//if err != nil {
+	//	return err
+	//}
 
 	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildQuery()
