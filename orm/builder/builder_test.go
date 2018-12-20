@@ -46,7 +46,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build create schema failed, err:%s", err.Error())
 	}
-	if str != "CREATE TABLE `builder_Unit` (\n\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`name` TEXT NOT NULL ,\n\t`value` FLOAT NOT NULL ,\n\t`ts` DATETIME NOT NULL ,\n\tPRIMARY KEY (`id`)\n)\n" {
+	if str != "CREATE TABLE `Unit` (\n\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`name` TEXT NOT NULL ,\n\t`value` FLOAT NOT NULL ,\n\t`ts` DATETIME NOT NULL ,\n\tPRIMARY KEY (`id`)\n)\n" {
 		t.Error("build create schema failed")
 	}
 
@@ -54,7 +54,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build drop schema failed, err:%s", err.Error())
 	}
-	if str != "DROP TABLE IF EXISTS `builder_Unit`" {
+	if str != "DROP TABLE IF EXISTS `Unit`" {
 		t.Error("build drop schema failed")
 	}
 
@@ -62,7 +62,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build insert failed, err:%s", err.Error())
 	}
-	if str != "INSERT INTO `builder_Unit` (`name`,`value`,`ts`) VALUES ('Hello world',12.345600,'2018-01-02 15:04:05');" {
+	if str != "INSERT INTO `Unit` (`name`,`value`,`ts`) VALUES ('Hello world',12.345600,'2018-01-02 15:04:05');" {
 		t.Error("build insert failed")
 	}
 
@@ -70,7 +70,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build update failed, err:%s", err.Error())
 	}
-	if str != "UPDATE `builder_Unit` SET `name`='Hello world',`value`=12.345600,`ts`='2018-01-02 15:04:05' WHERE `id`=10" {
+	if str != "UPDATE `Unit` SET `name`='Hello world',`value`=12.345600,`ts`='2018-01-02 15:04:05' WHERE `id`=10" {
 		t.Error("build update failed")
 	}
 
@@ -78,7 +78,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build delete failed, err:%s", err.Error())
 	}
-	if str != "DELETE FROM `builder_Unit` WHERE `id`=10" {
+	if str != "DELETE FROM `Unit` WHERE `id`=10" {
 		t.Error("build delete failed")
 	}
 
@@ -86,7 +86,7 @@ func TestBuilder(t *testing.T) {
 	if err != nil {
 		t.Errorf("build query failed, err:%s", err.Error())
 	}
-	if str != "SELECT `id`,`name`,`value`,`ts` FROM `builder_Unit` WHERE `id`=10" {
+	if str != "SELECT `id`,`name`,`value`,`ts` FROM `Unit` WHERE `id`=10" {
 		t.Error("build query failed")
 	}
 }

@@ -31,12 +31,7 @@ func (s *orm) insertRelation(structInfo, relationInfo *model.StructInfo) (err er
 		return err
 	}
 
-	id := s.executor.Insert(relationSQL)
-	pk := structInfo.GetPrimaryKey()
-	if pk != nil {
-		pk.SetFieldValue(reflect.ValueOf(id))
-	}
-
+	s.executor.Insert(relationSQL)
 	return
 }
 

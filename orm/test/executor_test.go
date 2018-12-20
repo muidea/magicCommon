@@ -99,16 +99,25 @@ func TestDepends(t *testing.T) {
 		t.Errorf("insert ext failed, err:%s", err.Error())
 	}
 
-	o1.Insert(obj)
+	err = o1.Insert(obj)
+	if err != nil {
+		t.Errorf("insert ext failed, err:%s", err.Error())
+	}
 
 	ext2 := &Ext2{Unit: *obj}
-	o1.Insert(ext2)
-	o1.Delete(ext2)
+	err = o1.Insert(ext2)
+	if err != nil {
+		t.Errorf("insert ext2 failed, err:%s", err.Error())
+	}
+
+	err = o1.Delete(ext2)
+	if err != nil {
+		t.Errorf("delete ext2 failed, err:%s", err.Error())
+	}
 
 	log.Print(*ext.Unit)
 	log.Print(*ext)
 
 	defer o1.Drop(ext)
-	defer o1.Drop(ext.Unit)
 	defer o1.Drop(ext2)
 }
