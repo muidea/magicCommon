@@ -23,7 +23,7 @@ func (s *orm) deleteSingle(structInfo *model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) deleteRelation(structInfo *model.StructInfo, relationInfo *model.StructInfo) (err error) {
+func (s *orm) deleteRelation(structInfo, relationInfo *model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildDeleteRelation(relationInfo)
 	if err != nil {

@@ -100,7 +100,7 @@ func GetStructInfo(objPtr interface{}) (ret *StructInfo, depends []*StructInfo, 
 }
 
 func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructInfo, err error) {
-	ret = &StructInfo{name: structObj.Type().String(), pkgPath: structObj.Type().PkgPath(), fields: make(Fields, 0)}
+	ret = &StructInfo{name: structObj.Type().Name(), pkgPath: structObj.Type().PkgPath(), fields: make(Fields, 0)}
 	depends = []*StructInfo{}
 
 	structType := structObj.Type()

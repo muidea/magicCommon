@@ -23,7 +23,7 @@ func (s *orm) insertSingle(structInfo *model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) insertRelation(structInfo *model.StructInfo, relationInfo *model.StructInfo) (err error) {
+func (s *orm) insertRelation(structInfo, relationInfo *model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	relationSQL, relationErr := builder.BuildInsertRelation(relationInfo)
 	if relationErr != nil {

@@ -144,13 +144,22 @@ func TestDepend(t *testing.T) {
 		jj int
 		kk *int
 	}
-	val := []*AA{&AA{ii: 12, jj: 23}, &AA{ii: 23, jj: 34}}
-	slicefv := newFieldValue(reflect.ValueOf(val))
+	structVal := []*AA{&AA{ii: 12, jj: 23}, &AA{ii: 23, jj: 34}}
+	structSlicefv := newFieldValue(reflect.ValueOf(structVal))
 
-	fds, _ := slicefv.GetDepend()
-	if len(fds) != 2 {
-		t.Errorf("fv.GetDepend failed. fds size:%d", len(fds))
+	structFds, _ := structSlicefv.GetDepend()
+	if len(structFds) != 2 {
+		t.Errorf("fv.GetDepend failed. fds size:%d", len(structFds))
 	}
+
+	strSliceVal := []string{"10", "20", "30"}
+	strSliceValfv := newFieldValue(reflect.ValueOf(&strSliceVal))
+	strFds, _ := strSliceValfv.GetDepend()
+	if len(strFds) != 0 {
+		t.Errorf("fv.GetDepend failed. fds size:%d", len(strFds))
+	}
+
+	log.Print(strSliceValfv.GetValueStr())
 }
 
 func TestPtr(t *testing.T) {

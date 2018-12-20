@@ -106,3 +106,25 @@ func GetStructValue(val reflect.Value) (ret FieldValue, err error) {
 	}
 	return
 }
+
+func getSliceRawTypeValue(sliceType reflect.Type) (ret int, err error) {
+	if sliceType.Kind() != reflect.Slice {
+		err = fmt.Errorf("illegal type, typeVal:%s", sliceType.Kind().String())
+		return
+	}
+
+	rawType := sliceType.Elem()
+	if rawType.Kind() == reflect.Ptr {
+		rawType = rawType.Elem()
+	}
+	ret, err = GetFieldType(rawType)
+	if err != nil {
+		return
+	}
+
+	if ret > util.TypeStructField {
+		err = fmt.Errorf("no support slice elem type value,val:%d", ret)
+	}
+
+	return
+}

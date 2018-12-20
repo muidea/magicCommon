@@ -27,7 +27,7 @@ func (s *orm) createSchema(structInfo *model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) createRelationSchema(structInfo *model.StructInfo, relationInfo *model.StructInfo) (err error) {
+func (s *orm) createRelationSchema(structInfo, relationInfo *model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	tableName := builder.GetRelationTableName(relationInfo)
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	"muidea.com/magicCommon/orm/util"
 )
 
 // FieldValue FieldValue
@@ -221,13 +223,20 @@ func (s *valueImpl) GetDepend() (ret []reflect.Value, err error) {
 			ret = append(ret, val)
 		}
 	case reflect.Slice:
-		pos := val.Len()
-		for idx := 0; idx < pos; {
-			sv := val.Slice(idx, idx+1)
+		typeVal, typeErr := getSliceRawTypeValue(val.Type())
+		if typeErr != nil {
+			err = typeErr
+			return
+		}
+		if typeVal >= util.TypeStructField {
+			pos := val.Len()
+			for idx := 0; idx < pos; {
+				sv := val.Slice(idx, idx+1)
 
-			sv = reflect.Indirect(sv)
-			ret = append(ret, sv)
-			idx++
+				sv = reflect.Indirect(sv)
+				ret = append(ret, sv)
+				idx++
+			}
 		}
 	case reflect.Ptr:
 		err = fmt.Errorf("no support fileType, %v", val.Type().String())

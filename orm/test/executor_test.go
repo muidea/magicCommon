@@ -75,8 +75,9 @@ type Ext struct {
 }
 
 type Ext2 struct {
-	ID   int      `orm:"id key auto"`
-	Unit UnitTest `orm:"unit"`
+	ID    int      `orm:"id key auto"`
+	Unit  UnitTest `orm:"unit"`
+	Unit2 UnitTest `orm:"unit2"`
 }
 
 func TestDepends(t *testing.T) {
