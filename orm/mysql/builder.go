@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/util"
 )
 
 // Builder Builder
@@ -169,10 +170,11 @@ func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string, err erro
 
 		fType := field.GetFieldType()
 		fValue := field.GetFieldValue()
-		if fType.IsReference() {
+		switch fType.Catalog() {
+		case util.TypeReferenceField, util.TypeReferencePtrField:
 			fValue, err = model.GetStructValue(fValue.GetValue())
+		default:
 		}
-
 		if err != nil {
 			break
 		}

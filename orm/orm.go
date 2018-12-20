@@ -128,18 +128,20 @@ func (s *orm) Update(obj interface{}) (err error) {
 		return err
 	}
 
-	builder := builder.NewBuilder(structInfo)
-	sql, err := builder.BuildUpdate()
-	if err != nil {
-		return err
+	for _, val := range allStructInfos {
+		builder := builder.NewBuilder(val)
+		sql, err := builder.BuildUpdate()
+		if err != nil {
+			return err
+		}
+
+		num := s.executor.Update(sql)
+		if num != 1 {
+			log.Printf("unexception update, rowNum:%d", num)
+		}
 	}
 
-	num := s.executor.Update(sql)
-	if num != 1 {
-		log.Printf("unexception update, rowNum:%d", num)
-	}
-
-	return nil
+	return
 }
 
 func (s *orm) Delete(obj interface{}) (err error) {
@@ -156,17 +158,19 @@ func (s *orm) Delete(obj interface{}) (err error) {
 		return err
 	}
 
-	builder := builder.NewBuilder(structInfo)
-	sql, err := builder.BuildDelete()
-	if err != nil {
-		return err
-	}
-	num := s.executor.Delete(sql)
-	if num != 1 {
-		log.Printf("unexception delete, rowNum:%d", num)
+	for _, val := range allStructInfos {
+		builder := builder.NewBuilder(val)
+		sql, err := builder.BuildDelete()
+		if err != nil {
+			return err
+		}
+		num := s.executor.Delete(sql)
+		if num != 1 {
+			log.Printf("unexception delete, rowNum:%d", num)
+		}
 	}
 
-	return nil
+	return
 }
 
 func (s *orm) Query(obj interface{}, filter ...string) (err error) {

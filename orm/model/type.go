@@ -3,13 +3,15 @@ package model
 import (
 	"fmt"
 	"reflect"
+
+	"muidea.com/magicCommon/orm/util"
 )
 
 // FieldType FieldType
 type FieldType interface {
 	Name() string
 	Value() int
-	IsReference() bool
+	Catalog() int
 	PkgPath() string
 	String() string
 }
@@ -18,7 +20,7 @@ type typeImpl struct {
 	typeValue   int
 	typeName    string
 	typePkgPath string
-	isReference bool
+	typeCatalog int
 }
 
 func (s *typeImpl) Name() string {
@@ -29,8 +31,8 @@ func (s *typeImpl) Value() int {
 	return s.typeValue
 }
 
-func (s *typeImpl) IsReference() bool {
-	return s.isReference
+func (s *typeImpl) Catalog() int {
+	return s.typeCatalog
 }
 
 func (s *typeImpl) PkgPath() string {
@@ -38,16 +40,16 @@ func (s *typeImpl) PkgPath() string {
 }
 
 func (s *typeImpl) String() string {
-	return fmt.Sprintf("val:%d,name:%s,pkgPath:%s, isReference:%v", s.typeValue, s.typeName, s.typePkgPath, s.isReference)
+	return fmt.Sprintf("val:%d,name:%s,pkgPath:%s, catalog:%v", s.typeValue, s.typeName, s.typePkgPath, s.typeCatalog)
 }
 
 func newFieldType(sf *reflect.StructField) FieldType {
 	val := sf.Type
 
-	needCheckReference := true
+	isPtr := false
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
-		needCheckReference = false
+		isPtr = true
 	}
 
 	tVal, err := GetFieldType(val)
@@ -56,10 +58,14 @@ func newFieldType(sf *reflect.StructField) FieldType {
 		panic(msg)
 	}
 
-	isReference := false
-	if needCheckReference {
-		isReference = IsReferenceType(val)
+	tCatalog := util.TypeBaseTypeField
+	isReference := IsReferenceType(val)
+	if isReference {
+		tCatalog = util.TypeReferenceField
+		if isPtr {
+			tCatalog = util.TypeReferencePtrField
+		}
 	}
 
-	return &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), isReference: isReference}
+	return &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeCatalog: tCatalog}
 }

@@ -29,8 +29,9 @@ const (
 
 // Field type
 const (
-	TypeInstanceField = iota
+	TypeBaseTypeField = iota
 	TypeReferenceField
+	TypeReferencePtrField
 )
 
 // IsSimpleField IsSimpleField

@@ -3,6 +3,8 @@ package model
 import (
 	"fmt"
 	"reflect"
+
+	"muidea.com/magicCommon/orm/util"
 )
 
 // StructInfo single struct ret
@@ -117,7 +119,7 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 		ret.fields.Append(fieldInfo)
 
 		fType := fieldInfo.GetFieldType()
-		if fType.IsReference() {
+		if fType.Catalog() == util.TypeReferenceField {
 			fValue := fieldInfo.GetFieldValue()
 			dvs, err := fValue.GetDepend()
 			if err != nil {
