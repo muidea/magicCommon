@@ -111,8 +111,8 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 			break
 		}
 
-		fieldVal := structObj.Field(idx)
 		fieldType := structType.Field(idx)
+		fieldVal := structObj.Field(idx)
 		fieldInfo := GetFieldInfo(idx, &fieldType, &fieldVal)
 		ret.fields.Append(fieldInfo)
 

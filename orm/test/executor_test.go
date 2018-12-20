@@ -89,9 +89,6 @@ func TestDepends(t *testing.T) {
 		t.Errorf("new Orm failed, err:%s", err.Error())
 	}
 
-	//err = o1.Insert(ext.Unit)
-	//log.Print(*ext.Unit)
-
 	err = o1.Insert(ext)
 	if err != nil {
 		t.Errorf("insert ext failed, err:%s", err.Error())

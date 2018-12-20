@@ -105,11 +105,10 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		}
 
 		id := s.executor.Insert(sql)
-		pk := structInfo.GetPrimaryKey()
+		pk := val.GetPrimaryKey()
 		if pk != nil {
 			pk.SetFieldValue(reflect.ValueOf(id))
 		}
-		val.Dump()
 	}
 
 	return
