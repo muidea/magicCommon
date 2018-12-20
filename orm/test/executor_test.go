@@ -9,7 +9,7 @@ import (
 )
 
 // Unit 单元信息
-type Unit struct {
+type UnitTest struct {
 	//ID 唯一标示单元
 	ID  int    `json:"id" orm:"id key auto"`
 	I8  int8   `orm:"i8"`
@@ -30,7 +30,7 @@ func TestExecutor(t *testing.T) {
 	defer orm.Uninitialize()
 
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
-	obj := &Unit{ID: 10, I64: uint64(78962222222), Name: "Hello world", Value: 12.3456, TimeStamp: now, Flag: true}
+	obj := &UnitTest{ID: 10, I64: uint64(78962222222), Name: "Hello world", Value: 12.3456, TimeStamp: now, Flag: true}
 
 	o1, err := orm.New()
 	defer o1.Release()
@@ -50,7 +50,7 @@ func TestExecutor(t *testing.T) {
 		t.Errorf("update obj failed, err:%s", err.Error())
 	}
 
-	obj2 := &Unit{ID: 1, Name: "", Value: 0.0}
+	obj2 := &UnitTest{ID: 1, Name: "", Value: 0.0}
 	err = o1.Query(obj2)
 	if err != nil {
 		t.Errorf("query obj failed, err:%s", err.Error())
@@ -70,13 +70,13 @@ func TestExecutor(t *testing.T) {
 }
 
 type Ext struct {
-	ID   int   `orm:"id key auto"`
-	Unit *Unit `orm:"unit"`
+	ID   int       `orm:"id key auto"`
+	Unit *UnitTest `orm:"unit"`
 }
 
 type Ext2 struct {
-	ID   int  `orm:"id key auto"`
-	Unit Unit `orm:"unit"`
+	ID   int      `orm:"id key auto"`
+	Unit UnitTest `orm:"unit"`
 }
 
 func TestDepends(t *testing.T) {
@@ -84,7 +84,7 @@ func TestDepends(t *testing.T) {
 	defer orm.Uninitialize()
 
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
-	obj := &Unit{ID: 10, I64: uint64(78962222222), Name: "Hello world", Value: 12.3456, TimeStamp: now, Flag: true}
+	obj := &UnitTest{ID: 10, I64: uint64(78962222222), Name: "Hello world", Value: 12.3456, TimeStamp: now, Flag: true}
 	ext := &Ext{Unit: obj}
 
 	o1, err := orm.New()
@@ -107,4 +107,5 @@ func TestDepends(t *testing.T) {
 
 	defer o1.Drop(ext)
 	defer o1.Drop(ext.Unit)
+	defer o1.Drop(ext2)
 }

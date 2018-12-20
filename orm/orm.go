@@ -61,26 +61,53 @@ func New() (Orm, error) {
 	return &orm{executor: executor, modelInfoCache: ormManager.getCache()}, nil
 }
 
-func (s *orm) batchCreateSchema(structInfos []*model.StructInfo) error {
-	for _, val := range structInfos {
-		builder := builder.NewBuilder(val)
-		info := s.modelInfoCache.Fetch(val.GetStructName())
-		if info == nil {
-			if !s.executor.CheckTableExist(builder.GetTableName()) {
-				// no exist
-				sql, err := builder.BuildCreateSchema()
-				if err != nil {
-					return err
-				}
-
-				s.executor.Execute(sql)
+func (s *orm) createSchema(structInfo *model.StructInfo) (err error) {
+	builder := builder.NewBuilder(structInfo)
+	info := s.modelInfoCache.Fetch(structInfo.GetStructName())
+	if info == nil {
+		if !s.executor.CheckTableExist(builder.GetTableName()) {
+			// no exist
+			sql, err := builder.BuildCreateSchema()
+			if err != nil {
+				return err
 			}
 
-			s.modelInfoCache.Put(val)
+			s.executor.Execute(sql)
+		}
+
+		s.modelInfoCache.Put(structInfo)
+	}
+
+	return
+}
+
+func (s *orm) batchCreateSchema(structInfo *model.StructInfo, depends []*model.StructInfo) (err error) {
+	for _, val := range depends {
+		err = s.createSchema(val)
+		if err != nil {
+			return
 		}
 	}
 
+	err = s.createSchema(structInfo)
+
 	return nil
+}
+
+func (s *orm) insertSingle(structInfo *model.StructInfo) (err error) {
+	builder := builder.NewBuilder(structInfo)
+	sql, err := builder.BuildInsert()
+	if err != nil {
+		return err
+	}
+
+	id := s.executor.Insert(sql)
+	pk := structInfo.GetPrimaryKey()
+	if pk != nil {
+		pk.SetFieldValue(reflect.ValueOf(id))
+	}
+
+	return
 }
 
 func (s *orm) Insert(obj interface{}) (err error) {
@@ -90,28 +117,37 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		return
 	}
 
-	allStructInfos := structDepends
-	allStructInfos = append(allStructInfos, structInfo)
-	err = s.batchCreateSchema(allStructInfos)
+	err = s.batchCreateSchema(structInfo, structDepends)
 	if err != nil {
 		return
 	}
 
-	for _, val := range allStructInfos {
-		builder := builder.NewBuilder(val)
-		sql, err := builder.BuildInsert()
+	for _, val := range structDepends {
+		err = s.insertSingle(val)
 		if err != nil {
-			return err
-		}
-
-		id := s.executor.Insert(sql)
-		pk := val.GetPrimaryKey()
-		if pk != nil {
-			pk.SetFieldValue(reflect.ValueOf(id))
+			return
 		}
 	}
 
+	err = s.insertSingle(structInfo)
+
 	return
+}
+
+func (s *orm) updateSingle(structInfo *model.StructInfo) (err error) {
+	builder := builder.NewBuilder(structInfo)
+	sql, err := builder.BuildUpdate()
+	if err != nil {
+		return err
+	}
+
+	num := s.executor.Update(sql)
+	if num != 1 {
+		log.Printf("unexception update, rowNum:%d", num)
+		err = fmt.Errorf("update %s failed", structInfo.GetStructName())
+	}
+
+	return err
 }
 
 func (s *orm) Update(obj interface{}) (err error) {
@@ -121,24 +157,33 @@ func (s *orm) Update(obj interface{}) (err error) {
 		return
 	}
 
-	allStructInfos := structDepends
-	allStructInfos = append(allStructInfos, structInfo)
-	err = s.batchCreateSchema(allStructInfos)
+	err = s.batchCreateSchema(structInfo, structDepends)
+	if err != nil {
+		return
+	}
+
+	for _, val := range structDepends {
+		err = s.updateSingle(val)
+		if err != nil {
+			return
+		}
+	}
+
+	err = s.updateSingle(structInfo)
+
+	return
+}
+
+func (s *orm) deleteSingle(structInfo *model.StructInfo) (err error) {
+	builder := builder.NewBuilder(structInfo)
+	sql, err := builder.BuildDelete()
 	if err != nil {
 		return err
 	}
-
-	for _, val := range allStructInfos {
-		builder := builder.NewBuilder(val)
-		sql, err := builder.BuildUpdate()
-		if err != nil {
-			return err
-		}
-
-		num := s.executor.Update(sql)
-		if num != 1 {
-			log.Printf("unexception update, rowNum:%d", num)
-		}
+	num := s.executor.Delete(sql)
+	if num != 1 {
+		log.Printf("unexception delete, rowNum:%d", num)
+		err = fmt.Errorf("delete %s failed", structInfo.GetStructName())
 	}
 
 	return
@@ -151,42 +196,24 @@ func (s *orm) Delete(obj interface{}) (err error) {
 		return
 	}
 
-	allStructInfos := structDepends
-	allStructInfos = append(allStructInfos, structInfo)
-	err = s.batchCreateSchema(allStructInfos)
+	err = s.batchCreateSchema(structInfo, structDepends)
 	if err != nil {
-		return err
+		return
 	}
 
-	for _, val := range allStructInfos {
-		builder := builder.NewBuilder(val)
-		sql, err := builder.BuildDelete()
+	for _, val := range structDepends {
+		err = s.deleteSingle(val)
 		if err != nil {
-			return err
-		}
-		num := s.executor.Delete(sql)
-		if num != 1 {
-			log.Printf("unexception delete, rowNum:%d", num)
+			return
 		}
 	}
+
+	s.deleteSingle(structInfo)
 
 	return
 }
 
-func (s *orm) Query(obj interface{}, filter ...string) (err error) {
-	structInfo, _, structErr := model.GetStructInfo(obj)
-	if structErr != nil {
-		err = structErr
-		return
-	}
-
-	//allStructInfos := structDepends
-	//allStructInfos = append(allStructInfos, structInfo)
-	//err = s.batchCreateSchema(allStructInfos)
-	//if err != nil {
-	//	return err
-	//}
-
+func (s *orm) querySingle(structInfo *model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildQuery()
 	if err != nil {
@@ -215,7 +242,31 @@ func (s *orm) Query(obj interface{}, filter ...string) (err error) {
 		idx++
 	}
 
-	return nil
+	return
+}
+
+func (s *orm) Query(obj interface{}, filter ...string) (err error) {
+	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	if structErr != nil {
+		err = structErr
+		return
+	}
+
+	err = s.batchCreateSchema(structInfo, structDepends)
+	if err != nil {
+		return
+	}
+
+	//allStructInfos := structDepends
+	//allStructInfos = append(allStructInfos, structInfo)
+	//err = s.batchCreateSchema(allStructInfos)
+	//if err != nil {
+	//	return err
+	//}
+
+	err = s.querySingle(structInfo)
+
+	return
 }
 
 func (s *orm) Drop(obj interface{}) (err error) {
