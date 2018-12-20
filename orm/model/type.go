@@ -44,8 +44,10 @@ func (s *typeImpl) String() string {
 func newFieldType(sf *reflect.StructField) FieldType {
 	val := sf.Type
 
+	needCheckReference := true
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
+		needCheckReference = false
 	}
 
 	tVal, err := GetFieldType(val)
@@ -54,7 +56,10 @@ func newFieldType(sf *reflect.StructField) FieldType {
 		panic(msg)
 	}
 
-	isReference := IsReference(val)
+	isReference := false
+	if needCheckReference {
+		isReference = IsReferenceType(val)
+	}
 
 	return &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), isReference: isReference}
 }

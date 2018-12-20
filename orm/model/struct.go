@@ -116,13 +116,16 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 		fieldInfo := GetFieldInfo(idx, &fieldType, &fieldVal)
 		ret.fields.Append(fieldInfo)
 
-		fv := fieldInfo.GetFieldValue()
-		dvs, err := fv.GetDepend()
-		if err != nil {
-			break
-		}
+		fType := fieldInfo.GetFieldType()
+		if fType.IsReference() {
+			fValue := fieldInfo.GetFieldValue()
+			dvs, err := fValue.GetDepend()
+			if err != nil {
+				break
+			}
 
-		reference = append(reference, dvs...)
+			reference = append(reference, dvs...)
+		}
 
 		idx++
 	}

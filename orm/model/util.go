@@ -54,8 +54,8 @@ func GetFieldType(val reflect.Type) (ft int, err error) {
 	return
 }
 
-// IsReference IsReference
-func IsReference(val reflect.Type) bool {
+// IsReferenceType IsReferenceType
+func IsReferenceType(val reflect.Type) bool {
 	switch val.Kind() {
 	case reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int32, reflect.Uint32,
 		reflect.Int64, reflect.Uint64, reflect.Int, reflect.Uint, reflect.Float32, reflect.Float64, reflect.Bool, reflect.String:
