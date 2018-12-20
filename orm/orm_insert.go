@@ -25,12 +25,13 @@ func (s *orm) insertSingle(structInfo *model.StructInfo) (err error) {
 
 func (s *orm) insertRelation(structInfo *model.StructInfo, relationInfo *model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
-	sql, err := builder.BuildInsertRelation(relationInfo)
-	if err != nil {
+	relationSQL, relationErr := builder.BuildInsertRelation(relationInfo)
+	if relationErr != nil {
+		err = relationErr
 		return err
 	}
 
-	id := s.executor.Insert(sql)
+	id := s.executor.Insert(relationSQL)
 	pk := structInfo.GetPrimaryKey()
 	if pk != nil {
 		pk.SetFieldValue(reflect.ValueOf(id))

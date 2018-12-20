@@ -98,6 +98,8 @@ func TestDepends(t *testing.T) {
 		t.Errorf("insert ext failed, err:%s", err.Error())
 	}
 
+	o1.Insert(obj)
+
 	ext2 := &Ext2{Unit: *obj}
 	o1.Insert(ext2)
 	o1.Delete(ext2)
