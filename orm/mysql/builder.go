@@ -25,118 +25,6 @@ func New(structInfo *model.StructInfo) *Builder {
 	return &Builder{structInfo: structInfo}
 }
 
-// BuildCreateSchema  BuildCreateSchema
-func (s *Builder) BuildCreateSchema() (string, error) {
-	str := ""
-	for _, val := range *s.structInfo.GetFields() {
-		if str == "" {
-			str = fmt.Sprintf("\t%s", declareFieldInfo(val))
-		} else {
-			str = fmt.Sprintf("%s,\n\t%s", str, declareFieldInfo(val))
-		}
-	}
-	if s.structInfo.GetPrimaryKey() != nil {
-		fTag := s.structInfo.GetPrimaryKey().GetFieldTag()
-		str = fmt.Sprintf("%s,\n\tPRIMARY KEY (`%s`)", str, fTag.Name())
-	}
-
-	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetTableName(), str)
-	log.Print(str)
-
-	return str, nil
-}
-
-// BuildDropSchema  BuildDropSchema
-func (s *Builder) BuildDropSchema() (string, error) {
-	str := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", s.GetTableName())
-	log.Print(str)
-
-	return str, nil
-}
-
-// BuildInsert  BuildInsert
-func (s *Builder) BuildInsert() (ret string, err error) {
-	sql := ""
-	vals, verr := s.getFieldValues(s.structInfo)
-	if verr == nil {
-		for _, val := range vals {
-			sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.GetTableName(), s.getFieldNames(s.structInfo, false), val)
-		}
-		log.Print(sql)
-		ret = sql
-	}
-	err = verr
-
-	return
-}
-
-// BuildUpdate  BuildUpdate
-func (s *Builder) BuildUpdate() (ret string, err error) {
-	str := ""
-	for _, val := range *s.structInfo.GetFields() {
-		fValue := val.GetFieldValue()
-		fTag := val.GetFieldTag()
-		if val != s.structInfo.GetPrimaryKey() {
-			fStr, ferr := fValue.GetValueStr()
-			if ferr != nil {
-				err = ferr
-				break
-			}
-			if str == "" {
-				str = fmt.Sprintf("`%s`=%s", fTag.Name(), fStr)
-			} else {
-				str = fmt.Sprintf("%s,`%s`=%s", str, fTag.Name(), fStr)
-			}
-		}
-	}
-
-	if err != nil {
-		return
-	}
-
-	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
-	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
-	pkfStr, pkferr := pkfValue.GetValueStr()
-	if pkferr == nil {
-		str = fmt.Sprintf("UPDATE `%s` SET %s WHERE `%s`=%s", s.GetTableName(), str, pkfTag.Name(), pkfStr)
-		log.Print(str)
-	}
-
-	ret = str
-	err = pkferr
-
-	return
-}
-
-// BuildDelete  BuildDelete
-func (s *Builder) BuildDelete() (ret string, err error) {
-	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
-	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
-	pkfStr, pkferr := pkfValue.GetValueStr()
-	if pkferr == nil {
-		ret = fmt.Sprintf("DELETE FROM `%s` WHERE `%s`=%s", s.GetTableName(), pkfTag.Name(), pkfStr)
-		log.Print(ret)
-	}
-
-	err = pkferr
-
-	return
-}
-
-// BuildQuery BuildQuery
-func (s *Builder) BuildQuery() (ret string, err error) {
-	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
-	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
-	pkfStr, pkferr := pkfValue.GetValueStr()
-	if pkferr == nil {
-		ret = fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(s.structInfo, true), s.GetTableName(), pkfTag.Name(), pkfStr)
-		log.Print(ret)
-	}
-	err = pkferr
-
-	return
-}
-
 func (s *Builder) getTableName(info *model.StructInfo) string {
 	return strings.Join(strings.Split(info.GetStructName(), "."), "_")
 }
@@ -213,19 +101,35 @@ func (s *Builder) GetRelationTableName(relationInfo *model.StructInfo) string {
 	return fmt.Sprintf("%s2%s", rightName, leftName)
 }
 
-// BuildCreateRelationSchema BuildCreateRelationSchema
-func (s *Builder) BuildCreateRelationSchema(relationInfo *model.StructInfo) (string, error) {
-	str := "\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`left` INT NOT NULL,\n\t`right` INT NOT NULL,\n\tPRIMARY KEY (`id`)"
-	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetRelationTableName(relationInfo), str)
-	log.Print(str)
+func (s *Builder) getRelationValue(relationInfo *model.StructInfo) (leftVal, rightVal string, err error) {
+	leftName := s.getTableName(s.structInfo)
+	rightName := s.getTableName(relationInfo)
 
-	return str, nil
-}
+	structKey := s.structInfo.GetPrimaryKey()
+	relationKey := relationInfo.GetPrimaryKey()
+	if structKey == nil || relationKey == nil {
+		err = fmt.Errorf("no define primaryKey")
+		return
+	}
 
-// BuildDropRelationSchema BuildDropRelationSchema
-func (s *Builder) BuildDropRelationSchema(relationInfo *model.StructInfo) (string, error) {
-	str := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", s.GetRelationTableName(relationInfo))
-	log.Print(str)
+	structVal, structErr := structKey.GetFieldValue().GetValueStr()
+	if structErr != nil {
+		err = structErr
+		return
+	}
+	relationVal, relationErr := relationKey.GetFieldValue().GetValueStr()
+	if relationErr != nil {
+		err = relationErr
+		return
+	}
 
-	return str, nil
+	if strings.Compare(leftName, rightName) < 0 {
+		leftVal = structVal
+		rightVal = relationVal
+		return
+	}
+
+	leftVal = relationVal
+	rightVal = structVal
+	return
 }
