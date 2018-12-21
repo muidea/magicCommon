@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"log"
 	"testing"
 	"time"
 
@@ -65,8 +64,6 @@ func TestExecutor(t *testing.T) {
 	}
 
 	defer o1.Drop(obj)
-
-	log.Print(*obj2)
 }
 
 type Ext struct {
@@ -114,9 +111,6 @@ func TestDepends(t *testing.T) {
 	if err != nil {
 		t.Errorf("delete ext2 failed, err:%s", err.Error())
 	}
-
-	log.Print(*ext.Unit)
-	log.Print(*ext)
 
 	defer o1.Drop(ext)
 	defer o1.Drop(ext2)
