@@ -115,7 +115,12 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 
 		fieldType := structType.Field(idx)
 		fieldVal := structObj.Field(idx)
-		fieldInfo := GetFieldInfo(idx, &fieldType, &fieldVal)
+		fieldInfo, fieldErr := GetFieldInfo(idx, &fieldType, &fieldVal)
+		if fieldErr != nil {
+			err = fieldErr
+			return
+		}
+
 		ret.fields.Append(fieldInfo)
 
 		fType := fieldInfo.GetValueTypeEnum()
@@ -162,7 +167,12 @@ func getStructPrimaryKey(structObj reflect.Value) (ret *FieldInfo, err error) {
 	for idx := 0; idx < fieldNum; {
 		fieldType := structType.Field(idx)
 		fieldVal := structObj.Field(idx)
-		fieldInfo := GetFieldInfo(idx, &fieldType, &fieldVal)
+		fieldInfo, fieldErr := GetFieldInfo(idx, &fieldType, &fieldVal)
+		if fieldErr != nil {
+			err = fieldErr
+			return
+		}
+
 		fTag := fieldInfo.GetFieldTag()
 		if fTag.IsPrimaryKey() {
 			ret = fieldInfo

@@ -43,7 +43,7 @@ func (s *typeImpl) String() string {
 	return fmt.Sprintf("val:%d,name:%s,pkgPath:%s, catalog:%v", s.typeValue, s.typeName, s.typePkgPath, s.typeCatalog)
 }
 
-func newFieldType(sf *reflect.StructField) FieldType {
+func newFieldType(sf *reflect.StructField) (ret FieldType, err error) {
 	val := sf.Type
 
 	isPtr := false
@@ -52,10 +52,10 @@ func newFieldType(sf *reflect.StructField) FieldType {
 		isPtr = true
 	}
 
-	tVal, err := GetValueTypeEnum(val)
-	if err != nil {
-		msg := fmt.Sprintf("get field type failed, err:%s", err.Error())
-		panic(msg)
+	tVal, tErr := GetValueTypeEnum(val)
+	if tErr != nil {
+		err = tErr
+		return
 	}
 
 	tCatalog := util.TypeBaseTypeField
@@ -67,5 +67,6 @@ func newFieldType(sf *reflect.StructField) FieldType {
 		}
 	}
 
-	return &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeCatalog: tCatalog}
+	ret = &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeCatalog: tCatalog}
+	return
 }

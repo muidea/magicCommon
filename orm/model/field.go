@@ -130,14 +130,26 @@ func (s *Fields) Dump() {
 }
 
 // GetFieldInfo GetFieldInfo
-func GetFieldInfo(idx int, fieldType *reflect.StructField, fieldVal *reflect.Value) *FieldInfo {
+func GetFieldInfo(idx int, fieldType *reflect.StructField, fieldVal *reflect.Value) (ret *FieldInfo, err error) {
 	info := &FieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = fieldType.Name
 
-	info.fieldType = newFieldType(fieldType)
-	info.fieldTag = newFieldTag(fieldType.Tag.Get("orm"))
-	info.fieldValue = newFieldValue(*fieldVal)
+	info.fieldType, err = newFieldType(fieldType)
+	if err != nil {
+		return
+	}
 
-	return info
+	info.fieldTag, err = newFieldTag(fieldType.Tag.Get("orm"))
+	if err != nil {
+		return
+	}
+
+	info.fieldValue, err = newFieldValue(*fieldVal)
+	if err != nil {
+		return
+	}
+
+	ret = info
+	return
 }

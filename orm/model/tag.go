@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"log"
 	"strings"
 )
 
@@ -21,10 +20,11 @@ type tagImpl struct {
 }
 
 // name[key][auto]
-func newFieldTag(val string) FieldTag {
+func newFieldTag(val string) (ret FieldTag, err error) {
 	items := strings.Split(val, " ")
 	if len(items) < 1 {
-		log.Fatalf("illegal tagImpl value, value:%s", val)
+		err = fmt.Errorf("illegal tagImpl value, value:%s", val)
+		return
 	}
 
 	tagName := items[0]
@@ -47,7 +47,8 @@ func newFieldTag(val string) FieldTag {
 		}
 	}
 
-	return &tagImpl{tagName: tagName, isPrimaryKey: isPrimaryKey, isAutoIncrement: isAutoIncrement}
+	ret = &tagImpl{tagName: tagName, isPrimaryKey: isPrimaryKey, isAutoIncrement: isAutoIncrement}
+	return
 }
 
 func (s *tagImpl) Name() string {
