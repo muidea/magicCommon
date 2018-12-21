@@ -118,7 +118,7 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 		fieldInfo := GetFieldInfo(idx, &fieldType, &fieldVal)
 		ret.fields.Append(fieldInfo)
 
-		fType := fieldInfo.GetFieldType()
+		fType := fieldInfo.GetValueTypeEnum()
 		if fType.Catalog() == util.TypeReferenceField {
 			fValue := fieldInfo.GetFieldValue()
 			dvs, err := fValue.GetDepend()
@@ -148,5 +148,30 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 		depends = append(depends, preRet)
 	}
 
+	return
+}
+
+func getStructPrimaryKey(structObj reflect.Value) (ret *FieldInfo, err error) {
+	if structObj.Kind() != reflect.Struct {
+		err = fmt.Errorf("illegal value type, type:%s", structObj.Type().String())
+		return
+	}
+
+	structType := structObj.Type()
+	fieldNum := structObj.NumField()
+	for idx := 0; idx < fieldNum; {
+		fieldType := structType.Field(idx)
+		fieldVal := structObj.Field(idx)
+		fieldInfo := GetFieldInfo(idx, &fieldType, &fieldVal)
+		fTag := fieldInfo.GetFieldTag()
+		if fTag.IsPrimaryKey() {
+			ret = fieldInfo
+			return
+		}
+
+		idx++
+	}
+
+	err = fmt.Errorf("no found primary key. type:%s", structObj.Type().String())
 	return
 }

@@ -189,6 +189,30 @@ func (s *valueImpl) setStructVal(val reflect.Value) (err error) {
 	return
 }
 
+func (s *valueImpl) setSliceVal(val reflect.Value) (err error) {
+	switch s.value.Type().Kind() {
+	case reflect.Struct:
+		if val.Type().String() == s.value.Type().String() {
+			s.value.Set(val)
+		} else {
+			err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+		}
+	case reflect.Ptr:
+		if !s.value.IsNil() {
+			rawVal := reflect.Indirect(s.value)
+			if rawVal.Type().String() == val.Type().String() {
+				rawVal.Set(val)
+			} else {
+				err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+			}
+		}
+	default:
+		err = fmt.Errorf("illegal value type, oldType:%v, newType:%v", s.value.Type(), val.Type())
+	}
+
+	return
+}
+
 func (s *valueImpl) SetValue(val reflect.Value) (err error) {
 	val = reflect.Indirect(val)
 	switch val.Type().Kind() {
@@ -204,6 +228,8 @@ func (s *valueImpl) SetValue(val reflect.Value) (err error) {
 		err = s.setStrVal(val)
 	case reflect.Struct:
 		err = s.setStructVal(val)
+	case reflect.Slice:
+		err = s.setSliceVal(val)
 	default:
 		err = fmt.Errorf("no support fileType, %v", val.Kind().String())
 	}

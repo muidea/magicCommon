@@ -60,7 +60,7 @@ func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string, err erro
 			continue
 		}
 
-		fType := field.GetFieldType()
+		fType := field.GetValueTypeEnum()
 		fValue := field.GetFieldValue()
 		switch fType.Catalog() {
 		case util.TypeReferenceField, util.TypeReferencePtrField:

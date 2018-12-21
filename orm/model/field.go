@@ -26,8 +26,8 @@ func (s *FieldInfo) GetFieldName() string {
 	return s.fieldName
 }
 
-// GetFieldType GetFieldType
-func (s *FieldInfo) GetFieldType() FieldType {
+// GetValueTypeEnum GetValueTypeEnum
+func (s *FieldInfo) GetValueTypeEnum() FieldType {
 	return s.fieldType
 }
 

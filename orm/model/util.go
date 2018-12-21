@@ -7,8 +7,8 @@ import (
 	"muidea.com/magicCommon/orm/util"
 )
 
-// GetFieldType return field type as type constant from reflect.Value
-func GetFieldType(val reflect.Type) (ft int, err error) {
+// GetValueTypeEnum return field type as type constant from reflect.Value
+func GetValueTypeEnum(val reflect.Type) (ft int, err error) {
 	switch val.Kind() {
 	case reflect.Int8:
 		ft = util.TypeBitField
@@ -109,7 +109,7 @@ func GetStructValue(val reflect.Value) (ret FieldValue, err error) {
 
 func getSliceRawTypeValue(sliceType reflect.Type) (ret int, err error) {
 	if sliceType.Kind() != reflect.Slice {
-		err = fmt.Errorf("illegal type, typeVal:%s", sliceType.Kind().String())
+		err = fmt.Errorf("illegal type, not slice. typeVal:%s", sliceType.Kind().String())
 		return
 	}
 
@@ -117,13 +117,9 @@ func getSliceRawTypeValue(sliceType reflect.Type) (ret int, err error) {
 	if rawType.Kind() == reflect.Ptr {
 		rawType = rawType.Elem()
 	}
-	ret, err = GetFieldType(rawType)
+	ret, err = GetValueTypeEnum(rawType)
 	if err != nil {
 		return
-	}
-
-	if ret > util.TypeStructField {
-		err = fmt.Errorf("no support slice elem type value,val:%d", ret)
 	}
 
 	return

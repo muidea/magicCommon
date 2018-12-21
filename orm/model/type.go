@@ -52,7 +52,7 @@ func newFieldType(sf *reflect.StructField) FieldType {
 		isPtr = true
 	}
 
-	tVal, err := GetFieldType(val)
+	tVal, err := GetValueTypeEnum(val)
 	if err != nil {
 		msg := fmt.Sprintf("get field type failed, err:%s", err.Error())
 		panic(msg)
