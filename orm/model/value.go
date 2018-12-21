@@ -34,8 +34,10 @@ func newFieldValue(val reflect.Value) (ret FieldValue, err error) {
 		} else {
 			ret = &structImpl{value: val}
 		}
+	case reflect.Ptr:
+		ret = &ptrImpl{value: val}
 	default:
-		err = fmt.Errorf("newFieldValue failed,no support value type, type:%s", rawVal.Type().String())
+		err = fmt.Errorf("no support value type, type:%s", rawVal.Type().String())
 	}
 
 	return

@@ -22,7 +22,7 @@ func (s *datetimeImpl) SetValue(val reflect.Value) (err error) {
 	switch val.Kind() {
 	case reflect.Struct:
 		if val.Type().String() == "time.Time" {
-			rawVal.Set(rawVal)
+			rawVal.Set(val)
 		} else {
 			err = fmt.Errorf("can't convert %s to datetime", val.Type().String())
 		}

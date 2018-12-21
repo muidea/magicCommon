@@ -25,6 +25,7 @@ const (
 	TypeDoubleField
 	TypeStructField
 	TypeSliceField
+	TypePtrField
 )
 
 // Field type

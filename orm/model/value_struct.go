@@ -3,8 +3,6 @@ package model
 import (
 	"fmt"
 	"reflect"
-
-	"muidea.com/magicCommon/orm/util"
 )
 
 type structImpl struct {
@@ -39,21 +37,7 @@ func (s *structImpl) GetValue() reflect.Value {
 
 func (s *structImpl) GetDepend() (ret []reflect.Value, err error) {
 	rawVal := reflect.Indirect(s.value)
-	fieldNum := rawVal.NumField()
-	for idx := 0; idx < fieldNum; {
-		fieldVal := rawVal.Field(idx)
-		fieldVal = reflect.Indirect(fieldVal)
-		typeEnum, typeErr := GetValueTypeEnum(fieldVal.Type())
-		if typeErr != nil {
-			err = typeErr
-			return
-		}
-		if typeEnum >= util.TypeStructField {
-			ret = append(ret, fieldVal)
-		}
-
-		idx++
-	}
+	ret = append(ret, rawVal)
 
 	return
 }
