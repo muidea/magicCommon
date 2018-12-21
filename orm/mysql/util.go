@@ -44,7 +44,7 @@ func declareFieldInfo(fieldInfo *model.FieldInfo) string {
 }
 
 func getFieldType(info *model.FieldInfo) (ret string) {
-	fType := info.GetFieldType()
+	fType := info.GetValueTypeEnum()
 	switch fType.Value() {
 	case util.TypeBooleanField:
 		ret = "TINYINT"
