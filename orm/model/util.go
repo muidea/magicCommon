@@ -56,6 +56,10 @@ func GetValueTypeEnum(val reflect.Type) (ft int, err error) {
 
 // IsReferenceType IsReferenceType
 func IsReferenceType(val reflect.Type) bool {
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
 	switch val.Kind() {
 	case reflect.Int8, reflect.Uint8, reflect.Int16, reflect.Uint16, reflect.Int32, reflect.Uint32,
 		reflect.Int64, reflect.Uint64, reflect.Int, reflect.Uint, reflect.Float32, reflect.Float64, reflect.Bool, reflect.String:
@@ -93,8 +97,8 @@ func IsReferenceType(val reflect.Type) bool {
 	}
 }
 
-// GetStructValue GetStructValue
-func GetStructValue(val reflect.Value) (ret FieldValue, err error) {
+// GetReferenceValue GetReferenceValue
+func GetReferenceValue(val reflect.Value) (ret FieldValue, err error) {
 	structInfo, _, err := getStructInfo(reflect.Indirect(val))
 	if err == nil {
 		pk := structInfo.GetPrimaryKey()

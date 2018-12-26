@@ -12,6 +12,7 @@ type FieldType interface {
 	Name() string
 	Value() int
 	Catalog() int
+	IsPtr() bool
 	PkgPath() string
 	String() string
 }
@@ -21,6 +22,7 @@ type typeImpl struct {
 	typeName    string
 	typePkgPath string
 	typeCatalog int
+	typeIsPtr   bool
 }
 
 func (s *typeImpl) Name() string {
@@ -33,6 +35,10 @@ func (s *typeImpl) Value() int {
 
 func (s *typeImpl) Catalog() int {
 	return s.typeCatalog
+}
+
+func (s *typeImpl) IsPtr() bool {
+	return s.typeIsPtr
 }
 
 func (s *typeImpl) PkgPath() string {
@@ -67,6 +73,6 @@ func newFieldType(sf *reflect.StructField) (ret FieldType, err error) {
 		}
 	}
 
-	ret = &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeCatalog: tCatalog}
+	ret = &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeCatalog: tCatalog, typeIsPtr: isPtr}
 	return
 }

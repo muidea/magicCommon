@@ -123,7 +123,7 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 
 		ret.fields.Append(fieldInfo)
 
-		fType := fieldInfo.GetValueTypeEnum()
+		fType := fieldInfo.GetFieldType()
 		if fType.Catalog() == util.TypeReferenceField {
 			fValue := fieldInfo.GetFieldValue()
 			dvs, err := fValue.GetDepend()

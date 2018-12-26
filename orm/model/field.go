@@ -26,8 +26,8 @@ func (s *FieldInfo) GetFieldName() string {
 	return s.fieldName
 }
 
-// GetValueTypeEnum GetValueTypeEnum
-func (s *FieldInfo) GetValueTypeEnum() FieldType {
+// GetFieldType GetFieldType
+func (s *FieldInfo) GetFieldType() FieldType {
 	return s.fieldType
 }
 
@@ -43,8 +43,7 @@ func (s *FieldInfo) GetFieldValue() FieldValue {
 
 // SetFieldValue SetFieldValue
 func (s *FieldInfo) SetFieldValue(val reflect.Value) {
-	val = reflect.Indirect(val)
-	s.fieldValue.SetValue(util.GetValue(s.fieldType.Value(), val))
+	s.fieldValue.SetValue(val)
 }
 
 // Verify Verify

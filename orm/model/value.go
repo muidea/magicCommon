@@ -8,6 +8,7 @@ import (
 // FieldValue FieldValue
 type FieldValue interface {
 	SetValue(val reflect.Value) error
+	IsNil() bool
 	GetValue() reflect.Value
 	GetDepend() ([]reflect.Value, error)
 	GetValueStr() (string, error)
@@ -26,18 +27,16 @@ func newFieldValue(val reflect.Value) (ret FieldValue, err error) {
 		ret = &floatImpl{value: val}
 	case reflect.String:
 		ret = &stringImpl{value: val}
-	case reflect.Slice:
-		ret = &sliceImpl{value: val}
 	case reflect.Struct:
 		if rawVal.Type().String() == "time.Time" {
 			ret = &datetimeImpl{value: val}
 		} else {
 			ret = &structImpl{value: val}
 		}
-	case reflect.Ptr:
-		ret = &ptrImpl{value: val}
+	case reflect.Slice:
+		ret = &sliceImpl{value: val}
 	default:
-		err = fmt.Errorf("no support value type, type:%s", rawVal.Type().String())
+		err = fmt.Errorf("no support value type, type:%s", val.Type().String())
 	}
 
 	return

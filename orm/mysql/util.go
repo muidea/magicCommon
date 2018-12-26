@@ -44,7 +44,7 @@ func declareFieldInfo(fieldInfo *model.FieldInfo) string {
 }
 
 func getFieldType(info *model.FieldInfo) (ret string) {
-	fType := info.GetValueTypeEnum()
+	fType := info.GetFieldType()
 	switch fType.Value() {
 	case util.TypeBooleanField:
 		ret = "TINYINT"
@@ -93,6 +93,8 @@ func getFieldType(info *model.FieldInfo) (ret string) {
 		break
 	case util.TypeStructField:
 		ret = "BIGINT"
+	case util.TypeSliceField:
+		ret = "TEXT"
 	default:
 		msg := fmt.Sprintf("no support fileType, %d", fType.Value())
 		panic(msg)

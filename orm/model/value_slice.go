@@ -13,10 +13,9 @@ type sliceImpl struct {
 }
 
 func (s *sliceImpl) SetValue(val reflect.Value) (err error) {
-	if s.value.Kind() == reflect.Ptr {
-		if s.value.IsNil() {
-			return
-		}
+	if s.IsNil() {
+		err = fmt.Errorf("can't set nil ptr")
+		return
 	}
 
 	rawVal := reflect.Indirect(s.value)
@@ -32,6 +31,14 @@ func (s *sliceImpl) SetValue(val reflect.Value) (err error) {
 		err = fmt.Errorf("can't convert %s to %s", val.Type().String(), rawVal.Type().String())
 	}
 	return
+}
+
+func (s *sliceImpl) IsNil() bool {
+	if s.value.Kind() == reflect.Ptr {
+		return s.value.IsNil()
+	}
+
+	return false
 }
 
 func (s *sliceImpl) GetValue() reflect.Value {
@@ -61,10 +68,9 @@ func (s *sliceImpl) GetDepend() (ret []reflect.Value, err error) {
 }
 
 func (s *sliceImpl) GetValueStr() (ret string, err error) {
-	if s.value.Kind() == reflect.Ptr {
-		if s.value.IsNil() {
-			return
-		}
+	if s.IsNil() {
+		err = fmt.Errorf("can't get nil ptr value")
+		return
 	}
 
 	rawVal := reflect.Indirect(s.value)

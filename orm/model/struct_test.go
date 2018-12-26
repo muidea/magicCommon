@@ -15,36 +15,36 @@ type Unit struct {
 	Name      string    `json:"name" orm:"name"`
 	Value     float32   `json:"value" orm:"value"`
 	TimeStamp time.Time `json:"timeStamp" orm:"timeStamp"`
-	T1        test      `orm:"t1"`
+	T1        Test      `orm:"t1"`
 }
 
-type bT struct {
-	id  int `orm:"id key"`
-	val int `orm:"val"`
+type BT struct {
+	ID  int `orm:"id key"`
+	Val int `orm:"val"`
 }
 
-type base struct {
-	id  int `orm:"id key"`
-	val int `orm:"val"`
-	bt  bT  `orm:"bt"`
+type Base struct {
+	ID  int `orm:"id key"`
+	Val int `orm:"val"`
+	Bt  BT  `orm:"bt"`
 }
 
-type test struct {
-	id    int  `orm:"id key"`
-	val   int  `orm:"val"`
-	base  base `orm:"b1"`
-	base2 bT   `orm:"b2"`
+type Test struct {
+	ID    int  `orm:"id key"`
+	Val   int  `orm:"val"`
+	Base  Base `orm:"b1"`
+	Base2 BT   `orm:"b2"`
 }
 
 func TestStruct(t *testing.T) {
 	now := time.Now()
-	info, _, _ := GetStructInfo(&Unit{T1: test{val: 123}, TimeStamp: now})
-	if info == nil {
-		t.Errorf("GetStructInfo failed,")
+	info, _, err := GetStructInfo(&Unit{T1: Test{Val: 123}, TimeStamp: now})
+	if info == nil || err != nil {
+		t.Errorf("GetStructInfo failed, err:%s", err.Error())
 		return
 	}
 
-	err := info.Verify()
+	err = info.Verify()
 	if err != nil {
 		t.Errorf("Verify failed, err:%s", err.Error())
 	}
@@ -54,7 +54,7 @@ func TestStruct(t *testing.T) {
 
 func TestStructValue(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
-	unit := &Unit{Name: "AA", T1: test{val: 123}, TimeStamp: now}
+	unit := &Unit{Name: "AA", T1: Test{Val: 123}, TimeStamp: now}
 	info, _, _ := GetStructInfo(unit)
 	if info == nil {
 		t.Errorf("GetStructInfo failed,")
@@ -98,10 +98,17 @@ func TestReference(t *testing.T) {
 		EF []*AB `orm:"ef"`
 	}
 
-	f32Info, _, _ := GetStructInfo(&Demo{AB: &AB{}})
+	f32Info, _, err := GetStructInfo(&Demo{AB: &AB{}})
+	if err != nil {
+		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+	}
 
 	f32Info.Dump()
 
-	i64Info, _, _ := GetStructInfo(&CD{})
+	i64Info, _, err := GetStructInfo(&CD{})
+	if err != nil {
+		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+	}
+
 	i64Info.Dump()
 }

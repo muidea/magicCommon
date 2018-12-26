@@ -10,10 +10,9 @@ type stringImpl struct {
 }
 
 func (s *stringImpl) SetValue(val reflect.Value) (err error) {
-	if s.value.Kind() == reflect.Ptr {
-		if s.value.IsNil() {
-			return
-		}
+	if s.IsNil() {
+		err = fmt.Errorf("can't set nil ptr")
+		return
 	}
 
 	rawVal := reflect.Indirect(s.value)
@@ -27,6 +26,14 @@ func (s *stringImpl) SetValue(val reflect.Value) (err error) {
 	return
 }
 
+func (s *stringImpl) IsNil() bool {
+	if s.value.Kind() == reflect.Ptr {
+		return s.value.IsNil()
+	}
+
+	return false
+}
+
 func (s *stringImpl) GetValue() reflect.Value {
 	return s.value
 }
@@ -37,10 +44,9 @@ func (s *stringImpl) GetDepend() (ret []reflect.Value, err error) {
 }
 
 func (s *stringImpl) GetValueStr() (ret string, err error) {
-	if s.value.Kind() == reflect.Ptr {
-		if s.value.IsNil() {
-			return
-		}
+	if s.IsNil() {
+		err = fmt.Errorf("can't get nil ptr value")
+		return
 	}
 
 	rawVal := reflect.Indirect(s.value)

@@ -10,7 +10,7 @@ import (
 
 func TestGetValueStr(t *testing.T) {
 	iVal := int(123)
-	fiVal, fiErr := newFieldValue(reflect.ValueOf(&iVal))
+	fiVal, fiErr := newFieldValue(reflect.ValueOf(iVal))
 	if fiErr != nil {
 		t.Errorf("%s", fiErr.Error())
 	} else {
@@ -21,7 +21,7 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	fVal := 12.34
-	ffVal, ffErr := newFieldValue(reflect.ValueOf(&fVal))
+	ffVal, ffErr := newFieldValue(reflect.ValueOf(fVal))
 	if ffErr != nil {
 		t.Errorf("%s", ffErr.Error())
 	} else {
@@ -32,7 +32,7 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	strVal := "abc"
-	fstrVal, fstrErr := newFieldValue(reflect.ValueOf(&strVal))
+	fstrVal, fstrErr := newFieldValue(reflect.ValueOf(strVal))
 	if fstrErr != nil {
 		t.Errorf("%s", fstrErr.Error())
 	} else {
@@ -43,7 +43,7 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	bVal := true
-	fbVal, fbErr := newFieldValue(reflect.ValueOf(&bVal))
+	fbVal, fbErr := newFieldValue(reflect.ValueOf(bVal))
 	if fbErr != nil {
 		t.Errorf("%s", fbErr.Error())
 	} else {
@@ -54,7 +54,7 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
-	ftimeVal, ftimeErr := newFieldValue(reflect.ValueOf(&now))
+	ftimeVal, ftimeErr := newFieldValue(reflect.ValueOf(now))
 	if ftimeErr != nil {
 		t.Errorf("%s", ftimeErr.Error())
 	} else {
@@ -65,9 +65,9 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	ii := 123
-	var iiVal *int
-	iiVal = &ii
-	fiVal, fiErr = newFieldValue(reflect.ValueOf(&iiVal))
+	var iiVal int
+	iiVal = ii
+	fiVal, fiErr = newFieldValue(reflect.ValueOf(iiVal))
 	if fiErr != nil {
 		t.Errorf("%s", fiErr.Error())
 	} else {
@@ -89,7 +89,7 @@ func TestSetValue(t *testing.T) {
 		t.Errorf("%s", fiErr.Error())
 	} else {
 		intVal := 123
-		fiVal.SetValue(reflect.ValueOf(&intVal))
+		fiVal.SetValue(reflect.ValueOf(intVal))
 		ret, _ := fiVal.GetValueStr()
 		if ret != "123" {
 			t.Errorf("GetValueStr failed, iVal:%d", iVal)
@@ -105,7 +105,7 @@ func TestSetValue(t *testing.T) {
 		t.Errorf("%s", ffErr.Error())
 	} else {
 		fltVal := 12.34
-		ffVal.SetValue(reflect.ValueOf(&fltVal))
+		ffVal.SetValue(reflect.ValueOf(fltVal))
 		ret, _ := ffVal.GetValueStr()
 		if ret != "12.340000" {
 			t.Errorf("GetValueStr failed, fVal:%f", fVal)
@@ -212,7 +212,11 @@ func TestDepend(t *testing.T) {
 			t.Errorf("fv.GetDepend failed. fds size:%d", len(strFds))
 		}
 
-		log.Print(strSliceValfv.GetValueStr())
+		ret, err := strSliceValfv.GetValueStr()
+		if err != nil {
+			t.Errorf("GetValueStr failed, err:%s", err.Error())
+		}
+		log.Print(ret)
 	}
 }
 
@@ -230,7 +234,7 @@ func TestPtr(t *testing.T) {
 	}
 
 	iVal = &ii
-	fiVal, fiErr = newFieldValue(reflect.ValueOf(&iVal))
+	fiVal, fiErr = newFieldValue(reflect.ValueOf(iVal))
 	if fiErr != nil {
 		t.Errorf("%s", fiErr.Error())
 	} else {
