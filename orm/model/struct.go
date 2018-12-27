@@ -59,16 +59,6 @@ func (s *StructInfo) GetPrimaryKey() *FieldInfo {
 	return s.primaryKey
 }
 
-// IsSame IsSame
-func (s *StructInfo) IsSame(info *StructInfo) bool {
-	return s.name == info.name
-}
-
-// IsConflict IsConflict
-func (s *StructInfo) IsConflict(info *StructInfo) bool {
-	return s.name == info.name && s.pkgPath != info.pkgPath
-}
-
 // Dump Dump
 func (s *StructInfo) Dump() {
 	fmt.Print("structInfo:\n")
@@ -83,29 +73,29 @@ func (s *StructInfo) Dump() {
 
 // GetStructInfo GetStructInfo
 func GetStructInfo(objPtr interface{}) (ret *StructInfo, depends []*StructInfo, err error) {
-	objType := reflect.TypeOf(objPtr)
-	objVal := reflect.ValueOf(objPtr)
+	ptrVal := reflect.ValueOf(objPtr)
 
-	if objType.Kind() != reflect.Ptr {
+	if ptrVal.Kind() != reflect.Ptr {
 		err = fmt.Errorf("illegal obj type. must be a struct ptr")
 		return
 	}
 
-	structObj := reflect.Indirect(objVal)
-	if structObj.Kind() != reflect.Struct {
+	structVal := reflect.Indirect(ptrVal)
+	if structVal.Kind() != reflect.Struct {
 		err = fmt.Errorf("illegal obj type. must be a struct ptr")
 		return
 	}
-	ret, depends, err = getStructInfo(structObj)
+
+	ret, depends, err = getStructInfo(structVal)
 	return
 }
 
-func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructInfo, err error) {
-	ret = &StructInfo{name: structObj.Type().Name(), pkgPath: structObj.Type().PkgPath(), fields: make(Fields, 0)}
+func getStructInfo(structVal reflect.Value) (ret *StructInfo, depends []*StructInfo, err error) {
+	ret = &StructInfo{name: structVal.Type().Name(), pkgPath: structVal.Type().PkgPath(), fields: make(Fields, 0)}
 	depends = []*StructInfo{}
 
-	structType := structObj.Type()
-	fieldNum := structObj.NumField()
+	structType := structVal.Type()
+	fieldNum := structVal.NumField()
 
 	idx := 0
 	reference := []reflect.Value{}
@@ -115,8 +105,8 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 		}
 
 		fieldType := structType.Field(idx)
-		fieldVal := structObj.Field(idx)
-		fieldInfo, fieldErr := GetFieldInfo(idx, &fieldType, &fieldVal)
+		fieldVal := structVal.Field(idx)
+		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, fieldVal)
 		if fieldErr != nil {
 			err = fieldErr
 			log.Printf("getFieldInfo failed, err:%s", err.Error())
@@ -158,18 +148,18 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 	return
 }
 
-func getStructPrimaryKey(structObj reflect.Value) (ret *FieldInfo, err error) {
-	if structObj.Kind() != reflect.Struct {
-		err = fmt.Errorf("illegal value type, type:%s", structObj.Type().String())
+func getStructPrimaryKey(structVal reflect.Value) (ret *FieldInfo, err error) {
+	if structVal.Kind() != reflect.Struct {
+		err = fmt.Errorf("illegal value type, not struct, type:%s", structVal.Type().String())
 		return
 	}
 
-	structType := structObj.Type()
-	fieldNum := structObj.NumField()
+	structType := structVal.Type()
+	fieldNum := structVal.NumField()
 	for idx := 0; idx < fieldNum; {
 		fieldType := structType.Field(idx)
-		fieldVal := structObj.Field(idx)
-		fieldInfo, fieldErr := GetFieldInfo(idx, &fieldType, &fieldVal)
+		fieldVal := structVal.Field(idx)
+		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, fieldVal)
 		if fieldErr != nil {
 			err = fieldErr
 			return
@@ -184,6 +174,6 @@ func getStructPrimaryKey(structObj reflect.Value) (ret *FieldInfo, err error) {
 		idx++
 	}
 
-	err = fmt.Errorf("no found primary key. type:%s", structObj.Type().String())
+	err = fmt.Errorf("no found primary key. type:%s", structVal.Type().String())
 	return
 }

@@ -14,7 +14,7 @@ func (s *Builder) BuildInsert() (ret string, err error) {
 	vals, verr := s.getFieldInsertValues(s.structInfo)
 	if verr == nil {
 		for _, val := range vals {
-			sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.getTableName(s.structInfo), s.getFieldNames(s.structInfo, false), val)
+			sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.getTableName(s.structInfo), s.getFieldInsertNames(s.structInfo), val)
 		}
 		log.Print(sql)
 		ret = sql
@@ -36,6 +36,34 @@ func (s *Builder) BuildInsertRelation(relationInfo *model.StructInfo) (ret strin
 	log.Print(ret)
 
 	return
+}
+
+func (s *Builder) getFieldInsertNames(info *model.StructInfo) string {
+	str := ""
+	for _, field := range *s.structInfo.GetFields() {
+		fTag := field.GetFieldTag()
+		if fTag.IsAutoIncrement() {
+			continue
+		}
+
+		fType := field.GetFieldType()
+		fValue := field.GetFieldValue()
+		if fType.IsPtr() && fValue.IsNil() {
+			continue
+		}
+
+		if !util.IsBasicType(fType.Value()) {
+			continue
+		}
+
+		if str == "" {
+			str = fmt.Sprintf("`%s`", fTag.Name())
+		} else {
+			str = fmt.Sprintf("%s,`%s`", str, fTag.Name())
+		}
+	}
+
+	return str
 }
 
 func (s *Builder) getFieldInsertValues(info *model.StructInfo) (ret []string, err error) {

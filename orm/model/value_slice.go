@@ -93,7 +93,7 @@ func (s *sliceImpl) GetValueStr() (ret string, err error) {
 	valSlice := []interface{}{}
 	pos := rawVal.Len()
 	for idx := 0; idx < pos; {
-		sv := rawVal.Slice(idx, idx+1)
+		sv := rawVal.Index(idx)
 
 		sv = reflect.Indirect(sv)
 		if sv.Kind() == reflect.Struct {

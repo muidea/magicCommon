@@ -43,7 +43,7 @@ func (s *typeImpl) String() string {
 	return fmt.Sprintf("val:%d,name:%s,pkgPath:%s", s.typeValue, s.typeName, s.typePkgPath)
 }
 
-func newFieldType(sf *reflect.StructField) (ret FieldType, err error) {
+func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
 	val := sf.Type
 
 	isPtr := false

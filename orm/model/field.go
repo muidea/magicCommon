@@ -129,7 +129,7 @@ func (s *Fields) Dump() {
 }
 
 // GetFieldInfo GetFieldInfo
-func GetFieldInfo(idx int, fieldType *reflect.StructField, fieldVal *reflect.Value) (ret *FieldInfo, err error) {
+func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal reflect.Value) (ret *FieldInfo, err error) {
 	info := &FieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = fieldType.Name

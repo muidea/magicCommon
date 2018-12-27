@@ -127,4 +127,52 @@ func TestBuilderReference(t *testing.T) {
 	if builder == nil {
 		t.Error("new Builder failed")
 	}
+
+	str, err := builder.BuildCreateSchema()
+	if err != nil {
+		t.Errorf("build create schema failed, err:%s", err.Error())
+	}
+	if str != "CREATE TABLE `Ext` (\n\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`name` TEXT NOT NULL ,\n\t`description` TEXT  ,\n\tPRIMARY KEY (`id`)\n)\n" {
+		t.Error("build create schema failed")
+	}
+
+	str, err = builder.BuildDropSchema()
+	if err != nil {
+		t.Errorf("build drop schema failed, err:%s", err.Error())
+	}
+	if str != "DROP TABLE IF EXISTS `Ext`" {
+		t.Error("build drop schema failed")
+	}
+
+	str, err = builder.BuildInsert()
+	if err != nil {
+		t.Errorf("build insert failed, err:%s", err.Error())
+	}
+	if str != "INSERT INTO `Ext` (`name`) VALUES ('');" {
+		t.Error("build insert failed")
+	}
+
+	str, err = builder.BuildUpdate()
+	if err != nil {
+		t.Errorf("build update failed, err:%s", err.Error())
+	}
+	if str != "UPDATE `Ext` SET `name`='' WHERE `id`=0" {
+		t.Error("build update failed")
+	}
+
+	str, err = builder.BuildDelete()
+	if err != nil {
+		t.Errorf("build delete failed, err:%s", err.Error())
+	}
+	if str != "DELETE FROM `Ext` WHERE `id`=0" {
+		t.Error("build delete failed")
+	}
+
+	str, err = builder.BuildQuery()
+	if err != nil {
+		t.Errorf("build query failed, err:%s", err.Error())
+	}
+	if str != "SELECT `id`,`name`,`description` FROM `Ext` WHERE `id`=0" {
+		t.Error("build query failed")
+	}
 }

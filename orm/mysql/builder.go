@@ -32,30 +32,6 @@ func (s *Builder) GetTableName() string {
 	return s.getTableName(s.structInfo)
 }
 
-func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
-	str := ""
-	for _, field := range *s.structInfo.GetFields() {
-		fTag := field.GetFieldTag()
-		if fTag.IsAutoIncrement() && !all {
-			continue
-		}
-
-		fType := field.GetFieldType()
-		fValue := field.GetFieldValue()
-		if fType.IsPtr() && fValue.IsNil() {
-			continue
-		}
-
-		if str == "" {
-			str = fmt.Sprintf("`%s`", fTag.Name())
-		} else {
-			str = fmt.Sprintf("%s,`%s`", str, fTag.Name())
-		}
-	}
-
-	return str
-}
-
 // GetRelationTableName GetRelationTableName
 func (s *Builder) GetRelationTableName(relationInfo *model.StructInfo) string {
 	leftName := s.getTableName(s.structInfo)

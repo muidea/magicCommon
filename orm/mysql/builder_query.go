@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/util"
 )
 
 // BuildQuery BuildQuery
@@ -19,7 +20,7 @@ func (s *Builder) BuildQuery() (ret string, err error) {
 	pkfTag := pk.GetFieldTag()
 	pkfStr, pkferr := pkfValue.GetValueStr()
 	if pkferr == nil {
-		ret = fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldNames(s.structInfo, true), s.getTableName(s.structInfo), pkfTag.Name(), pkfStr)
+		ret = fmt.Sprintf("SELECT %s FROM `%s` WHERE `%s`=%s", s.getFieldQueryNames(s.structInfo), s.getTableName(s.structInfo), pkfTag.Name(), pkfStr)
 		log.Print(ret)
 	}
 	err = pkferr
@@ -34,4 +35,23 @@ func (s *Builder) BuildQueryRelation(relationInfo *model.StructInfo) (string, er
 	log.Print(str)
 
 	return str, nil
+}
+
+func (s *Builder) getFieldQueryNames(info *model.StructInfo) string {
+	str := ""
+	for _, field := range *s.structInfo.GetFields() {
+		fTag := field.GetFieldTag()
+		fType := field.GetFieldType()
+		if !util.IsBasicType(fType.Value()) {
+			continue
+		}
+
+		if str == "" {
+			str = fmt.Sprintf("`%s`", fTag.Name())
+		} else {
+			str = fmt.Sprintf("%s,`%s`", str, fTag.Name())
+		}
+	}
+
+	return str
 }

@@ -5,14 +5,24 @@ import (
 	"log"
 
 	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/util"
 )
 
 // BuildUpdate  BuildUpdate
 func (s *Builder) BuildUpdate() (ret string, err error) {
 	str := ""
 	for _, val := range *s.structInfo.GetFields() {
+		fType := val.GetFieldType()
 		fValue := val.GetFieldValue()
 		fTag := val.GetFieldTag()
+		if fType.IsPtr() && fValue.IsNil() {
+			continue
+		}
+
+		if !util.IsBasicType(fType.Value()) {
+			continue
+		}
+
 		if val != s.structInfo.GetPrimaryKey() {
 			fStr, ferr := fValue.GetValueStr()
 			if ferr != nil {
