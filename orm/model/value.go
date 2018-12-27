@@ -66,7 +66,7 @@ func newFieldValue(val reflect.Value) (ret FieldValue, err error) {
 			err = fmt.Errorf("no support value ptr type, type:%s", val.Type().String())
 		}
 	default:
-		err = fmt.Errorf("no support value type, type:%s", val.Type().String())
+		err = fmt.Errorf("no support value type, kind:%s, type:%s", val.Kind().String(), val.Type().String())
 	}
 
 	return

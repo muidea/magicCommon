@@ -61,6 +61,7 @@ func (s *sliceImpl) GetDepend() (ret []reflect.Value, err error) {
 		sv := rawVal.Slice(idx, idx+1)
 
 		sv = reflect.Indirect(sv)
+
 		ret = append(ret, sv)
 		idx++
 	}

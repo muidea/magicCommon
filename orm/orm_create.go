@@ -1,6 +1,8 @@
 package orm
 
 import (
+	"log"
+
 	"muidea.com/magicCommon/orm/builder"
 	"muidea.com/magicCommon/orm/model"
 )
@@ -15,6 +17,7 @@ func (s *orm) createSchema(structInfo *model.StructInfo) (err error) {
 			// no exist
 			sql, err := builder.BuildCreateSchema()
 			if err != nil {
+				log.Printf("build create schema failed, err:%s", err.Error())
 				return err
 			}
 

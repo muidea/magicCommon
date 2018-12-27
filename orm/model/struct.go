@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 
 	"muidea.com/magicCommon/orm/util"
@@ -118,6 +119,7 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 		fieldInfo, fieldErr := GetFieldInfo(idx, &fieldType, &fieldVal)
 		if fieldErr != nil {
 			err = fieldErr
+			log.Printf("getFieldInfo failed, err:%s", err.Error())
 			return
 		}
 

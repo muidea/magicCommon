@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"log"
 	"reflect"
 
 	"muidea.com/magicCommon/orm/builder"
@@ -39,6 +40,7 @@ func (s *orm) Insert(obj interface{}) (err error) {
 	structInfo, structDepends, structErr := model.GetStructInfo(obj)
 	if structErr != nil {
 		err = structErr
+		log.Printf("getStructInfo failed, err:%s", err.Error())
 		return
 	}
 
