@@ -227,14 +227,30 @@ func TestPtr(t *testing.T) {
 	if fiErr != nil {
 		t.Errorf("%s", fiErr.Error())
 	} else {
-		ret, _ := fiVal.GetValueStr()
-		if ret != "" {
-			t.Errorf("GetValueStr failed, iVal:%d", iVal)
+		ret, err := fiVal.GetValueStr()
+		if err == nil {
+			t.Errorf("GetValueStr exception")
+		}
+
+		err = fiVal.SetValue(reflect.ValueOf(&ii))
+		if err != nil {
+			t.Errorf("SetValue failed, err:%s", err.Error())
+		}
+		ret, err = fiVal.GetValueStr()
+		if err != nil {
+			t.Errorf("GetValueStr failed, err:%s", err.Error())
+		} else {
+			if ret != "10" {
+				t.Errorf("GetValueStr exception, iVal:%d, ret:%s", *iVal, ret)
+			}
+			if *iVal != ii {
+				t.Errorf("GetValueStr exception, iVal:%d, ii:%d", *iVal, ii)
+			}
 		}
 	}
 
 	iVal = &ii
-	fiVal, fiErr = newFieldValue(reflect.ValueOf(iVal))
+	fiVal, fiErr = newFieldValue(reflect.ValueOf(&iVal))
 	if fiErr != nil {
 		t.Errorf("%s", fiErr.Error())
 	} else {
@@ -264,8 +280,5 @@ func TestPtr(t *testing.T) {
 			}
 
 		}
-
-		bVal := false
-		log.Print(reflect.ValueOf(bVal).Type().String())
 	}
 }

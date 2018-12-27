@@ -41,8 +41,8 @@ func (s *sliceImpl) IsNil() bool {
 	return false
 }
 
-func (s *sliceImpl) GetValue() reflect.Value {
-	return s.value
+func (s *sliceImpl) GetValue() (reflect.Value, error) {
+	return s.value, nil
 }
 
 func (s *sliceImpl) GetDepend() (ret []reflect.Value, err error) {

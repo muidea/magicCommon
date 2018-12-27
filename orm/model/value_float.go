@@ -34,8 +34,8 @@ func (s *floatImpl) IsNil() bool {
 	return false
 }
 
-func (s *floatImpl) GetValue() reflect.Value {
-	return s.value
+func (s *floatImpl) GetValue() (reflect.Value, error) {
+	return s.value, nil
 }
 
 func (s *floatImpl) GetDepend() (ret []reflect.Value, err error) {

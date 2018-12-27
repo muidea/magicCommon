@@ -46,8 +46,8 @@ func (s *datetimeImpl) IsNil() bool {
 	return false
 }
 
-func (s *datetimeImpl) GetValue() reflect.Value {
-	return s.value
+func (s *datetimeImpl) GetValue() (reflect.Value, error) {
+	return s.value, nil
 }
 
 func (s *datetimeImpl) GetDepend() (ret []reflect.Value, err error) {

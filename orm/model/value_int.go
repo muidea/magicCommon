@@ -34,8 +34,8 @@ func (s *intImpl) IsNil() bool {
 	return false
 }
 
-func (s *intImpl) GetValue() reflect.Value {
-	return s.value
+func (s *intImpl) GetValue() (reflect.Value, error) {
+	return s.value, nil
 }
 
 func (s *intImpl) GetDepend() (ret []reflect.Value, err error) {
@@ -84,8 +84,8 @@ func (s *uintImpl) IsNil() bool {
 	return false
 }
 
-func (s *uintImpl) GetValue() reflect.Value {
-	return s.value
+func (s *uintImpl) GetValue() (reflect.Value, error) {
+	return s.value, nil
 }
 
 func (s *uintImpl) GetDepend() (ret []reflect.Value, err error) {

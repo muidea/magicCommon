@@ -83,8 +83,6 @@ var mysqlKeyWords = []string{
 
 // IsKeyWord check if a keyword
 func IsKeyWord(str string) bool {
-	return false
-
 	for _, val := range mysqlKeyWords {
 		if strings.ToUpper(str) == val {
 			return true

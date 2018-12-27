@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"muidea.com/magicCommon/orm/model"
@@ -16,11 +15,11 @@ type Builder struct {
 
 // New create builder
 func New(structInfo *model.StructInfo) *Builder {
-	err := verifyStructInfo(structInfo)
-	if err != nil {
-		log.Printf("verify structInfo failed, err:%s", err.Error())
-		return nil
-	}
+	//err := verifyStructInfo(structInfo)
+	//if err != nil {
+	//	log.Printf("verify structInfo failed, err:%s", err.Error())
+	//	return nil
+	//}
 
 	return &Builder{structInfo: structInfo}
 }
@@ -39,6 +38,12 @@ func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 	for _, field := range *s.structInfo.GetFields() {
 		fTag := field.GetFieldTag()
 		if fTag.IsAutoIncrement() && !all {
+			continue
+		}
+
+		fType := field.GetFieldType()
+		fValue := field.GetFieldValue()
+		if fType.IsPtr() && fValue.IsNil() {
 			continue
 		}
 
@@ -62,9 +67,14 @@ func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string, err erro
 
 		fType := field.GetFieldType()
 		fValue := field.GetFieldValue()
+		if fType.IsPtr() && fValue.IsNil() {
+			continue
+		}
+
 		switch fType.Catalog() {
 		case util.TypeReferenceField, util.TypeReferencePtrField:
-			fValue, err = model.GetReferenceValue(fValue.GetValue())
+			val, _ := fValue.GetValue()
+			fValue, err = model.GetReferenceValue(val)
 		default:
 		}
 		if err != nil {

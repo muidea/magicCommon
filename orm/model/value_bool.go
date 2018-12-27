@@ -46,8 +46,8 @@ func (s *boolImpl) IsNil() bool {
 	return false
 }
 
-func (s *boolImpl) GetValue() reflect.Value {
-	return s.value
+func (s *boolImpl) GetValue() (reflect.Value, error) {
+	return s.value, nil
 }
 
 func (s *boolImpl) GetDepend() (ret []reflect.Value, err error) {

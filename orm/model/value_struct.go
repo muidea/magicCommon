@@ -38,8 +38,8 @@ func (s *structImpl) IsNil() bool {
 	return false
 }
 
-func (s *structImpl) GetValue() reflect.Value {
-	return s.value
+func (s *structImpl) GetValue() (reflect.Value, error) {
+	return s.value, nil
 }
 
 func (s *structImpl) GetDepend() (ret []reflect.Value, err error) {

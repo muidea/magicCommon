@@ -34,8 +34,8 @@ func (s *stringImpl) IsNil() bool {
 	return false
 }
 
-func (s *stringImpl) GetValue() reflect.Value {
-	return s.value
+func (s *stringImpl) GetValue() (reflect.Value, error) {
+	return s.value, nil
 }
 
 func (s *stringImpl) GetDepend() (ret []reflect.Value, err error) {
