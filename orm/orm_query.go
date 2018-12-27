@@ -26,7 +26,7 @@ func (s *orm) querySingle(structInfo *model.StructInfo) (err error) {
 	fields := structInfo.GetFields()
 	for _, val := range *fields {
 		fType := val.GetFieldType()
-		v := util.GetBaseTypeInitValue(fType.Value())
+		v := util.GetBasicTypeInitValue(fType.Value())
 		items = append(items, v)
 	}
 	s.executor.GetField(items...)

@@ -5,12 +5,13 @@ import (
 	"log"
 
 	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/util"
 )
 
 // BuildInsert  BuildInsert
 func (s *Builder) BuildInsert() (ret string, err error) {
 	sql := ""
-	vals, verr := s.getFieldValues(s.structInfo)
+	vals, verr := s.getFieldInsertValues(s.structInfo)
 	if verr == nil {
 		for _, val := range vals {
 			sql = fmt.Sprintf("%sINSERT INTO `%s` (%s) VALUES (%s);", sql, s.getTableName(s.structInfo), s.getFieldNames(s.structInfo, false), val)
@@ -33,6 +34,42 @@ func (s *Builder) BuildInsertRelation(relationInfo *model.StructInfo) (ret strin
 
 	ret = fmt.Sprintf("INSERT INTO `%s` (`left`, `right`) VALUES (%s,%s);", s.GetRelationTableName(relationInfo), leftVal, rightVal)
 	log.Print(ret)
+
+	return
+}
+
+func (s *Builder) getFieldInsertValues(info *model.StructInfo) (ret []string, err error) {
+	str := ""
+	for _, field := range *info.GetFields() {
+		fTag := field.GetFieldTag()
+		if fTag.IsAutoIncrement() {
+			continue
+		}
+
+		fType := field.GetFieldType()
+		fValue := field.GetFieldValue()
+		if fType.IsPtr() && fValue.IsNil() {
+			continue
+		}
+
+		if !util.IsBasicType(fType.Value()) {
+			continue
+		}
+
+		fStr, ferr := fValue.GetValueStr()
+		if ferr == nil {
+			if str == "" {
+				str = fmt.Sprintf("%s", fStr)
+			} else {
+				str = fmt.Sprintf("%s,%s", str, fStr)
+			}
+		} else {
+			err = ferr
+			break
+		}
+	}
+
+	ret = append(ret, str)
 
 	return
 }

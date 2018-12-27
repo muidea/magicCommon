@@ -17,13 +17,24 @@ type Unit struct {
 	TimeStamp time.Time `orm:"ts"`
 }
 
-func TestBuilder(t *testing.T) {
+type Ext struct {
+	//ID 唯一标示单元
+	ID int `orm:"id key auto"`
+	// Name 名称
+	Name string `orm:"name"`
+
+	Description *string `orm:"description"`
+
+	Unit Unit `orm:"unit"`
+}
+
+func TestBuilderCommon(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
 	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: now}
 
 	info, depends, err := model.GetStructInfo(obj)
-	if info == nil {
-		t.Errorf("GetStructInfo failed,")
+	if err != nil {
+		t.Errorf("GetStructInfo failed, err:%s", err.Error())
 		return
 	}
 
@@ -35,6 +46,7 @@ func TestBuilder(t *testing.T) {
 	err = info.Verify()
 	if err != nil {
 		t.Errorf("Verify StructInfo failed, err:%s", err.Error())
+		return
 	}
 
 	builder := NewBuilder(info)
@@ -88,5 +100,31 @@ func TestBuilder(t *testing.T) {
 	}
 	if str != "SELECT `id`,`name`,`value`,`ts` FROM `Unit` WHERE `id`=10" {
 		t.Error("build query failed")
+	}
+}
+
+func TestBuilderReference(t *testing.T) {
+	ext := &Ext{}
+
+	info, depends, err := model.GetStructInfo(ext)
+	if err != nil {
+		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+		return
+	}
+
+	if len(depends) != 1 {
+		t.Errorf("GetStructInfo failed,")
+		return
+	}
+
+	err = info.Verify()
+	if err != nil {
+		t.Errorf("Verify StructInfo failed, err:%s", err.Error())
+		return
+	}
+
+	builder := NewBuilder(info)
+	if builder == nil {
+		t.Error("new Builder failed")
 	}
 }

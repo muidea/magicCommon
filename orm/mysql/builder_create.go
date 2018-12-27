@@ -5,12 +5,18 @@ import (
 	"log"
 
 	"muidea.com/magicCommon/orm/model"
+	"muidea.com/magicCommon/orm/util"
 )
 
 // BuildCreateSchema  BuildCreateSchema
 func (s *Builder) BuildCreateSchema() (string, error) {
 	str := ""
 	for _, val := range *s.structInfo.GetFields() {
+		fType := val.GetFieldType()
+		if !util.IsBasicType(fType.Value()) {
+			continue
+		}
+
 		if str == "" {
 			str = fmt.Sprintf("\t%s", declareFieldInfo(val))
 		} else {

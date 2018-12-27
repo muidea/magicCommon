@@ -47,12 +47,17 @@ func (s *sliceImpl) GetValue() (reflect.Value, error) {
 
 func (s *sliceImpl) GetDepend() (ret []reflect.Value, err error) {
 	rawVal := reflect.Indirect(s.value)
-	sliceTypeEnum, sliceTypeErr := getSliceRawTypeValue(rawVal.Type())
+	sliceRawTypeEnum, sliceTypeErr := util.GetSliceRawTypeEnum(rawVal.Type())
 	if sliceTypeErr != nil {
 		err = sliceTypeErr
 		return
 	}
-	if sliceTypeEnum < util.TypeStructField {
+	if util.IsBasicType(sliceRawTypeEnum) {
+		return
+	}
+
+	if !util.IsStructType(sliceRawTypeEnum) {
+		err = fmt.Errorf("no support slice element type")
 		return
 	}
 
@@ -75,12 +80,12 @@ func (s *sliceImpl) GetValueStr() (ret string, err error) {
 	}
 
 	rawVal := reflect.Indirect(s.value)
-	sliceTypeEnum, sliceTypeErr := getSliceRawTypeValue(rawVal.Type())
+	sliceRawTypeEnum, sliceTypeErr := util.GetSliceRawTypeEnum(rawVal.Type())
 	if sliceTypeErr != nil {
 		err = sliceTypeErr
 		return
 	}
-	if sliceTypeEnum >= util.TypeStructField {
+	if !util.IsBasicType(sliceRawTypeEnum) {
 		err = fmt.Errorf("no support get value string, type:%s", rawVal.Type().String())
 		return
 	}

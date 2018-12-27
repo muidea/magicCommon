@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"muidea.com/magicCommon/orm/model"
-	"muidea.com/magicCommon/orm/util"
 )
 
 // Builder Builder
@@ -55,48 +54,6 @@ func (s *Builder) getFieldNames(info *model.StructInfo, all bool) string {
 	}
 
 	return str
-}
-
-func (s *Builder) getFieldValues(info *model.StructInfo) (ret []string, err error) {
-	str := ""
-	for _, field := range *info.GetFields() {
-		fTag := field.GetFieldTag()
-		if fTag.IsAutoIncrement() {
-			continue
-		}
-
-		fType := field.GetFieldType()
-		fValue := field.GetFieldValue()
-		if fType.IsPtr() && fValue.IsNil() {
-			continue
-		}
-
-		switch fType.Catalog() {
-		case util.TypeReferenceField, util.TypeReferencePtrField:
-			val, _ := fValue.GetValue()
-			fValue, err = model.GetReferenceValue(val)
-		default:
-		}
-		if err != nil {
-			break
-		}
-
-		fStr, ferr := fValue.GetValueStr()
-		if ferr == nil {
-			if str == "" {
-				str = fmt.Sprintf("%s", fStr)
-			} else {
-				str = fmt.Sprintf("%s,%s", str, fStr)
-			}
-		} else {
-			err = ferr
-			break
-		}
-	}
-
-	ret = append(ret, str)
-
-	return
 }
 
 // GetRelationTableName GetRelationTableName

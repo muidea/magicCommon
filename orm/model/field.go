@@ -144,7 +144,7 @@ func GetFieldInfo(idx int, fieldType *reflect.StructField, fieldVal *reflect.Val
 		return
 	}
 
-	info.fieldValue, err = newFieldValue(*fieldVal)
+	info.fieldValue, err = newFieldValue(fieldVal.Addr())
 	if err != nil {
 		return
 	}

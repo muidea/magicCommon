@@ -15,53 +15,56 @@ type FieldValue interface {
 }
 
 func newFieldValue(val reflect.Value) (ret FieldValue, err error) {
+	if val.Kind() != reflect.Ptr {
+		err = fmt.Errorf("illegal val, must be a ptr")
+		return
+	}
+
 	rawVal := reflect.Indirect(val)
 	switch rawVal.Kind() {
 	case reflect.Bool:
-		ret = &boolImpl{value: val}
+		ret = &boolImpl{value: rawVal}
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-		ret = &intImpl{value: val}
+		ret = &intImpl{value: rawVal}
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		ret = &uintImpl{value: val}
+		ret = &uintImpl{value: rawVal}
 	case reflect.Float32, reflect.Float64:
-		ret = &floatImpl{value: val}
+		ret = &floatImpl{value: rawVal}
 	case reflect.String:
-		ret = &stringImpl{value: val}
+		ret = &stringImpl{value: rawVal}
 	case reflect.Struct:
 		if rawVal.Type().String() == "time.Time" {
-			ret = &datetimeImpl{value: val}
+			ret = &datetimeImpl{value: rawVal}
 		} else {
-			ret = &structImpl{value: val}
+			ret = &structImpl{value: rawVal}
 		}
 	case reflect.Slice:
-		ret = &sliceImpl{value: val}
+		ret = &sliceImpl{value: rawVal}
 	case reflect.Ptr:
 		if rawVal.IsNil() {
-			ret = &nilImpl{value: val}
+			ret = &nilImpl{value: rawVal}
 			return
 		}
-
 		rawVal = reflect.Indirect(rawVal)
-		val = reflect.Indirect(val)
 		switch rawVal.Kind() {
 		case reflect.Bool:
-			ret = &boolImpl{value: val}
+			ret = &boolImpl{value: rawVal}
 		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-			ret = &intImpl{value: val}
+			ret = &intImpl{value: rawVal}
 		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-			ret = &uintImpl{value: val}
+			ret = &uintImpl{value: rawVal}
 		case reflect.Float32, reflect.Float64:
-			ret = &floatImpl{value: val}
+			ret = &floatImpl{value: rawVal}
 		case reflect.String:
-			ret = &stringImpl{value: val}
+			ret = &stringImpl{value: rawVal}
 		case reflect.Struct:
 			if rawVal.Type().String() == "time.Time" {
-				ret = &datetimeImpl{value: val}
+				ret = &datetimeImpl{value: rawVal}
 			} else {
-				ret = &structImpl{value: val}
+				ret = &structImpl{value: rawVal}
 			}
 		case reflect.Slice:
-			ret = &sliceImpl{value: val}
+			ret = &sliceImpl{value: rawVal}
 		default:
 			err = fmt.Errorf("no support value ptr type, type:%s", val.Type().String())
 		}

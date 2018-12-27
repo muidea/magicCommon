@@ -126,7 +126,7 @@ func getStructInfo(structObj reflect.Value) (ret *StructInfo, depends []*StructI
 		ret.fields.Append(fieldInfo)
 
 		fType := fieldInfo.GetFieldType()
-		if fType.Catalog() == util.TypeReferenceField {
+		if !util.IsBasicType(fType.Value()) {
 			fValue := fieldInfo.GetFieldValue()
 			dvs, err := fValue.GetDepend()
 			if err != nil {

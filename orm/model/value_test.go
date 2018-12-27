@@ -10,7 +10,7 @@ import (
 
 func TestGetValueStr(t *testing.T) {
 	iVal := int(123)
-	fiVal, fiErr := newFieldValue(reflect.ValueOf(iVal))
+	fiVal, fiErr := newFieldValue(reflect.ValueOf(&iVal))
 	if fiErr != nil {
 		t.Errorf("%s", fiErr.Error())
 	} else {
@@ -21,7 +21,7 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	fVal := 12.34
-	ffVal, ffErr := newFieldValue(reflect.ValueOf(fVal))
+	ffVal, ffErr := newFieldValue(reflect.ValueOf(&fVal))
 	if ffErr != nil {
 		t.Errorf("%s", ffErr.Error())
 	} else {
@@ -32,7 +32,7 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	strVal := "abc"
-	fstrVal, fstrErr := newFieldValue(reflect.ValueOf(strVal))
+	fstrVal, fstrErr := newFieldValue(reflect.ValueOf(&strVal))
 	if fstrErr != nil {
 		t.Errorf("%s", fstrErr.Error())
 	} else {
@@ -43,7 +43,7 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	bVal := true
-	fbVal, fbErr := newFieldValue(reflect.ValueOf(bVal))
+	fbVal, fbErr := newFieldValue(reflect.ValueOf(&bVal))
 	if fbErr != nil {
 		t.Errorf("%s", fbErr.Error())
 	} else {
@@ -54,7 +54,7 @@ func TestGetValueStr(t *testing.T) {
 	}
 
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
-	ftimeVal, ftimeErr := newFieldValue(reflect.ValueOf(now))
+	ftimeVal, ftimeErr := newFieldValue(reflect.ValueOf(&now))
 	if ftimeErr != nil {
 		t.Errorf("%s", ftimeErr.Error())
 	} else {
@@ -67,7 +67,7 @@ func TestGetValueStr(t *testing.T) {
 	ii := 123
 	var iiVal int
 	iiVal = ii
-	fiVal, fiErr = newFieldValue(reflect.ValueOf(iiVal))
+	fiVal, fiErr = newFieldValue(reflect.ValueOf(&iiVal))
 	if fiErr != nil {
 		t.Errorf("%s", fiErr.Error())
 	} else {
@@ -192,7 +192,7 @@ func TestDepend(t *testing.T) {
 		kk *int
 	}
 	structVal := []*AA{&AA{ii: 12, jj: 23}, &AA{ii: 23, jj: 34}}
-	structSlicefv, structSliceErr := newFieldValue(reflect.ValueOf(structVal))
+	structSlicefv, structSliceErr := newFieldValue(reflect.ValueOf(&structVal))
 	if structSliceErr != nil {
 		t.Errorf("%s", structSliceErr.Error())
 	} else {

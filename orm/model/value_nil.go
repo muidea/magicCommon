@@ -16,9 +16,8 @@ func (s *nilImpl) SetValue(val reflect.Value) (err error) {
 		return
 	}
 
-	indirectVal := reflect.Indirect(s.value)
-	if indirectVal.Type().String() == val.Type().String() {
-		indirectVal.Set(val)
+	if s.value.Type().String() == val.Type().String() {
+		s.value.Set(val)
 	}
 
 	fieldValue, fieldErr := newFieldValue(val)

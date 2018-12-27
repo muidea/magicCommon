@@ -39,7 +39,13 @@ func declareFieldInfo(fieldInfo *model.FieldInfo) string {
 		autoIncrement = "AUTO_INCREMENT"
 	}
 
-	str := fmt.Sprintf("`%s` %s NOT NULL %s", fTag.Name(), getFieldType(fieldInfo), autoIncrement)
+	allowNull := "NOT NULL"
+	fType := fieldInfo.GetFieldType()
+	if fType.IsPtr() {
+		allowNull = ""
+	}
+
+	str := fmt.Sprintf("`%s` %s %s %s", fTag.Name(), getFieldType(fieldInfo), allowNull, autoIncrement)
 	return str
 }
 
@@ -91,8 +97,6 @@ func getFieldType(info *model.FieldInfo) (ret string) {
 	case util.TypeDoubleField:
 		ret = "DOUBLE"
 		break
-	case util.TypeStructField:
-		ret = "BIGINT"
 	case util.TypeSliceField:
 		ret = "TEXT"
 	default:
