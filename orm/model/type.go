@@ -14,6 +14,7 @@ type FieldType interface {
 	IsPtr() bool
 	PkgPath() string
 	String() string
+	Depend() FieldType
 }
 
 type typeImpl struct {
@@ -21,6 +22,7 @@ type typeImpl struct {
 	typeName    string
 	typePkgPath string
 	typeIsPtr   bool
+	typeDepend  FieldType
 }
 
 func (s *typeImpl) Name() string {
@@ -40,12 +42,19 @@ func (s *typeImpl) PkgPath() string {
 }
 
 func (s *typeImpl) String() string {
-	return fmt.Sprintf("val:%d,name:%s,pkgPath:%s", s.typeValue, s.typeName, s.typePkgPath)
+	ret := fmt.Sprintf("val:%d,name:%s,pkgPath:%s", s.typeValue, s.typeName, s.typePkgPath)
+	if s.typeDepend != nil {
+		ret = fmt.Sprintf("%s,depend:[%s]", ret, s.typeDepend)
+	}
+
+	return ret
 }
 
-func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
-	val := sf.Type
+func (s *typeImpl) Depend() FieldType {
+	return s.typeDepend
+}
 
+func getFieldType(val reflect.Type) (ret FieldType, err error) {
 	isPtr := false
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -59,5 +68,12 @@ func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
 	}
 
 	ret = &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr}
+	return
+}
+
+func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
+	val := sf.Type
+	ret, err = getFieldType(val)
+
 	return
 }
