@@ -42,7 +42,7 @@ func (s *typeImpl) PkgPath() string {
 }
 
 func (s *typeImpl) String() string {
-	ret := fmt.Sprintf("val:%d,name:%s,pkgPath:%s", s.typeValue, s.typeName, s.typePkgPath)
+	ret := fmt.Sprintf("val:%d,name:%s,pkgPath:%s, isPtr:%v", s.typeValue, s.typeName, s.typePkgPath, s.typeIsPtr)
 	if s.typeDepend != nil {
 		ret = fmt.Sprintf("%s,depend:[%s]", ret, s.typeDepend)
 	}
@@ -67,7 +67,30 @@ func getFieldType(val reflect.Type) (ret FieldType, err error) {
 		return
 	}
 
-	ret = &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr}
+	var typeDepend FieldType
+	if util.IsSliceType(tVal) {
+		isSlicePtr := false
+		sliceVal := val.Elem()
+		if sliceVal.Kind() == reflect.Ptr {
+			sliceVal = sliceVal.Elem()
+			isSlicePtr = true
+		}
+
+		tSliceVal, tSliceErr := util.GetTypeValueEnum(sliceVal)
+		if tSliceErr != nil {
+			err = tSliceErr
+			return
+		}
+		if util.IsStructType(tSliceVal) {
+			typeDepend = &typeImpl{typeValue: tSliceVal, typeName: sliceVal.String(), typePkgPath: sliceVal.PkgPath(), typeIsPtr: isSlicePtr}
+		}
+		if util.IsSliceType(tSliceVal) {
+			err = fmt.Errorf("illegal slice depend type")
+			return
+		}
+	}
+
+	ret = &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: typeDepend}
 	return
 }
 
