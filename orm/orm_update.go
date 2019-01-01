@@ -25,9 +25,10 @@ func (s *orm) updateSingle(structInfo model.StructInfo) (err error) {
 }
 
 func (s *orm) Update(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
 	if structErr != nil {
 		err = structErr
+		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
@@ -42,9 +43,11 @@ func (s *orm) Update(obj interface{}) (err error) {
 	}
 
 	for _, val := range structDepends {
-		err = s.updateSingle(val)
-		if err != nil {
-			return
+		if !val.IsValuePtr() {
+			err = s.updateSingle(val)
+			if err != nil {
+				return
+			}
 		}
 	}
 

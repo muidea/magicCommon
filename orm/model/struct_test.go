@@ -38,9 +38,9 @@ type Test struct {
 
 func TestStruct(t *testing.T) {
 	now := time.Now()
-	info, _, err := GetStructInfo(&Unit{T1: Test{Val: 123}, TimeStamp: now})
+	info, _, err := GetObjectStructInfo(&Unit{T1: Test{Val: 123}, TimeStamp: now})
 	if info == nil || err != nil {
-		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
@@ -50,9 +50,9 @@ func TestStruct(t *testing.T) {
 func TestStructValue(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
 	unit := &Unit{Name: "AA", T1: Test{Val: 123}, TimeStamp: now}
-	info, _, _ := GetStructInfo(unit)
+	info, _, _ := GetObjectStructInfo(unit)
 	if info == nil {
-		t.Errorf("GetStructInfo failed")
+		t.Errorf("GetObjectStructInfo failed")
 		return
 	}
 
@@ -93,16 +93,16 @@ func TestReference(t *testing.T) {
 		EF []*AB `orm:"ef"`
 	}
 
-	f32Info, _, err := GetStructInfo(&Demo{AB: &AB{}})
+	f32Info, _, err := GetObjectStructInfo(&Demo{AB: &AB{}})
 	if err != nil {
-		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 	}
 
 	f32Info.Dump()
 
-	i64Info, _, err := GetStructInfo(&CD{})
+	i64Info, _, err := GetObjectStructInfo(&CD{})
 	if err != nil {
-		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 	}
 
 	i64Info.Dump()

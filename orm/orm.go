@@ -9,6 +9,7 @@ import (
 
 // Orm orm interfalce
 type Orm interface {
+	Create(obj interface{}) error
 	Insert(obj interface{}) error
 	Update(obj interface{}) error
 	Delete(obj interface{}) error

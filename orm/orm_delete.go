@@ -39,9 +39,10 @@ func (s *orm) deleteRelation(structInfo, relationInfo model.StructInfo) (err err
 }
 
 func (s *orm) Delete(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
 	if structErr != nil {
 		err = structErr
+		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
@@ -53,9 +54,11 @@ func (s *orm) Delete(obj interface{}) (err error) {
 	}
 
 	for _, val := range structDepends {
-		err = s.deleteSingle(val)
-		if err != nil {
-			return
+		if !val.IsValuePtr() {
+			err = s.deleteSingle(val)
+			if err != nil {
+				return
+			}
 		}
 
 		err = s.deleteRelation(structInfo, val)

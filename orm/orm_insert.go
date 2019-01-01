@@ -37,10 +37,10 @@ func (s *orm) insertRelation(structInfo, relationInfo model.StructInfo) (err err
 }
 
 func (s *orm) Insert(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
 	if structErr != nil {
 		err = structErr
-		log.Printf("getStructInfo failed, err:%s", err.Error())
+		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
@@ -55,10 +55,13 @@ func (s *orm) Insert(obj interface{}) (err error) {
 	}
 
 	for _, val := range structDepends {
-		err = s.insertSingle(val)
-		if err != nil {
-			return
+		if !val.IsValuePtr() {
+			err = s.insertSingle(val)
+			if err != nil {
+				return
+			}
 		}
+
 		err = s.insertRelation(structInfo, val)
 		if err != nil {
 			return

@@ -13,6 +13,7 @@ type StructInfo interface {
 	GetFields() *Fields
 	UpdateFieldValue(name string, val reflect.Value) error
 	GetPrimaryKey() FieldInfo
+	IsValuePtr() bool
 	Dump()
 }
 
@@ -20,6 +21,8 @@ type StructInfo interface {
 type structInfo struct {
 	name    string
 	pkgPath string
+
+	isValuePtr bool
 
 	primaryKey FieldInfo
 
@@ -42,6 +45,10 @@ func (s *structInfo) GetName() string {
 // GetPkgPath GetPkgPath
 func (s *structInfo) GetPkgPath() string {
 	return s.pkgPath
+}
+
+func (s *structInfo) IsValuePtr() bool {
+	return s.isValuePtr
 }
 
 // GetFields GetFields
@@ -78,8 +85,8 @@ func (s *structInfo) Dump() {
 	s.fields.Dump()
 }
 
-// GetStructInfo GetStructInfo
-func GetStructInfo(objPtr interface{}) (ret StructInfo, depends []StructInfo, err error) {
+// GetObjectStructInfo GetObjectStructInfo
+func GetObjectStructInfo(objPtr interface{}) (ret StructInfo, depends []StructInfo, err error) {
 	ptrVal := reflect.ValueOf(objPtr)
 
 	if ptrVal.Kind() != reflect.Ptr {
@@ -93,12 +100,20 @@ func GetStructInfo(objPtr interface{}) (ret StructInfo, depends []StructInfo, er
 		return
 	}
 
-	ret, depends, err = getStructInfo(structVal)
+	ret, depends, err = GetValueStructInfo(structVal)
 	return
 }
 
-func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInfo, err error) {
-	structInfo := &structInfo{name: structVal.Type().Name(), pkgPath: structVal.Type().PkgPath(), fields: make(Fields, 0)}
+// GetValueStructInfo GetValueStructInfo
+func GetValueStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInfo, err error) {
+	isValuePtr := false
+	if structVal.Kind() == reflect.Ptr {
+		structVal = reflect.Indirect(structVal)
+
+		isValuePtr = true
+	}
+
+	structInfo := &structInfo{name: structVal.Type().Name(), pkgPath: structVal.Type().PkgPath(), isValuePtr: isValuePtr, fields: make(Fields, 0)}
 	depends = []StructInfo{}
 
 	structType := structVal.Type()
@@ -144,7 +159,7 @@ func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInf
 	}
 
 	for _, val := range reference {
-		preRet, preDepends, err := getStructInfo(reflect.Indirect(val))
+		preRet, preDepends, err := GetValueStructInfo(reflect.Indirect(val))
 		if err != nil {
 			break
 		}

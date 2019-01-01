@@ -72,3 +72,18 @@ func (s *orm) batchCreateSchema(structInfo model.StructInfo, depends []model.Str
 
 	return
 }
+
+func (s *orm) Create(obj interface{}) (err error) {
+	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
+	if structErr != nil {
+		err = structErr
+		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
+		return
+	}
+
+	err = s.batchCreateSchema(structInfo, structDepends)
+	if err != nil {
+		return
+	}
+	return
+}

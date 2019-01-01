@@ -32,14 +32,14 @@ func TestBuilderCommon(t *testing.T) {
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05:0000", "2018-01-02 15:04:05:0000", time.Local)
 	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: now}
 
-	info, depends, err := model.GetStructInfo(obj)
+	info, depends, err := model.GetObjectStructInfo(obj)
 	if err != nil {
-		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
 	if len(depends) != 0 {
-		t.Errorf("GetStructInfo failed,")
+		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}
 
@@ -100,14 +100,14 @@ func TestBuilderCommon(t *testing.T) {
 func TestBuilderReference(t *testing.T) {
 	ext := &Ext{}
 
-	info, depends, err := model.GetStructInfo(ext)
+	info, depends, err := model.GetObjectStructInfo(ext)
 	if err != nil {
-		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
 	if len(depends) != 1 {
-		t.Errorf("GetStructInfo failed,")
+		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}
 
@@ -169,14 +169,14 @@ func TestBuilderReference2(t *testing.T) {
 	desc := "Desc"
 	ext := &Ext{Description: &desc}
 
-	info, depends, err := model.GetStructInfo(ext)
+	info, depends, err := model.GetObjectStructInfo(ext)
 	if err != nil {
-		t.Errorf("GetStructInfo failed, err:%s", err.Error())
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
 	if len(depends) != 1 {
-		t.Errorf("GetStructInfo failed,")
+		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}
 

@@ -2,6 +2,7 @@ package orm
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 
 	"muidea.com/magicCommon/orm/builder"
@@ -42,9 +43,10 @@ func (s *orm) querySingle(structInfo model.StructInfo) (err error) {
 }
 
 func (s *orm) Query(obj interface{}, filter ...string) (err error) {
-	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
 	if structErr != nil {
 		err = structErr
+		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 

@@ -1,6 +1,8 @@
 package orm
 
 import (
+	"log"
+
 	"muidea.com/magicCommon/orm/builder"
 	"muidea.com/magicCommon/orm/model"
 )
@@ -40,9 +42,10 @@ func (s *orm) dropRelation(structInfo, relationInfo model.StructInfo) (err error
 }
 
 func (s *orm) Drop(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetStructInfo(obj)
+	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
 	if structErr != nil {
 		err = structErr
+		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
@@ -52,9 +55,11 @@ func (s *orm) Drop(obj interface{}) (err error) {
 	}
 
 	for _, val := range structDepends {
-		err = s.dropSingle(val)
-		if err != nil {
-			return
+		if !val.IsValuePtr() {
+			err = s.dropSingle(val)
+			if err != nil {
+				return
+			}
 		}
 
 		err = s.dropRelation(structInfo, val)
