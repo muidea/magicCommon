@@ -31,7 +31,12 @@ func (s *orm) Update(obj interface{}) (err error) {
 		return
 	}
 
-	err = s.batchCreateSchema(structInfo, structDepends)
+	//err = s.batchCreateSchema(structInfo, structDepends)
+	//if err != nil {
+	//	return
+	//}
+
+	err = s.updateSingle(structInfo)
 	if err != nil {
 		return
 	}
@@ -42,8 +47,6 @@ func (s *orm) Update(obj interface{}) (err error) {
 			return
 		}
 	}
-
-	err = s.updateSingle(structInfo)
 
 	return
 }

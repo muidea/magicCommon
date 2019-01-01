@@ -46,6 +46,11 @@ func (s *orm) Drop(obj interface{}) (err error) {
 		return
 	}
 
+	err = s.dropSingle(structInfo)
+	if err != nil {
+		return
+	}
+
 	for _, val := range structDepends {
 		err = s.dropSingle(val)
 		if err != nil {
@@ -58,7 +63,5 @@ func (s *orm) Drop(obj interface{}) (err error) {
 		}
 	}
 
-	s.dropSingle(structInfo)
-
-	return nil
+	return
 }

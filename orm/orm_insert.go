@@ -49,19 +49,16 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		return
 	}
 
-	for _, val := range structDepends {
-		err = s.insertSingle(val)
-		if err != nil {
-			return
-		}
-	}
-
 	err = s.insertSingle(structInfo)
 	if err != nil {
 		return
 	}
 
 	for _, val := range structDepends {
+		err = s.insertSingle(val)
+		if err != nil {
+			return
+		}
 		err = s.insertRelation(structInfo, val)
 		if err != nil {
 			return

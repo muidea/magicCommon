@@ -45,7 +45,9 @@ func (s *orm) Delete(obj interface{}) (err error) {
 		return
 	}
 
-	err = s.batchCreateSchema(structInfo, structDepends)
+	//err = s.batchCreateSchema(structInfo, structDepends)
+
+	err = s.deleteSingle(structInfo)
 	if err != nil {
 		return
 	}
@@ -61,8 +63,6 @@ func (s *orm) Delete(obj interface{}) (err error) {
 			return
 		}
 	}
-
-	s.deleteSingle(structInfo)
 
 	return
 }

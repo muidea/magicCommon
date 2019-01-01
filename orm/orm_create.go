@@ -53,6 +53,11 @@ func (s *orm) createRelationSchema(structInfo, relationInfo *model.StructInfo) (
 }
 
 func (s *orm) batchCreateSchema(structInfo *model.StructInfo, depends []*model.StructInfo) (err error) {
+	err = s.createSchema(structInfo)
+	if err != nil {
+		return
+	}
+
 	for _, val := range depends {
 		err = s.createSchema(val)
 		if err != nil {
@@ -65,7 +70,5 @@ func (s *orm) batchCreateSchema(structInfo *model.StructInfo, depends []*model.S
 		}
 	}
 
-	err = s.createSchema(structInfo)
-
-	return nil
+	return
 }
