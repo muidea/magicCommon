@@ -8,7 +8,7 @@ import (
 	"muidea.com/magicCommon/orm/model"
 )
 
-func (s *orm) deleteSingle(structInfo *model.StructInfo) (err error) {
+func (s *orm) deleteSingle(structInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildDelete()
 	if err != nil {
@@ -17,13 +17,13 @@ func (s *orm) deleteSingle(structInfo *model.StructInfo) (err error) {
 	num := s.executor.Delete(sql)
 	if num != 1 {
 		log.Printf("unexception delete, rowNum:%d", num)
-		err = fmt.Errorf("delete %s failed", structInfo.GetStructName())
+		err = fmt.Errorf("delete %s failed", structInfo.GetName())
 	}
 
 	return
 }
 
-func (s *orm) deleteRelation(structInfo, relationInfo *model.StructInfo) (err error) {
+func (s *orm) deleteRelation(structInfo, relationInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildDeleteRelation(relationInfo)
 	if err != nil {
@@ -32,7 +32,7 @@ func (s *orm) deleteRelation(structInfo, relationInfo *model.StructInfo) (err er
 	num := s.executor.Delete(sql)
 	if num != 1 {
 		log.Printf("unexception delete, rowNum:%d", num)
-		err = fmt.Errorf("delete %s relation failed", structInfo.GetStructName())
+		err = fmt.Errorf("delete %s relation failed", structInfo.GetName())
 	}
 
 	return

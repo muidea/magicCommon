@@ -8,7 +8,7 @@ import (
 	"muidea.com/magicCommon/orm/model"
 )
 
-func (s *orm) updateSingle(structInfo *model.StructInfo) (err error) {
+func (s *orm) updateSingle(structInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildUpdate()
 	if err != nil {
@@ -18,7 +18,7 @@ func (s *orm) updateSingle(structInfo *model.StructInfo) (err error) {
 	num := s.executor.Update(sql)
 	if num != 1 {
 		log.Printf("unexception update, rowNum:%d", num)
-		err = fmt.Errorf("update %s failed", structInfo.GetStructName())
+		err = fmt.Errorf("update %s failed", structInfo.GetName())
 	}
 
 	return err

@@ -25,7 +25,7 @@ func (s *Builder) BuildInsert() (ret string, err error) {
 }
 
 // BuildInsertRelation BuildInsertRelation
-func (s *Builder) BuildInsertRelation(relationInfo *model.StructInfo) (ret string, err error) {
+func (s *Builder) BuildInsertRelation(relationInfo model.StructInfo) (ret string, err error) {
 	leftVal, rightVal, errVal := s.getRelationValue(relationInfo)
 	if errVal != nil {
 		err = errVal
@@ -38,7 +38,7 @@ func (s *Builder) BuildInsertRelation(relationInfo *model.StructInfo) (ret strin
 	return
 }
 
-func (s *Builder) getFieldInsertNames(info *model.StructInfo) string {
+func (s *Builder) getFieldInsertNames(info model.StructInfo) string {
 	str := ""
 	for _, field := range *s.structInfo.GetFields() {
 		fTag := field.GetFieldTag()
@@ -66,7 +66,7 @@ func (s *Builder) getFieldInsertNames(info *model.StructInfo) string {
 	return str
 }
 
-func (s *Builder) getFieldInsertValues(info *model.StructInfo) (ret []string, err error) {
+func (s *Builder) getFieldInsertValues(info model.StructInfo) (ret []string, err error) {
 	str := ""
 	for _, field := range *info.GetFields() {
 		fTag := field.GetFieldTag()

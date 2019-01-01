@@ -7,7 +7,7 @@ import (
 	"muidea.com/magicCommon/orm/model"
 )
 
-func (s *orm) createSchema(structInfo *model.StructInfo) (err error) {
+func (s *orm) createSchema(structInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	tableName := builder.GetTableName()
 
@@ -30,7 +30,7 @@ func (s *orm) createSchema(structInfo *model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) createRelationSchema(structInfo, relationInfo *model.StructInfo) (err error) {
+func (s *orm) createRelationSchema(structInfo, relationInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	tableName := builder.GetRelationTableName(relationInfo)
 
@@ -52,7 +52,7 @@ func (s *orm) createRelationSchema(structInfo, relationInfo *model.StructInfo) (
 	return
 }
 
-func (s *orm) batchCreateSchema(structInfo *model.StructInfo, depends []*model.StructInfo) (err error) {
+func (s *orm) batchCreateSchema(structInfo model.StructInfo, depends []model.StructInfo) (err error) {
 	err = s.createSchema(structInfo)
 	if err != nil {
 		return

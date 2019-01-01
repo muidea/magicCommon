@@ -9,7 +9,7 @@ import (
 	"muidea.com/magicCommon/orm/util"
 )
 
-func (s *orm) querySingle(structInfo *model.StructInfo) (err error) {
+func (s *orm) querySingle(structInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	sql, err := builder.BuildQuery()
 	if err != nil {

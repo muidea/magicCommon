@@ -23,7 +23,7 @@ func (s *Builder) BuildDelete() (ret string, err error) {
 }
 
 // BuildDeleteRelation BuildDeleteRelation
-func (s *Builder) BuildDeleteRelation(relationInfo *model.StructInfo) (ret string, err error) {
+func (s *Builder) BuildDeleteRelation(relationInfo model.StructInfo) (ret string, err error) {
 	leftVal, rightVal, errVal := s.getRelationValue(relationInfo)
 	if errVal != nil {
 		err = errVal

@@ -9,11 +9,11 @@ import (
 
 // Builder Builder
 type Builder struct {
-	structInfo *model.StructInfo
+	structInfo model.StructInfo
 }
 
 // New create builder
-func New(structInfo *model.StructInfo) *Builder {
+func New(structInfo model.StructInfo) *Builder {
 	//err := verifyStructInfo(structInfo)
 	//if err != nil {
 	//	log.Printf("verify structInfo failed, err:%s", err.Error())
@@ -23,8 +23,8 @@ func New(structInfo *model.StructInfo) *Builder {
 	return &Builder{structInfo: structInfo}
 }
 
-func (s *Builder) getTableName(info *model.StructInfo) string {
-	return strings.Join(strings.Split(info.GetStructName(), "."), "_")
+func (s *Builder) getTableName(info model.StructInfo) string {
+	return strings.Join(strings.Split(info.GetName(), "."), "_")
 }
 
 // GetTableName GetTableName
@@ -33,7 +33,7 @@ func (s *Builder) GetTableName() string {
 }
 
 // GetRelationTableName GetRelationTableName
-func (s *Builder) GetRelationTableName(relationInfo *model.StructInfo) string {
+func (s *Builder) GetRelationTableName(relationInfo model.StructInfo) string {
 	leftName := s.getTableName(s.structInfo)
 	rightName := s.getTableName(relationInfo)
 
@@ -44,7 +44,7 @@ func (s *Builder) GetRelationTableName(relationInfo *model.StructInfo) string {
 	return fmt.Sprintf("%s2%s", rightName, leftName)
 }
 
-func (s *Builder) getRelationValue(relationInfo *model.StructInfo) (leftVal, rightVal string, err error) {
+func (s *Builder) getRelationValue(relationInfo model.StructInfo) (leftVal, rightVal string, err error) {
 	leftName := s.getTableName(s.structInfo)
 	rightName := s.getTableName(relationInfo)
 

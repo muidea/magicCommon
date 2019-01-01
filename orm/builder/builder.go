@@ -15,16 +15,16 @@ type Builder interface {
 	BuildQuery() (string, error)
 	GetTableName() string
 
-	GetRelationTableName(relationInfo *model.StructInfo) string
-	BuildCreateRelationSchema(relationInfo *model.StructInfo) (string, error)
-	BuildDropRelationSchema(relationInfo *model.StructInfo) (string, error)
-	BuildInsertRelation(relationInfo *model.StructInfo) (string, error)
-	BuildUpdateRelation(relationInfo *model.StructInfo) (string, error)
-	BuildDeleteRelation(relationInfo *model.StructInfo) (string, error)
-	BuildQueryRelation(relationInfo *model.StructInfo) (string, error)
+	GetRelationTableName(relationInfo model.StructInfo) string
+	BuildCreateRelationSchema(relationInfo model.StructInfo) (string, error)
+	BuildDropRelationSchema(relationInfo model.StructInfo) (string, error)
+	BuildInsertRelation(relationInfo model.StructInfo) (string, error)
+	BuildUpdateRelation(relationInfo model.StructInfo) (string, error)
+	BuildDeleteRelation(relationInfo model.StructInfo) (string, error)
+	BuildQueryRelation(relationInfo model.StructInfo) (string, error)
 }
 
 // NewBuilder new builder
-func NewBuilder(structInfo *model.StructInfo) Builder {
+func NewBuilder(structInfo model.StructInfo) Builder {
 	return mysql.New(structInfo)
 }

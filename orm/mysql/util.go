@@ -7,7 +7,7 @@ import (
 	"muidea.com/magicCommon/orm/util"
 )
 
-func verifyFieldInfo(fieldInfo *model.FieldInfo) error {
+func verifyFieldInfo(fieldInfo model.FieldInfo) error {
 	fTag := fieldInfo.GetFieldTag()
 	if IsKeyWord(fTag.Name()) {
 		return fmt.Errorf("illegal fieldTag, is a key word.[%s]", fTag)
@@ -16,8 +16,8 @@ func verifyFieldInfo(fieldInfo *model.FieldInfo) error {
 	return nil
 }
 
-func verifyStructInfo(structInfo *model.StructInfo) error {
-	name := structInfo.GetStructName()
+func verifyStructInfo(structInfo model.StructInfo) error {
+	name := structInfo.GetName()
 	if IsKeyWord(name) {
 		return fmt.Errorf("illegal structName, is a key word.[%s]", name)
 	}
@@ -32,7 +32,7 @@ func verifyStructInfo(structInfo *model.StructInfo) error {
 	return nil
 }
 
-func declareFieldInfo(fieldInfo *model.FieldInfo) string {
+func declareFieldInfo(fieldInfo model.FieldInfo) string {
 	autoIncrement := ""
 	fTag := fieldInfo.GetFieldTag()
 	if fTag.IsAutoIncrement() {
@@ -49,7 +49,7 @@ func declareFieldInfo(fieldInfo *model.FieldInfo) string {
 	return str
 }
 
-func getFieldType(info *model.FieldInfo) (ret string) {
+func getFieldType(info model.FieldInfo) (ret string) {
 	fType := info.GetFieldType()
 	switch fType.Value() {
 	case util.TypeBooleanField:

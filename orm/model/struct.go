@@ -143,10 +143,6 @@ func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInf
 		return
 	}
 
-	if len(reference) == 0 {
-		return
-	}
-
 	for _, val := range reference {
 		preRet, preDepends, err := getStructInfo(reflect.Indirect(val))
 		if err != nil {

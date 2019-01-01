@@ -5,7 +5,7 @@ import (
 	"muidea.com/magicCommon/orm/model"
 )
 
-func (s *orm) dropSingle(structInfo *model.StructInfo) (err error) {
+func (s *orm) dropSingle(structInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	tableName := builder.GetTableName()
 	info := s.modelInfoCache.Fetch(tableName)
@@ -22,7 +22,7 @@ func (s *orm) dropSingle(structInfo *model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) dropRelation(structInfo, relationInfo *model.StructInfo) (err error) {
+func (s *orm) dropRelation(structInfo, relationInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	tableName := builder.GetRelationTableName(relationInfo)
 	info := s.modelInfoCache.Fetch(tableName)

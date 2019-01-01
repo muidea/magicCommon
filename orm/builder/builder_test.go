@@ -43,12 +43,6 @@ func TestBuilderCommon(t *testing.T) {
 		return
 	}
 
-	err = info.Verify()
-	if err != nil {
-		t.Errorf("Verify StructInfo failed, err:%s", err.Error())
-		return
-	}
-
 	builder := NewBuilder(info)
 	if builder == nil {
 		t.Error("new Builder failed")
@@ -114,12 +108,6 @@ func TestBuilderReference(t *testing.T) {
 
 	if len(depends) != 1 {
 		t.Errorf("GetStructInfo failed,")
-		return
-	}
-
-	err = info.Verify()
-	if err != nil {
-		t.Errorf("Verify StructInfo failed, err:%s", err.Error())
 		return
 	}
 
@@ -189,12 +177,6 @@ func TestBuilderReference2(t *testing.T) {
 
 	if len(depends) != 1 {
 		t.Errorf("GetStructInfo failed,")
-		return
-	}
-
-	err = info.Verify()
-	if err != nil {
-		t.Errorf("Verify StructInfo failed, err:%s", err.Error())
 		return
 	}
 

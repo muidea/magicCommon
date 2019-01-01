@@ -56,7 +56,7 @@ func (s *Builder) BuildUpdate() (ret string, err error) {
 }
 
 // BuildUpdateRelation BuildUpdateRelation
-func (s *Builder) BuildUpdateRelation(relationInfo *model.StructInfo) (string, error) {
+func (s *Builder) BuildUpdateRelation(relationInfo model.StructInfo) (string, error) {
 	str := "\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`left` INT NOT NULL,\n\t`right` INT NOT NULL,\n\tPRIMARY KEY (`id`)"
 	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetRelationTableName(relationInfo), str)
 	log.Print(str)

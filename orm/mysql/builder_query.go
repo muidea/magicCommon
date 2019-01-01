@@ -29,7 +29,7 @@ func (s *Builder) BuildQuery() (ret string, err error) {
 }
 
 // BuildQueryRelation BuildQueryRelation
-func (s *Builder) BuildQueryRelation(relationInfo *model.StructInfo) (string, error) {
+func (s *Builder) BuildQueryRelation(relationInfo model.StructInfo) (string, error) {
 	str := "\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`left` INT NOT NULL,\n\t`right` INT NOT NULL,\n\tPRIMARY KEY (`id`)"
 	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetRelationTableName(relationInfo), str)
 	log.Print(str)
@@ -37,7 +37,7 @@ func (s *Builder) BuildQueryRelation(relationInfo *model.StructInfo) (string, er
 	return str, nil
 }
 
-func (s *Builder) getFieldQueryNames(info *model.StructInfo) string {
+func (s *Builder) getFieldQueryNames(info model.StructInfo) string {
 	str := ""
 	for _, field := range *s.structInfo.GetFields() {
 		fTag := field.GetFieldTag()
