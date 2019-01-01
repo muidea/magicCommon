@@ -8,8 +8,18 @@ import (
 	"muidea.com/magicCommon/orm/util"
 )
 
-// FieldInfo single field info
-type FieldInfo struct {
+// FieldInfo FieldInfo
+type FieldInfo interface {
+	GetFieldName() string
+	GetFieldType() FieldType
+	GetFieldTag() FieldTag
+	GetFieldValue() FieldValue
+	SetFieldValue(val reflect.Value)
+	Dump() string
+}
+
+// fieldInfo single field info
+type fieldInfo struct {
 	fieldIndex int
 	fieldName  string
 
@@ -19,35 +29,35 @@ type FieldInfo struct {
 }
 
 // Fields field info collection
-type Fields []*FieldInfo
+type Fields []FieldInfo
 
 // GetFieldName GetFieldName
-func (s *FieldInfo) GetFieldName() string {
+func (s *fieldInfo) GetFieldName() string {
 	return s.fieldName
 }
 
 // GetFieldType GetFieldType
-func (s *FieldInfo) GetFieldType() FieldType {
+func (s *fieldInfo) GetFieldType() FieldType {
 	return s.fieldType
 }
 
 // GetFieldTag GetFieldTag
-func (s *FieldInfo) GetFieldTag() FieldTag {
+func (s *fieldInfo) GetFieldTag() FieldTag {
 	return s.fieldTag
 }
 
 // GetFieldValue GetFieldValue
-func (s *FieldInfo) GetFieldValue() FieldValue {
+func (s *fieldInfo) GetFieldValue() FieldValue {
 	return s.fieldValue
 }
 
 // SetFieldValue SetFieldValue
-func (s *FieldInfo) SetFieldValue(val reflect.Value) {
+func (s *fieldInfo) SetFieldValue(val reflect.Value) {
 	s.fieldValue.SetValue(val)
 }
 
 // Verify Verify
-func (s *FieldInfo) Verify() error {
+func (s *fieldInfo) Verify() error {
 	if s.fieldTag.Name() == "" {
 		return fmt.Errorf("no define field tag")
 	}
@@ -72,49 +82,35 @@ func (s *FieldInfo) Verify() error {
 }
 
 // Dump Dump
-func (s *FieldInfo) Dump() string {
+func (s *fieldInfo) Dump() string {
 	valStr, _ := s.fieldValue.GetValueStr()
 	return fmt.Sprintf("index:[%d],name:[%s],type:[%s],tag:[%s],value:[%s]", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag, valStr)
 }
 
 // Append Append
-func (s *Fields) Append(fieldType *FieldInfo) {
+func (s *Fields) Append(fieldInfo FieldInfo) {
 	exist := false
+	newField := fieldInfo.GetFieldTag()
 	for _, val := range *s {
-		if val.fieldTag.Name() == fieldType.fieldTag.Name() {
+		curField := val.GetFieldTag()
+		if curField.Name() == newField.Name() {
 			exist = true
 			break
 		}
 	}
 	if exist {
-		log.Fatalf("duplicate field tag,[%s]", fieldType.Dump())
+		log.Fatalf("duplicate field tag,[%s]", fieldInfo.Dump())
 	}
 
-	*s = append(*s, fieldType)
+	*s = append(*s, fieldInfo)
 }
 
 // GetPrimaryKey get primarykey field
-func (s *Fields) GetPrimaryKey() *FieldInfo {
+func (s *Fields) GetPrimaryKey() FieldInfo {
 	for _, val := range *s {
 		fieldTag := val.GetFieldTag()
 		if fieldTag.IsPrimaryKey() {
 			return val
-		}
-	}
-
-	return nil
-}
-
-// Verify Verify
-func (s *Fields) Verify() error {
-	if len(*s) == 0 {
-		return fmt.Errorf("no fields defined")
-	}
-
-	for _, val := range *s {
-		err := val.Verify()
-		if err != nil {
-			return err
 		}
 	}
 
@@ -129,8 +125,8 @@ func (s *Fields) Dump() {
 }
 
 // GetFieldInfo GetFieldInfo
-func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal reflect.Value) (ret *FieldInfo, err error) {
-	info := &FieldInfo{}
+func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal reflect.Value) (ret FieldInfo, err error) {
+	info := &fieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = fieldType.Name
 
@@ -145,6 +141,11 @@ func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal reflect.Value
 	}
 
 	info.fieldValue, err = newFieldValue(fieldVal.Addr())
+	if err != nil {
+		return
+	}
+
+	err = info.Verify()
 	if err != nil {
 		return
 	}

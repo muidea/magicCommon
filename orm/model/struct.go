@@ -8,42 +8,51 @@ import (
 	"muidea.com/magicCommon/orm/util"
 )
 
-// StructInfo single struct ret
-type StructInfo struct {
+// StructInfo StructInfo
+type StructInfo interface {
+	GetName() string
+	GetPkgPath() string
+	GetFields() *Fields
+	UpdateFieldValue(name string, val reflect.Value) error
+	GetPrimaryKey() FieldInfo
+	Dump()
+}
+
+// structInfo single struct ret
+type structInfo struct {
 	name    string
 	pkgPath string
 
-	primaryKey *FieldInfo
+	primaryKey FieldInfo
 
 	fields Fields
 }
 
 // Verify Verify
-func (s *StructInfo) Verify() error {
+func (s *structInfo) Verify() error {
 	if s.name == "" {
 		return fmt.Errorf("illegal struct name")
 	}
 
-	return s.fields.Verify()
+	return nil
 }
 
-// GetStructName GetStructName
-func (s *StructInfo) GetStructName() string {
+func (s *structInfo) GetName() string {
 	return s.name
 }
 
 // GetPkgPath GetPkgPath
-func (s *StructInfo) GetPkgPath() string {
+func (s *structInfo) GetPkgPath() string {
 	return s.pkgPath
 }
 
 // GetFields GetFields
-func (s *StructInfo) GetFields() *Fields {
+func (s *structInfo) GetFields() *Fields {
 	return &s.fields
 }
 
 // UpdateFieldValue UpdateFieldValue
-func (s *StructInfo) UpdateFieldValue(name string, val reflect.Value) error {
+func (s *structInfo) UpdateFieldValue(name string, val reflect.Value) error {
 	for _, field := range s.fields {
 		if field.GetFieldName() == name {
 			field.SetFieldValue(val)
@@ -55,12 +64,12 @@ func (s *StructInfo) UpdateFieldValue(name string, val reflect.Value) error {
 }
 
 // GetPrimaryKey GetPrimaryKey
-func (s *StructInfo) GetPrimaryKey() *FieldInfo {
+func (s *structInfo) GetPrimaryKey() FieldInfo {
 	return s.primaryKey
 }
 
 // Dump Dump
-func (s *StructInfo) Dump() {
+func (s *structInfo) Dump() {
 	fmt.Print("structInfo:\n")
 	fmt.Printf("\tname:%s, pkgPath:%s\n", s.name, s.pkgPath)
 	if s.primaryKey != nil {
@@ -72,7 +81,7 @@ func (s *StructInfo) Dump() {
 }
 
 // GetStructInfo GetStructInfo
-func GetStructInfo(objPtr interface{}) (ret *StructInfo, depends []*StructInfo, err error) {
+func GetStructInfo(objPtr interface{}) (ret StructInfo, depends []StructInfo, err error) {
 	ptrVal := reflect.ValueOf(objPtr)
 
 	if ptrVal.Kind() != reflect.Ptr {
@@ -90,9 +99,9 @@ func GetStructInfo(objPtr interface{}) (ret *StructInfo, depends []*StructInfo, 
 	return
 }
 
-func getStructInfo(structVal reflect.Value) (ret *StructInfo, depends []*StructInfo, err error) {
-	ret = &StructInfo{name: structVal.Type().Name(), pkgPath: structVal.Type().PkgPath(), fields: make(Fields, 0)}
-	depends = []*StructInfo{}
+func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInfo, err error) {
+	structInfo := &structInfo{name: structVal.Type().Name(), pkgPath: structVal.Type().PkgPath(), fields: make(Fields, 0)}
+	depends = []StructInfo{}
 
 	structType := structVal.Type()
 	fieldNum := structVal.NumField()
@@ -113,7 +122,7 @@ func getStructInfo(structVal reflect.Value) (ret *StructInfo, depends []*StructI
 			return
 		}
 
-		ret.fields.Append(fieldInfo)
+		structInfo.fields.Append(fieldInfo)
 
 		fType := fieldInfo.GetFieldType()
 		if !util.IsBasicType(fType.Value()) {
@@ -129,7 +138,7 @@ func getStructInfo(structVal reflect.Value) (ret *StructInfo, depends []*StructI
 		idx++
 	}
 
-	ret.primaryKey = ret.fields.GetPrimaryKey()
+	structInfo.primaryKey = structInfo.fields.GetPrimaryKey()
 
 	if len(reference) == 0 {
 		return
@@ -148,7 +157,7 @@ func getStructInfo(structVal reflect.Value) (ret *StructInfo, depends []*StructI
 	return
 }
 
-func getStructPrimaryKey(structVal reflect.Value) (ret *FieldInfo, err error) {
+func getStructPrimaryKey(structVal reflect.Value) (ret FieldInfo, err error) {
 	if structVal.Kind() != reflect.Struct {
 		err = fmt.Errorf("illegal value type, not struct, type:%s", structVal.Type().String())
 		return
