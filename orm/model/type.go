@@ -88,6 +88,8 @@ func getFieldType(val reflect.Type) (ret FieldType, err error) {
 			err = fmt.Errorf("illegal slice depend type")
 			return
 		}
+	} else if util.IsStructType(tVal) {
+		typeDepend = &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr}
 	}
 
 	ret = &typeImpl{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: typeDepend}
