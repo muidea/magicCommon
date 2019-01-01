@@ -45,8 +45,8 @@ func newFieldValue(val reflect.Value) (ret FieldValue, err error) {
 			ret = &nilImpl{value: rawVal}
 			return
 		}
-		rawVal = reflect.Indirect(rawVal)
-		switch rawVal.Kind() {
+		rawRawVal := reflect.Indirect(rawVal)
+		switch rawRawVal.Kind() {
 		case reflect.Bool:
 			ret = &boolImpl{value: rawVal}
 		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:

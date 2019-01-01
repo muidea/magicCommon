@@ -43,8 +43,7 @@ func (s *structImpl) GetValue() (reflect.Value, error) {
 }
 
 func (s *structImpl) GetDepend() (ret []reflect.Value, err error) {
-	rawVal := reflect.Indirect(s.value)
-	ret = append(ret, rawVal)
+	ret = append(ret, s.value)
 
 	return
 }

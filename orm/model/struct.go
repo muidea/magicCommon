@@ -76,7 +76,7 @@ func (s *structInfo) GetPrimaryKey() FieldInfo {
 // Dump Dump
 func (s *structInfo) Dump() {
 	fmt.Print("structInfo:\n")
-	fmt.Printf("\tname:%s, pkgPath:%s\n", s.name, s.pkgPath)
+	fmt.Printf("\tname:%s, pkgPath:%s, isValuePtr:%v\n", s.name, s.pkgPath, s.isValuePtr)
 	if s.primaryKey != nil {
 		fmt.Printf("primaryKey:\n")
 		fmt.Printf("\t%s\n", s.primaryKey.Dump())
@@ -159,7 +159,7 @@ func GetValueStructInfo(structVal reflect.Value) (ret StructInfo, depends []Stru
 	}
 
 	for _, val := range reference {
-		preRet, preDepends, err := GetValueStructInfo(reflect.Indirect(val))
+		preRet, preDepends, err := GetValueStructInfo(val)
 		if err != nil {
 			break
 		}
