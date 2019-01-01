@@ -115,7 +115,7 @@ func GetTypeValueEnum(val reflect.Type) (ft int, err error) {
 	case reflect.Slice:
 		ft = TypeSliceField
 	default:
-		err = fmt.Errorf("unsupport field type:[%v], may be miss setting tag", val.Elem().Kind())
+		err = fmt.Errorf("unsupport field type:[%v], may be miss setting tag", val.String())
 	}
 
 	return

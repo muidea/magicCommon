@@ -36,6 +36,7 @@ func TestExecutor(t *testing.T) {
 	if err != nil {
 		t.Errorf("new Orm failed, err:%s", err.Error())
 	}
+	o1.Drop(obj)
 
 	err = o1.Insert(obj)
 	if err != nil {
@@ -63,7 +64,6 @@ func TestExecutor(t *testing.T) {
 		t.Errorf("query obj failed, err:%s", err.Error())
 	}
 
-	defer o1.Drop(obj)
 }
 
 type Ext struct {
@@ -90,6 +90,7 @@ func TestDepends(t *testing.T) {
 	if err != nil {
 		t.Errorf("new Orm failed, err:%s", err.Error())
 	}
+	o1.Drop(ext)
 
 	err = o1.Insert(ext)
 	if err != nil {
@@ -102,6 +103,7 @@ func TestDepends(t *testing.T) {
 	}
 
 	ext2 := &Ext2{Unit: *obj}
+	o1.Drop(ext2)
 	err = o1.Insert(ext2)
 	if err != nil {
 		t.Errorf("insert ext2 failed, err:%s", err.Error())
@@ -112,6 +114,4 @@ func TestDepends(t *testing.T) {
 		t.Errorf("delete ext2 failed, err:%s", err.Error())
 	}
 
-	defer o1.Drop(ext)
-	defer o1.Drop(ext2)
 }

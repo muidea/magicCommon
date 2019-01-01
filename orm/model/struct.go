@@ -116,7 +116,7 @@ func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInf
 		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, fieldVal)
 		if fieldErr != nil {
 			err = fieldErr
-			log.Printf("getFieldInfo failed, err:%s", err.Error())
+			log.Printf("getFieldInfo failed, name:%s, err:%s", fieldType.Name, err.Error())
 			return
 		}
 

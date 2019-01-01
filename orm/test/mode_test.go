@@ -17,6 +17,7 @@ func TestGroup(t *testing.T) {
 	if err != nil {
 		t.Errorf("new Orm failed, err:%s", err.Error())
 	}
+	o1.Drop(&gorup1)
 
 	err = o1.Insert(&gorup1)
 	if err != nil {
