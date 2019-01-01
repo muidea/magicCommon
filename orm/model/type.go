@@ -19,11 +19,13 @@ type FieldType interface {
 
 func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
 	val := sf.Type
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
+
+	rawVal := val
+	if rawVal.Kind() == reflect.Ptr {
+		rawVal = rawVal.Elem()
 	}
 
-	tVal, tErr := util.GetTypeValueEnum(val)
+	tVal, tErr := util.GetTypeValueEnum(rawVal)
 	if tErr != nil {
 		err = tErr
 		return

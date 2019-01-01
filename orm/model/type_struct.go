@@ -46,12 +46,13 @@ func (s *typeStruct) Depend() FieldType {
 
 func getStructType(val reflect.Type) (ret FieldType, err error) {
 	isPtr := false
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
+	rawVal := val
+	if rawVal.Kind() == reflect.Ptr {
+		rawVal = rawVal.Elem()
 		isPtr = true
 	}
 
-	tVal, tErr := util.GetTypeValueEnum(val)
+	tVal, tErr := util.GetTypeValueEnum(rawVal)
 	if tErr != nil {
 		err = tErr
 		return
@@ -89,7 +90,7 @@ func getStructType(val reflect.Type) (ret FieldType, err error) {
 	}
 
 	if util.IsStructType(tVal) {
-		typeDepend = &typeStruct{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr}
+		typeDepend = &typeStruct{typeValue: tVal, typeName: rawVal.String(), typePkgPath: rawVal.PkgPath()}
 
 		ret = &typeStruct{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: typeDepend}
 		return
