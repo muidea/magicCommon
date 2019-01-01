@@ -64,5 +64,5 @@ func (s *tagImpl) IsAutoIncrement() bool {
 }
 
 func (s *tagImpl) String() string {
-	return fmt.Sprintf("%s key=%v auto=%v", s.tagName, s.isPrimaryKey, s.isAutoIncrement)
+	return fmt.Sprintf("name=%s key=%v auto=%v", s.tagName, s.isPrimaryKey, s.isAutoIncrement)
 }

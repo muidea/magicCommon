@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-
-	"muidea.com/magicCommon/orm/util"
 )
 
 // StructInfo StructInfo
@@ -104,7 +102,7 @@ func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInf
 	depends = []StructInfo{}
 
 	structType := structVal.Type()
-	fieldNum := structVal.NumField()
+	fieldNum := structType.NumField()
 
 	idx := 0
 	reference := []reflect.Value{}
@@ -125,7 +123,8 @@ func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInf
 		structInfo.fields.Append(fieldInfo)
 
 		fType := fieldInfo.GetFieldType()
-		if !util.IsBasicType(fType.Value()) {
+		fDepend := fType.Depend()
+		if fDepend != nil {
 			fValue := fieldInfo.GetFieldValue()
 			dvs, err := fValue.GetDepend()
 			if err != nil {
@@ -134,11 +133,15 @@ func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInf
 
 			reference = append(reference, dvs...)
 		}
-
 		idx++
 	}
 
 	structInfo.primaryKey = structInfo.fields.GetPrimaryKey()
+
+	err = structInfo.Verify()
+	if err != nil {
+		return
+	}
 
 	if len(reference) == 0 {
 		return
@@ -154,6 +157,8 @@ func getStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInf
 		depends = append(depends, preRet)
 	}
 
+	ret = structInfo
+
 	return
 }
 
@@ -164,7 +169,7 @@ func getStructPrimaryKey(structVal reflect.Value) (ret FieldInfo, err error) {
 	}
 
 	structType := structVal.Type()
-	fieldNum := structVal.NumField()
+	fieldNum := structType.NumField()
 	for idx := 0; idx < fieldNum; {
 		fieldType := structType.Field(idx)
 		fieldVal := structVal.Field(idx)

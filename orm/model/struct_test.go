@@ -44,11 +44,6 @@ func TestStruct(t *testing.T) {
 		return
 	}
 
-	err = info.Verify()
-	if err != nil {
-		t.Errorf("Verify failed, err:%s", err.Error())
-	}
-
 	info.Dump()
 }
 
@@ -57,19 +52,19 @@ func TestStructValue(t *testing.T) {
 	unit := &Unit{Name: "AA", T1: Test{Val: 123}, TimeStamp: now}
 	info, _, _ := GetStructInfo(unit)
 	if info == nil {
-		t.Errorf("GetStructInfo failed,")
+		t.Errorf("GetStructInfo failed")
 		return
-	}
-
-	err := info.Verify()
-	if err != nil {
-		t.Errorf("Verify failed, err:%s", err.Error())
 	}
 
 	log.Print(*unit)
 
 	id := 123320
-	info.primaryKey.SetFieldValue(reflect.ValueOf(id))
+	pk := info.GetPrimaryKey()
+	if pk == nil {
+		t.Errorf("GetPrimaryKey faield")
+		return
+	}
+	pk.SetFieldValue(reflect.ValueOf(id))
 
 	name := "abcdfrfe"
 	info.UpdateFieldValue("Name", reflect.ValueOf(name))
@@ -87,7 +82,7 @@ func TestReference(t *testing.T) {
 	}
 
 	type CD struct {
-		AB
+		AB  AB  `orm:"ab"`
 		I64 int `orm:"i64"`
 	}
 
