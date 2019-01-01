@@ -74,7 +74,7 @@ func (s *FieldInfo) Verify() error {
 // Dump Dump
 func (s *FieldInfo) Dump() string {
 	valStr, _ := s.fieldValue.GetValueStr()
-	return fmt.Sprintf("index:%d,name:%s,type:%s,tag:%s,value:%s", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag, valStr)
+	return fmt.Sprintf("index:[%d],name:[%s],type:[%s],tag:[%s],value:[%s]", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag, valStr)
 }
 
 // Append Append

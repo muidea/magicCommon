@@ -42,7 +42,7 @@ func (s *typeImpl) PkgPath() string {
 }
 
 func (s *typeImpl) String() string {
-	ret := fmt.Sprintf("val:%d,name:%s,pkgPath:%s, isPtr:%v", s.typeValue, s.typeName, s.typePkgPath, s.typeIsPtr)
+	ret := fmt.Sprintf("val:%d,name:%s,pkgPath:%s,isPtr:%v", s.typeValue, s.typeName, s.typePkgPath, s.typeIsPtr)
 	if s.typeDepend != nil {
 		ret = fmt.Sprintf("%s,depend:[%s]", ret, s.typeDepend)
 	}
