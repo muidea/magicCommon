@@ -36,7 +36,15 @@ func TestExecutor(t *testing.T) {
 	if err != nil {
 		t.Errorf("new Orm failed, err:%s", err.Error())
 	}
-	o1.Drop(obj)
+	err = o1.Insert(obj)
+	if err != nil {
+		t.Errorf("insert obj failed, err:%s", err.Error())
+	}
+
+	err = o1.Drop(obj)
+	if err != nil {
+		t.Errorf("drop obj failed, err:%s", err.Error())
+	}
 
 	err = o1.Insert(obj)
 	if err != nil {
@@ -90,6 +98,11 @@ func TestDepends(t *testing.T) {
 	if err != nil {
 		t.Errorf("new Orm failed, err:%s", err.Error())
 	}
+	err = o1.Insert(ext)
+	if err != nil {
+		t.Errorf("insert ext failed, err:%s", err.Error())
+	}
+
 	o1.Drop(ext)
 
 	err = o1.Insert(ext)
@@ -103,7 +116,11 @@ func TestDepends(t *testing.T) {
 	}
 
 	ext2 := &Ext2{Unit: *obj}
-	o1.Drop(ext2)
+	err = o1.Drop(ext2)
+	if err != nil {
+		t.Errorf("drop ext2 failed, err:%s", err.Error())
+	}
+
 	err = o1.Insert(ext2)
 	if err != nil {
 		t.Errorf("insert ext2 failed, err:%s", err.Error())
