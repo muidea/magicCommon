@@ -13,6 +13,7 @@ type StructInfo interface {
 	GetFields() *Fields
 	UpdateFieldValue(name string, val reflect.Value) error
 	GetPrimaryKey() FieldInfo
+	GetDepends() map[string]StructInfo
 	IsValuePtr() bool
 	Dump()
 }
@@ -27,6 +28,8 @@ type structInfo struct {
 	primaryKey FieldInfo
 
 	fields Fields
+
+	depends map[string]StructInfo
 }
 
 // Verify Verify
@@ -71,6 +74,10 @@ func (s *structInfo) UpdateFieldValue(name string, val reflect.Value) error {
 // GetPrimaryKey GetPrimaryKey
 func (s *structInfo) GetPrimaryKey() FieldInfo {
 	return s.primaryKey
+}
+
+func (s *structInfo) GetDepends() map[string]StructInfo {
+	return s.depends
 }
 
 // Dump Dump

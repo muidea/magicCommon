@@ -12,6 +12,7 @@ func TestGroup(t *testing.T) {
 
 	gorup1 := &Group{Name: "testGroup1", User: []*User{}, SubGroup: []*Group{}}
 	gorup2 := &Group{Name: "testGroup2", User: []*User{}, SubGroup: []*Group{}}
+	gorup3 := &Group{Name: "testGroup3", User: []*User{}, SubGroup: []*Group{}}
 
 	o1, err := orm.New()
 	defer o1.Release()
@@ -31,12 +32,22 @@ func TestGroup(t *testing.T) {
 
 	err = o1.Insert(gorup1)
 	if err != nil {
-		t.Errorf("insert Group failed, err:%s", err.Error())
+		t.Errorf("insert Group1 failed, err:%s", err.Error())
 	}
 
 	gorup2.ParentGroup = gorup1
 	err = o1.Insert(gorup2)
 	if err != nil {
-		t.Errorf("insert Group failed, err:%s", err.Error())
+		t.Errorf("insert Group2 failed, err:%s", err.Error())
+	}
+
+	gorup3.ParentGroup = gorup1
+	err = o1.Insert(gorup3)
+	if err != nil {
+		t.Errorf("insert Group3 failed, err:%s", err.Error())
+	}
+	err = o1.Delete(gorup3)
+	if err != nil {
+		t.Errorf("delete Group3 failed, err:%s", err.Error())
 	}
 }

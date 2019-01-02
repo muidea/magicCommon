@@ -12,7 +12,7 @@ type typeStruct struct {
 	typeName    string
 	typePkgPath string
 	typeIsPtr   bool
-	typeDepend  FieldType
+	typeDepend  reflect.Type
 }
 
 func (s *typeStruct) Name() string {
@@ -40,7 +40,7 @@ func (s *typeStruct) String() string {
 	return ret
 }
 
-func (s *typeStruct) Depend() FieldType {
+func (s *typeStruct) Depend() reflect.Type {
 	return s.typeDepend
 }
 
@@ -62,13 +62,11 @@ func getStructType(val reflect.Type) (ret FieldType, err error) {
 		return
 	}
 
-	var typeDepend FieldType
+	var typeDepend reflect.Type
 	if util.IsSliceType(tVal) {
-		isSlicePtr := false
 		sliceVal := val.Elem()
 		if sliceVal.Kind() == reflect.Ptr {
 			sliceVal = sliceVal.Elem()
-			isSlicePtr = true
 		}
 
 		tSliceVal, tSliceErr := util.GetTypeValueEnum(sliceVal)
@@ -82,7 +80,7 @@ func getStructType(val reflect.Type) (ret FieldType, err error) {
 		}
 
 		if util.IsStructType(tSliceVal) {
-			typeDepend = &typeStruct{typeValue: tSliceVal, typeName: sliceVal.String(), typePkgPath: sliceVal.PkgPath(), typeIsPtr: isSlicePtr}
+			typeDepend = sliceVal
 		}
 
 		ret = &typeStruct{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: typeDepend}
@@ -90,9 +88,7 @@ func getStructType(val reflect.Type) (ret FieldType, err error) {
 	}
 
 	if util.IsStructType(tVal) {
-		typeDepend = &typeStruct{typeValue: tVal, typeName: rawVal.String(), typePkgPath: rawVal.PkgPath()}
-
-		ret = &typeStruct{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: typeDepend}
+		ret = &typeStruct{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: rawVal}
 		return
 	}
 

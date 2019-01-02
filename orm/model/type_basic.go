@@ -36,7 +36,7 @@ func (s *typeBasic) String() string {
 	return ret
 }
 
-func (s *typeBasic) Depend() FieldType {
+func (s *typeBasic) Depend() reflect.Type {
 	return nil
 }
 

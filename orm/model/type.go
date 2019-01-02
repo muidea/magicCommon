@@ -14,7 +14,7 @@ type FieldType interface {
 	IsPtr() bool
 	PkgPath() string
 	String() string
-	Depend() FieldType
+	Depend() reflect.Type
 }
 
 func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
