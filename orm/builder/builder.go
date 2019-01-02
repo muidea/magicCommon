@@ -15,13 +15,13 @@ type Builder interface {
 	BuildQuery() (string, error)
 	GetTableName() string
 
-	GetRelationTableName(relationInfo model.StructInfo) string
-	BuildCreateRelationSchema(relationInfo model.StructInfo) (string, error)
-	BuildDropRelationSchema(relationInfo model.StructInfo) (string, error)
-	BuildInsertRelation(relationInfo model.StructInfo) (string, error)
-	BuildUpdateRelation(relationInfo model.StructInfo) (string, error)
-	BuildDeleteRelation(relationInfo model.StructInfo) (string, error)
-	BuildQueryRelation(relationInfo model.StructInfo) (string, error)
+	GetRelationTableName(fieldName string, relationInfo model.StructInfo) string
+	BuildCreateRelationSchema(fieldName string, relationInfo model.StructInfo) (string, error)
+	BuildDropRelationSchema(fieldName string, relationInfo model.StructInfo) (string, error)
+	BuildInsertRelation(fieldName string, relationInfo model.StructInfo) (string, error)
+	BuildUpdateRelation(fieldName string, relationInfo model.StructInfo) (string, error)
+	BuildDeleteRelation(fieldName string, relationInfo model.StructInfo) (string, error)
+	BuildQueryRelation(fieldName string, relationInfo model.StructInfo) (string, error)
 }
 
 // NewBuilder new builder

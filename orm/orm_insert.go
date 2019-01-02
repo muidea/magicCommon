@@ -16,7 +16,7 @@ func (s *orm) insertSingle(structInfo model.StructInfo) (err error) {
 	}
 
 	id := s.executor.Insert(sql)
-	pk := structInfo.GetPrimaryKey()
+	pk := structInfo.GetPrimaryField()
 	if pk != nil {
 		pk.SetFieldValue(reflect.ValueOf(id))
 	}
@@ -24,9 +24,9 @@ func (s *orm) insertSingle(structInfo model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) insertRelation(structInfo, relationInfo model.StructInfo) (err error) {
+func (s *orm) insertRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
-	relationSQL, relationErr := builder.BuildInsertRelation(relationInfo)
+	relationSQL, relationErr := builder.BuildInsertRelation(fieldName, relationInfo)
 	if relationErr != nil {
 		err = relationErr
 		return err
@@ -37,14 +37,14 @@ func (s *orm) insertRelation(structInfo, relationInfo model.StructInfo) (err err
 }
 
 func (s *orm) Insert(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
+	structInfo, structErr := model.GetObjectStructInfo(obj, true, s.modelInfoCache)
 	if structErr != nil {
 		err = structErr
 		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
-	err = s.batchCreateSchema(structInfo, structDepends)
+	err = s.batchCreateSchema(structInfo)
 	if err != nil {
 		return
 	}
@@ -54,15 +54,15 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		return
 	}
 
-	for _, val := range structDepends {
-		if !val.IsValuePtr() {
+	for key, val := range structInfo.GetDepends() {
+		if !val.IsStructPtr() {
 			err = s.insertSingle(val)
 			if err != nil {
 				return
 			}
 		}
 
-		err = s.insertRelation(structInfo, val)
+		err = s.insertRelation(structInfo, key, val)
 		if err != nil {
 			return
 		}

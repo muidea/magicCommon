@@ -37,8 +37,9 @@ type Test struct {
 }
 
 func TestStruct(t *testing.T) {
+	cache := NewCache()
 	now := time.Now()
-	info, _, err := GetObjectStructInfo(&Unit{T1: Test{Val: 123}, TimeStamp: now})
+	info, err := GetObjectStructInfo(&Unit{T1: Test{Val: 123}, TimeStamp: now}, true, cache)
 	if info == nil || err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
@@ -48,20 +49,21 @@ func TestStruct(t *testing.T) {
 }
 
 func TestStructValue(t *testing.T) {
+	cache := NewCache()
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
 	unit := &Unit{Name: "AA", T1: Test{Val: 123}, TimeStamp: now}
-	info, _, _ := GetObjectStructInfo(unit)
-	if info == nil {
-		t.Errorf("GetObjectStructInfo failed")
+	info, err := GetObjectStructInfo(unit, true, cache)
+	if err != nil {
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
 	log.Print(*unit)
 
 	id := 123320
-	pk := info.GetPrimaryKey()
+	pk := info.GetPrimaryField()
 	if pk == nil {
-		t.Errorf("GetPrimaryKey faield")
+		t.Errorf("GetPrimaryField faield")
 		return
 	}
 	pk.SetFieldValue(reflect.ValueOf(id))
@@ -93,14 +95,15 @@ func TestReference(t *testing.T) {
 		EF []*AB `orm:"ef"`
 	}
 
-	f32Info, _, err := GetObjectStructInfo(&Demo{AB: &AB{}})
+	cache := NewCache()
+	f32Info, err := GetObjectStructInfo(&Demo{AB: &AB{}}, true, cache)
 	if err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 	}
 
 	f32Info.Dump()
 
-	i64Info, _, err := GetObjectStructInfo(&CD{})
+	i64Info, err := GetObjectStructInfo(&CD{}, true, cache)
 	if err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 	}

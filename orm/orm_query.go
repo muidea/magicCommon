@@ -42,15 +42,27 @@ func (s *orm) querySingle(structInfo model.StructInfo) (err error) {
 	return
 }
 
+func (s *orm) queryRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
+	builder := builder.NewBuilder(structInfo)
+	relationSQL, relationErr := builder.BuildQueryRelation(fieldName, relationInfo)
+	if relationErr != nil {
+		err = relationErr
+		return err
+	}
+
+	s.executor.Query(relationSQL)
+	return
+}
+
 func (s *orm) Query(obj interface{}, filter ...string) (err error) {
-	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
+	structInfo, structErr := model.GetObjectStructInfo(obj, false, s.modelInfoCache)
 	if structErr != nil {
 		err = structErr
 		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
-	err = s.batchCreateSchema(structInfo, structDepends)
+	err = s.batchCreateSchema(structInfo)
 	if err != nil {
 		return
 	}

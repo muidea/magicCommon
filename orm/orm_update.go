@@ -24,8 +24,20 @@ func (s *orm) updateSingle(structInfo model.StructInfo) (err error) {
 	return err
 }
 
+func (s *orm) updateRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
+	builder := builder.NewBuilder(structInfo)
+	relationSQL, relationErr := builder.BuildUpdateRelation(fieldName, relationInfo)
+	if relationErr != nil {
+		err = relationErr
+		return err
+	}
+
+	s.executor.Update(relationSQL)
+	return
+}
+
 func (s *orm) Update(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
+	structInfo, structErr := model.GetObjectStructInfo(obj, true, s.modelInfoCache)
 	if structErr != nil {
 		err = structErr
 		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
@@ -42,12 +54,17 @@ func (s *orm) Update(obj interface{}) (err error) {
 		return
 	}
 
-	for _, val := range structDepends {
-		if !val.IsValuePtr() {
+	for key, val := range structInfo.GetDepends() {
+		if !val.IsStructPtr() {
 			err = s.updateSingle(val)
 			if err != nil {
 				return
 			}
+		}
+
+		err = s.updateRelation(structInfo, key, val)
+		if err != nil {
+			return
 		}
 	}
 

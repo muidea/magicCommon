@@ -33,23 +33,16 @@ func (s *Builder) GetTableName() string {
 }
 
 // GetRelationTableName GetRelationTableName
-func (s *Builder) GetRelationTableName(relationInfo model.StructInfo) string {
+func (s *Builder) GetRelationTableName(fieldName string, relationInfo model.StructInfo) string {
 	leftName := s.getTableName(s.structInfo)
 	rightName := s.getTableName(relationInfo)
 
-	if strings.Compare(leftName, rightName) < 0 {
-		return fmt.Sprintf("%s2%s", leftName, rightName)
-	}
-
-	return fmt.Sprintf("%s2%s", rightName, leftName)
+	return fmt.Sprintf("%s%s2%s", leftName, fieldName, rightName)
 }
 
 func (s *Builder) getRelationValue(relationInfo model.StructInfo) (leftVal, rightVal string, err error) {
-	leftName := s.getTableName(s.structInfo)
-	rightName := s.getTableName(relationInfo)
-
-	structKey := s.structInfo.GetPrimaryKey()
-	relationKey := relationInfo.GetPrimaryKey()
+	structKey := s.structInfo.GetPrimaryField()
+	relationKey := relationInfo.GetPrimaryField()
 	if structKey == nil || relationKey == nil {
 		err = fmt.Errorf("no define primaryKey")
 		return
@@ -66,13 +59,7 @@ func (s *Builder) getRelationValue(relationInfo model.StructInfo) (leftVal, righ
 		return
 	}
 
-	if strings.Compare(leftName, rightName) < 0 {
-		leftVal = structVal
-		rightVal = relationVal
-		return
-	}
-
-	leftVal = relationVal
-	rightVal = structVal
+	leftVal = structVal
+	rightVal = relationVal
 	return
 }

@@ -23,9 +23,9 @@ func (s *orm) deleteSingle(structInfo model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) deleteRelation(structInfo, relationInfo model.StructInfo) (err error) {
+func (s *orm) deleteRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
-	sql, err := builder.BuildDeleteRelation(relationInfo)
+	sql, err := builder.BuildDeleteRelation(fieldName, relationInfo)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (s *orm) deleteRelation(structInfo, relationInfo model.StructInfo) (err err
 }
 
 func (s *orm) Delete(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
+	structInfo, structErr := model.GetObjectStructInfo(obj, true, s.modelInfoCache)
 	if structErr != nil {
 		err = structErr
 		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
@@ -53,15 +53,15 @@ func (s *orm) Delete(obj interface{}) (err error) {
 		return
 	}
 
-	for _, val := range structDepends {
-		if !val.IsValuePtr() {
+	for key, val := range structInfo.GetDepends() {
+		if !val.IsStructPtr() {
 			err = s.deleteSingle(val)
 			if err != nil {
 				return
 			}
 		}
 
-		err = s.deleteRelation(structInfo, val)
+		err = s.deleteRelation(structInfo, key, val)
 		if err != nil {
 			return
 		}

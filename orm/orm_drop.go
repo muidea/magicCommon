@@ -24,12 +24,12 @@ func (s *orm) dropSingle(structInfo model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) dropRelation(structInfo, relationInfo model.StructInfo) (err error) {
+func (s *orm) dropRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
-	tableName := builder.GetRelationTableName(relationInfo)
+	tableName := builder.GetRelationTableName(fieldName, relationInfo)
 	info := s.modelInfoCache.Fetch(tableName)
 	if info != nil {
-		sql, err := builder.BuildDropRelationSchema(relationInfo)
+		sql, err := builder.BuildDropRelationSchema(fieldName, relationInfo)
 		if err != nil {
 			return err
 		}
@@ -42,7 +42,7 @@ func (s *orm) dropRelation(structInfo, relationInfo model.StructInfo) (err error
 }
 
 func (s *orm) Drop(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
+	structInfo, structErr := model.GetObjectStructInfo(obj, false, s.modelInfoCache)
 	if structErr != nil {
 		err = structErr
 		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
@@ -54,15 +54,15 @@ func (s *orm) Drop(obj interface{}) (err error) {
 		return
 	}
 
-	for _, val := range structDepends {
-		if !val.IsValuePtr() {
+	for key, val := range structInfo.GetDepends() {
+		if !val.IsStructPtr() {
 			err = s.dropSingle(val)
 			if err != nil {
 				return
 			}
 		}
 
-		err = s.dropRelation(structInfo, val)
+		err = s.dropRelation(structInfo, key, val)
 		if err != nil {
 			return
 		}

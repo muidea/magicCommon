@@ -10,6 +10,7 @@ import (
 
 // FieldInfo FieldInfo
 type FieldInfo interface {
+	GetFieldIndex() int
 	GetFieldName() string
 	GetFieldType() FieldType
 	GetFieldTag() FieldTag
@@ -30,6 +31,10 @@ type fieldInfo struct {
 
 // Fields field info collection
 type Fields []FieldInfo
+
+func (s *fieldInfo) GetFieldIndex() int {
+	return s.fieldIndex
+}
 
 // GetFieldName GetFieldName
 func (s *fieldInfo) GetFieldName() string {
@@ -83,8 +88,14 @@ func (s *fieldInfo) Verify() error {
 
 // Dump Dump
 func (s *fieldInfo) Dump() string {
-	valStr, _ := s.fieldValue.GetValueStr()
-	return fmt.Sprintf("index:[%d],name:[%s],type:[%s],tag:[%s],value:[%s]", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag, valStr)
+	str := fmt.Sprintf("index:[%d],name:[%s],type:[%s],tag:[%s]", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag)
+	if s.fieldValue != nil {
+		valStr, _ := s.fieldValue.GetValueStr()
+
+		str = fmt.Sprintf("%s,value:[%s]", str, valStr)
+	}
+
+	return str
 }
 
 // Append Append
@@ -105,8 +116,8 @@ func (s *Fields) Append(fieldInfo FieldInfo) {
 	*s = append(*s, fieldInfo)
 }
 
-// GetPrimaryKey get primarykey field
-func (s *Fields) GetPrimaryKey() FieldInfo {
+// GetPrimaryField get primarykey field
+func (s *Fields) GetPrimaryField() FieldInfo {
 	for _, val := range *s {
 		fieldTag := val.GetFieldTag()
 		if fieldTag.IsPrimaryKey() {
@@ -125,7 +136,7 @@ func (s *Fields) Dump() {
 }
 
 // GetFieldInfo GetFieldInfo
-func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal reflect.Value) (ret FieldInfo, err error) {
+func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal *reflect.Value) (ret FieldInfo, err error) {
 	info := &fieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = fieldType.Name
@@ -140,9 +151,11 @@ func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal reflect.Value
 		return
 	}
 
-	info.fieldValue, err = newFieldValue(fieldVal.Addr())
-	if err != nil {
-		return
+	if fieldVal != nil {
+		info.fieldValue, err = newFieldValue(fieldVal.Addr())
+		if err != nil {
+			return
+		}
 	}
 
 	err = info.Verify()

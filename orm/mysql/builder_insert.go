@@ -25,14 +25,14 @@ func (s *Builder) BuildInsert() (ret string, err error) {
 }
 
 // BuildInsertRelation BuildInsertRelation
-func (s *Builder) BuildInsertRelation(relationInfo model.StructInfo) (ret string, err error) {
+func (s *Builder) BuildInsertRelation(fieldName string, relationInfo model.StructInfo) (ret string, err error) {
 	leftVal, rightVal, errVal := s.getRelationValue(relationInfo)
 	if errVal != nil {
 		err = errVal
 		return
 	}
 
-	ret = fmt.Sprintf("INSERT INTO `%s` (`left`, `right`) VALUES (%s,%s);", s.GetRelationTableName(relationInfo), leftVal, rightVal)
+	ret = fmt.Sprintf("INSERT INTO `%s` (`left`, `right`) VALUES (%s,%s);", s.GetRelationTableName(fieldName, relationInfo), leftVal, rightVal)
 	log.Print(ret)
 
 	return

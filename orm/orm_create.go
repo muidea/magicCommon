@@ -30,15 +30,15 @@ func (s *orm) createSchema(structInfo model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) createRelationSchema(structInfo, relationInfo model.StructInfo) (err error) {
+func (s *orm) createRelationSchema(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
-	tableName := builder.GetRelationTableName(relationInfo)
+	tableName := builder.GetRelationTableName(fieldName, relationInfo)
 
 	info := s.modelInfoCache.Fetch(tableName)
 	if info == nil {
 		if !s.executor.CheckTableExist(tableName) {
 			// no exist
-			sql, err := builder.BuildCreateRelationSchema(relationInfo)
+			sql, err := builder.BuildCreateRelationSchema(fieldName, relationInfo)
 			if err != nil {
 				return err
 			}
@@ -52,19 +52,19 @@ func (s *orm) createRelationSchema(structInfo, relationInfo model.StructInfo) (e
 	return
 }
 
-func (s *orm) batchCreateSchema(structInfo model.StructInfo, depends []model.StructInfo) (err error) {
+func (s *orm) batchCreateSchema(structInfo model.StructInfo) (err error) {
 	err = s.createSchema(structInfo)
 	if err != nil {
 		return
 	}
 
-	for _, val := range depends {
+	for key, val := range structInfo.GetDepends() {
 		err = s.createSchema(val)
 		if err != nil {
 			return
 		}
 
-		err = s.createRelationSchema(structInfo, val)
+		err = s.createRelationSchema(structInfo, key, val)
 		if err != nil {
 			return
 		}
@@ -74,14 +74,14 @@ func (s *orm) batchCreateSchema(structInfo model.StructInfo, depends []model.Str
 }
 
 func (s *orm) Create(obj interface{}) (err error) {
-	structInfo, structDepends, structErr := model.GetObjectStructInfo(obj)
+	structInfo, structErr := model.GetObjectStructInfo(obj, false, s.modelInfoCache)
 	if structErr != nil {
 		err = structErr
 		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
 	}
 
-	err = s.batchCreateSchema(structInfo, structDepends)
+	err = s.batchCreateSchema(structInfo)
 	if err != nil {
 		return
 	}

@@ -12,9 +12,9 @@ type StructInfo interface {
 	GetPkgPath() string
 	GetFields() *Fields
 	UpdateFieldValue(name string, val reflect.Value) error
-	GetPrimaryKey() FieldInfo
+	GetPrimaryField() FieldInfo
 	GetDepends() map[string]StructInfo
-	IsValuePtr() bool
+	IsStructPtr() bool
 	Dump()
 }
 
@@ -23,13 +23,13 @@ type structInfo struct {
 	name    string
 	pkgPath string
 
-	isValuePtr bool
+	fields Fields
 
 	primaryKey FieldInfo
 
-	fields Fields
-
 	depends map[string]StructInfo
+
+	isStructPtr bool
 }
 
 // Verify Verify
@@ -50,8 +50,8 @@ func (s *structInfo) GetPkgPath() string {
 	return s.pkgPath
 }
 
-func (s *structInfo) IsValuePtr() bool {
-	return s.isValuePtr
+func (s *structInfo) IsStructPtr() bool {
+	return s.isStructPtr
 }
 
 // GetFields GetFields
@@ -71,8 +71,8 @@ func (s *structInfo) UpdateFieldValue(name string, val reflect.Value) error {
 	return fmt.Errorf("no found field, name:%s", name)
 }
 
-// GetPrimaryKey GetPrimaryKey
-func (s *structInfo) GetPrimaryKey() FieldInfo {
+// GetPrimaryField GetPrimaryField
+func (s *structInfo) GetPrimaryField() FieldInfo {
 	return s.primaryKey
 }
 
@@ -83,17 +83,25 @@ func (s *structInfo) GetDepends() map[string]StructInfo {
 // Dump Dump
 func (s *structInfo) Dump() {
 	fmt.Print("structInfo:\n")
-	fmt.Printf("\tname:%s, pkgPath:%s, isValuePtr:%v\n", s.name, s.pkgPath, s.isValuePtr)
+	fmt.Printf("\tname:%s, pkgPath:%s, isStructPtr:%v\n", s.name, s.pkgPath, s.isStructPtr)
 	if s.primaryKey != nil {
 		fmt.Printf("primaryKey:\n")
 		fmt.Printf("\t%s\n", s.primaryKey.Dump())
 	}
 	fmt.Print("fields:\n")
 	s.fields.Dump()
+
+	if len(s.depends) > 0 {
+		fmt.Print("depends:\n")
+		for k, v := range s.depends {
+			fmt.Printf("name:%s\n", k)
+			v.Dump()
+		}
+	}
 }
 
 // GetObjectStructInfo GetObjectStructInfo
-func GetObjectStructInfo(objPtr interface{}) (ret StructInfo, depends []StructInfo, err error) {
+func GetObjectStructInfo(objPtr interface{}, withValue bool, cache StructInfoCache) (ret StructInfo, err error) {
 	ptrVal := reflect.ValueOf(objPtr)
 
 	if ptrVal.Kind() != reflect.Ptr {
@@ -107,35 +115,43 @@ func GetObjectStructInfo(objPtr interface{}) (ret StructInfo, depends []StructIn
 		return
 	}
 
-	ret, depends, err = GetValueStructInfo(structVal)
+	ret, err = GetStructInfoWithValue(structVal, withValue, cache)
 	return
 }
 
-// GetValueStructInfo GetValueStructInfo
-func GetValueStructInfo(structVal reflect.Value) (ret StructInfo, depends []StructInfo, err error) {
-	isValuePtr := false
+// GetStructInfoWithValue GetStructInfoWithValue
+func GetStructInfoWithValue(structVal reflect.Value, withValue bool, cache StructInfoCache) (ret StructInfo, err error) {
+	isStructPtr := false
 	if structVal.Kind() == reflect.Ptr {
 		structVal = reflect.Indirect(structVal)
 
-		isValuePtr = true
+		isStructPtr = true
 	}
 
-	structInfo := &structInfo{name: structVal.Type().Name(), pkgPath: structVal.Type().PkgPath(), isValuePtr: isValuePtr, fields: make(Fields, 0)}
-	depends = []StructInfo{}
-
 	structType := structVal.Type()
-	fieldNum := structType.NumField()
+	if structType.Kind() != reflect.Struct {
+		err = fmt.Errorf("illegal structType, type:%s", structType.String())
+		return
+	}
 
-	idx := 0
-	reference := []reflect.Value{}
-	for {
-		if idx >= fieldNum {
-			break
+	info := cache.Fetch(structType.Name())
+	if info != nil {
+		ret = info
+		return
+	}
+
+	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), depends: map[string]StructInfo{}, isStructPtr: isStructPtr}
+
+	fieldNum := structType.NumField()
+	for idx := 0; idx < fieldNum; idx++ {
+		fieldType := structType.Field(idx)
+		var fieldValue *reflect.Value
+		if withValue {
+			val := structVal.Field(idx)
+			fieldValue = &val
 		}
 
-		fieldType := structType.Field(idx)
-		fieldVal := structVal.Field(idx)
-		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, fieldVal)
+		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, fieldValue)
 		if fieldErr != nil {
 			err = fieldErr
 			log.Printf("getFieldInfo failed, name:%s, err:%s", fieldType.Name, err.Error())
@@ -143,36 +159,100 @@ func GetValueStructInfo(structVal reflect.Value) (ret StructInfo, depends []Stru
 		}
 
 		structInfo.fields.Append(fieldInfo)
+	}
 
+	structInfo.primaryKey = structInfo.fields.GetPrimaryField()
+
+	cache.Put(structInfo.GetName(), structInfo)
+
+	fields := structInfo.GetFields()
+	for idx := range *fields {
+		fieldInfo := (*fields)[idx]
 		fType := fieldInfo.GetFieldType()
 		fDepend := fType.Depend()
 		if fDepend != nil {
-			fValue := fieldInfo.GetFieldValue()
-			dvs, err := fValue.GetDepend()
-			if err != nil {
-				break
+			dStructInfo, dErr := GetStructInfo(fDepend, cache)
+			if dErr != nil {
+				err = dErr
+
+				cache.Remove(structInfo.GetName())
+				return
 			}
 
-			reference = append(reference, dvs...)
+			structInfo.depends[fieldInfo.GetFieldName()] = dStructInfo
 		}
-		idx++
 	}
-
-	structInfo.primaryKey = structInfo.fields.GetPrimaryKey()
 
 	err = structInfo.Verify()
 	if err != nil {
 		return
 	}
 
-	for _, val := range reference {
-		preRet, preDepends, err := GetValueStructInfo(val)
-		if err != nil {
-			break
+	ret = structInfo
+
+	return
+}
+
+// GetStructInfo GetStructInfo
+func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructInfo, err error) {
+	isStructPtr := false
+	if structType.Kind() == reflect.Ptr {
+		structType = structType.Elem()
+		isStructPtr = true
+	}
+
+	if structType.Kind() != reflect.Struct {
+		err = fmt.Errorf("illegal structType, type:%s", structType.String())
+		return
+	}
+
+	info := cache.Fetch(structType.Name())
+	if info != nil {
+		ret = info
+		return
+	}
+
+	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), depends: map[string]StructInfo{}, isStructPtr: isStructPtr}
+
+	fieldNum := structType.NumField()
+	for idx := 0; idx < fieldNum; idx++ {
+		fieldType := structType.Field(idx)
+		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, nil)
+		if fieldErr != nil {
+			err = fieldErr
+			log.Printf("getFieldInfo failed, name:%s, err:%s", fieldType.Name, err.Error())
+			return
 		}
 
-		depends = append(preDepends, depends...)
-		depends = append(depends, preRet)
+		structInfo.fields.Append(fieldInfo)
+	}
+
+	structInfo.primaryKey = structInfo.fields.GetPrimaryField()
+
+	cache.Put(structInfo.GetName(), structInfo)
+
+	fields := structInfo.GetFields()
+	for idx := range *fields {
+		fieldInfo := (*fields)[idx]
+		fType := fieldInfo.GetFieldType()
+		fDepend := fType.Depend()
+		if fDepend != nil {
+			dStructInfo, dErr := GetStructInfo(fDepend, cache)
+			if dErr != nil {
+				err = dErr
+
+				cache.Remove(structInfo.GetName())
+				return
+			}
+
+			structInfo.depends[fieldInfo.GetFieldName()] = dStructInfo
+		}
+	}
+
+	err = structInfo.Verify()
+	if err != nil {
+		cache.Remove(structInfo.GetName())
+		return
 	}
 
 	ret = structInfo
@@ -191,7 +271,7 @@ func getStructPrimaryKey(structVal reflect.Value) (ret FieldInfo, err error) {
 	for idx := 0; idx < fieldNum; {
 		fieldType := structType.Field(idx)
 		fieldVal := structVal.Field(idx)
-		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, fieldVal)
+		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, &fieldVal)
 		if fieldErr != nil {
 			err = fieldErr
 			return

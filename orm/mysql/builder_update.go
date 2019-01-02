@@ -23,7 +23,7 @@ func (s *Builder) BuildUpdate() (ret string, err error) {
 			continue
 		}
 
-		if val != s.structInfo.GetPrimaryKey() {
+		if val != s.structInfo.GetPrimaryField() {
 			fStr, ferr := fValue.GetValueStr()
 			if ferr != nil {
 				err = ferr
@@ -41,8 +41,8 @@ func (s *Builder) BuildUpdate() (ret string, err error) {
 		return
 	}
 
-	pkfValue := s.structInfo.GetPrimaryKey().GetFieldValue()
-	pkfTag := s.structInfo.GetPrimaryKey().GetFieldTag()
+	pkfValue := s.structInfo.GetPrimaryField().GetFieldValue()
+	pkfTag := s.structInfo.GetPrimaryField().GetFieldTag()
 	pkfStr, pkferr := pkfValue.GetValueStr()
 	if pkferr == nil {
 		str = fmt.Sprintf("UPDATE `%s` SET %s WHERE `%s`=%s", s.getTableName(s.structInfo), str, pkfTag.Name(), pkfStr)
@@ -56,9 +56,9 @@ func (s *Builder) BuildUpdate() (ret string, err error) {
 }
 
 // BuildUpdateRelation BuildUpdateRelation
-func (s *Builder) BuildUpdateRelation(relationInfo model.StructInfo) (string, error) {
+func (s *Builder) BuildUpdateRelation(fieldName string, relationInfo model.StructInfo) (string, error) {
 	str := "\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`left` INT NOT NULL,\n\t`right` INT NOT NULL,\n\tPRIMARY KEY (`id`)"
-	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetRelationTableName(relationInfo), str)
+	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetRelationTableName(fieldName, relationInfo), str)
 	log.Print(str)
 
 	return str, nil
