@@ -11,9 +11,10 @@ type StructInfo interface {
 	GetName() string
 	GetPkgPath() string
 	GetFields() *Fields
+	SetFieldValue(idx int, val reflect.Value) error
 	UpdateFieldValue(name string, val reflect.Value) error
 	GetPrimaryField() FieldInfo
-	GetDepends() map[string]StructInfo
+	GetDependStructs() map[string]StructInfo
 	IsStructPtr() bool
 	Dump()
 }
@@ -27,7 +28,7 @@ type structInfo struct {
 
 	primaryKey FieldInfo
 
-	depends map[string]StructInfo
+	dependStructs map[string]StructInfo
 
 	isStructPtr bool
 }
@@ -59,16 +60,30 @@ func (s *structInfo) GetFields() *Fields {
 	return &s.fields
 }
 
-// UpdateFieldValue UpdateFieldValue
-func (s *structInfo) UpdateFieldValue(name string, val reflect.Value) error {
+// SetFieldValue SetFieldValue
+func (s *structInfo) SetFieldValue(idx int, val reflect.Value) (err error) {
 	for _, field := range s.fields {
-		if field.GetFieldName() == name {
-			field.SetFieldValue(val)
-			return nil
+		if field.GetFieldIndex() == idx {
+			err = field.SetFieldValue(val)
+			return
 		}
 	}
 
-	return fmt.Errorf("no found field, name:%s", name)
+	err = fmt.Errorf("no found field, idx:%d", idx)
+	return
+}
+
+// UpdateFieldValue UpdateFieldValue
+func (s *structInfo) UpdateFieldValue(name string, val reflect.Value) (err error) {
+	for _, field := range s.fields {
+		if field.GetFieldName() == name {
+			err = field.SetFieldValue(val)
+			return
+		}
+	}
+
+	err = fmt.Errorf("no found field, name:%s", name)
+	return
 }
 
 // GetPrimaryField GetPrimaryField
@@ -76,8 +91,8 @@ func (s *structInfo) GetPrimaryField() FieldInfo {
 	return s.primaryKey
 }
 
-func (s *structInfo) GetDepends() map[string]StructInfo {
-	return s.depends
+func (s *structInfo) GetDependStructs() map[string]StructInfo {
+	return s.dependStructs
 }
 
 // Dump Dump
@@ -132,7 +147,7 @@ func GetStructInfoWithValue(structVal reflect.Value, cache StructInfoCache) (ret
 		return
 	}
 
-	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), depends: map[string]StructInfo{}, isStructPtr: isStructPtr}
+	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), dependStructs: map[string]StructInfo{}, isStructPtr: isStructPtr}
 
 	fieldNum := structType.NumField()
 	for idx := 0; idx < fieldNum; idx++ {
@@ -167,7 +182,7 @@ func GetStructInfoWithValue(structVal reflect.Value, cache StructInfoCache) (ret
 				return
 			}
 
-			structInfo.depends[fieldInfo.GetFieldName()] = dStructInfo
+			structInfo.dependStructs[fieldInfo.GetFieldName()] = dStructInfo
 		}
 	}
 
@@ -200,7 +215,7 @@ func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructIn
 		return
 	}
 
-	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), depends: map[string]StructInfo{}, isStructPtr: isStructPtr}
+	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), dependStructs: map[string]StructInfo{}, isStructPtr: isStructPtr}
 
 	fieldNum := structType.NumField()
 	for idx := 0; idx < fieldNum; idx++ {
@@ -233,7 +248,7 @@ func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructIn
 				return
 			}
 
-			structInfo.depends[fieldInfo.GetFieldName()] = dStructInfo
+			structInfo.dependStructs[fieldInfo.GetFieldName()] = dStructInfo
 		}
 	}
 
@@ -244,6 +259,35 @@ func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructIn
 	}
 
 	ret = structInfo
+
+	return
+}
+
+// GetStructValue GetStructValue
+func GetStructValue(structVal reflect.Value, cache StructInfoCache) (ret StructInfo, err error) {
+	if structVal.Kind() == reflect.Ptr {
+		if structVal.IsNil() {
+			err = fmt.Errorf("can't get value from nil ptr")
+			return
+		}
+
+		structVal = reflect.Indirect(structVal)
+	}
+
+	info := cache.Fetch(structVal.Type().Name())
+	if info == nil {
+		err = fmt.Errorf("can't get value from nil ptr")
+		return
+	}
+
+	fieldNum := structVal.NumField()
+	for idx := 0; idx < fieldNum; idx++ {
+		val := structVal.Field(idx)
+		err = info.SetFieldValue(idx, val)
+		if err != nil {
+			return
+		}
+	}
 
 	return
 }

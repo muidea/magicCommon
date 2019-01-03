@@ -53,7 +53,7 @@ func (s *orm) Delete(obj interface{}) (err error) {
 		return
 	}
 
-	for key, val := range structInfo.GetDepends() {
+	for key, val := range structInfo.GetDependStructs() {
 		if !val.IsStructPtr() {
 			err = s.deleteSingle(val)
 			if err != nil {

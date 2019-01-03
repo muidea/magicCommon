@@ -54,7 +54,7 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		return
 	}
 
-	for key, val := range structInfo.GetDepends() {
+	for key, val := range structInfo.GetDependStructs() {
 		if !val.IsStructPtr() {
 			err = s.insertSingle(val)
 			if err != nil {

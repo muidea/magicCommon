@@ -39,7 +39,7 @@ func TestBuilderCommon(t *testing.T) {
 		return
 	}
 
-	if len(info.GetDepends()) != 0 {
+	if len(info.GetDependStructs()) != 0 {
 		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}
@@ -107,7 +107,7 @@ func TestBuilderReference(t *testing.T) {
 		return
 	}
 
-	if len(info.GetDepends()) != 1 {
+	if len(info.GetDependStructs()) != 1 {
 		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}
@@ -176,7 +176,7 @@ func TestBuilderReference2(t *testing.T) {
 		return
 	}
 
-	if len(info.GetDepends()) != 1 {
+	if len(info.GetDependStructs()) != 1 {
 		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}

@@ -15,7 +15,7 @@ type FieldInfo interface {
 	GetFieldType() FieldType
 	GetFieldTag() FieldTag
 	GetFieldValue() FieldValue
-	SetFieldValue(val reflect.Value)
+	SetFieldValue(val reflect.Value) error
 	Dump() string
 }
 
@@ -57,10 +57,14 @@ func (s *fieldInfo) GetFieldValue() FieldValue {
 }
 
 // SetFieldValue SetFieldValue
-func (s *fieldInfo) SetFieldValue(val reflect.Value) {
+func (s *fieldInfo) SetFieldValue(val reflect.Value) (err error) {
 	if s.fieldValue != nil {
-		s.fieldValue.SetValue(val)
+		err = s.fieldValue.SetValue(val)
+	} else {
+		s.fieldValue, err = newFieldValue(val.Addr())
 	}
+
+	return
 }
 
 // Verify Verify

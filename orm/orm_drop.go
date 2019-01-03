@@ -50,7 +50,7 @@ func (s *orm) Drop(obj interface{}) (err error) {
 		return
 	}
 
-	for key, val := range structInfo.GetDepends() {
+	for key, val := range structInfo.GetDependStructs() {
 		if !val.IsStructPtr() {
 			err = s.dropSingle(val)
 			if err != nil {
