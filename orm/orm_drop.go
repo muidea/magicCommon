@@ -10,8 +10,7 @@ import (
 func (s *orm) dropSingle(structInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	tableName := builder.GetTableName()
-	info := s.modelInfoCache.Fetch(tableName)
-	if info != nil {
+	if s.executor.CheckTableExist(tableName) {
 		sql, err := builder.BuildDropSchema()
 		if err != nil {
 			return err
@@ -20,15 +19,13 @@ func (s *orm) dropSingle(structInfo model.StructInfo) (err error) {
 		s.executor.Execute(sql)
 	}
 
-	s.modelInfoCache.Remove(tableName)
 	return
 }
 
 func (s *orm) dropRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
 	builder := builder.NewBuilder(structInfo)
 	tableName := builder.GetRelationTableName(fieldName, relationInfo)
-	info := s.modelInfoCache.Fetch(tableName)
-	if info != nil {
+	if s.executor.CheckTableExist(tableName) {
 		sql, err := builder.BuildDropRelationSchema(fieldName, relationInfo)
 		if err != nil {
 			return err
@@ -37,7 +34,6 @@ func (s *orm) dropRelation(structInfo model.StructInfo, fieldName string, relati
 		s.executor.Execute(sql)
 	}
 
-	s.modelInfoCache.Remove(tableName)
 	return
 }
 

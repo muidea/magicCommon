@@ -58,7 +58,9 @@ func (s *fieldInfo) GetFieldValue() FieldValue {
 
 // SetFieldValue SetFieldValue
 func (s *fieldInfo) SetFieldValue(val reflect.Value) {
-	s.fieldValue.SetValue(val)
+	if s.fieldValue != nil {
+		s.fieldValue.SetValue(val)
+	}
 }
 
 // Verify Verify
