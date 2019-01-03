@@ -48,7 +48,12 @@ func (s *orm) batchCreateSchema(structInfo model.StructInfo) (err error) {
 		return
 	}
 
-	for key, val := range structInfo.GetDependStructs() {
+	dependInfos, dependErr := structInfo.GetDependStructs()
+	if dependErr != nil {
+		err = dependErr
+		return
+	}
+	for key, val := range dependInfos {
 		err = s.createSchema(val)
 		if err != nil {
 			return

@@ -46,24 +46,36 @@ func (s *orm) Delete(obj interface{}) (err error) {
 		return
 	}
 
-	//err = s.batchCreateSchema(structInfo, structDepends)
-
 	err = s.deleteSingle(structInfo)
 	if err != nil {
 		return
 	}
 
-	for key, val := range structInfo.GetDependStructs() {
-		if !val.IsStructPtr() {
-			err = s.deleteSingle(val)
+	dependVals, dependErr := structInfo.GetDependValues()
+	if dependErr != nil {
+		err = dependErr
+		return
+	}
+
+	for key, val := range dependVals {
+		for _, sv := range val {
+			sInfo, sErr := model.GetStructValue(sv, s.modelInfoCache)
+			if sErr != nil {
+				err = sErr
+				return
+			}
+
+			if !sInfo.IsStructPtr() {
+				err = s.deleteSingle(sInfo)
+				if err != nil {
+					return
+				}
+			}
+
+			err = s.deleteRelation(structInfo, key, sInfo)
 			if err != nil {
 				return
 			}
-		}
-
-		err = s.deleteRelation(structInfo, key, val)
-		if err != nil {
-			return
 		}
 	}
 

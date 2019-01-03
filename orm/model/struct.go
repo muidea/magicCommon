@@ -14,7 +14,8 @@ type StructInfo interface {
 	SetFieldValue(idx int, val reflect.Value) error
 	UpdateFieldValue(name string, val reflect.Value) error
 	GetPrimaryField() FieldInfo
-	GetDependStructs() map[string]StructInfo
+	GetDependStructs() (map[string]StructInfo, error)
+	GetDependValues() (map[string][]reflect.Value, error)
 	IsStructPtr() bool
 	Dump()
 }
@@ -28,18 +29,9 @@ type structInfo struct {
 
 	primaryKey FieldInfo
 
-	dependStructs map[string]StructInfo
-
 	isStructPtr bool
-}
 
-// Verify Verify
-func (s *structInfo) Verify() error {
-	if s.name == "" {
-		return fmt.Errorf("illegal struct name")
-	}
-
-	return nil
+	structInfoCache StructInfoCache
 }
 
 func (s *structInfo) GetName() string {
@@ -91,8 +83,45 @@ func (s *structInfo) GetPrimaryField() FieldInfo {
 	return s.primaryKey
 }
 
-func (s *structInfo) GetDependStructs() map[string]StructInfo {
-	return s.dependStructs
+func (s *structInfo) GetDependStructs() (ret map[string]StructInfo, err error) {
+	ret = map[string]StructInfo{}
+
+	for _, field := range s.fields {
+		fType := field.GetFieldType()
+		fDepend := fType.Depend()
+		if fDepend != nil {
+			dStructInfo, dErr := GetStructInfo(fDepend, s.structInfoCache)
+			if dErr != nil {
+				err = dErr
+				return
+			}
+
+			ret[field.GetFieldName()] = dStructInfo
+		}
+	}
+
+	return
+}
+
+func (s *structInfo) GetDependValues() (ret map[string][]reflect.Value, err error) {
+	ret = map[string][]reflect.Value{}
+
+	for _, field := range s.fields {
+		fValue := field.GetFieldValue()
+		fType := field.GetFieldType()
+		fDepend := fType.Depend()
+		if fDepend != nil {
+			dVals, dErr := fValue.GetDepend()
+			if dErr != nil {
+				err = dErr
+				return
+			}
+
+			ret[field.GetFieldName()] = dVals
+		}
+	}
+
+	return
 }
 
 // Dump Dump
@@ -117,12 +146,14 @@ func GetObjectStructInfo(objPtr interface{}, cache StructInfoCache) (ret StructI
 	}
 
 	structVal := reflect.Indirect(ptrVal)
-	if structVal.Kind() != reflect.Struct {
-		err = fmt.Errorf("illegal obj type. must be a struct ptr")
+	structType := structVal.Type()
+
+	ret, err = GetStructInfo(structType, cache)
+	if err != nil {
 		return
 	}
 
-	ret, err = GetStructInfoWithValue(structVal, cache)
+	ret, err = GetStructValue(structVal, cache)
 	return
 }
 
@@ -147,7 +178,7 @@ func GetStructInfoWithValue(structVal reflect.Value, cache StructInfoCache) (ret
 		return
 	}
 
-	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), dependStructs: map[string]StructInfo{}, isStructPtr: isStructPtr}
+	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), isStructPtr: isStructPtr, structInfoCache: cache}
 
 	fieldNum := structType.NumField()
 	for idx := 0; idx < fieldNum; idx++ {
@@ -167,29 +198,6 @@ func GetStructInfoWithValue(structVal reflect.Value, cache StructInfoCache) (ret
 	structInfo.primaryKey = structInfo.fields.GetPrimaryField()
 
 	cache.Put(structInfo.GetName(), structInfo)
-
-	fields := structInfo.GetFields()
-	for idx := range *fields {
-		fieldInfo := (*fields)[idx]
-		fType := fieldInfo.GetFieldType()
-		fDepend := fType.Depend()
-		if fDepend != nil {
-			dStructInfo, dErr := GetStructInfo(fDepend, cache)
-			if dErr != nil {
-				err = dErr
-
-				cache.Remove(structInfo.GetName())
-				return
-			}
-
-			structInfo.dependStructs[fieldInfo.GetFieldName()] = dStructInfo
-		}
-	}
-
-	err = structInfo.Verify()
-	if err != nil {
-		return
-	}
 
 	ret = structInfo
 
@@ -215,7 +223,7 @@ func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructIn
 		return
 	}
 
-	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), dependStructs: map[string]StructInfo{}, isStructPtr: isStructPtr}
+	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), isStructPtr: isStructPtr, structInfoCache: cache}
 
 	fieldNum := structType.NumField()
 	for idx := 0; idx < fieldNum; idx++ {
@@ -233,30 +241,6 @@ func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructIn
 	structInfo.primaryKey = structInfo.fields.GetPrimaryField()
 
 	cache.Put(structInfo.GetName(), structInfo)
-
-	fields := structInfo.GetFields()
-	for idx := range *fields {
-		fieldInfo := (*fields)[idx]
-		fType := fieldInfo.GetFieldType()
-		fDepend := fType.Depend()
-		if fDepend != nil {
-			dStructInfo, dErr := GetStructInfo(fDepend, cache)
-			if dErr != nil {
-				err = dErr
-
-				cache.Remove(structInfo.GetName())
-				return
-			}
-
-			structInfo.dependStructs[fieldInfo.GetFieldName()] = dStructInfo
-		}
-	}
-
-	err = structInfo.Verify()
-	if err != nil {
-		cache.Remove(structInfo.GetName())
-		return
-	}
 
 	ret = structInfo
 
@@ -288,6 +272,8 @@ func GetStructValue(structVal reflect.Value, cache StructInfoCache) (ret StructI
 			return
 		}
 	}
+
+	ret = info
 
 	return
 }

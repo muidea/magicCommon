@@ -39,7 +39,13 @@ func TestBuilderCommon(t *testing.T) {
 		return
 	}
 
-	if len(info.GetDependStructs()) != 0 {
+	dependInfos, dependErr := info.GetDependStructs()
+	if dependErr != nil {
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
+		return
+	}
+
+	if len(dependInfos) != 0 {
 		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}
@@ -107,10 +113,17 @@ func TestBuilderReference(t *testing.T) {
 		return
 	}
 
-	if len(info.GetDependStructs()) != 1 {
+	dependInfos, dependErr := info.GetDependStructs()
+	if dependErr != nil {
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
+		return
+	}
+
+	if len(dependInfos) != 1 {
 		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}
+
 	builder := NewBuilder(info)
 	if builder == nil {
 		t.Error("new Builder failed")
@@ -176,7 +189,13 @@ func TestBuilderReference2(t *testing.T) {
 		return
 	}
 
-	if len(info.GetDependStructs()) != 1 {
+	dependInfos, dependErr := info.GetDependStructs()
+	if dependErr != nil {
+		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
+		return
+	}
+
+	if len(dependInfos) != 1 {
 		t.Errorf("GetObjectStructInfo failed,")
 		return
 	}

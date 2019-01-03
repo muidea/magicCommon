@@ -39,7 +39,7 @@ type Test struct {
 func TestStruct(t *testing.T) {
 	cache := NewCache()
 	now := time.Now()
-	info, err := GetObjectStructInfo(&Unit{T1: Test{Val: 123}, TimeStamp: now}, cache)
+	info, err := GetObjectStructInfo(&Unit{T1: Test{ID: 12, Val: 123}, TimeStamp: now}, cache)
 	if info == nil || err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return

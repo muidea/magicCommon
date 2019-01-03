@@ -54,17 +54,31 @@ func (s *orm) Update(obj interface{}) (err error) {
 		return
 	}
 
-	for key, val := range structInfo.GetDependStructs() {
-		if !val.IsStructPtr() {
-			err = s.updateSingle(val)
+	dependVals, dependErr := structInfo.GetDependValues()
+	if dependErr != nil {
+		err = dependErr
+		return
+	}
+
+	for key, val := range dependVals {
+		for _, sv := range val {
+			sInfo, sErr := model.GetStructValue(sv, s.modelInfoCache)
+			if sErr != nil {
+				err = sErr
+				return
+			}
+
+			if !sInfo.IsStructPtr() {
+				err = s.updateSingle(sInfo)
+				if err != nil {
+					return
+				}
+			}
+
+			err = s.updateRelation(structInfo, key, sInfo)
 			if err != nil {
 				return
 			}
-		}
-
-		err = s.updateRelation(structInfo, key, val)
-		if err != nil {
-			return
 		}
 	}
 
