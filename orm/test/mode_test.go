@@ -10,9 +10,9 @@ func TestGroup(t *testing.T) {
 	orm.Initialize("root", "rootkit", "localhost:3306", "testdb")
 	defer orm.Uninitialize()
 
-	group1 := &Group{Name: "testGroup1", User: []*User{}, SubGroup: []*Group{}}
-	group2 := &Group{Name: "testGroup2", User: []*User{}, SubGroup: []*Group{}}
-	group3 := &Group{Name: "testGroup3", User: []*User{}, SubGroup: []*Group{}}
+	group1 := &Group{Name: "testGroup1", Users: []*User{}, Children: []*Group{}}
+	group2 := &Group{Name: "testGroup2", Users: []*User{}, Children: []*Group{}}
+	group3 := &Group{Name: "testGroup3", Users: []*User{}, Children: []*Group{}}
 
 	o1, err := orm.New()
 	defer o1.Release()
@@ -40,13 +40,13 @@ func TestGroup(t *testing.T) {
 		t.Errorf("insert Group1 failed, err:%s", err.Error())
 	}
 
-	group2.ParentGroup = group1
+	group2.Parent = group1
 	err = o1.Insert(group2)
 	if err != nil {
 		t.Errorf("insert Group2 failed, err:%s", err.Error())
 	}
 
-	group3.ParentGroup = group1
+	group3.Parent = group1
 	err = o1.Insert(group3)
 	if err != nil {
 		t.Errorf("insert Group3 failed, err:%s", err.Error())
