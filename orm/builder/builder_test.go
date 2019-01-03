@@ -33,7 +33,7 @@ func TestBuilderCommon(t *testing.T) {
 	obj := &Unit{ID: 10, Name: "Hello world", Value: 12.3456, TimeStamp: now}
 
 	cache := model.NewCache()
-	info, err := model.GetObjectStructInfo(obj, true, cache)
+	info, err := model.GetObjectStructInfo(obj, cache)
 	if err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
@@ -101,7 +101,7 @@ func TestBuilderReference(t *testing.T) {
 	ext := &Ext{}
 
 	cache := model.NewCache()
-	info, err := model.GetObjectStructInfo(ext, true, cache)
+	info, err := model.GetObjectStructInfo(ext, cache)
 	if err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
@@ -170,7 +170,7 @@ func TestBuilderReference2(t *testing.T) {
 	ext := &Ext{Description: &desc}
 
 	cache := model.NewCache()
-	info, err := model.GetObjectStructInfo(ext, true, cache)
+	info, err := model.GetObjectStructInfo(ext, cache)
 	if err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return

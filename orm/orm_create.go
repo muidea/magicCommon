@@ -64,7 +64,7 @@ func (s *orm) batchCreateSchema(structInfo model.StructInfo) (err error) {
 }
 
 func (s *orm) Create(obj interface{}) (err error) {
-	structInfo, structErr := model.GetObjectStructInfo(obj, false, s.modelInfoCache)
+	structInfo, structErr := model.GetObjectStructInfo(obj, s.modelInfoCache)
 	if structErr != nil {
 		err = structErr
 		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())

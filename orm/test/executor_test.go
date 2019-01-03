@@ -36,6 +36,11 @@ func TestExecutor(t *testing.T) {
 	if err != nil {
 		t.Errorf("new Orm failed, err:%s", err.Error())
 	}
+	err = o1.Create(obj)
+	if err != nil {
+		t.Errorf("create obj failed, err:%s", err.Error())
+	}
+
 	err = o1.Insert(obj)
 	if err != nil {
 		t.Errorf("insert obj failed, err:%s", err.Error())
@@ -98,6 +103,12 @@ func TestDepends(t *testing.T) {
 	if err != nil {
 		t.Errorf("new Orm failed, err:%s", err.Error())
 	}
+
+	err = o1.Create(ext)
+	if err != nil {
+		t.Errorf("create ext failed, err:%s", err.Error())
+	}
+
 	err = o1.Insert(ext)
 	if err != nil {
 		t.Errorf("insert ext failed, err:%s", err.Error())

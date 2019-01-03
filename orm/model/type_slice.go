@@ -76,7 +76,7 @@ func getSliceType(val reflect.Type) (ret FieldType, err error) {
 		}
 
 		if util.IsStructType(tSliceVal) {
-			typeDepend = sliceVal
+			typeDepend = val.Elem()
 		}
 
 		ret = &typeSlice{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: typeDepend}

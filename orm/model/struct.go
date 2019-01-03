@@ -90,18 +90,10 @@ func (s *structInfo) Dump() {
 	}
 	fmt.Print("fields:\n")
 	s.fields.Dump()
-
-	if len(s.depends) > 0 {
-		fmt.Print("depends:\n")
-		for k, v := range s.depends {
-			fmt.Printf("name:%s\n", k)
-			v.Dump()
-		}
-	}
 }
 
 // GetObjectStructInfo GetObjectStructInfo
-func GetObjectStructInfo(objPtr interface{}, withValue bool, cache StructInfoCache) (ret StructInfo, err error) {
+func GetObjectStructInfo(objPtr interface{}, cache StructInfoCache) (ret StructInfo, err error) {
 	ptrVal := reflect.ValueOf(objPtr)
 
 	if ptrVal.Kind() != reflect.Ptr {
@@ -115,12 +107,12 @@ func GetObjectStructInfo(objPtr interface{}, withValue bool, cache StructInfoCac
 		return
 	}
 
-	ret, err = GetStructInfoWithValue(structVal, withValue, cache)
+	ret, err = GetStructInfoWithValue(structVal, cache)
 	return
 }
 
 // GetStructInfoWithValue GetStructInfoWithValue
-func GetStructInfoWithValue(structVal reflect.Value, withValue bool, cache StructInfoCache) (ret StructInfo, err error) {
+func GetStructInfoWithValue(structVal reflect.Value, cache StructInfoCache) (ret StructInfo, err error) {
 	isStructPtr := false
 	if structVal.Kind() == reflect.Ptr {
 		structVal = reflect.Indirect(structVal)
@@ -145,11 +137,8 @@ func GetStructInfoWithValue(structVal reflect.Value, withValue bool, cache Struc
 	fieldNum := structType.NumField()
 	for idx := 0; idx < fieldNum; idx++ {
 		fieldType := structType.Field(idx)
-		var fieldValue *reflect.Value
-		if withValue {
-			val := structVal.Field(idx)
-			fieldValue = &val
-		}
+		val := structVal.Field(idx)
+		fieldValue := &val
 
 		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, fieldValue)
 		if fieldErr != nil {
@@ -157,7 +146,6 @@ func GetStructInfoWithValue(structVal reflect.Value, withValue bool, cache Struc
 			log.Printf("getFieldInfo failed, name:%s, err:%s", fieldType.Name, err.Error())
 			return
 		}
-
 		structInfo.fields.Append(fieldInfo)
 	}
 

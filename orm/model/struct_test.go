@@ -39,7 +39,7 @@ type Test struct {
 func TestStruct(t *testing.T) {
 	cache := NewCache()
 	now := time.Now()
-	info, err := GetObjectStructInfo(&Unit{T1: Test{Val: 123}, TimeStamp: now}, true, cache)
+	info, err := GetObjectStructInfo(&Unit{T1: Test{Val: 123}, TimeStamp: now}, cache)
 	if info == nil || err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
@@ -52,7 +52,7 @@ func TestStructValue(t *testing.T) {
 	cache := NewCache()
 	now, _ := time.ParseInLocation("2006-01-02 15:04:05", "2018-01-02 15:04:05", time.Local)
 	unit := &Unit{Name: "AA", T1: Test{Val: 123}, TimeStamp: now}
-	info, err := GetObjectStructInfo(unit, true, cache)
+	info, err := GetObjectStructInfo(unit, cache)
 	if err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 		return
@@ -96,14 +96,14 @@ func TestReference(t *testing.T) {
 	}
 
 	cache := NewCache()
-	f32Info, err := GetObjectStructInfo(&Demo{AB: &AB{}}, true, cache)
+	f32Info, err := GetObjectStructInfo(&Demo{AB: &AB{}}, cache)
 	if err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 	}
 
 	f32Info.Dump()
 
-	i64Info, err := GetObjectStructInfo(&CD{}, true, cache)
+	i64Info, err := GetObjectStructInfo(&CD{}, cache)
 	if err != nil {
 		t.Errorf("GetObjectStructInfo failed, err:%s", err.Error())
 	}

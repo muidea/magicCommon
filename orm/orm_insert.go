@@ -37,7 +37,7 @@ func (s *orm) insertRelation(structInfo model.StructInfo, fieldName string, rela
 }
 
 func (s *orm) Insert(obj interface{}) (err error) {
-	structInfo, structErr := model.GetObjectStructInfo(obj, true, s.modelInfoCache)
+	structInfo, structErr := model.GetObjectStructInfo(obj, s.modelInfoCache)
 	if structErr != nil {
 		err = structErr
 		log.Printf("GetObjectStructInfo failed, err:%s", err.Error())
