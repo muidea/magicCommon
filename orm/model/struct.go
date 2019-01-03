@@ -146,7 +146,7 @@ func GetStructInfoWithValue(structVal reflect.Value, cache StructInfoCache) (ret
 
 	info := cache.Fetch(structType.Name())
 	if info != nil {
-		ret = info
+		ret = info.Copy()
 		return
 	}
 
@@ -187,7 +187,7 @@ func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructIn
 
 	info := cache.Fetch(structType.Name())
 	if info != nil {
-		ret = info
+		ret = info.Copy()
 		return
 	}
 
