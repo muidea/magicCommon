@@ -15,6 +15,11 @@ func (s *Builder) BuildUpdate() (ret string, err error) {
 		fType := val.GetFieldType()
 		fValue := val.GetFieldValue()
 		fTag := val.GetFieldTag()
+
+		if fValue == nil {
+			continue
+		}
+
 		if fType.IsPtr() && fValue.IsNil() {
 			continue
 		}

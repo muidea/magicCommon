@@ -48,6 +48,10 @@ func (s *Builder) getFieldInsertNames(info model.StructInfo) string {
 
 		fType := field.GetFieldType()
 		fValue := field.GetFieldValue()
+		if fValue == nil {
+			continue
+		}
+
 		if fType.IsPtr() && fValue.IsNil() {
 			continue
 		}
@@ -76,6 +80,10 @@ func (s *Builder) getFieldInsertValues(info model.StructInfo) (ret []string, err
 
 		fType := field.GetFieldType()
 		fValue := field.GetFieldValue()
+		if fValue == nil {
+			continue
+		}
+
 		if fType.IsPtr() && fValue.IsNil() {
 			continue
 		}

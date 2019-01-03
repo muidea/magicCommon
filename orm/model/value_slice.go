@@ -46,6 +46,12 @@ func (s *sliceImpl) GetValue() (reflect.Value, error) {
 }
 
 func (s *sliceImpl) GetDepend() (ret []reflect.Value, err error) {
+	if s.value.Kind() == reflect.Ptr {
+		if s.value.IsNil() {
+			return
+		}
+	}
+
 	rawVal := reflect.Indirect(s.value)
 	sliceRawTypeEnum, sliceTypeErr := util.GetSliceRawTypeEnum(rawVal.Type())
 	if sliceTypeErr != nil {

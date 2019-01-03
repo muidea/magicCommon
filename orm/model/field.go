@@ -58,6 +58,12 @@ func (s *fieldInfo) GetFieldValue() FieldValue {
 
 // SetFieldValue SetFieldValue
 func (s *fieldInfo) SetFieldValue(val reflect.Value) (err error) {
+	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return
+		}
+	}
+
 	if s.fieldValue != nil {
 		err = s.fieldValue.SetValue(val)
 	} else {

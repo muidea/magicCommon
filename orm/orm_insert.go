@@ -46,17 +46,20 @@ func (s *orm) Insert(obj interface{}) (err error) {
 
 	err = s.batchCreateSchema(structInfo)
 	if err != nil {
+		log.Printf("batchCreateSchema failed, err:%s", err.Error())
 		return
 	}
 
 	err = s.insertSingle(structInfo)
 	if err != nil {
+		log.Printf("insertSingle failed, name:%s, err:%s", structInfo.GetName(), err.Error())
 		return
 	}
 
 	dependVals, dependErr := structInfo.GetDependValues()
 	if dependErr != nil {
 		err = dependErr
+		log.Printf("GetDependValues failed, name:%s, err:%s", structInfo.GetName(), err.Error())
 		return
 	}
 
@@ -65,18 +68,21 @@ func (s *orm) Insert(obj interface{}) (err error) {
 			sInfo, sErr := model.GetStructValue(sv, s.modelInfoCache)
 			if sErr != nil {
 				err = sErr
+				log.Printf("GetStructValue failed, err:%s", err.Error())
 				return
 			}
 
 			if !sInfo.IsStructPtr() {
 				err = s.insertSingle(sInfo)
 				if err != nil {
+					log.Printf("insertSingle failed, name:%s, err:%s", sInfo.GetName(), err.Error())
 					return
 				}
 			}
 
 			err = s.insertRelation(structInfo, key, sInfo)
 			if err != nil {
+				log.Printf("insertRelation failed, name:%s, fieldName:%s, relationName:%s, err:%s", structInfo.GetName(), key, sInfo.GetName(), err.Error())
 				return
 			}
 		}

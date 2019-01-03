@@ -108,6 +108,10 @@ func (s *structInfo) GetDependValues() (ret map[string][]reflect.Value, err erro
 
 	for _, field := range s.fields {
 		fValue := field.GetFieldValue()
+		if fValue == nil {
+			continue
+		}
+
 		fType := field.GetFieldType()
 		fDepend := fType.Depend()
 		if fDepend != nil {
@@ -150,10 +154,16 @@ func GetObjectStructInfo(objPtr interface{}, cache StructInfoCache) (ret StructI
 
 	ret, err = GetStructInfo(structType, cache)
 	if err != nil {
+		log.Printf("GetStructInfo failed, err:%s", err.Error())
 		return
 	}
 
 	ret, err = GetStructValue(structVal, cache)
+	if err != nil {
+		log.Printf("GetStructValue failed, err:%s", err.Error())
+		return
+	}
+
 	return
 }
 
@@ -269,6 +279,7 @@ func GetStructValue(structVal reflect.Value, cache StructInfoCache) (ret StructI
 		val := structVal.Field(idx)
 		err = info.SetFieldValue(idx, val)
 		if err != nil {
+			log.Printf("SetFieldValue failed, err:%s", err.Error())
 			return
 		}
 	}

@@ -43,6 +43,12 @@ func (s *structImpl) GetValue() (reflect.Value, error) {
 }
 
 func (s *structImpl) GetDepend() (ret []reflect.Value, err error) {
+	if s.value.Kind() == reflect.Ptr {
+		if s.value.IsNil() {
+			return
+		}
+	}
+
 	ret = append(ret, s.value)
 
 	return
