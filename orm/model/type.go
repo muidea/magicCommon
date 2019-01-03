@@ -20,6 +20,7 @@ type FieldType interface {
 func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
 	val := sf.Type
 
+	isPtr := false
 	rawVal := val
 	if rawVal.Kind() == reflect.Ptr {
 		rawVal = rawVal.Elem()
@@ -31,17 +32,17 @@ func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
 		return
 	}
 	if util.IsBasicType(tVal) {
-		ret, err = getBasicType(val)
+		ret, err = getBasicType(rawVal, isPtr)
 		return
 	}
 
 	if util.IsStructType(tVal) {
-		ret, err = getStructType(val)
+		ret, err = getStructType(rawVal, isPtr)
 		return
 	}
 
 	if util.IsSliceType(tVal) {
-		ret, err = getSliceType(val)
+		ret, err = getSliceType(rawVal, isPtr)
 		return
 	}
 

@@ -40,13 +40,7 @@ func (s *typeBasic) Depend() reflect.Type {
 	return nil
 }
 
-func getBasicType(val reflect.Type) (ret FieldType, err error) {
-	isPtr := false
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-		isPtr = true
-	}
-
+func getBasicType(val reflect.Type, isPtr bool) (ret FieldType, err error) {
 	tVal, tErr := util.GetTypeValueEnum(val)
 	if tErr != nil {
 		err = tErr
