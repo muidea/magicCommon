@@ -40,6 +40,15 @@ func (s *typeBasic) Depend() reflect.Type {
 	return nil
 }
 
+func (s *typeBasic) Copy() FieldType {
+	return &typeBasic{
+		typeIsPtr:   s.typeIsPtr,
+		typeName:    s.typeName,
+		typePkgPath: s.typePkgPath,
+		typeValue:   s.typeValue,
+	}
+}
+
 func getBasicType(val reflect.Type, isPtr bool) (ret FieldType, err error) {
 	tVal, tErr := util.GetTypeValueEnum(val)
 	if tErr != nil {

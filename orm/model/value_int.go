@@ -55,6 +55,10 @@ func (s *intImpl) GetValueStr() (ret string, err error) {
 	return
 }
 
+func (s *intImpl) Copy() FieldValue {
+	return &intImpl{value: s.value}
+}
+
 type uintImpl struct {
 	value reflect.Value
 }
@@ -103,4 +107,8 @@ func (s *uintImpl) GetValueStr() (ret string, err error) {
 	ret = fmt.Sprintf("%d", rawVal.Uint())
 
 	return
+}
+
+func (s *uintImpl) Copy() FieldValue {
+	return &uintImpl{value: s.value}
 }

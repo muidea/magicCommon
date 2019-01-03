@@ -16,6 +16,7 @@ type FieldInfo interface {
 	GetFieldTag() FieldTag
 	GetFieldValue() FieldValue
 	SetFieldValue(val reflect.Value) error
+	Copy() FieldInfo
 	Dump() string
 }
 
@@ -98,6 +99,16 @@ func (s *fieldInfo) Verify() error {
 	return nil
 }
 
+func (s *fieldInfo) Copy() FieldInfo {
+	return &fieldInfo{
+		fieldIndex: s.fieldIndex,
+		fieldName:  s.fieldName,
+		fieldType:  s.fieldType.Copy(),
+		fieldTag:   s.fieldTag.Copy(),
+		fieldValue: s.fieldValue.Copy(),
+	}
+}
+
 // Dump Dump
 func (s *fieldInfo) Dump() string {
 	str := fmt.Sprintf("index:[%d],name:[%s],type:[%s],tag:[%s]", s.fieldIndex, s.fieldName, s.fieldType, s.fieldTag)
@@ -138,6 +149,15 @@ func (s *Fields) GetPrimaryField() FieldInfo {
 	}
 
 	return nil
+}
+
+// Copy Copy
+func (s *Fields) Copy() Fields {
+	ret := make(Fields, 0)
+	for _, val := range *s {
+		ret = append(ret, val)
+	}
+	return ret
 }
 
 // Dump Dump

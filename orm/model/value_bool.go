@@ -70,3 +70,7 @@ func (s *boolImpl) GetValueStr() (ret string, err error) {
 
 	return
 }
+
+func (s *boolImpl) Copy() FieldValue {
+	return &boolImpl{value: s.value}
+}

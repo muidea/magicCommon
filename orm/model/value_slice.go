@@ -118,3 +118,7 @@ func (s *sliceImpl) GetValueStr() (ret string, err error) {
 
 	return
 }
+
+func (s *sliceImpl) Copy() FieldValue {
+	return &sliceImpl{value: s.value}
+}

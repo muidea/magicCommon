@@ -15,6 +15,7 @@ type FieldType interface {
 	PkgPath() string
 	String() string
 	Depend() reflect.Type
+	Copy() FieldType
 }
 
 func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
@@ -24,6 +25,7 @@ func newFieldType(sf reflect.StructField) (ret FieldType, err error) {
 	rawVal := val
 	if rawVal.Kind() == reflect.Ptr {
 		rawVal = rawVal.Elem()
+		isPtr = true
 	}
 
 	tVal, tErr := util.GetTypeValueEnum(rawVal)

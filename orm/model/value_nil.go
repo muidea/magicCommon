@@ -60,3 +60,11 @@ func (s *nilImpl) GetValueStr() (ret string, err error) {
 
 	return s.fieldValue.GetValueStr()
 }
+
+func (s *nilImpl) Copy() FieldValue {
+	var fieldValue FieldValue
+	if s.fieldValue != nil {
+		fieldValue = s.fieldValue.Copy()
+	}
+	return &nilImpl{value: s.value, fieldValue: fieldValue}
+}

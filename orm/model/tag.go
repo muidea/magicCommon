@@ -11,6 +11,7 @@ type FieldTag interface {
 	IsPrimaryKey() bool
 	IsAutoIncrement() bool
 	String() string
+	Copy() FieldTag
 }
 
 type tagImpl struct {
@@ -65,4 +66,12 @@ func (s *tagImpl) IsAutoIncrement() bool {
 
 func (s *tagImpl) String() string {
 	return fmt.Sprintf("name=%s key=%v auto=%v", s.tagName, s.isPrimaryKey, s.isAutoIncrement)
+}
+
+func (s *tagImpl) Copy() FieldTag {
+	return &tagImpl{
+		tagName:         s.tagName,
+		isPrimaryKey:    s.isPrimaryKey,
+		isAutoIncrement: s.isAutoIncrement,
+	}
 }

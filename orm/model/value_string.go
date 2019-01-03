@@ -54,3 +54,7 @@ func (s *stringImpl) GetValueStr() (ret string, err error) {
 
 	return
 }
+
+func (s *stringImpl) Copy() FieldValue {
+	return &stringImpl{value: s.value}
+}

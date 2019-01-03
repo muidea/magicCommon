@@ -71,3 +71,7 @@ func (s *datetimeImpl) GetValueStr() (ret string, err error) {
 
 	return
 }
+
+func (s *datetimeImpl) Copy() FieldValue {
+	return &datetimeImpl{value: s.value}
+}

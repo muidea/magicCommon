@@ -12,6 +12,7 @@ type FieldValue interface {
 	GetValue() (reflect.Value, error)
 	GetDepend() ([]reflect.Value, error)
 	GetValueStr() (string, error)
+	Copy() FieldValue
 }
 
 func newFieldValue(val reflect.Value) (ret FieldValue, err error) {

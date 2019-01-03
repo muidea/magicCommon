@@ -44,6 +44,16 @@ func (s *typeStruct) Depend() reflect.Type {
 	return s.typeDepend
 }
 
+func (s *typeStruct) Copy() FieldType {
+	return &typeSlice{
+		typeIsPtr:   s.typeIsPtr,
+		typeName:    s.typeName,
+		typePkgPath: s.typePkgPath,
+		typeValue:   s.typeValue,
+		typeDepend:  s.typeDepend,
+	}
+}
+
 func getStructType(val reflect.Type, isPtr bool) (ret FieldType, err error) {
 	tVal, tErr := util.GetTypeValueEnum(val)
 	if tErr != nil {

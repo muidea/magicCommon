@@ -70,3 +70,7 @@ func (s *structImpl) GetValueStr() (ret string, err error) {
 	ret, err = pkField.GetFieldValue().GetValueStr()
 	return
 }
+
+func (s *structImpl) Copy() FieldValue {
+	return &structImpl{value: s.value}
+}

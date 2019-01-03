@@ -50,31 +50,30 @@ func (s *orm) Drop(obj interface{}) (err error) {
 		return
 	}
 
-	dependVals, dependErr := structInfo.GetDependValues()
-	if dependErr != nil {
-		err = dependErr
-		return
-	}
+	fields := structInfo.GetDependField()
+	for _, val := range fields {
+		fType := val.GetFieldType()
+		fDepend := fType.Depend()
+		if fDepend == nil {
+			continue
+		}
 
-	for key, val := range dependVals {
-		for _, sv := range val {
-			sInfo, sErr := model.GetStructValue(sv, s.modelInfoCache)
-			if sErr != nil {
-				err = sErr
-				return
-			}
+		infoVal, infoErr := model.GetStructInfo(fDepend, s.modelInfoCache)
+		if infoErr != nil {
+			err = infoErr
+			return
+		}
 
-			if !sInfo.IsStructPtr() {
-				err = s.dropSingle(sInfo)
-				if err != nil {
-					return
-				}
-			}
-
-			err = s.dropRelation(structInfo, key, sInfo)
+		if !fType.IsPtr() {
+			err = s.dropSingle(infoVal)
 			if err != nil {
 				return
 			}
+		}
+
+		err = s.dropRelation(structInfo, val.GetFieldName(), infoVal)
+		if err != nil {
+			return
 		}
 	}
 

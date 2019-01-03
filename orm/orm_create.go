@@ -48,18 +48,28 @@ func (s *orm) batchCreateSchema(structInfo model.StructInfo) (err error) {
 		return
 	}
 
-	dependInfos, dependErr := structInfo.GetDependStructs()
-	if dependErr != nil {
-		err = dependErr
-		return
-	}
-	for key, val := range dependInfos {
-		err = s.createSchema(val)
-		if err != nil {
+	fields := structInfo.GetDependField()
+	for _, val := range fields {
+		fType := val.GetFieldType()
+		fDepend := fType.Depend()
+		if fDepend == nil {
+			continue
+		}
+
+		infoVal, infoErr := model.GetStructInfo(fDepend, s.modelInfoCache)
+		if infoErr != nil {
+			err = infoErr
 			return
 		}
 
-		err = s.createRelationSchema(structInfo, key, val)
+		if !fType.IsPtr() {
+			err = s.createSchema(infoVal)
+			if err != nil {
+				return
+			}
+		}
+
+		err = s.createRelationSchema(structInfo, val.GetFieldName(), infoVal)
 		if err != nil {
 			return
 		}

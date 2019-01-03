@@ -44,11 +44,11 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		return
 	}
 
-	err = s.batchCreateSchema(structInfo)
-	if err != nil {
-		log.Printf("batchCreateSchema failed, err:%s", err.Error())
-		return
-	}
+	//err = s.batchCreateSchema(structInfo)
+	//if err != nil {
+	//	log.Printf("batchCreateSchema failed, err:%s", err.Error())
+	//	return
+	//}
 
 	err = s.insertSingle(structInfo)
 	if err != nil {
@@ -56,33 +56,42 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		return
 	}
 
-	dependVals, dependErr := structInfo.GetDependValues()
-	if dependErr != nil {
-		err = dependErr
-		log.Printf("GetDependValues failed, name:%s, err:%s", structInfo.GetName(), err.Error())
-		return
-	}
+	fields := structInfo.GetDependField()
+	for _, val := range fields {
+		fType := val.GetFieldType()
+		fDepend := fType.Depend()
 
-	for key, val := range dependVals {
-		for _, sv := range val {
-			sInfo, sErr := model.GetStructValue(sv, s.modelInfoCache)
-			if sErr != nil {
-				err = sErr
-				log.Printf("GetStructValue failed, err:%s", err.Error())
+		if fDepend == nil {
+			continue
+		}
+
+		fValue := val.GetFieldValue()
+		if fValue == nil {
+			continue
+		}
+
+		fDependValue, fDependErr := fValue.GetDepend()
+		if fDependErr != nil {
+			err = fDependErr
+			return
+		}
+
+		for _, fVal := range fDependValue {
+			infoVal, infoErr := model.GetStructValue(fVal, s.modelInfoCache)
+			if infoErr != nil {
+				err = infoErr
 				return
 			}
 
-			if !sInfo.IsStructPtr() {
-				err = s.insertSingle(sInfo)
+			if !fType.IsPtr() {
+				err = s.insertSingle(infoVal)
 				if err != nil {
-					log.Printf("insertSingle failed, name:%s, err:%s", sInfo.GetName(), err.Error())
 					return
 				}
 			}
 
-			err = s.insertRelation(structInfo, key, sInfo)
+			err = s.insertRelation(structInfo, val.GetFieldName(), infoVal)
 			if err != nil {
-				log.Printf("insertRelation failed, name:%s, fieldName:%s, relationName:%s, err:%s", structInfo.GetName(), key, sInfo.GetName(), err.Error())
 				return
 			}
 		}
