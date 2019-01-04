@@ -2,11 +2,11 @@ package test
 
 // Group Group
 type Group struct {
-	ID       int       `orm:"id key auto"`
-	Name     string    `orm:"name"`
-	Users    *[]*User  `orm:"users"`
-	Children *[]*Group `orm:"children"`
-	Parent   *Group    `orm:"parent"`
+	ID       int      `orm:"id key auto"`
+	Name     string   `orm:"name"`
+	Users    *[]*User `orm:"users"`
+	Children *[]*Group
+	Parent   *Group `orm:"parent"`
 }
 
 // User User

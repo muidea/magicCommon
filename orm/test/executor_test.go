@@ -53,7 +53,7 @@ func TestExecutor(t *testing.T) {
 		t.Errorf("update obj failed, err:%s", err.Error())
 	}
 
-	obj2 := &UnitTest{ID: 1, Name: "", Value: 0.0}
+	obj2 := &UnitTest{ID: obj.ID, Name: "", Value: 0.0}
 	err = o1.Query(obj2)
 	if err != nil {
 		t.Errorf("query obj failed, err:%s", err.Error())

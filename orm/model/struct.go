@@ -52,7 +52,6 @@ func (s *structInfo) SetFieldValue(idx int, val reflect.Value) (err error) {
 		}
 	}
 
-	err = fmt.Errorf("no found field, idx:%d", idx)
 	return
 }
 
