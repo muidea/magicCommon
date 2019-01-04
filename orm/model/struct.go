@@ -132,48 +132,6 @@ func GetObjectStructInfo(objPtr interface{}, cache StructInfoCache) (ret StructI
 	return
 }
 
-// GetStructInfoWithValue GetStructInfoWithValue
-func GetStructInfoWithValue(structVal reflect.Value, cache StructInfoCache) (ret StructInfo, err error) {
-	if structVal.Kind() == reflect.Ptr {
-		structVal = reflect.Indirect(structVal)
-	}
-
-	structType := structVal.Type()
-	if structType.Kind() != reflect.Struct {
-		err = fmt.Errorf("illegal structType, type:%s", structType.String())
-		return
-	}
-
-	info := cache.Fetch(structType.Name())
-	if info != nil {
-		ret = info.Copy()
-		return
-	}
-
-	structInfo := &structInfo{name: structType.Name(), pkgPath: structType.PkgPath(), fields: make(Fields, 0), structInfoCache: cache}
-
-	fieldNum := structType.NumField()
-	for idx := 0; idx < fieldNum; idx++ {
-		fieldType := structType.Field(idx)
-		val := structVal.Field(idx)
-		fieldValue := &val
-
-		fieldInfo, fieldErr := GetFieldInfo(idx, fieldType, fieldValue)
-		if fieldErr != nil {
-			err = fieldErr
-			log.Printf("getFieldInfo failed, name:%s, err:%s", fieldType.Name, err.Error())
-			return
-		}
-		structInfo.fields.Append(fieldInfo)
-	}
-
-	cache.Put(structInfo.GetName(), structInfo)
-
-	ret = structInfo
-
-	return
-}
-
 // GetStructInfo GetStructInfo
 func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructInfo, err error) {
 	if structType.Kind() == reflect.Ptr {
@@ -187,7 +145,7 @@ func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructIn
 
 	info := cache.Fetch(structType.Name())
 	if info != nil {
-		ret = info.Copy()
+		ret = info
 		return
 	}
 

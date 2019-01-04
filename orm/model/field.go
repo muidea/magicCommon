@@ -100,12 +100,17 @@ func (s *fieldInfo) Verify() error {
 }
 
 func (s *fieldInfo) Copy() FieldInfo {
+	var fieldValue FieldValue
+	if s.fieldValue != nil {
+		fieldValue = s.fieldValue.Copy()
+	}
+
 	return &fieldInfo{
 		fieldIndex: s.fieldIndex,
 		fieldName:  s.fieldName,
 		fieldType:  s.fieldType.Copy(),
 		fieldTag:   s.fieldTag.Copy(),
-		fieldValue: s.fieldValue.Copy(),
+		fieldValue: fieldValue,
 	}
 }
 
@@ -155,7 +160,7 @@ func (s *Fields) GetPrimaryField() FieldInfo {
 func (s *Fields) Copy() Fields {
 	ret := make(Fields, 0)
 	for _, val := range *s {
-		ret = append(ret, val)
+		ret = append(ret, val.Copy())
 	}
 	return ret
 }

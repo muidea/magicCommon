@@ -110,3 +110,30 @@ func TestReference(t *testing.T) {
 
 	i64Info.Dump()
 }
+
+type TT struct {
+	Aa int `orm:"aa key auto"`
+	Bb int `orm:"bb"`
+	Tt *TT `orm:"tt"`
+}
+
+func TestGetStructValue(t *testing.T) {
+	cache := NewCache()
+	t1 := &TT{Aa: 12, Bb: 23}
+	t1Info, t1Err := GetObjectStructInfo(t1, cache)
+	if t1Err != nil {
+		t.Errorf("GetObjectStructInfo t1 failed, err:%s", t1Err.Error())
+		return
+	}
+
+	t2 := &TT{Aa: 34, Bb: 45}
+	//reflect.TypeOf(t2)
+	t2Info, t2Err := GetStructValue(reflect.ValueOf(t2), cache)
+	if t1Err != nil {
+		t.Errorf("GetObjectStructInfo t2 failed, err:%s", t2Err.Error())
+		return
+	}
+
+	t1Info.Dump()
+	t2Info.Dump()
+}
