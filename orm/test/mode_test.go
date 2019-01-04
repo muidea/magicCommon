@@ -1,6 +1,7 @@
 package test
 
 import (
+	"log"
 	"testing"
 
 	"muidea.com/magicCommon/orm"
@@ -51,4 +52,11 @@ func TestGroup(t *testing.T) {
 	if err != nil {
 		t.Errorf("delete Group3 failed, err:%s", err.Error())
 	}
+
+	group4 := &Group{ID: group2.ID}
+	err = o1.Query(group4)
+	if err != nil {
+		t.Errorf("query Group4 failed, err:%s", err.Error())
+	}
+	log.Print(*group4)
 }

@@ -27,6 +27,10 @@ func (s *orm) querySingle(structInfo model.StructInfo) (err error) {
 	fields := structInfo.GetFields()
 	for _, val := range *fields {
 		fType := val.GetFieldType()
+		if !util.IsBasicType(fType.Value()) {
+			continue
+		}
+
 		v := util.GetBasicTypeInitValue(fType.Value())
 		items = append(items, v)
 	}
@@ -34,6 +38,11 @@ func (s *orm) querySingle(structInfo model.StructInfo) (err error) {
 
 	idx := 0
 	for _, val := range *fields {
+		fType := val.GetFieldType()
+		if !util.IsBasicType(fType.Value()) {
+			continue
+		}
+
 		v := items[idx]
 		val.SetFieldValue(reflect.Indirect(reflect.ValueOf(v)))
 		idx++
