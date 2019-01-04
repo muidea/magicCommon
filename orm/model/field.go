@@ -174,6 +174,11 @@ func (s *Fields) Dump() {
 
 // GetFieldInfo GetFieldInfo
 func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal *reflect.Value) (ret FieldInfo, err error) {
+	ormStr := fieldType.Tag.Get("orm")
+	if ormStr == "" {
+		return
+	}
+
 	info := &fieldInfo{}
 	info.fieldIndex = idx
 	info.fieldName = fieldType.Name
@@ -183,7 +188,7 @@ func GetFieldInfo(idx int, fieldType reflect.StructField, fieldVal *reflect.Valu
 		return
 	}
 
-	info.fieldTag, err = newFieldTag(fieldType.Tag.Get("orm"))
+	info.fieldTag, err = newFieldTag(ormStr)
 	if err != nil {
 		return
 	}

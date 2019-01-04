@@ -1,7 +1,6 @@
 package test
 
 import (
-	"log"
 	"testing"
 
 	"muidea.com/magicCommon/orm"
@@ -36,14 +35,11 @@ func TestGroup(t *testing.T) {
 		t.Errorf("insert Group1 failed, err:%s", err.Error())
 	}
 
-	log.Print(*group1)
 	group2.Parent = group1
-	log.Print(*group2)
 	err = o1.Insert(group2)
 	if err != nil {
 		t.Errorf("insert Group2 failed, err:%s", err.Error())
 	}
-	log.Print(*group1)
 
 	group3.Parent = group1
 	err = o1.Insert(group3)

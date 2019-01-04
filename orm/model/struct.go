@@ -161,13 +161,19 @@ func GetStructInfo(structType reflect.Type, cache StructInfoCache) (ret StructIn
 			return
 		}
 
-		structInfo.fields.Append(fieldInfo)
+		if fieldInfo != nil {
+			structInfo.fields.Append(fieldInfo)
+		}
 	}
 
-	cache.Put(structInfo.GetName(), structInfo)
+	if len(structInfo.fields) > 0 {
+		cache.Put(structInfo.GetName(), structInfo)
 
-	ret = structInfo
+		ret = structInfo
+		return
+	}
 
+	err = fmt.Errorf("no define orm field, struct name:%s", structInfo.GetName())
 	return
 }
 
@@ -184,7 +190,7 @@ func GetStructValue(structVal reflect.Value, cache StructInfoCache) (ret StructI
 
 	info := cache.Fetch(structVal.Type().Name())
 	if info == nil {
-		err = fmt.Errorf("can't get value from nil ptr")
+		err = fmt.Errorf("can't get value structInfo, valType:%s", structVal.Type().String())
 		return
 	}
 
