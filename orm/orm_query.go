@@ -60,6 +60,7 @@ func (s *orm) queryRelation(structInfo model.StructInfo, fieldName string, relat
 	}
 
 	s.executor.Query(relationSQL)
+	defer s.executor.Finish()
 	return
 }
 
@@ -84,6 +85,26 @@ func (s *orm) Query(obj interface{}, filter ...string) (err error) {
 	//}
 
 	err = s.querySingle(structInfo)
+
+	fields := structInfo.GetDependField()
+	for _, val := range fields {
+		fType := val.GetFieldType()
+		fDepend := fType.Depend()
+
+		if fDepend == nil {
+			continue
+		}
+
+		infoVal, infoErr := model.GetStructInfo(fDepend, s.modelInfoCache)
+		if infoErr != nil {
+			err = infoErr
+			return
+		}
+		err = s.queryRelation(structInfo, val.GetFieldName(), infoVal)
+		if err != nil {
+			return
+		}
+	}
 
 	return
 }

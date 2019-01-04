@@ -29,12 +29,23 @@ func (s *Builder) BuildQuery() (ret string, err error) {
 }
 
 // BuildQueryRelation BuildQueryRelation
-func (s *Builder) BuildQueryRelation(fieldName string, relationInfo model.StructInfo) (string, error) {
-	str := "\t`id` INT NOT NULL AUTO_INCREMENT,\n\t`left` INT NOT NULL,\n\t`right` INT NOT NULL,\n\tPRIMARY KEY (`id`)"
-	str = fmt.Sprintf("CREATE TABLE `%s` (\n%s\n)\n", s.GetRelationTableName(fieldName, relationInfo), str)
-	log.Print(str)
+func (s *Builder) BuildQueryRelation(fieldName string, relationInfo model.StructInfo) (ret string, err error) {
+	pk := s.structInfo.GetPrimaryField()
+	if pk == nil {
+		err = fmt.Errorf("no define primaryKey")
+		return
+	}
 
-	return str, nil
+	pkfValue := pk.GetFieldValue()
+	pkfStr, pkferr := pkfValue.GetValueStr()
+	if pkferr == nil {
+		ret = fmt.Sprintf("SELECT `right` FROM `%s` WHERE `left`= %s", s.GetRelationTableName(fieldName, relationInfo), pkfStr)
+		log.Print(ret)
+	}
+
+	err = pkferr
+
+	return
 }
 
 func (s *Builder) getFieldQueryNames(info model.StructInfo) string {
