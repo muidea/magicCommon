@@ -80,8 +80,7 @@ func (s *orm) queryRelation(structInfo model.StructInfo, fieldInfo model.FieldIn
 
 	if util.IsStructType(fType.Value()) {
 		if len(values) > 0 {
-			relationVal, _ := fValue.GetValue()
-			relationVal = reflect.New(relationVal.Type())
+			relationVal := reflect.New(fType.Depend())
 			relationInfo, relationErr = model.GetStructValue(relationVal, s.modelInfoCache)
 			if relationErr != nil {
 				err = relationErr

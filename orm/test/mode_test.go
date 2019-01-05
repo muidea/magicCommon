@@ -11,9 +11,9 @@ func TestGroup(t *testing.T) {
 	orm.Initialize("root", "rootkit", "localhost:3306", "testdb")
 	defer orm.Uninitialize()
 
-	group1 := &Group{Name: "testGroup1", Users: &[]*User{}, Children: &[]*Group{}}
-	group2 := &Group{Name: "testGroup2", Users: &[]*User{}, Children: &[]*Group{}}
-	group3 := &Group{Name: "testGroup3", Users: &[]*User{}, Children: &[]*Group{}}
+	group1 := &Group{Name: "testGroup1"}
+	group2 := &Group{Name: "testGroup2"}
+	group3 := &Group{Name: "testGroup3"}
 
 	o1, err := orm.New()
 	defer o1.Release()
@@ -61,18 +61,17 @@ func TestGroup(t *testing.T) {
 	log.Print(*group4)
 	log.Print(*(group4.Parent))
 
-	(*group1.Children) = append(*(group1.Children), group2)
-	err = o1.Update(group1)
-	if err != nil {
-		t.Errorf("update Group1 failed, err:%s", err.Error())
-	}
-
-	group5 := &Group{ID: group1.ID, Children: &[]*Group{}, Parent: &Group{}}
+	group5 := &Group{ID: group2.ID, Parent: &Group{}}
 	err = o1.Query(group5)
 	if err != nil {
 		t.Errorf("query Group5 failed, err:%s", err.Error())
 	}
 	log.Print(*group5)
+	log.Print(*(group5.Parent))
+
+	if !group2.Equle(group5) {
+		t.Errorf("query Group5 failed")
+	}
 }
 
 func TestUser(t *testing.T) {
@@ -106,6 +105,11 @@ func TestUser(t *testing.T) {
 	}
 
 	user1 := &User{Name: "demo", EMail: "123@demo.com", Group: []*Group{}}
+	err = o1.Drop(user1)
+	if err != nil {
+		t.Errorf("drop user failed, err:%s", err.Error())
+	}
+
 	err = o1.Create(user1)
 	if err != nil {
 		t.Errorf("create user failed, err:%s", err.Error())
@@ -125,4 +129,7 @@ func TestUser(t *testing.T) {
 	}
 
 	log.Print(*user2)
+	if !user2.Equle(user1) {
+		t.Errorf("query user2 failed")
+	}
 }
