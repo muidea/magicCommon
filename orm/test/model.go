@@ -16,6 +16,13 @@ type User struct {
 	Group []*Group `orm:"group"`
 }
 
+// System System
+type System struct {
+	ID    int     `orm:"id key auto"`
+	Name  string  `orm:"name"`
+	Users *[]User `orm:"users"`
+}
+
 // Equle Equle
 func (s *Group) Equle(r *Group) bool {
 	if s.ID != r.ID {

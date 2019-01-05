@@ -172,3 +172,66 @@ func TestUser(t *testing.T) {
 	}
 
 }
+
+func TestSystem(t *testing.T) {
+	user1 := &User{Name: "demo1", EMail: "123@demo.com"}
+	user2 := &User{Name: "demo2", EMail: "123@demo.com"}
+
+	o1, err := orm.New()
+	defer o1.Release()
+	if err != nil {
+		t.Errorf("new Orm failed, err:%s", err.Error())
+	}
+
+	err = o1.Drop(user1)
+	if err != nil {
+		t.Errorf("drop user failed, err:%s", err.Error())
+	}
+
+	sys1 := &System{Name: "sys1"}
+	err = o1.Drop(sys1)
+	if err != nil {
+		t.Errorf("drop system failed, err:%s", err.Error())
+	}
+
+	err = o1.Create(user1)
+	if err != nil {
+		t.Errorf("create user failed, err:%s", err.Error())
+	}
+
+	err = o1.Insert(user1)
+	if err != nil {
+		t.Errorf("insert user failed, err:%s", err.Error())
+	}
+	err = o1.Insert(user2)
+	if err != nil {
+		t.Errorf("insert user failed, err:%s", err.Error())
+	}
+
+	users := []User{*user1, *user2}
+	sys1.Users = &users
+
+	err = o1.Create(sys1)
+	if err != nil {
+		t.Errorf("create system failed, err:%s", err.Error())
+	}
+
+	err = o1.Insert(sys1)
+	if err != nil {
+		t.Errorf("insert system failed, err:%s", err.Error())
+	}
+
+	sys2 := &System{ID: sys1.ID, Users: &[]User{}}
+	err = o1.Query(sys2)
+	if err != nil {
+		t.Errorf("query system failed, err:%s", err.Error())
+	}
+
+	log.Print(*sys2)
+	log.Print(*(sys2.Users))
+
+	err = o1.Delete(sys2)
+	if err != nil {
+		t.Errorf("delete system failed, err:%s", err.Error())
+	}
+}

@@ -19,7 +19,7 @@ type Builder interface {
 	BuildCreateRelationSchema(fieldName string, relationInfo model.StructInfo) (string, error)
 	BuildDropRelationSchema(fieldName string, relationInfo model.StructInfo) (string, error)
 	BuildInsertRelation(fieldName string, relationInfo model.StructInfo) (string, error)
-	BuildDeleteRelation(fieldName string, relationInfo model.StructInfo) (string, error)
+	BuildDeleteRelation(fieldName string, relationInfo model.StructInfo) (string, string, error)
 	BuildQueryRelation(fieldName string, relationInfo model.StructInfo) (string, error)
 }
 

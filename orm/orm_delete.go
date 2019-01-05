@@ -23,14 +23,31 @@ func (s *orm) deleteSingle(structInfo model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) deleteRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
+func (s *orm) deleteRelation(structInfo model.StructInfo, fieldInfo model.FieldInfo) (err error) {
+	fType := fieldInfo.GetFieldType()
+	fDepend, fDependPtr := fType.Depend()
+
+	if fDepend == nil {
+		return
+	}
+
+	infoVal, infoErr := model.GetStructInfo(fDepend, s.modelInfoCache)
+	if infoErr != nil {
+		err = infoErr
+		return
+	}
+
 	builder := builder.NewBuilder(structInfo)
-	sql, err := builder.BuildDeleteRelation(fieldName, relationInfo)
+	rightSQL, relationSQL, err := builder.BuildDeleteRelation(fieldInfo.GetFieldName(), infoVal)
 	if err != nil {
 		return err
 	}
 
-	s.executor.Delete(sql)
+	if !fDependPtr {
+		s.executor.Delete(rightSQL)
+	}
+
+	s.executor.Delete(relationSQL)
 
 	return
 }
@@ -50,20 +67,7 @@ func (s *orm) Delete(obj interface{}) (err error) {
 
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
-		fType := val.GetFieldType()
-		fDepend, _ := fType.Depend()
-
-		if fDepend == nil {
-			continue
-		}
-
-		infoVal, infoErr := model.GetStructInfo(fDepend, s.modelInfoCache)
-		if infoErr != nil {
-			err = infoErr
-			return
-		}
-
-		err = s.deleteRelation(structInfo, val.GetFieldName(), infoVal)
+		err = s.deleteRelation(structInfo, val)
 		if err != nil {
 			return
 		}

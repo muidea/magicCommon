@@ -19,6 +19,20 @@ func (s *orm) updateSingle(structInfo model.StructInfo) (err error) {
 	return err
 }
 
+func (s *orm) updateRelation(structInfo model.StructInfo, fieldInfo model.FieldInfo) (err error) {
+	err = s.deleteRelation(structInfo, fieldInfo)
+	if err != nil {
+		return
+	}
+
+	err = s.insertRelation(structInfo, fieldInfo)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 func (s *orm) Update(obj interface{}) (err error) {
 	structInfo, structErr := model.GetObjectStructInfo(obj, s.modelInfoCache)
 	if structErr != nil {
@@ -34,54 +48,9 @@ func (s *orm) Update(obj interface{}) (err error) {
 
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
-		fType := val.GetFieldType()
-		fDepend, fDependPtr := fType.Depend()
-
-		if fDepend == nil {
-			continue
-		}
-
-		fValue := val.GetFieldValue()
-		if fValue == nil {
-			continue
-		}
-
-		fDependValue, fDependErr := fValue.GetDepend()
-		if fDependErr != nil {
-			err = fDependErr
-			return
-		}
-
-		infoVal, infoErr := model.GetStructInfo(fDepend, s.modelInfoCache)
-		if infoErr != nil {
-			err = infoErr
-			return
-		}
-
-		err = s.deleteRelation(structInfo, val.GetFieldName(), infoVal)
+		err = s.updateRelation(structInfo, val)
 		if err != nil {
 			return
-		}
-
-		for _, fVal := range fDependValue {
-			infoVal, infoErr := model.GetStructValue(fVal, s.modelInfoCache)
-			if infoErr != nil {
-				log.Printf("GetStructValue faield, err:%s", infoErr.Error())
-				err = infoErr
-				return
-			}
-
-			if !fDependPtr {
-				err = s.insertSingle(infoVal)
-				if err != nil {
-					return
-				}
-			}
-
-			err = s.insertRelation(structInfo, val.GetFieldName(), infoVal)
-			if err != nil {
-				return
-			}
 		}
 	}
 

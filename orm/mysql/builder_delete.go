@@ -23,15 +23,18 @@ func (s *Builder) BuildDelete() (ret string, err error) {
 }
 
 // BuildDeleteRelation BuildDeleteRelation
-func (s *Builder) BuildDeleteRelation(fieldName string, relationInfo model.StructInfo) (ret string, err error) {
-	leftVal, errVal := s.getStructValue(s.structInfo)
-	if errVal != nil {
-		err = errVal
+func (s *Builder) BuildDeleteRelation(fieldName string, relationInfo model.StructInfo) (delRight, delRelation string, err error) {
+	leftVal, leftErr := s.getStructValue(s.structInfo)
+	if leftErr != nil {
+		err = leftErr
 		return
 	}
 
-	ret = fmt.Sprintf("DELETE FROM `%s` WHERE `left`=%s", s.GetRelationTableName(fieldName, relationInfo), leftVal)
-	log.Print(ret)
+	delRight = fmt.Sprintf("DELETE FROM `%s` WHERE `id` in (SELECT `right` FROM `%s` WHERE `left`=%s)", s.getTableName(relationInfo), s.GetRelationTableName(fieldName, relationInfo), leftVal)
+	log.Print(delRight)
+
+	delRelation = fmt.Sprintf("DELETE FROM `%s` WHERE `left`=%s", s.GetRelationTableName(fieldName, relationInfo), leftVal)
+	log.Print(delRelation)
 
 	return
 }

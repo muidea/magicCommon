@@ -24,15 +24,46 @@ func (s *orm) insertSingle(structInfo model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) insertRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
-	builder := builder.NewBuilder(structInfo)
-	relationSQL, relationErr := builder.BuildInsertRelation(fieldName, relationInfo)
-	if relationErr != nil {
-		err = relationErr
-		return err
+func (s *orm) insertRelation(structInfo model.StructInfo, fieldInfo model.FieldInfo) (err error) {
+	fType := fieldInfo.GetFieldType()
+	_, fDependPtr := fType.Depend()
+
+	fValue := fieldInfo.GetFieldValue()
+	if fValue == nil {
+		return
 	}
 
-	s.executor.Insert(relationSQL)
+	fDependValue, fDependErr := fValue.GetDepend()
+	if fDependErr != nil {
+		err = fDependErr
+		return
+	}
+
+	for _, fVal := range fDependValue {
+		infoVal, infoErr := model.GetStructValue(fVal, s.modelInfoCache)
+		if infoErr != nil {
+			log.Printf("GetStructValue faield, err:%s", infoErr.Error())
+			err = infoErr
+			return
+		}
+
+		if !fDependPtr {
+			err = s.insertSingle(infoVal)
+			if err != nil {
+				return
+			}
+		}
+
+		builder := builder.NewBuilder(structInfo)
+		relationSQL, relationErr := builder.BuildInsertRelation(fieldInfo.GetFieldName(), infoVal)
+		if relationErr != nil {
+			err = relationErr
+			return err
+		}
+
+		s.executor.Insert(relationSQL)
+	}
+
 	return
 }
 
@@ -52,43 +83,9 @@ func (s *orm) Insert(obj interface{}) (err error) {
 
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
-		fType := val.GetFieldType()
-		fDepend, fDependPtr := fType.Depend()
-
-		if fDepend == nil {
-			continue
-		}
-
-		fValue := val.GetFieldValue()
-		if fValue == nil {
-			continue
-		}
-
-		fDependValue, fDependErr := fValue.GetDepend()
-		if fDependErr != nil {
-			err = fDependErr
+		err = s.insertRelation(structInfo, val)
+		if err != nil {
 			return
-		}
-
-		for _, fVal := range fDependValue {
-			infoVal, infoErr := model.GetStructValue(fVal, s.modelInfoCache)
-			if infoErr != nil {
-				log.Printf("GetStructValue faield, err:%s", infoErr.Error())
-				err = infoErr
-				return
-			}
-
-			if !fDependPtr {
-				err = s.insertSingle(infoVal)
-				if err != nil {
-					return
-				}
-			}
-
-			err = s.insertRelation(structInfo, val.GetFieldName(), infoVal)
-			if err != nil {
-				return
-			}
 		}
 	}
 
