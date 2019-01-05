@@ -77,6 +77,7 @@ func TestGroup(t *testing.T) {
 func TestUser(t *testing.T) {
 	group1 := &Group{Name: "testGroup1"}
 	group2 := &Group{Name: "testGroup2"}
+	group3 := &Group{Name: "testGroup3"}
 
 	o1, err := orm.New()
 	defer o1.Release()
@@ -102,6 +103,11 @@ func TestUser(t *testing.T) {
 	err = o1.Insert(group2)
 	if err != nil {
 		t.Errorf("insert Group2 failed, err:%s", err.Error())
+	}
+
+	err = o1.Insert(group3)
+	if err != nil {
+		t.Errorf("insert group3 failed, err:%s", err.Error())
 	}
 
 	user1 := &User{Name: "demo", EMail: "123@demo.com", Group: []*Group{}}
@@ -133,6 +139,25 @@ func TestUser(t *testing.T) {
 		t.Errorf("query user2 failed")
 	}
 
+	user1.Group = append(user1.Group, group3)
+	err = o1.Update(user1)
+	if err != nil {
+		t.Errorf("update user1 failed, err:%s", err.Error())
+	}
+
+	err = o1.Query(user2)
+	if err != nil {
+		t.Errorf("query user2 failed, err:%s", err.Error())
+	}
+	if len(user2.Group) != 3 {
+		t.Errorf("query user2 failed")
+	}
+	if !user2.Equle(user1) {
+		t.Errorf("query user2 failed")
+	}
+
+	log.Print(*user2)
+
 	err = o1.Delete(group1)
 	if err != nil {
 		t.Errorf("delete group1 failed, err:%s", err.Error())
@@ -141,8 +166,13 @@ func TestUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("delete group2 failed, err:%s", err.Error())
 	}
+	err = o1.Delete(group3)
+	if err != nil {
+		t.Errorf("delete group3 failed, err:%s", err.Error())
+	}
 	err = o1.Delete(user2)
 	if err != nil {
 		t.Errorf("delete user2 failed, err:%s", err.Error())
 	}
+
 }
