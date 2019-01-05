@@ -76,7 +76,7 @@ func (s *structInfo) GetPrimaryField() FieldInfo {
 func (s *structInfo) GetDependField() (ret []FieldInfo) {
 	for _, field := range s.fields {
 		fType := field.GetFieldType()
-		fDepend := fType.Depend()
+		fDepend, _ := fType.Depend()
 		if fDepend != nil {
 			ret = append(ret, field)
 		}

@@ -36,8 +36,8 @@ func (s *typeBasic) String() string {
 	return ret
 }
 
-func (s *typeBasic) Depend() reflect.Type {
-	return nil
+func (s *typeBasic) Depend() (reflect.Type, bool) {
+	return nil, false
 }
 
 func (s *typeBasic) Copy() FieldType {

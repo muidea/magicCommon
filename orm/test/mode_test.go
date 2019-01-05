@@ -58,16 +58,12 @@ func TestGroup(t *testing.T) {
 	if err != nil {
 		t.Errorf("query Group4 failed, err:%s", err.Error())
 	}
-	log.Print(*group4)
-	log.Print(*(group4.Parent))
 
 	group5 := &Group{ID: group2.ID, Parent: &Group{}}
 	err = o1.Query(group5)
 	if err != nil {
 		t.Errorf("query Group5 failed, err:%s", err.Error())
 	}
-	log.Print(*group5)
-	log.Print(*(group5.Parent))
 
 	if !group2.Equle(group5) {
 		t.Errorf("query Group5 failed")

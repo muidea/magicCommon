@@ -44,12 +44,6 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		return
 	}
 
-	//err = s.batchCreateSchema(structInfo)
-	//if err != nil {
-	//	log.Printf("batchCreateSchema failed, err:%s", err.Error())
-	//	return
-	//}
-
 	err = s.insertSingle(structInfo)
 	if err != nil {
 		log.Printf("insertSingle failed, name:%s, err:%s", structInfo.GetName(), err.Error())
@@ -59,7 +53,7 @@ func (s *orm) Insert(obj interface{}) (err error) {
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
 		fType := val.GetFieldType()
-		fDepend := fType.Depend()
+		fDepend, fDependPtr := fType.Depend()
 
 		if fDepend == nil {
 			continue
@@ -84,7 +78,7 @@ func (s *orm) Insert(obj interface{}) (err error) {
 				return
 			}
 
-			if !fType.IsPtr() {
+			if !fDependPtr {
 				err = s.insertSingle(infoVal)
 				if err != nil {
 					return

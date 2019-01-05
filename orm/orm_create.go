@@ -51,7 +51,7 @@ func (s *orm) batchCreateSchema(structInfo model.StructInfo) (err error) {
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
 		fType := val.GetFieldType()
-		fDepend := fType.Depend()
+		fDepend, fDependPtr := fType.Depend()
 		if fDepend == nil {
 			continue
 		}
@@ -62,7 +62,7 @@ func (s *orm) batchCreateSchema(structInfo model.StructInfo) (err error) {
 			return
 		}
 
-		if !fType.IsPtr() {
+		if !fDependPtr {
 			err = s.createSchema(infoVal)
 			if err != nil {
 				return

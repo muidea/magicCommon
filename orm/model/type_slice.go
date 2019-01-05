@@ -8,11 +8,12 @@ import (
 )
 
 type typeSlice struct {
-	typeValue   int
-	typeName    string
-	typePkgPath string
-	typeIsPtr   bool
-	typeDepend  reflect.Type
+	typeValue     int
+	typeName      string
+	typePkgPath   string
+	typeIsPtr     bool
+	typeDepend    reflect.Type
+	typeDependPtr bool
 }
 
 func (s *typeSlice) Name() string {
@@ -34,23 +35,24 @@ func (s *typeSlice) PkgPath() string {
 func (s *typeSlice) String() string {
 	ret := fmt.Sprintf("val:%d,name:%s,pkgPath:%s,isPtr:%v", s.typeValue, s.typeName, s.typePkgPath, s.typeIsPtr)
 	if s.typeDepend != nil {
-		ret = fmt.Sprintf("%s,depend:[%s]", ret, s.typeDepend)
+		ret = fmt.Sprintf("%s,depend:[%s], dependPtr:[%v]", ret, s.typeDepend, s.typeDependPtr)
 	}
 
 	return ret
 }
 
-func (s *typeSlice) Depend() reflect.Type {
-	return s.typeDepend
+func (s *typeSlice) Depend() (reflect.Type, bool) {
+	return s.typeDepend, s.typeDependPtr
 }
 
 func (s *typeSlice) Copy() FieldType {
 	return &typeSlice{
-		typeIsPtr:   s.typeIsPtr,
-		typeName:    s.typeName,
-		typePkgPath: s.typePkgPath,
-		typeValue:   s.typeValue,
-		typeDepend:  s.typeDepend,
+		typeIsPtr:     s.typeIsPtr,
+		typeName:      s.typeName,
+		typePkgPath:   s.typePkgPath,
+		typeValue:     s.typeValue,
+		typeDepend:    s.typeDepend,
+		typeDependPtr: s.typeDependPtr,
 	}
 }
 
@@ -62,11 +64,13 @@ func getSliceType(val reflect.Type, isPtr bool) (ret FieldType, err error) {
 	}
 
 	var typeDepend reflect.Type
+	typeDependPtr := false
 	if util.IsSliceType(tVal) {
 		sliceVal := val.Elem()
 		sliceRawVal := sliceVal
 		if sliceRawVal.Kind() == reflect.Ptr {
 			sliceRawVal = sliceRawVal.Elem()
+			typeDependPtr = true
 		}
 
 		tSliceVal, tSliceErr := util.GetTypeValueEnum(sliceRawVal)
@@ -83,7 +87,7 @@ func getSliceType(val reflect.Type, isPtr bool) (ret FieldType, err error) {
 			typeDepend = sliceRawVal
 		}
 
-		ret = &typeSlice{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: typeDepend}
+		ret = &typeSlice{typeValue: tVal, typeName: val.String(), typePkgPath: val.PkgPath(), typeIsPtr: isPtr, typeDepend: typeDepend, typeDependPtr: typeDependPtr}
 		return
 	}
 

@@ -53,7 +53,7 @@ func (s *orm) Drop(obj interface{}) (err error) {
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
 		fType := val.GetFieldType()
-		fDepend := fType.Depend()
+		fDepend, fDependPtr := fType.Depend()
 		if fDepend == nil {
 			continue
 		}
@@ -64,7 +64,7 @@ func (s *orm) Drop(obj interface{}) (err error) {
 			return
 		}
 
-		if !fType.IsPtr() {
+		if !fDependPtr {
 			err = s.dropSingle(infoVal)
 			if err != nil {
 				return

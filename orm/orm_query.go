@@ -80,7 +80,8 @@ func (s *orm) queryRelation(structInfo model.StructInfo, fieldInfo model.FieldIn
 
 	if util.IsStructType(fType.Value()) {
 		if len(values) > 0 {
-			relationVal := reflect.New(fType.Depend())
+			fDepend, _ := fType.Depend()
+			relationVal := reflect.New(fDepend)
 			relationInfo, relationErr = model.GetStructValue(relationVal, s.modelInfoCache)
 			if relationErr != nil {
 				err = relationErr
@@ -100,7 +101,8 @@ func (s *orm) queryRelation(structInfo model.StructInfo, fieldInfo model.FieldIn
 		relationVal, _ := fValue.GetValue()
 		relationVal = reflect.MakeSlice(relationVal.Type(), sizeLen, sizeLen)
 		for idx, val := range values {
-			itemVal := reflect.New(fType.Depend())
+			fDepend, _ := fType.Depend()
+			itemVal := reflect.New(fDepend)
 			itemInfo, itemErr := model.GetStructValue(itemVal, s.modelInfoCache)
 			if itemErr != nil {
 				log.Printf("GetStructValue faield, err:%s", itemErr.Error())
@@ -135,19 +137,12 @@ func (s *orm) Query(obj interface{}, filter ...string) (err error) {
 		return
 	}
 
-	//allStructInfos := structDepends
-	//allStructInfos = append(allStructInfos, structInfo)
-	//err = s.batchCreateSchema(allStructInfos)
-	//if err != nil {
-	//	return err
-	//}
-
 	err = s.querySingle(structInfo)
 
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
 		fType := val.GetFieldType()
-		fDepend := fType.Depend()
+		fDepend, _ := fType.Depend()
 
 		if fDepend == nil {
 			continue

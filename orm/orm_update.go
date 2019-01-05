@@ -27,11 +27,6 @@ func (s *orm) Update(obj interface{}) (err error) {
 		return
 	}
 
-	//err = s.batchCreateSchema(structInfo, structDepends)
-	//if err != nil {
-	//	return
-	//}
-
 	err = s.updateSingle(structInfo)
 	if err != nil {
 		return
@@ -40,7 +35,7 @@ func (s *orm) Update(obj interface{}) (err error) {
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
 		fType := val.GetFieldType()
-		fDepend := fType.Depend()
+		fDepend, fDependPtr := fType.Depend()
 
 		if fDepend == nil {
 			continue
@@ -76,7 +71,7 @@ func (s *orm) Update(obj interface{}) (err error) {
 				return
 			}
 
-			if !fType.IsPtr() {
+			if !fDependPtr {
 				err = s.insertSingle(infoVal)
 				if err != nil {
 					return

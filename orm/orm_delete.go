@@ -51,7 +51,7 @@ func (s *orm) Delete(obj interface{}) (err error) {
 	fields := structInfo.GetDependField()
 	for _, val := range fields {
 		fType := val.GetFieldType()
-		fDepend := fType.Depend()
+		fDepend, _ := fType.Depend()
 
 		if fDepend == nil {
 			continue
