@@ -99,9 +99,14 @@ func (s *orm) queryRelation(structInfo model.StructInfo, fieldInfo model.FieldIn
 	} else if util.IsSliceType(fType.Value()) {
 		sizeLen := len(values)
 		relationVal, _ := fValue.GetValue()
-		relationVal = reflect.MakeSlice(relationVal.Type(), sizeLen, sizeLen)
+		relationType := relationVal.Type()
+		if fType.IsPtr() {
+			relationType = relationType.Elem()
+		}
+
+		relationVal = reflect.MakeSlice(relationType, sizeLen, sizeLen)
 		for idx, val := range values {
-			fDepend, _ := fType.Depend()
+			fDepend, fDependPtr := fType.Depend()
 			itemVal := reflect.New(fDepend)
 			itemInfo, itemErr := model.GetStructValue(itemVal, s.modelInfoCache)
 			if itemErr != nil {
@@ -114,6 +119,10 @@ func (s *orm) queryRelation(structInfo model.StructInfo, fieldInfo model.FieldIn
 			err = s.querySingle(itemInfo)
 			if err != nil {
 				return
+			}
+
+			if !fDependPtr {
+				itemVal = reflect.Indirect(itemVal)
 			}
 
 			relationVal.Index(idx).Set(itemVal)
