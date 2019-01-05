@@ -40,6 +40,29 @@ func (s *Builder) GetRelationTableName(fieldName string, relationInfo model.Stru
 	return fmt.Sprintf("%s%s2%s", leftName, fieldName, rightName)
 }
 
+func (s *Builder) getStructValue(structInfo model.StructInfo) (ret string, err error) {
+	structKey := structInfo.GetPrimaryField()
+	if structKey == nil {
+		err = fmt.Errorf("no define primaryKey")
+		return
+	}
+
+	fValue := structKey.GetFieldValue()
+	if fValue == nil {
+		err = fmt.Errorf("nil primaryKey value")
+		return
+	}
+
+	structVal, structErr := fValue.GetValueStr()
+	if structErr != nil {
+		err = structErr
+		return
+	}
+
+	ret = structVal
+	return
+}
+
 func (s *Builder) getRelationValue(relationInfo model.StructInfo) (leftVal, rightVal string, err error) {
 	structKey := s.structInfo.GetPrimaryField()
 	relationKey := relationInfo.GetPrimaryField()

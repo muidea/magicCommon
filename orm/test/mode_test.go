@@ -132,4 +132,17 @@ func TestUser(t *testing.T) {
 	if !user2.Equle(user1) {
 		t.Errorf("query user2 failed")
 	}
+
+	err = o1.Delete(group1)
+	if err != nil {
+		t.Errorf("delete group1 failed, err:%s", err.Error())
+	}
+	err = o1.Delete(group2)
+	if err != nil {
+		t.Errorf("delete group2 failed, err:%s", err.Error())
+	}
+	err = o1.Delete(user2)
+	if err != nil {
+		t.Errorf("delete user2 failed, err:%s", err.Error())
+	}
 }

@@ -29,11 +29,8 @@ func (s *orm) deleteRelation(structInfo model.StructInfo, fieldName string, rela
 	if err != nil {
 		return err
 	}
-	num := s.executor.Delete(sql)
-	if num != 1 {
-		log.Printf("unexception delete, rowNum:%d", num)
-		err = fmt.Errorf("delete %s relation failed", structInfo.GetName())
-	}
+
+	s.executor.Delete(sql)
 
 	return
 }
@@ -55,38 +52,20 @@ func (s *orm) Delete(obj interface{}) (err error) {
 	for _, val := range fields {
 		fType := val.GetFieldType()
 		fDepend := fType.Depend()
+
 		if fDepend == nil {
 			continue
 		}
 
-		fValue := val.GetFieldValue()
-		if fValue == nil {
-			continue
-		}
-		fDependValue, fDependErr := fValue.GetDepend()
-		if fDependErr != nil {
-			err = fDependErr
+		infoVal, infoErr := model.GetStructInfo(fDepend, s.modelInfoCache)
+		if infoErr != nil {
+			err = infoErr
 			return
 		}
 
-		for _, fVal := range fDependValue {
-			infoVal, infoErr := model.GetStructValue(fVal, s.modelInfoCache)
-			if infoErr != nil {
-				err = infoErr
-				return
-			}
-
-			if !fType.IsPtr() {
-				err = s.deleteSingle(infoVal)
-				if err != nil {
-					return
-				}
-			}
-
-			err = s.deleteRelation(structInfo, val.GetFieldName(), infoVal)
-			if err != nil {
-				return
-			}
+		err = s.deleteRelation(structInfo, val.GetFieldName(), infoVal)
+		if err != nil {
+			return
 		}
 	}
 
