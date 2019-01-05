@@ -69,7 +69,7 @@ func (s *sliceImpl) GetDepend() (ret []reflect.Value, err error) {
 
 	pos := rawVal.Len()
 	for idx := 0; idx < pos; {
-		sv := rawVal.Slice(idx, idx+1)
+		sv := rawVal.Index(idx)
 
 		ret = append(ret, sv)
 		idx++

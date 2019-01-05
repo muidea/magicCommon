@@ -51,16 +51,75 @@ func (s *orm) querySingle(structInfo model.StructInfo) (err error) {
 	return
 }
 
-func (s *orm) queryRelation(structInfo model.StructInfo, fieldName string, relationInfo model.StructInfo) (err error) {
+func (s *orm) queryRelation(structInfo model.StructInfo, fieldInfo model.FieldInfo, relationInfo model.StructInfo) (err error) {
+	fValue := fieldInfo.GetFieldValue()
+	if fValue == nil || fValue.IsNil() {
+		return
+	}
+
 	builder := builder.NewBuilder(structInfo)
-	relationSQL, relationErr := builder.BuildQueryRelation(fieldName, relationInfo)
+	relationSQL, relationErr := builder.BuildQueryRelation(fieldInfo.GetFieldName(), relationInfo)
 	if relationErr != nil {
 		err = relationErr
 		return err
 	}
 
-	s.executor.Query(relationSQL)
-	defer s.executor.Finish()
+	fType := fieldInfo.GetFieldType()
+	values := []int{}
+	log.Print(fType)
+
+	func() {
+		s.executor.Query(relationSQL)
+		defer s.executor.Finish()
+		for s.executor.Next() {
+			v := 0
+			s.executor.GetField(&v)
+			values = append(values, v)
+		}
+	}()
+
+	if util.IsStructType(fType.Value()) {
+		if len(values) > 0 {
+			relationVal, _ := fValue.GetValue()
+			relationVal = reflect.New(relationVal.Type())
+			relationInfo, relationErr = model.GetStructValue(relationVal, s.modelInfoCache)
+			if relationErr != nil {
+				err = relationErr
+				return
+			}
+
+			relationInfo.GetPrimaryField().SetFieldValue(reflect.ValueOf(values[0]))
+			err = s.querySingle(relationInfo)
+			if err != nil {
+				return
+			}
+
+			structInfo.UpdateFieldValue(fieldInfo.GetFieldName(), relationVal)
+		}
+	} else if util.IsSliceType(fType.Value()) {
+		sizeLen := len(values)
+		relationVal, _ := fValue.GetValue()
+		relationVal = reflect.MakeSlice(relationVal.Type(), sizeLen, sizeLen)
+		for idx, val := range values {
+			itemVal := reflect.New(fType.Depend())
+			itemInfo, itemErr := model.GetStructValue(itemVal, s.modelInfoCache)
+			if itemErr != nil {
+				log.Printf("GetStructValue faield, err:%s", itemErr.Error())
+				err = itemErr
+				return
+			}
+
+			itemInfo.GetPrimaryField().SetFieldValue(reflect.ValueOf(val))
+			err = s.querySingle(itemInfo)
+			if err != nil {
+				return
+			}
+
+			relationVal.Index(idx).Set(itemVal)
+		}
+		structInfo.UpdateFieldValue(fieldInfo.GetFieldName(), relationVal)
+	}
+
 	return
 }
 
@@ -100,7 +159,7 @@ func (s *orm) Query(obj interface{}, filter ...string) (err error) {
 			err = infoErr
 			return
 		}
-		err = s.queryRelation(structInfo, val.GetFieldName(), infoVal)
+		err = s.queryRelation(structInfo, val, infoVal)
 		if err != nil {
 			return
 		}

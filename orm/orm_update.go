@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"fmt"
 	"log"
 
 	"muidea.com/magicCommon/orm/builder"
@@ -15,11 +14,7 @@ func (s *orm) updateSingle(structInfo model.StructInfo) (err error) {
 		return err
 	}
 
-	num := s.executor.Update(sql)
-	if num != 1 {
-		log.Printf("unexception update, rowNum:%d", num)
-		err = fmt.Errorf("update %s failed", structInfo.GetName())
-	}
+	s.executor.Update(sql)
 
 	return err
 }

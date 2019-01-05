@@ -79,6 +79,7 @@ func (s *orm) Insert(obj interface{}) (err error) {
 		for _, fVal := range fDependValue {
 			infoVal, infoErr := model.GetStructValue(fVal, s.modelInfoCache)
 			if infoErr != nil {
+				log.Printf("GetStructValue faield, err:%s", infoErr.Error())
 				err = infoErr
 				return
 			}
