@@ -27,7 +27,9 @@ func (s *orm) querySingle(structInfo model.StructInfo) (err error) {
 	fields := structInfo.GetFields()
 	for _, val := range *fields {
 		fType := val.GetFieldType()
-		if !util.IsBasicType(fType.Value()) {
+
+		dependType, _ := fType.Depend()
+		if dependType != nil {
 			continue
 		}
 
@@ -39,12 +41,18 @@ func (s *orm) querySingle(structInfo model.StructInfo) (err error) {
 	idx := 0
 	for _, val := range *fields {
 		fType := val.GetFieldType()
-		if !util.IsBasicType(fType.Value()) {
+
+		dependType, _ := fType.Depend()
+		if dependType != nil {
 			continue
 		}
 
 		v := items[idx]
-		val.SetFieldValue(reflect.Indirect(reflect.ValueOf(v)))
+		err = val.SetFieldValue(reflect.Indirect(reflect.ValueOf(v)))
+		if err != nil {
+			return err
+		}
+
 		idx++
 	}
 
@@ -66,7 +74,6 @@ func (s *orm) queryRelation(structInfo model.StructInfo, fieldInfo model.FieldIn
 
 	fType := fieldInfo.GetFieldType()
 	values := []int{}
-	log.Print(fType)
 
 	func() {
 		s.executor.Query(relationSQL)
@@ -147,6 +154,9 @@ func (s *orm) Query(obj interface{}, filter ...string) (err error) {
 	}
 
 	err = s.querySingle(structInfo)
+	if err != nil {
+		return
+	}
 
 	fields := structInfo.GetDependField()
 	for _, val := range fields {

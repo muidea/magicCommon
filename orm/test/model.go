@@ -18,9 +18,10 @@ type User struct {
 
 // System System
 type System struct {
-	ID    int     `orm:"id key auto"`
-	Name  string  `orm:"name"`
-	Users *[]User `orm:"users"`
+	ID    int      `orm:"id key auto"`
+	Name  string   `orm:"name"`
+	Users *[]User  `orm:"users"`
+	Tags  []string `orm:"tags"`
 }
 
 // Equle Equle
@@ -88,6 +89,51 @@ func (s *User) Equle(r *User) bool {
 		l := s.Group[idx]
 		r := r.Group[idx]
 		if !l.Equle(r) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Equle Equle
+func (s *System) Equle(r *System) bool {
+	if s.ID != r.ID {
+		return false
+	}
+	if s.Name != r.Name {
+		return false
+	}
+
+	if s.Users == nil && r.Users != nil {
+		return false
+	}
+
+	if s.Users != nil && r.Users == nil {
+		return false
+	}
+
+	if s.Users != nil && r.Users != nil {
+		if len(*(s.Users)) != len(*(r.Users)) {
+			return false
+		}
+
+		for idx := 0; idx < len(*(s.Users)); idx++ {
+			l := (*(s.Users))[idx]
+			r := (*(r.Users))[idx]
+			if !l.Equle(&r) {
+				return false
+			}
+		}
+	}
+	if len(s.Tags) != len(r.Tags) {
+		return false
+	}
+
+	for idx := 0; idx < len(s.Tags); idx++ {
+		l := s.Tags[idx]
+		r := r.Tags[idx]
+		if l != r {
 			return false
 		}
 	}

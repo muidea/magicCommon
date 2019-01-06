@@ -17,7 +17,6 @@ func (s *sliceImpl) SetValue(val reflect.Value) (err error) {
 		err = fmt.Errorf("can't set nil ptr")
 		return
 	}
-
 	rawVal := reflect.Indirect(s.value)
 	val = reflect.Indirect(val)
 	switch val.Kind() {
@@ -27,6 +26,8 @@ func (s *sliceImpl) SetValue(val reflect.Value) (err error) {
 		} else {
 			err = fmt.Errorf("can't convert %s to %s", val.Type().String(), rawVal.Type().String())
 		}
+	case reflect.String:
+		err = json.Unmarshal([]byte(val.String()), rawVal.Addr().Interface())
 	default:
 		err = fmt.Errorf("can't convert %s to %s", val.Type().String(), rawVal.Type().String())
 	}
@@ -114,7 +115,7 @@ func (s *sliceImpl) GetValueStr() (ret string, err error) {
 	if dataErr != nil {
 		err = dataErr
 	}
-	ret = string(data)
+	ret = fmt.Sprintf("'%s'", string(data))
 
 	return
 }

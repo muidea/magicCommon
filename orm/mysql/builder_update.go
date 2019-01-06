@@ -3,8 +3,6 @@ package mysql
 import (
 	"fmt"
 	"log"
-
-	"muidea.com/magicCommon/orm/util"
 )
 
 // BuildUpdate  BuildUpdate
@@ -23,7 +21,8 @@ func (s *Builder) BuildUpdate() (ret string, err error) {
 			continue
 		}
 
-		if !util.IsBasicType(fType.Value()) {
+		dependType, _ := fType.Depend()
+		if dependType != nil {
 			continue
 		}
 

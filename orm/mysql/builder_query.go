@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"muidea.com/magicCommon/orm/model"
-	"muidea.com/magicCommon/orm/util"
 )
 
 // BuildQuery BuildQuery
@@ -53,7 +52,9 @@ func (s *Builder) getFieldQueryNames(info model.StructInfo) string {
 	for _, field := range *s.structInfo.GetFields() {
 		fTag := field.GetFieldTag()
 		fType := field.GetFieldType()
-		if !util.IsBasicType(fType.Value()) {
+
+		dependType, _ := fType.Depend()
+		if dependType != nil {
 			continue
 		}
 

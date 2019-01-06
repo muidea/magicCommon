@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"muidea.com/magicCommon/orm/model"
-	"muidea.com/magicCommon/orm/util"
 )
 
 // BuildInsert  BuildInsert
@@ -56,7 +55,8 @@ func (s *Builder) getFieldInsertNames(info model.StructInfo) string {
 			continue
 		}
 
-		if !util.IsBasicType(fType.Value()) {
+		dependType, _ := fType.Depend()
+		if dependType != nil {
 			continue
 		}
 
@@ -88,7 +88,8 @@ func (s *Builder) getFieldInsertValues(info model.StructInfo) (ret []string, err
 			continue
 		}
 
-		if !util.IsBasicType(fType.Value()) {
+		dependType, _ := fType.Depend()
+		if dependType != nil {
 			continue
 		}
 

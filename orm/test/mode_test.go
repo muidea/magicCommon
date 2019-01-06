@@ -188,7 +188,7 @@ func TestSystem(t *testing.T) {
 		t.Errorf("drop user failed, err:%s", err.Error())
 	}
 
-	sys1 := &System{Name: "sys1"}
+	sys1 := &System{Name: "sys1", Tags: []string{"aab", "ccd"}}
 	err = o1.Drop(sys1)
 	if err != nil {
 		t.Errorf("drop system failed, err:%s", err.Error())
@@ -221,6 +221,14 @@ func TestSystem(t *testing.T) {
 		t.Errorf("insert system failed, err:%s", err.Error())
 	}
 
+	users = append(users, *user1)
+	users = append(users, *user2)
+	sys1.Users = &users
+	err = o1.Update(sys1)
+	if err != nil {
+		t.Errorf("update system failed, err:%s", err.Error())
+	}
+
 	sys2 := &System{ID: sys1.ID, Users: &[]User{}}
 	err = o1.Query(sys2)
 	if err != nil {
@@ -230,8 +238,21 @@ func TestSystem(t *testing.T) {
 	log.Print(*sys2)
 	log.Print(*(sys2.Users))
 
+	if !sys1.Equle(sys2) {
+		t.Error("query sys2 faield")
+	}
+
 	err = o1.Delete(sys2)
 	if err != nil {
 		t.Errorf("delete system failed, err:%s", err.Error())
+	}
+
+	err = o1.Delete(user1)
+	if err != nil {
+		t.Errorf("delete user1 failed, err:%s", err.Error())
+	}
+	err = o1.Delete(user2)
+	if err != nil {
+		t.Errorf("delete user2 failed, err:%s", err.Error())
 	}
 }
