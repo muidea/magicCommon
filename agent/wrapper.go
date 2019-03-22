@@ -1,9 +1,9 @@
 package agent
 
 import (
-	common_def "muidea.com/magicCommon/def"
-	"muidea.com/magicCommon/foundation/util"
-	"muidea.com/magicCommon/model"
+	common_def "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/foundation/util"
+	"github.com/muidea/magicCommon/model"
 )
 
 // Wrapper agent wrapper

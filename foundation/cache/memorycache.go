@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"muidea.com/magicCommon/foundation/util"
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 // Cache 缓存对象

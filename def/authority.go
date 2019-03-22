@@ -1,6 +1,6 @@
 package def
 
-import "muidea.com/magicCommon/model"
+import "github.com/muidea/magicCommon/model"
 
 // GetACLListResult 查询ACL结果
 type GetACLListResult struct {

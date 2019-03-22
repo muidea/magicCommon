@@ -1,6 +1,6 @@
 package def
 
-import "muidea.com/magicCommon/model"
+import "github.com/muidea/magicCommon/model"
 
 // QueryEndpointListResult 查询EndpointList结果
 type QueryEndpointListResult struct {

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	common_const "muidea.com/magicCommon/common"
+	common_const "github.com/muidea/magicCommon/common"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"muidea.com/magicCommon/foundation/util"
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 // Filter 过滤器

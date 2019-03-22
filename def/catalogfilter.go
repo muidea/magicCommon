@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"muidea.com/magicCommon/model"
+	"github.com/muidea/magicCommon/model"
 )
 
 // DecodeStrictCatalog 解析CatalogUnit

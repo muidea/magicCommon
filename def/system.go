@@ -1,6 +1,6 @@
 package def
 
-import "muidea.com/magicCommon/model"
+import "github.com/muidea/magicCommon/model"
 
 // QuerySystemConfigResult 查询SystemConfig结果
 type QuerySystemConfigResult struct {

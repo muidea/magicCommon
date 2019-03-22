@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	common_def "muidea.com/magicCommon/def"
-	"muidea.com/magicCommon/foundation/net"
+	common_def "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/foundation/net"
 )
 
 func (s *center) UploadFile(filePath, authToken, sessionID string) (string, bool) {

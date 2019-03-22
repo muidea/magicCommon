@@ -1,6 +1,6 @@
 package def
 
-import "muidea.com/magicCommon/model"
+import "github.com/muidea/magicCommon/model"
 
 // GetModuleListResult 获取ModuleList
 type GetModuleListResult struct {

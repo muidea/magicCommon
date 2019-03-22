@@ -1,6 +1,6 @@
 package def
 
-import "muidea.com/magicCommon/model"
+import "github.com/muidea/magicCommon/model"
 
 // LoginAccountParam 账号登陆参数
 type LoginAccountParam struct {

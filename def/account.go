@@ -1,7 +1,7 @@
 package def
 
 import (
-	"muidea.com/magicCommon/model"
+	"github.com/muidea/magicCommon/model"
 )
 
 // GetGroupResult 获取分组详情

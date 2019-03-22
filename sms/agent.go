@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	common_def "muidea.com/magicCommon/def"
-	"muidea.com/magicCommon/foundation/net"
+	common_def "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/foundation/net"
 )
 
 // Agent SMS访问代理

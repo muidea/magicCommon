@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	common_def "muidea.com/magicCommon/def"
-	"muidea.com/magicCommon/foundation/net"
-	"muidea.com/magicCommon/model"
+	common_def "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/foundation/net"
+	"github.com/muidea/magicCommon/model"
 )
 
 func (s *center) QueryComment(authToken, sessionID string, strictCatalog model.CatalogUnit) ([]model.CommentDetailView, bool) {

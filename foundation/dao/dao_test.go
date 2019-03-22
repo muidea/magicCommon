@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"muidea.com/magicCommon/foundation/dao"
+	"github.com/muidea/magicCommon/foundation/dao"
 )
 
 type User struct {

@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 
-	common_def "muidea.com/magicCommon/def"
-	"muidea.com/magicCommon/foundation/net"
-	"muidea.com/magicCommon/foundation/util"
-	"muidea.com/magicCommon/model"
+	common_def "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/foundation/net"
+	"github.com/muidea/magicCommon/foundation/util"
+	"github.com/muidea/magicCommon/model"
 )
 
 // Agent Center访问代理

@@ -1,7 +1,7 @@
 package model
 
 import (
-	"muidea.com/magicCommon/foundation/util"
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 // ARTICLE 文章类型

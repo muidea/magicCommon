@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"os"
 
-	"muidea.com/magicCommon/foundation/util"
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 type maxBytesReader struct {

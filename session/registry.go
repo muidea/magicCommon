@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	common_const "muidea.com/magicCommon/common"
-	"muidea.com/magicCommon/foundation/util"
+	common_const "github.com/muidea/magicCommon/common"
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 // Registry 会话仓库
