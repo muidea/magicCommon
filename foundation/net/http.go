@@ -73,8 +73,8 @@ func (l *maxBytesReader) Close() error {
 	return l.req.Close()
 }
 
-// ParsePostJSON 解析http post请求提交的json数据
-func ParsePostJSON(req *http.Request, param interface{}) error {
+// ParseJSONBody 解析http body请求提交的json数据
+func ParseJSONBody(req *http.Request, param interface{}) error {
 	util.ValidataPtr(param)
 
 	if req.Body == nil {
@@ -147,13 +147,17 @@ func HTTPGet(httpClient *http.Client, url string, result interface{}) error {
 
 // HTTPPost http post request
 func HTTPPost(httpClient *http.Client, url string, param interface{}, result interface{}) error {
-	data, err := json.Marshal(param)
-	if err != nil {
-		log.Printf("marshal param failed, err:%s", err.Error())
-		return err
+	var bufferReader *bytes.Buffer
+	if param != nil {
+		data, err := json.Marshal(param)
+		if err != nil {
+			log.Printf("marshal param failed, err:%s", err.Error())
+			return err
+		}
+
+		bufferReader = bytes.NewBuffer(data)
 	}
 
-	bufferReader := bytes.NewBuffer(data)
 	request, err := http.NewRequest("POST", url, bufferReader)
 	if err != nil {
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
@@ -191,13 +195,17 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 
 // HTTPPut http post request
 func HTTPPut(httpClient *http.Client, url string, param interface{}, result interface{}) error {
-	data, err := json.Marshal(param)
-	if err != nil {
-		log.Printf("marshal param failed, err:%s", err.Error())
-		return err
+	var bufferReader *bytes.Buffer
+	if param != nil {
+		data, err := json.Marshal(param)
+		if err != nil {
+			log.Printf("marshal param failed, err:%s", err.Error())
+			return err
+		}
+
+		bufferReader = bytes.NewBuffer(data)
 	}
 
-	bufferReader := bytes.NewBuffer(data)
 	request, err := http.NewRequest("PUT", url, bufferReader)
 	if err != nil {
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
@@ -234,8 +242,19 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 }
 
 // HTTPDelete http delete request
-func HTTPDelete(httpClient *http.Client, url string, result interface{}) error {
-	request, err := http.NewRequest("DELETE", url, nil)
+func HTTPDelete(httpClient *http.Client, url string, param interface{}, result interface{}) error {
+	var bufferReader *bytes.Buffer
+	if param != nil {
+		data, err := json.Marshal(param)
+		if err != nil {
+			log.Printf("marshal param failed, err:%s", err.Error())
+			return err
+		}
+
+		bufferReader = bytes.NewBuffer(data)
+	}
+
+	request, err := http.NewRequest("DELETE", url, bufferReader)
 	if err != nil {
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
 		return err
