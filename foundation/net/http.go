@@ -130,176 +130,194 @@ func ParseJSONBody(req *http.Request, param interface{}) error {
 }
 
 // HTTPGet http get request
-func HTTPGet(httpClient *http.Client, url string, result interface{}) error {
-	response, err := httpClient.Get(url)
-	if err != nil {
+func HTTPGet(httpClient *http.Client, url string, result interface{}) (ret []byte, err error) {
+	response, responseErr := httpClient.Get(url)
+	if responseErr != nil {
+		err = responseErr
 		log.Printf("get request failed, err:%s", err.Error())
-		return err
+		return
 	}
 
 	if response.StatusCode != http.StatusOK {
-		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
-		return errors.New(msg)
+		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return
+	}
+
+	content, contentErr := ioutil.ReadAll(response.Body)
+	if contentErr != nil {
+		err = contentErr
+		log.Printf("read respose data failed, err:%s", err.Error())
+		return
 	}
 
 	if result != nil {
-		content, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Printf("read respose data failed, err:%s", err.Error())
-			return err
-		}
-
 		err = json.Unmarshal(content, result)
 		if err != nil {
 			log.Printf("unmarshal data failed, err:%s", err.Error())
-			return err
+			return
 		}
 	}
 
-	return nil
+	ret = content
+	return
 }
 
 // HTTPPost http post request
-func HTTPPost(httpClient *http.Client, url string, param interface{}, result interface{}) error {
+func HTTPPost(httpClient *http.Client, url string, param interface{}, result interface{}) (ret []byte, err error) {
 	var bufferReader *bytes.Buffer
 	if param != nil {
-		data, err := json.Marshal(param)
-		if err != nil {
+		data, dataErr := json.Marshal(param)
+		if dataErr != nil {
+			err = dataErr
 			log.Printf("marshal param failed, err:%s", err.Error())
-			return err
+			return
 		}
 
 		bufferReader = bytes.NewBuffer(data)
 	}
 
-	request, err := http.NewRequest("POST", url, bufferReader)
-	if err != nil {
+	request, requestErr := http.NewRequest("POST", url, bufferReader)
+	if requestErr != nil {
+		err = requestErr
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
-		return err
+		return
 	}
 
 	request.Header.Set("content-type", "application/json")
-	response, err := httpClient.Do(request)
-	if err != nil {
+	response, responseErr := httpClient.Do(request)
+	if responseErr != nil {
+		err = responseErr
 		log.Printf("post request failed, err:%s", err.Error())
-		return err
+		return
 	}
 
 	if response.StatusCode != http.StatusOK {
-		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
-		return errors.New(msg)
+		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return
+	}
+
+	content, contentErr := ioutil.ReadAll(response.Body)
+	if contentErr != nil {
+		err = contentErr
+		log.Printf("read respose data failed, err:%s", err.Error())
+		return
 	}
 
 	if result != nil {
-		content, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Printf("read respose data failed, err:%s", err.Error())
-			return err
-		}
-
 		err = json.Unmarshal(content, result)
 		if err != nil {
 			log.Printf("unmarshal data failed, err:%s", err.Error())
-			return err
+			return
 		}
 	}
 
-	return nil
+	ret = content
+	return
 }
 
 // HTTPPut http post request
-func HTTPPut(httpClient *http.Client, url string, param interface{}, result interface{}) error {
+func HTTPPut(httpClient *http.Client, url string, param interface{}, result interface{}) (ret []byte, err error) {
 	var bufferReader *bytes.Buffer
 	if param != nil {
-		data, err := json.Marshal(param)
-		if err != nil {
+		data, dataErr := json.Marshal(param)
+		if dataErr != nil {
+			err = dataErr
 			log.Printf("marshal param failed, err:%s", err.Error())
-			return err
+			return
 		}
 
 		bufferReader = bytes.NewBuffer(data)
 	}
 
-	request, err := http.NewRequest("PUT", url, bufferReader)
-	if err != nil {
+	request, requestErr := http.NewRequest("PUT", url, bufferReader)
+	if requestErr != nil {
+		err = requestErr
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
-		return err
+		return
 	}
 
 	request.Header.Set("content-type", "application/json")
-	response, err := httpClient.Do(request)
-	if err != nil {
+	response, responseErr := httpClient.Do(request)
+	if responseErr != nil {
+		err = responseErr
 		log.Printf("post request failed, err:%s", err.Error())
-		return err
+		return
 	}
 
 	if response.StatusCode != http.StatusOK {
-		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
-		return errors.New(msg)
+		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return
+	}
+
+	content, contentErr := ioutil.ReadAll(response.Body)
+	if contentErr != nil {
+		err = contentErr
+		log.Printf("read respose data failed, err:%s", err.Error())
+		return
 	}
 
 	if result != nil {
-		content, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Printf("read respose data failed, err:%s", err.Error())
-			return err
-		}
-
 		err = json.Unmarshal(content, result)
 		if err != nil {
 			log.Printf("unmarshal data failed, err:%s", err.Error())
-			return err
+			return
 		}
 	}
 
-	return nil
+	ret = content
+	return
 }
 
 // HTTPDelete http delete request
-func HTTPDelete(httpClient *http.Client, url string, param interface{}, result interface{}) error {
+func HTTPDelete(httpClient *http.Client, url string, param interface{}, result interface{}) (ret []byte, err error) {
 	var bufferReader *bytes.Buffer
 	if param != nil {
-		data, err := json.Marshal(param)
-		if err != nil {
+		data, dataErr := json.Marshal(param)
+		if dataErr != nil {
+			err = dataErr
 			log.Printf("marshal param failed, err:%s", err.Error())
-			return err
+			return
 		}
 
 		bufferReader = bytes.NewBuffer(data)
 	}
 
-	request, err := http.NewRequest("DELETE", url, bufferReader)
-	if err != nil {
+	request, requestErr := http.NewRequest("DELETE", url, bufferReader)
+	if requestErr != nil {
+		err = requestErr
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
-		return err
+		return
 	}
 
-	response, err := httpClient.Do(request)
-	if err != nil {
+	response, responseErr := httpClient.Do(request)
+	if responseErr != nil {
+		err = responseErr
 		log.Printf("post request failed, err:%s", err.Error())
-		return err
+		return
 	}
 
 	if response.StatusCode != http.StatusOK {
-		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
-		return errors.New(msg)
+		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
+		return
+	}
+
+	content, contentErr := ioutil.ReadAll(response.Body)
+	if contentErr != nil {
+		err = contentErr
+		log.Printf("read respose data failed, err:%s", err.Error())
+		return
 	}
 
 	if result != nil {
-		content, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			log.Printf("read respose data failed, err:%s", err.Error())
-			return err
-		}
-
 		err = json.Unmarshal(content, result)
 		if err != nil {
 			log.Printf("unmarshal data failed, err:%s", err.Error())
-			return err
+			return
 		}
 	}
 
-	return nil
+	ret = content
+	return
 }
 
 // HTTPDownload http download file
