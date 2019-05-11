@@ -73,6 +73,30 @@ func (l *maxBytesReader) Close() error {
 	return l.req.Close()
 }
 
+// GetHTTPRequestBody get http request body
+func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
+	var reader io.Reader = req.Body
+	maxFormSize := int64(1<<63 - 1)
+	if _, ok := req.Body.(*maxBytesReader); !ok {
+		maxFormSize = int64(10 << 20) // 10 MB is a lot of text.
+		reader = io.LimitReader(req.Body, maxFormSize+1)
+	}
+
+	payload, payloadErr := ioutil.ReadAll(reader)
+	if payloadErr != nil {
+		err = payloadErr
+		return
+	}
+
+	if int64(len(payload)) > maxFormSize {
+		err = errors.New("http: request body too large")
+		return
+	}
+
+	ret = payload
+	return
+}
+
 // ParseJSONBody 解析http body请求提交的json数据
 func ParseJSONBody(req *http.Request, param interface{}) error {
 	util.ValidataPtr(param)
@@ -88,19 +112,9 @@ func ParseJSONBody(req *http.Request, param interface{}) error {
 
 	switch {
 	case contentType == "application/json":
-		var reader io.Reader = req.Body
-		maxFormSize := int64(1<<63 - 1)
-		if _, ok := req.Body.(*maxBytesReader); !ok {
-			maxFormSize = int64(10 << 20) // 10 MB is a lot of text.
-			reader = io.LimitReader(req.Body, maxFormSize+1)
-		}
-
-		payload, err := ioutil.ReadAll(reader)
-		if err != nil {
-			return err
-		}
-		if int64(len(payload)) > maxFormSize {
-			return errors.New("http: POST too large")
+		payload, payloadErr := GetHTTPRequestBody(req)
+		if payloadErr != nil {
+			return payloadErr
 		}
 
 		err = json.Unmarshal(payload, param)
