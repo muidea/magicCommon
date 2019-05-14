@@ -13,7 +13,7 @@ func (s *center) QueryMedia(id int, authToken, sessionID string) (model.MediaDet
 	result := &common_def.QueryMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
 
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query media failed, err:%s", err.Error())
 		return result.Media, false
@@ -31,7 +31,7 @@ func (s *center) CreateMedia(name, description, fileToken string, expiration int
 	result := &common_def.CreateMediaResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/", authToken, sessionID)
 
-	err := net.HTTPPost(s.httpClient, url, param, result)
+	_, err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("create media failed, err:%s", err.Error())
 		return result.Media, false
@@ -49,7 +49,7 @@ func (s *center) BatchCreateMedia(media []common_def.MediaInfo, description stri
 	result := &common_def.BatchCreateMediaResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "content/media/batch/", authToken, sessionID)
 
-	err := net.HTTPPost(s.httpClient, url, param, result)
+	_, err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("create media failed, err:%s", err.Error())
 		return result.Medias, false
@@ -67,7 +67,7 @@ func (s *center) UpdateMedia(id int, name, description, fileToken string, expira
 	result := &common_def.UpdateMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
 
-	err := net.HTTPPut(s.httpClient, url, param, result)
+	_, err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("update media failed, err:%s", err.Error())
 		return result.Media, false
@@ -84,7 +84,7 @@ func (s *center) DeleteMedia(id int, authToken, sessionID string) bool {
 	result := &common_def.DestroyMediaResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/media", id, authToken, sessionID)
 
-	err := net.HTTPDelete(s.httpClient, url, result)
+	_, err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("delete media failed, url:%s, err:%s", url, err.Error())
 		return false

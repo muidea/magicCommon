@@ -20,7 +20,7 @@ func (s *center) FetchSummary(summaryName, summaryType, authToken, sessionID str
 		}
 	}
 
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("fetch catalog failed, err:%s", err.Error())
 		return result.Summary, false
@@ -43,7 +43,7 @@ func (s *center) QuerySummaryContent(summary model.CatalogUnit, filter *common_d
 		}
 	}
 
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query summary failed, err:%s", err.Error())
 		return result.Summary, result.Total
@@ -69,7 +69,7 @@ func (s *center) QuerySummaryContentWithSpecialType(summary model.CatalogUnit, s
 		}
 	}
 
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query summary failed, err:%s", err.Error())
 		return result.Summary, result.Total
@@ -98,7 +98,7 @@ func (s *center) QuerySummaryContentByUser(user int, filter *common_def.Filter, 
 		}
 	}
 
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query summary failed, err:%s", err.Error())
 		return result.Summary, result.Total

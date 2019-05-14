@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/muidea/magicCommon/model"
 	common_def "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/foundation/net"
 	"github.com/muidea/magicCommon/foundation/util"
+	"github.com/muidea/magicCommon/model"
 )
 
 func (s *center) QuerySyslog(source string, filter *util.PageFilter, sessionToken, sessionID string) ([]model.Syslog, int) {
@@ -21,7 +21,7 @@ func (s *center) QuerySyslog(source string, filter *util.PageFilter, sessionToke
 		}
 	}
 
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query syslog failed, err:%s", err.Error())
 		return result.Syslog, result.Total
@@ -39,7 +39,7 @@ func (s *center) InsertSyslog(user, operation, datetime, source, sessionToken, s
 	result := &common_def.InsertSyslogResult{}
 	url := fmt.Sprintf("%s/%s?authToken=%s&sessionID=%s", s.baseURL, "system/syslog/", sessionToken, sessionID)
 
-	err := net.HTTPPost(s.httpClient, url, param, result)
+	_, err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("insert syslog failed, err:%s", err.Error())
 		return false

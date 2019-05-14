@@ -18,7 +18,7 @@ func (s *center) QueryComment(authToken, sessionID string, strictCatalog model.C
 		url = fmt.Sprintf("%s&%s", url, strictStr)
 	}
 
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query comment failed, err:%s", err.Error())
 		return result.Comment, false
@@ -41,7 +41,7 @@ func (s *center) CreateComment(subject, content string, authToken, sessionID str
 		url = fmt.Sprintf("%s&%s", url, strictStr)
 	}
 
-	err := net.HTTPPost(s.httpClient, url, param, result)
+	_, err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("create comment failed, err:%s", err.Error())
 		return result.Comment, false
@@ -59,7 +59,7 @@ func (s *center) UpdateComment(id int, subject, content string, flag int, authTo
 	result := &common_def.UpdateCommentResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/comment", id, authToken, sessionID)
 
-	err := net.HTTPPut(s.httpClient, url, param, result)
+	_, err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("update comment failed, err:%s", err.Error())
 		return result.Comment, false
@@ -76,7 +76,7 @@ func (s *center) DeleteComment(id int, authToken, sessionID string) bool {
 	result := &common_def.DestroyCommentResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "content/comment", id, authToken, sessionID)
 
-	err := net.HTTPDelete(s.httpClient, url, result)
+	_, err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("delete comment failed, url:%s, err:%s", url, err.Error())
 		return false

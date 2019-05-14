@@ -13,7 +13,7 @@ func (s *center) LoginAccount(account, password string) (model.OnlineEntryView, 
 	param := &common_def.LoginAccountParam{Account: account, Password: password}
 	result := &common_def.LoginAccountResult{}
 	url := fmt.Sprintf("%s/%s", s.baseURL, "cas/user/")
-	err := net.HTTPPost(s.httpClient, url, param, result)
+	_, err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("login failed, err:%s", err.Error())
 		return result.OnlineEntry, "", "", false
@@ -34,7 +34,7 @@ func (s *center) LogoutAccount(authToken, sessionID string) bool {
 
 	result := &common_def.LogoutAccountResult{}
 	url := fmt.Sprintf("%s/%s/?authToken=%s&sessionID=%s", s.baseURL, "cas/user", authToken, sessionID)
-	err := net.HTTPDelete(s.httpClient, url, result)
+	_, err := net.HTTPDelete(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("logout failed, err:%s", err.Error())
 		return false
@@ -55,7 +55,7 @@ func (s *center) StatusAccount(authToken, sessionID string) (model.OnlineEntryVi
 	}
 
 	url := fmt.Sprintf("%s/%s/?authToken=%s&sessionID=%s", s.baseURL, "cas/user", authToken, sessionID)
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("get status failed, err:%s", err.Error())
 		return result.OnlineEntry, "", "", false
@@ -72,7 +72,7 @@ func (s *center) ChangePassword(accountID int, oldPassword, newPassword, authTok
 	param := &common_def.ChangeAccountPasswordParam{OldPassword: oldPassword, NewPassword: newPassword}
 	result := &common_def.ChangeAccountPasswordResult{}
 	url := fmt.Sprintf("%s/%s/%d?authToken=%s&sessionID=%s", s.baseURL, "cas/user", accountID, authToken, sessionID)
-	err := net.HTTPPut(s.httpClient, url, param, result)
+	_, err := net.HTTPPut(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("change account password failed, err:%s", err.Error())
 		return false

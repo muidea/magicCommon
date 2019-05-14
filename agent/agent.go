@@ -103,7 +103,7 @@ func (s *center) verify(endpointID, endpointToken string) (string, string, bool)
 	param := &common_def.LoginEndpointParam{IdentifyID: endpointID, AuthToken: endpointToken}
 	result := &common_def.LoginEndpointResult{}
 	url := fmt.Sprintf("%s/%s", s.baseURL, "cas/endpoint/")
-	err := net.HTTPPost(s.httpClient, url, param, result)
+	_, err := net.HTTPPost(s.httpClient, url, param, result)
 	if err != nil {
 		log.Printf("verify endpoint failed, err:%s", err.Error())
 		return "", "", false

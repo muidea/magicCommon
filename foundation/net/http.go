@@ -269,20 +269,8 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 }
 
 // HTTPDelete http delete request
-func HTTPDelete(httpClient *http.Client, url string, param interface{}, result interface{}) (ret []byte, err error) {
-	var bufferReader *bytes.Buffer
-	if param != nil {
-		data, dataErr := json.Marshal(param)
-		if dataErr != nil {
-			err = dataErr
-			log.Printf("marshal param failed, err:%s", err.Error())
-			return
-		}
-
-		bufferReader = bytes.NewBuffer(data)
-	}
-
-	request, requestErr := http.NewRequest("DELETE", url, bufferReader)
+func HTTPDelete(httpClient *http.Client, url string, result interface{}) (ret []byte, err error) {
+	request, requestErr := http.NewRequest("DELETE", url, nil)
 	if requestErr != nil {
 		err = requestErr
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())

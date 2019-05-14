@@ -47,7 +47,7 @@ func (s *center) QueryFile(fileToken, authToken, sessionID string) (string, bool
 	result := &common_def.DownloadFileResult{}
 	url := fmt.Sprintf("%s/%s?fileToken=%s&authToken=%s&sessionID=%s", s.baseURL, "fileregistry/file/", fileToken, authToken, sessionID)
 
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("query file failed, err:%s", err.Error())
 		return result.RedirectURL, false
