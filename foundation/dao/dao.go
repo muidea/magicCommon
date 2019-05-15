@@ -12,26 +12,31 @@ import (
 type Dao interface {
 	Release()
 	BeginTransaction()
-	Commit()
-	Rollback()
+	CommitTransaction()
+	RollbackTransaction()
 	Query(sql string)
 	Next() bool
 	Finish()
 	GetField(value ...interface{})
-	Execute(sql string) (int64, bool)
+	Insert(sql string) int64
+	Update(sql string) int64
+	Delete(sql string) int64
+	Execute(sql string) int64
+	CheckTableExist(tableName string) (ret bool)
 }
 
 type impl struct {
 	dbHandle   *sql.DB
 	dbTx       *sql.Tx
 	rowsHandle *sql.Rows
+	dbName     string
 }
 
 // Fetch 获取一个数据访问对象
-func Fetch(user string, password string, address string, dbName string) (Dao, error) {
+func Fetch(user, password, address, dbName string) (Dao, error) {
 	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8", user, password, address, dbName)
 
-	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil}
+	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil, dbName: dbName}
 	db, err := sql.Open("mysql", connectStr)
 	if err != nil {
 		log.Printf("open database exception, err:%s", err.Error())
@@ -50,6 +55,7 @@ func Fetch(user string, password string, address string, dbName string) (Dao, er
 	return &i, err
 }
 
+// Release Release
 func (s *impl) Release() {
 	if s.dbTx != nil {
 		panic("dbTx isn't nil")
@@ -69,53 +75,59 @@ func (s *impl) Release() {
 
 }
 
+// BeginTransaction Begin Transaction
 func (s *impl) BeginTransaction() {
-	if s.rowsHandle != nil {
-		s.rowsHandle.Close()
-	}
-	s.rowsHandle = nil
+	if s.dbTx == nil {
+		if s.rowsHandle != nil {
+			s.rowsHandle.Close()
+		}
+		s.rowsHandle = nil
 
-	tx, err := s.dbHandle.Begin()
-	if err != nil {
-		panic("begin transaction exception, err:" + err.Error())
+		tx, err := s.dbHandle.Begin()
+		if err != nil {
+			panic("begin transaction exception, err:" + err.Error())
+		}
+
+		s.dbTx = tx
 	}
 
-	s.dbTx = tx
 	//log.Print("BeginTransaction")
 }
 
-func (s *impl) Commit() {
-	if s.dbTx == nil {
-		panic("dbTx is nil")
-	}
+// CommitTransaction Commit Transaction
+func (s *impl) CommitTransaction() {
+	if s.dbTx != nil {
+		err := s.dbTx.Commit()
+		if err != nil {
+			s.dbTx = nil
 
-	err := s.dbTx.Commit()
-	if err != nil {
+			panic("commit transaction exception, err:" + err.Error())
+		}
+
 		s.dbTx = nil
-
-		panic("commit transaction exception, err:" + err.Error())
 	}
 
-	s.dbTx = nil
 	//log.Print("Commit")
 }
 
-func (s *impl) Rollback() {
-	if s.dbTx == nil {
-		panic("dbTx is nil")
-	}
+// RollbackTransaction Rollback Transaction
+func (s *impl) RollbackTransaction() {
+	if s.dbTx != nil {
 
-	err := s.dbTx.Rollback()
-	if err != nil {
+		err := s.dbTx.Rollback()
+		if err != nil {
+			s.dbTx = nil
+
+			panic("rollback transaction exception, err:" + err.Error())
+		}
+
 		s.dbTx = nil
-
-		panic("rollback transaction exception, err:" + err.Error())
 	}
 
-	s.dbTx = nil
 	//log.Print("Rollback")
 }
 
+// Query Query
 func (s *impl) Query(sql string) {
 	//log.Printf("Query, sql:%s", sql)
 	if s.dbTx == nil {
@@ -133,7 +145,6 @@ func (s *impl) Query(sql string) {
 		}
 		s.rowsHandle = rows
 	} else {
-
 		if s.rowsHandle != nil {
 			s.rowsHandle.Close()
 			s.rowsHandle = nil
@@ -147,6 +158,7 @@ func (s *impl) Query(sql string) {
 	}
 }
 
+// Next Next
 func (s *impl) Next() bool {
 	if s.rowsHandle == nil {
 		panic("rowsHandle is nil")
@@ -162,6 +174,7 @@ func (s *impl) Next() bool {
 	return ret
 }
 
+// Finish Finish
 func (s *impl) Finish() {
 	if s.rowsHandle != nil {
 		s.rowsHandle.Close()
@@ -169,6 +182,7 @@ func (s *impl) Finish() {
 	}
 }
 
+// GetField GetField
 func (s *impl) GetField(value ...interface{}) {
 	if s.rowsHandle == nil {
 		panic("rowsHandle is nil")
@@ -180,7 +194,46 @@ func (s *impl) GetField(value ...interface{}) {
 	}
 }
 
-func (s *impl) Execute(sql string) (int64, bool) {
+// Insert Insert
+func (s *impl) Insert(sql string) int64 {
+	if s.rowsHandle != nil {
+		s.rowsHandle.Close()
+	}
+	s.rowsHandle = nil
+
+	if s.dbTx == nil {
+		if s.dbHandle == nil {
+			panic("dbHandle is nil")
+		}
+
+		result, err := s.dbHandle.Exec(sql)
+		if err != nil {
+			panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+		}
+
+		idNum, err := result.LastInsertId()
+		if err != nil {
+			panic("insert failed exception, err:" + err.Error())
+		}
+
+		return idNum
+	}
+
+	result, err := s.dbTx.Exec(sql)
+	if err != nil {
+		panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+	}
+
+	idNum, err := result.LastInsertId()
+	if err != nil {
+		panic("insert failed exception, err:" + err.Error())
+	}
+
+	return idNum
+}
+
+// Update Update
+func (s *impl) Update(sql string) int64 {
 	if s.rowsHandle != nil {
 		s.rowsHandle.Close()
 	}
@@ -201,7 +254,7 @@ func (s *impl) Execute(sql string) (int64, bool) {
 			panic("rows affected exception, err:" + err.Error())
 		}
 
-		return num, true
+		return num
 	}
 
 	result, err := s.dbTx.Exec(sql)
@@ -214,5 +267,96 @@ func (s *impl) Execute(sql string) (int64, bool) {
 		panic("rows affected exception, err:" + err.Error())
 	}
 
-	return num, true
+	return num
+}
+
+// Delete Delete
+func (s *impl) Delete(sql string) int64 {
+	if s.rowsHandle != nil {
+		s.rowsHandle.Close()
+	}
+	s.rowsHandle = nil
+
+	if s.dbTx == nil {
+		if s.dbHandle == nil {
+			panic("dbHandle is nil")
+		}
+
+		result, err := s.dbHandle.Exec(sql)
+		if err != nil {
+			panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+		}
+
+		num, err := result.RowsAffected()
+		if err != nil {
+			panic("rows affected exception, err:" + err.Error())
+		}
+
+		return num
+	}
+
+	result, err := s.dbTx.Exec(sql)
+	if err != nil {
+		panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+	}
+
+	num, err := result.RowsAffected()
+	if err != nil {
+		panic("rows affected exception, err:" + err.Error())
+	}
+
+	return num
+}
+
+// Execute Execute
+func (s *impl) Execute(sql string) int64 {
+	if s.rowsHandle != nil {
+		s.rowsHandle.Close()
+	}
+	s.rowsHandle = nil
+
+	if s.dbTx == nil {
+		if s.dbHandle == nil {
+			panic("dbHandle is nil")
+		}
+
+		result, err := s.dbHandle.Exec(sql)
+		if err != nil {
+			panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+		}
+
+		num, err := result.RowsAffected()
+		if err != nil {
+			panic("rows affected exception, err:" + err.Error())
+		}
+
+		return num
+	}
+
+	result, err := s.dbTx.Exec(sql)
+	if err != nil {
+		panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+	}
+
+	num, err := result.RowsAffected()
+	if err != nil {
+		panic("rows affected exception, err:" + err.Error())
+	}
+
+	return num
+}
+
+// CheckTableExist CheckTableExist
+func (s *impl) CheckTableExist(tableName string) (ret bool) {
+	sql := fmt.Sprintf("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME ='%s' and TABLE_SCHEMA ='%s'", tableName, s.dbName)
+
+	s.Query(sql)
+	if s.Next() {
+		ret = true
+	} else {
+		ret = false
+	}
+	s.Finish()
+
+	return
 }

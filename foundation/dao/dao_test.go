@@ -23,8 +23,8 @@ func testFun(t *testing.T) {
 	defer dao.Release()
 
 	insertSql := fmt.Sprintf("%s", "insert into magiccenter_db.user value(1,'test3','test3','test11','aaa',1)")
-	num, ok := dao.Execute(insertSql)
-	if num == 1 && ok {
+	num := dao.Execute(insertSql)
+	if num == 1 {
 		t.Errorf("Insert data failed")
 	}
 
