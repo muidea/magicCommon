@@ -28,7 +28,7 @@ type sms struct {
 func (s *sms) PostIdentifyCode(receiver, identifyCode string) error {
 	result := &common_def.Result{}
 	url := fmt.Sprintf("%s/%s?receiver=%s&identifyCode=%s", s.baseURL, "IdentifyCode", receiver, identifyCode)
-	err := net.HTTPGet(s.httpClient, url, result)
+	_, err := net.HTTPGet(s.httpClient, url, result)
 	if err != nil {
 		log.Printf("get status failed, err:%s", err.Error())
 		return err
