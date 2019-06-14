@@ -5,6 +5,9 @@ import "github.com/muidea/magicCommon/model"
 // SessionID 会话ID
 const SessionID = "sessionID"
 
+// AuthAccount 鉴权Account
+const AuthAccount = "authAccount"
+
 // AuthToken 鉴权Token
 const AuthToken = "authToken"
 

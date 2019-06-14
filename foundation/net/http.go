@@ -73,6 +73,16 @@ func (l *maxBytesReader) Close() error {
 	return l.req.Close()
 }
 
+// GetHTTPRemoteAddress get http remote address
+func GetHTTPRemoteAddress(req *http.Request) (ret string) {
+	ret = req.Header.Get("x-forwarded-for")
+	if ret == "" {
+		ret = req.RemoteAddr
+	}
+
+	return
+}
+
 // GetHTTPRequestBody get http request body
 func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 	var reader io.Reader = req.Body
