@@ -13,11 +13,14 @@ import (
 // Registry 会话仓库
 type Registry interface {
 	GetSession(w http.ResponseWriter, r *http.Request) Session
-	UpdateSession(session Session) bool
-	FlushSession(session Session)
 }
 
-var sessionCookieID = "session_id"
+// CallBack session CallBack
+type CallBack interface {
+	OnTimeOut(session Session)
+}
+
+var sessionCookieID = "$session_id"
 
 func init() {
 	sessionCookieID = createUUID()
@@ -28,13 +31,14 @@ func createUUID() string {
 }
 
 type sessionRegistryImpl struct {
+	callBack    CallBack
 	commandChan commandChanImpl
 	sessionLock sync.RWMutex
 }
 
 // CreateRegistry 创建Session仓库
-func CreateRegistry() Registry {
-	impl := sessionRegistryImpl{}
+func CreateRegistry(callback CallBack) Registry {
+	impl := sessionRegistryImpl{callBack: callback}
 	impl.commandChan = make(commandChanImpl)
 	go impl.commandChan.run()
 	go impl.checkTimer()
@@ -56,10 +60,10 @@ func (sm *sessionRegistryImpl) GetSession(w http.ResponseWriter, r *http.Request
 		sessionID = urlSession
 	}
 
-	cur, found := sm.FindSession(sessionID)
+	cur, found := sm.findSession(sessionID)
 	if !found {
 		sessionID := createUUID()
-		userSession = sm.CreateSession(sessionID)
+		userSession = sm.createSession(sessionID)
 	} else {
 		userSession = cur
 	}
@@ -73,46 +77,26 @@ func (sm *sessionRegistryImpl) GetSession(w http.ResponseWriter, r *http.Request
 	return userSession
 }
 
-// CreateSession 新建Session
-func (sm *sessionRegistryImpl) CreateSession(sessionID string) Session {
-	session := sessionImpl{id: sessionID, context: make(map[string]interface{}), registry: sm, sessionLock: &sm.sessionLock}
+// createSession 新建Session
+func (sm *sessionRegistryImpl) createSession(sessionID string) Session {
+	session := &sessionImpl{id: sessionID, context: make(map[string]interface{}), registry: sm, callBack: sm.callBack}
 
 	session.refresh()
 
 	sm.commandChan.insert(session)
 
-	return &session
+	return session
 }
 
-func (sm *sessionRegistryImpl) FindSession(sessionID string) (Session, bool) {
+func (sm *sessionRegistryImpl) findSession(sessionID string) (Session, bool) {
 	session, found := sm.commandChan.find(sessionID)
-	return &session, found
+	return session, found
 }
 
 // UpdateSession 更新Session
-func (sm *sessionRegistryImpl) UpdateSession(session Session) bool {
-	cur, found := sm.commandChan.find(session.ID())
-	if !found {
-		return false
-	}
+func (sm *sessionRegistryImpl) updateSession(session *sessionImpl) bool {
 
-	values := make(map[string]interface{})
-	keys := session.OptionKey()
-	for _, key := range keys {
-		values[key], _ = session.GetOption(key)
-	}
-
-	func() {
-		cur.sessionLock.Lock()
-		defer cur.sessionLock.Unlock()
-		cur.context = values
-	}()
-
-	return sm.commandChan.update(cur)
-}
-
-func (sm *sessionRegistryImpl) FlushSession(session Session) {
-	sm.commandChan.flush(session.ID())
+	return sm.commandChan.update(session)
 }
 
 func (sm *sessionRegistryImpl) checkTimer() {
@@ -125,7 +109,7 @@ func (sm *sessionRegistryImpl) checkTimer() {
 	}
 }
 
-func (sm *sessionRegistryImpl) insert(session sessionImpl) {
+func (sm *sessionRegistryImpl) insert(session *sessionImpl) {
 	sm.commandChan.insert(session)
 }
 
@@ -133,7 +117,7 @@ func (sm *sessionRegistryImpl) delete(id string) {
 	sm.commandChan.remove(id)
 }
 
-func (sm *sessionRegistryImpl) find(id string) (sessionImpl, bool) {
+func (sm *sessionRegistryImpl) find(id string) (*sessionImpl, bool) {
 	return sm.commandChan.find(id)
 }
 
@@ -141,7 +125,7 @@ func (sm *sessionRegistryImpl) count() int {
 	return sm.commandChan.count()
 }
 
-func (sm *sessionRegistryImpl) update(session sessionImpl) bool {
+func (sm *sessionRegistryImpl) update(session *sessionImpl) bool {
 	return sm.commandChan.update(session)
 }
 
@@ -161,7 +145,6 @@ const (
 	find
 	checkTimeOut
 	length
-	flush
 	end
 )
 
@@ -172,7 +155,7 @@ type findResult struct {
 
 type commandChanImpl chan commandData
 
-func (right commandChanImpl) insert(session sessionImpl) {
+func (right commandChanImpl) insert(session *sessionImpl) {
 	right <- commandData{action: insert, value: session}
 }
 
@@ -180,7 +163,7 @@ func (right commandChanImpl) remove(id string) {
 	right <- commandData{action: remove, value: id}
 }
 
-func (right commandChanImpl) update(session sessionImpl) bool {
+func (right commandChanImpl) update(session *sessionImpl) bool {
 	reply := make(chan interface{})
 	right <- commandData{action: update, value: session, result: reply}
 
@@ -188,17 +171,17 @@ func (right commandChanImpl) update(session sessionImpl) bool {
 	return result
 }
 
-func (right commandChanImpl) find(id string) (sessionImpl, bool) {
+func (right commandChanImpl) find(id string) (*sessionImpl, bool) {
 	reply := make(chan interface{})
 	right <- commandData{action: find, value: id, result: reply}
 
-	result := (<-reply).(findResult)
+	result := (<-reply).(*findResult)
 
 	if result.found {
-		return result.value.(sessionImpl), result.found
+		return result.value.(*sessionImpl), result.found
 	}
 
-	return sessionImpl{}, false
+	return nil, false
 }
 
 func (right commandChanImpl) count() int {
@@ -209,45 +192,48 @@ func (right commandChanImpl) count() int {
 	return result
 }
 
-func (right commandChanImpl) flush(id string) {
-	reply := make(chan interface{})
-	right <- commandData{action: flush, value: id, result: reply}
-
-	<-reply
-}
-
 func (right commandChanImpl) run() {
-	sessionContextMap := make(map[string]interface{})
+	sessionContextMap := make(map[string]*sessionImpl)
 	for command := range right {
 		switch command.action {
 		case insert:
-			session := command.value.(sessionImpl)
-			sessionContextMap[session.id] = &session
+			session := command.value.(*sessionImpl)
+			_, curOK := sessionContextMap[session.id]
+			if curOK {
+				log.Fatalf("duplication session id:%s", session.id)
+			} else {
+				sessionContextMap[session.id] = &sessionImpl{id: session.id, context: session.context, registry: session.registry, callBack: session.callBack}
+			}
 		case remove:
 			id := command.value.(string)
 			delete(sessionContextMap, id)
 		case update:
-			session := command.value.(sessionImpl)
-			_, found := sessionContextMap[session.id]
-			if found {
-				sessionContextMap[session.id] = &session
+			session := command.value.(*sessionImpl)
+			curSesion, curOK := sessionContextMap[session.id]
+			if curOK {
+				curSesion.context = session.context
+			} else {
+				log.Printf("illegal session id:%s", session.id)
 			}
 
-			command.result <- found
+			command.result <- curOK
 		case find:
 			id := command.value.(string)
-			session := sessionImpl{}
+			var session sessionImpl
 			cur, found := sessionContextMap[id]
 			if found {
-				cur.(*sessionImpl).refresh()
-				session = *(cur.(*sessionImpl))
+				cur.refresh()
+				session = *cur
 			}
-			command.result <- findResult{session, found}
+			command.result <- &findResult{value: &session, found: found}
 		case checkTimeOut:
 			removeList := []string{}
 			for k, v := range sessionContextMap {
-				session := v.(*sessionImpl)
-				if session.timeOut() {
+				if v.timeOut() {
+					if v.callBack != nil {
+						go v.callBack.OnTimeOut(v)
+					}
+
 					removeList = append(removeList, k)
 				}
 			}
@@ -257,22 +243,21 @@ func (right commandChanImpl) run() {
 			}
 		case length:
 			command.result <- len(sessionContextMap)
-		case flush:
-			command.result <- true
 		case end:
 			close(right)
-			command.data <- sessionContextMap
 		}
 	}
 
 	log.Print("session manager sessionImpl exit")
 }
 
+/*
 func (right commandChanImpl) close() map[string]interface{} {
 	reply := make(chan map[string]interface{})
 	right <- commandData{action: end, data: reply}
 	return <-reply
 }
+*/
 
 func (right commandChanImpl) checkTimeOut() {
 	right <- commandData{action: checkTimeOut}

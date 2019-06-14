@@ -1,7 +1,6 @@
 package session
 
 import (
-	"sync"
 	"time"
 
 	common_const "github.com/muidea/magicCommon/common"
@@ -23,8 +22,6 @@ type Session interface {
 	RemoveOption(key string)
 
 	OptionKey() []string
-
-	Flush()
 }
 
 const (
@@ -34,9 +31,9 @@ const (
 type sessionImpl struct {
 	id       string // session id
 	context  map[string]interface{}
-	registry Registry
+	registry *sessionRegistryImpl
 
-	sessionLock *sync.RWMutex
+	callBack CallBack
 }
 
 func (s *sessionImpl) ID() string {
@@ -44,19 +41,11 @@ func (s *sessionImpl) ID() string {
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
-	func() {
-		s.sessionLock.Lock()
-		defer s.sessionLock.Unlock()
-
-		s.context[key] = value
-	}()
-
+	s.context[key] = value
 	s.save()
 }
 
 func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
-	s.sessionLock.RLock()
-	defer s.sessionLock.RUnlock()
 
 	value, found := s.context[key]
 
@@ -64,21 +53,13 @@ func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
 }
 
 func (s *sessionImpl) RemoveOption(key string) {
-	func() {
-		s.sessionLock.Lock()
-		defer s.sessionLock.Unlock()
-
-		delete(s.context, key)
-	}()
+	delete(s.context, key)
 
 	s.save()
 }
 
 func (s *sessionImpl) OptionKey() []string {
 	keys := []string{}
-
-	s.sessionLock.RLock()
-	defer s.sessionLock.RUnlock()
 
 	for key := range s.context {
 		keys = append(keys, key)
@@ -87,21 +68,12 @@ func (s *sessionImpl) OptionKey() []string {
 	return keys
 }
 
-func (s *sessionImpl) Flush() {
-	s.registry.FlushSession(s)
-}
-
 func (s *sessionImpl) refresh() {
-	s.sessionLock.Lock()
-	defer s.sessionLock.Unlock()
-
 	// 这里是在sessionRegistry里更新的，所以这里不用save
 	s.context["$$refreshTime"] = time.Now()
 }
 
 func (s *sessionImpl) timeOut() bool {
-	s.sessionLock.RLock()
-	defer s.sessionLock.RUnlock()
 
 	expiryDate, found := s.context[common_const.ExpiryDate]
 	if found && expiryDate.(int) == -1 {
@@ -120,5 +92,5 @@ func (s *sessionImpl) timeOut() bool {
 }
 
 func (s *sessionImpl) save() {
-	s.registry.UpdateSession(s)
+	s.registry.updateSession(s)
 }
