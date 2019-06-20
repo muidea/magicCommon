@@ -10,6 +10,7 @@ type KVCache interface {
 	Put(key string, data interface{}, maxAge float64) string
 	Fetch(key string) (interface{}, bool)
 	Remove(key string)
+	GetAll() []string
 	ClearAll()
 	Release()
 }
@@ -41,6 +42,10 @@ type fetchOutKVData struct {
 type fetchOutKVResult struct {
 	value interface{}
 	found bool
+}
+
+type getAllKVResult struct {
+	value []string
 }
 
 type removeKVData struct {
@@ -93,6 +98,19 @@ func (right *MemoryKVCache) Remove(key string) {
 	*right <- commandData{action: remove, value: removeKVData}
 }
 
+// GetAll 获取所有的数据
+func (right *MemoryKVCache) GetAll() (ret []string) {
+	reply := make(chan interface{})
+
+	*right <- commandData{action: getAll, value: nil, result: reply}
+
+	result := (<-reply).(*getAllKVResult)
+
+	ret = result.value
+
+	return
+}
+
 // ClearAll 清除所有数据
 func (right *MemoryKVCache) ClearAll() {
 
@@ -138,6 +156,13 @@ func (right *MemoryKVCache) run() {
 			key := command.value.(*removeKVData).key
 
 			delete(_cacheData, key)
+		case getAll:
+			result := &getAllKVResult{value: []string{}}
+			for k := range _cacheData {
+				result.value = append(result.value, k)
+			}
+
+			command.result <- result
 		case clearAll:
 			_cacheData = make(map[string]cacheKVData)
 
