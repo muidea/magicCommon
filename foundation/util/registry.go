@@ -275,7 +275,7 @@ func (s *registry) Filter(filter ObjectFilter, pageFilter *PageFilter) (*ObjectL
 func (s *registry) Remove(id string) {
 	reply := make(chan interface{})
 
-	item := &actionObj{action: sortObj, param: &removeParam{id: id}, reply: reply}
+	item := &actionObj{action: removeObj, param: &removeParam{id: id}, reply: reply}
 	s.actionChannel <- item
 
 	<-reply
