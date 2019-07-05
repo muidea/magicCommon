@@ -2,6 +2,7 @@ package util
 
 import (
 	"sort"
+	"sync"
 )
 
 // ObjectList object list
@@ -17,9 +18,19 @@ type ObjectRegistry interface {
 	Put(id string, object interface{})
 	Get(id string) interface{}
 	Sort(sorter ObjectSorter)
-	FetchList(pageFilter *PageFilter) (*ObjectList, int)
-	Filter(filter ObjectFilter, pageFilter *PageFilter) (*ObjectList, int)
+	FetchList(pageFilter *PageFilter) *ObjectList
+	Filter(filter ObjectFilter, pageFilter *PageFilter) *ObjectList
 	Remove(id string)
+}
+
+// CatalogObjectRegistry catalog object registry
+type CatalogObjectRegistry interface {
+	Put(id, catalog string, object interface{})
+	Get(id, catalog string) interface{}
+	Sort(catalog string, sorter ObjectSorter)
+	FetchList(catalog string, pageFilter *PageFilter) *ObjectList
+	Filter(catalog string, filter ObjectFilter, pageFilter *PageFilter) *ObjectList
+	Remove(id, catalog string)
 }
 
 // NewRegistry create new Registry
@@ -28,6 +39,90 @@ func NewRegistry() ObjectRegistry {
 	go impl.run()
 
 	return impl
+}
+
+// NewCatalogRegistry create new catalog registry
+func NewCatalogRegistry() CatalogObjectRegistry {
+	impl := &catalogRegistry{catalogRegistry: map[string]ObjectRegistry{}}
+	return impl
+}
+
+type catalogRegistry struct {
+	catalogRegistry map[string]ObjectRegistry
+	registryLock    sync.RWMutex
+}
+
+func (s *catalogRegistry) Put(id, catalog string, object interface{}) {
+	s.registryLock.Lock()
+	defer s.registryLock.Unlock()
+
+	registry, ok := s.catalogRegistry[catalog]
+	if !ok {
+		registry = NewRegistry()
+		s.catalogRegistry[catalog] = registry
+	}
+
+	registry.Put(id, object)
+}
+
+func (s *catalogRegistry) Get(id, catalog string) interface{} {
+	s.registryLock.RLock()
+	defer s.registryLock.RUnlock()
+
+	registry, ok := s.catalogRegistry[catalog]
+	if !ok {
+		return nil
+	}
+
+	return registry.Get(id)
+}
+
+func (s *catalogRegistry) Sort(catalog string, sorter ObjectSorter) {
+	s.registryLock.RLock()
+	defer s.registryLock.RUnlock()
+
+	registry, ok := s.catalogRegistry[catalog]
+	if !ok {
+		return
+	}
+
+	registry.Sort(sorter)
+}
+
+func (s *catalogRegistry) FetchList(catalog string, pageFilter *PageFilter) *ObjectList {
+	s.registryLock.RLock()
+	defer s.registryLock.RUnlock()
+
+	registry, ok := s.catalogRegistry[catalog]
+	if !ok {
+		return nil
+	}
+
+	return registry.FetchList(pageFilter)
+}
+
+func (s *catalogRegistry) Filter(catalog string, filter ObjectFilter, pageFilter *PageFilter) *ObjectList {
+	s.registryLock.RLock()
+	defer s.registryLock.RUnlock()
+
+	registry, ok := s.catalogRegistry[catalog]
+	if !ok {
+		return nil
+	}
+
+	return registry.Filter(filter, pageFilter)
+}
+
+func (s *catalogRegistry) Remove(id, catalog string) {
+	s.registryLock.RLock()
+	defer s.registryLock.RUnlock()
+
+	registry, ok := s.catalogRegistry[catalog]
+	if !ok {
+		return
+	}
+
+	registry.Remove(id)
 }
 
 const (
@@ -75,8 +170,7 @@ type fetchParam struct {
 
 type fetchResult struct {
 	result
-	objList   *ObjectList
-	totalSize int
+	objList *ObjectList
 }
 
 type filterParam struct {
@@ -86,8 +180,7 @@ type filterParam struct {
 
 type filterResult struct {
 	result
-	objList   *ObjectList
-	totalSize int
+	objList *ObjectList
 }
 
 type removeParam struct {
@@ -161,7 +254,6 @@ func (s *registry) run() {
 		case fetchObjList:
 			param := item.param.(*fetchParam)
 			result := &fetchResult{result: result{result: true}}
-			result.totalSize = len(objectItemList)
 
 			retList := ObjectList{}
 			if param.pageFilter == nil {
@@ -191,7 +283,6 @@ func (s *registry) run() {
 				}
 			}
 
-			result.totalSize = len(retList)
 			if param.pageFilter == nil {
 				result.objList = &retList
 			} else {
@@ -250,7 +341,7 @@ func (s *registry) Sort(sorter ObjectSorter) {
 	<-reply
 }
 
-func (s *registry) FetchList(pageFilter *PageFilter) (*ObjectList, int) {
+func (s *registry) FetchList(pageFilter *PageFilter) *ObjectList {
 	reply := make(chan interface{})
 
 	item := &actionObj{action: fetchObjList, param: &fetchParam{pageFilter: pageFilter}, reply: reply}
@@ -258,10 +349,10 @@ func (s *registry) FetchList(pageFilter *PageFilter) (*ObjectList, int) {
 
 	val := <-reply
 	result := val.(*fetchResult)
-	return result.objList, result.totalSize
+	return result.objList
 }
 
-func (s *registry) Filter(filter ObjectFilter, pageFilter *PageFilter) (*ObjectList, int) {
+func (s *registry) Filter(filter ObjectFilter, pageFilter *PageFilter) *ObjectList {
 	reply := make(chan interface{})
 
 	item := &actionObj{action: filterObj, param: &filterParam{filter: filter, pageFilter: pageFilter}, reply: reply}
@@ -269,7 +360,7 @@ func (s *registry) Filter(filter ObjectFilter, pageFilter *PageFilter) (*ObjectL
 
 	val := <-reply
 	result := val.(*filterResult)
-	return result.objList, result.totalSize
+	return result.objList
 }
 
 func (s *registry) Remove(id string) {
