@@ -5,6 +5,9 @@ import "github.com/muidea/magicCommon/model"
 // SessionID 会话ID
 const SessionID = "sessionID"
 
+// SessionScope 会话域，标识是否是共享会话
+const SessionScope = "sessionScope"
+
 // AuthAccount 鉴权Account
 const AuthAccount = "authAccount"
 
@@ -16,6 +19,11 @@ const IdentifyID = "identifyID"
 
 // ExpiryDate 会话有效期
 const ExpiryDate = "expiryDate"
+
+const (
+	// ShareSession share session flag value
+	ShareSession = "shareSession"
+)
 
 const (
 	// NEW 新建状态

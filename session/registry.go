@@ -62,7 +62,10 @@ func (sm *sessionRegistryImpl) GetSession(w http.ResponseWriter, r *http.Request
 
 	cur, found := sm.findSession(sessionID)
 	if !found {
-		sessionID := createUUID()
+		sessionScope := r.URL.Query().Get(common_const.SessionScope)
+		if sessionScope != common_const.ShareSession {
+			sessionID = createUUID()
+		}
 		userSession = sm.createSession(sessionID)
 	} else {
 		userSession = cur
