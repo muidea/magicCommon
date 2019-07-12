@@ -1,6 +1,11 @@
 package common
 
-import "github.com/muidea/magicCommon/model"
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/muidea/magicCommon/model"
+)
 
 // SessionID 会话ID
 const SessionID = "sessionID"
@@ -24,6 +29,36 @@ const (
 	// ShareSession share session flag value
 	ShareSession = "shareSession"
 )
+
+// SessionInfo session info
+type SessionInfo struct {
+	ID    string
+	Scope string
+}
+
+// Encode encode session info
+func (s *SessionInfo) Encode() (ret string) {
+	ret = ""
+	if s.ID != "" {
+		ret = fmt.Sprintf("%s=%s", SessionID, s.ID)
+	}
+
+	if s.Scope != "" {
+		if ret == "" {
+			ret = fmt.Sprintf("%s=%s", SessionScope, s.Scope)
+		} else {
+			ret = fmt.Sprintf("%s&%s=%s", ret, SessionScope, s.Scope)
+		}
+	}
+
+	return
+}
+
+// Decode decode session info
+func (s *SessionInfo) Decode(req *http.Request) {
+	s.ID = req.URL.Query().Get(SessionID)
+	s.Scope = req.URL.Query().Get(SessionScope)
+}
 
 const (
 	// NEW 新建状态
