@@ -33,6 +33,7 @@ const (
 // SessionInfo session info
 type SessionInfo struct {
 	ID    string
+	Token string
 	Scope string
 }
 
@@ -41,6 +42,14 @@ func (s *SessionInfo) Encode() (ret string) {
 	ret = ""
 	if s.ID != "" {
 		ret = fmt.Sprintf("%s=%s", SessionID, s.ID)
+	}
+
+	if s.Token != "" {
+		if ret == "" {
+			ret = fmt.Sprintf("%s=%s", AuthToken, s.Token)
+		} else {
+			ret = fmt.Sprintf("%s&%s=%s", ret, AuthToken, s.Token)
+		}
 	}
 
 	if s.Scope != "" {
