@@ -12,7 +12,7 @@ import (
 
 // Registry 会话仓库
 type Registry interface {
-	GetSession(w http.ResponseWriter, r *http.Request) Session
+	GetSession(res http.ResponseWriter, req *http.Request) Session
 }
 
 // CallBack session CallBack
@@ -47,23 +47,24 @@ func CreateRegistry(callback CallBack) Registry {
 }
 
 // GetSession 获取Session对象
-func (sm *sessionRegistryImpl) GetSession(w http.ResponseWriter, r *http.Request) Session {
+func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Request) Session {
 	var userSession Session
 
+	sessionInfo := &common_const.SessionInfo{}
+	sessionInfo.Decode(req)
+
 	sessionID := ""
-	cookie, err := r.Cookie(sessionCookieID)
+	cookie, err := req.Cookie(sessionCookieID)
 	if err == nil {
 		sessionID = cookie.Value
 	}
-	urlSession := r.URL.Query().Get(common_const.SessionID)
-	if len(urlSession) > 0 {
-		sessionID = urlSession
+	if len(sessionInfo.ID) > 0 {
+		sessionID = sessionInfo.ID
 	}
 
 	cur, found := sm.findSession(sessionID)
 	if !found {
-		sessionScope := r.URL.Query().Get(common_const.SessionScope)
-		if sessionScope != common_const.ShareSession {
+		if sessionInfo.Scope != common_const.ShareSession {
 			sessionID = createUUID()
 		}
 		userSession = sm.createSession(sessionID)
@@ -73,9 +74,9 @@ func (sm *sessionRegistryImpl) GetSession(w http.ResponseWriter, r *http.Request
 
 	// 存入cookie,使用cookie存储
 	sessionCookie := http.Cookie{Name: sessionCookieID, Value: userSession.ID(), Path: "/"}
-	http.SetCookie(w, &sessionCookie)
+	http.SetCookie(res, &sessionCookie)
 
-	r.AddCookie(&sessionCookie)
+	req.AddCookie(&sessionCookie)
 
 	return userSession
 }

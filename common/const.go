@@ -7,11 +7,14 @@ import (
 	"github.com/muidea/magicCommon/model"
 )
 
-// SessionID 会话ID
-const SessionID = "sessionID"
-
-// SessionScope 会话域，标识是否是共享会话
-const SessionScope = "sessionScope"
+const (
+	// sessionID 会话ID
+	sessionID = "sessionID"
+	// sessionToken 会话Token
+	sessionToken = "sessionToken"
+	// sessionScope 会话域，标识是否是共享会话
+	sessionScope = "sessionScope"
+)
 
 // AuthAccount 鉴权Account
 const AuthAccount = "authAccount"
@@ -40,23 +43,24 @@ type SessionInfo struct {
 // Encode encode session info
 func (s *SessionInfo) Encode() (ret string) {
 	ret = ""
+
 	if s.ID != "" {
-		ret = fmt.Sprintf("%s=%s", SessionID, s.ID)
+		ret = fmt.Sprintf("%s=%s", sessionID, s.ID)
 	}
 
 	if s.Token != "" {
 		if ret == "" {
-			ret = fmt.Sprintf("%s=%s", AuthToken, s.Token)
+			ret = fmt.Sprintf("%s=%s", sessionToken, s.Token)
 		} else {
-			ret = fmt.Sprintf("%s&%s=%s", ret, AuthToken, s.Token)
+			ret = fmt.Sprintf("%s&%s=%s", ret, sessionToken, s.Token)
 		}
 	}
 
 	if s.Scope != "" {
 		if ret == "" {
-			ret = fmt.Sprintf("%s=%s", SessionScope, s.Scope)
+			ret = fmt.Sprintf("%s=%s", sessionScope, s.Scope)
 		} else {
-			ret = fmt.Sprintf("%s&%s=%s", ret, SessionScope, s.Scope)
+			ret = fmt.Sprintf("%s&%s=%s", ret, sessionScope, s.Scope)
 		}
 	}
 
@@ -65,8 +69,9 @@ func (s *SessionInfo) Encode() (ret string) {
 
 // Decode decode session info
 func (s *SessionInfo) Decode(req *http.Request) {
-	s.ID = req.URL.Query().Get(SessionID)
-	s.Scope = req.URL.Query().Get(SessionScope)
+	s.ID = req.URL.Query().Get(sessionID)
+	s.Token = req.URL.Query().Get(sessionToken)
+	s.Scope = req.URL.Query().Get(sessionScope)
 }
 
 const (
