@@ -16,6 +16,9 @@ const (
 	sessionScope = "sessionScope"
 )
 
+// SessionIdentity session identity
+const SessionIdentity = "sessionIdentity"
+
 // AuthAccount 鉴权Account
 const AuthAccount = "authAccount"
 
