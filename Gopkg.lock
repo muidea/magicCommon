@@ -9,9 +9,20 @@
   revision = "a0583e0143b1624142adab07e0e97fe106d99561"
   version = "v1.3.0"
 
+[[projects]]
+  branch = "master"
+  digest = "1:ded4c0c05351b3c00be200f35aba0061e613f9ea8e7957986abe2c991d36e8c2"
+  name = "github.com/muidea/magicEngine"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6fbda0d95bae7b9f26c3638a99ad63f2305c8c39"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = ["github.com/go-sql-driver/mysql"]
+  input-imports = [
+    "github.com/go-sql-driver/mysql",
+    "github.com/muidea/magicEngine",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
