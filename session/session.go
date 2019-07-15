@@ -3,7 +3,7 @@ package session
 import (
 	"time"
 
-	common_const "github.com/muidea/magicCommon/common"
+	commonConst "github.com/muidea/magicCommon/common"
 )
 
 const (
@@ -75,7 +75,7 @@ func (s *sessionImpl) refresh() {
 
 func (s *sessionImpl) timeOut() bool {
 
-	expiryDate, found := s.context[common_const.ExpiryDate]
+	expiryDate, found := s.context[commonConst.ExpiryDate]
 	if found && expiryDate.(int) == -1 {
 		return false
 	}

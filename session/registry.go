@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	common_const "github.com/muidea/magicCommon/common"
+	commonConst "github.com/muidea/magicCommon/common"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -50,7 +50,7 @@ func CreateRegistry(callback CallBack) Registry {
 func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Request) Session {
 	var userSession Session
 
-	sessionInfo := &common_const.SessionInfo{}
+	sessionInfo := &commonConst.SessionInfo{}
 	sessionInfo.Decode(req)
 
 	sessionID := ""
@@ -64,7 +64,7 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 
 	cur, found := sm.findSession(sessionID)
 	if !found {
-		if sessionInfo.Scope != common_const.ShareSession {
+		if sessionInfo.Scope != commonConst.ShareSession {
 			sessionID = createUUID()
 		}
 		userSession = sm.createSession(sessionID)
