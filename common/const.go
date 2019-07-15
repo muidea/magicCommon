@@ -1,8 +1,8 @@
 package common
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/muidea/magicCommon/model"
 )
@@ -47,26 +47,39 @@ type SessionInfo struct {
 func (s *SessionInfo) Encode() (ret string) {
 	ret = ""
 
+	values := url.Values{}
+
 	if s.ID != "" {
-		ret = fmt.Sprintf("%s=%s", sessionID, s.ID)
+		values.Set(sessionID, s.ID)
 	}
 
 	if s.Token != "" {
-		if ret == "" {
-			ret = fmt.Sprintf("%s=%s", sessionToken, s.Token)
-		} else {
-			ret = fmt.Sprintf("%s&%s=%s", ret, sessionToken, s.Token)
-		}
+		values.Set(sessionToken, s.Token)
 	}
 
 	if s.Scope != "" {
-		if ret == "" {
-			ret = fmt.Sprintf("%s=%s", sessionScope, s.Scope)
-		} else {
-			ret = fmt.Sprintf("%s&%s=%s", ret, sessionScope, s.Scope)
-		}
+		values.Set(sessionScope, s.Scope)
 	}
 
+	ret = values.Encode()
+	return
+}
+
+// Merge merge values
+func (s *SessionInfo) Merge(values url.Values) (ret url.Values) {
+	if s.ID != "" {
+		values.Set(sessionID, s.ID)
+	}
+
+	if s.Token != "" {
+		values.Set(sessionToken, s.Token)
+	}
+
+	if s.Scope != "" {
+		values.Set(sessionScope, s.Scope)
+	}
+
+	ret = values
 	return
 }
 
