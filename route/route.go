@@ -63,5 +63,5 @@ func (s *rtItem) casHandler(res http.ResponseWriter, req *http.Request) {
 
 // CreateCasRoute create cas Route
 func CreateCasRoute(pattern, method string, sessionRegistry session.Registry, handler func(http.ResponseWriter, *http.Request)) engine.Route {
-	return &rtItem{pattern: pattern, method: method, handler: handler}
+	return &rtItem{pattern: pattern, method: method, sessionRegistry: sessionRegistry, handler: handler}
 }
