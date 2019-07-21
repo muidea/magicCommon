@@ -35,6 +35,13 @@ func TestJoinURL(t *testing.T) {
 	if ret != "/aa/bb/" {
 		t.Error("JoinURL unexpect, ret:" + ret)
 	}
+
+	pre = "http://127.9.9.1/aa/?a=b"
+	sub = "/bb/"
+	ret = JoinURL(pre, sub)
+	if ret != "http://127.9.9.1/aa/bb/?a=b" {
+		t.Error("JoinURL unexpect, ret:" + ret)
+	}
 }
 
 func TestParseRestAPIUrl(t *testing.T) {

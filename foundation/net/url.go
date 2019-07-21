@@ -1,14 +1,26 @@
 package net
 
-import "path"
+import (
+	"log"
+	"net/url"
+	"path"
+)
 
 // JoinURL 合并Url路径
 func JoinURL(prefix, subfix string) string {
-	if len(subfix) > 0 && subfix[len(subfix)-1] != '/' {
-		return path.Join(prefix, subfix)
+	preURL, preErr := url.Parse(prefix)
+	if preErr != nil {
+		log.Fatalf("illegal prefix,preErr:%s", preErr.Error())
 	}
 
-	return path.Join(prefix, subfix) + "/"
+	prefix = preURL.Path
+	if len(subfix) > 0 && subfix[len(subfix)-1] != '/' {
+		prefix = path.Join(prefix, subfix)
+	} else {
+		prefix = path.Join(prefix, subfix) + "/"
+	}
+	preURL.Path = prefix
+	return preURL.String()
 }
 
 // SplitRESTAPI 分割出RestAPI的路径和ID
