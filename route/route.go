@@ -51,7 +51,6 @@ func (s *rtItem) casHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.Header().Set("Content-Type", "application/json")
 	block, err := json.Marshal(result)
 	if err == nil {
 		res.Write(block)
