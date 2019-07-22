@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c486e8fca92599d5b510f5d717eda87f761b9fd52daecd8c2ac7087c75780df6"
+  digest = "1:42fd13d5224f622af7c8a747f6a1cdbfa1c8761552d4def83a0f79ce5cd55643"
   name = "github.com/muidea/magicEngine"
   packages = ["."]
   pruneopts = "UT"
-  revision = "60f0a9579c772cf5b9ccd83196077d81e0e2cb7c"
+  revision = "1486af3574c23a2fefc267dcaa6eed1b85935595"
 
 [solve-meta]
   analyzer-name = "dep"
