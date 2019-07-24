@@ -38,9 +38,9 @@ const (
 
 // SessionInfo session info
 type SessionInfo struct {
-	ID    string `json:"id"`
-	Token string `json:"token"`
-	Scope string `json:"scope"`
+	ID    string `json:"sessionID"`
+	Token string `json:"sessionToken"`
+	Scope string `json:"sessionScope"`
 }
 
 // Encode encode session info
