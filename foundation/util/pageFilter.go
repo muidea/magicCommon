@@ -37,9 +37,9 @@ func (s *PageFilter) Decode(request *http.Request) bool {
 	if err != nil {
 		numValue = defaultPageNum
 	}
-	s.PageNum = numValue - 1
+	s.PageNum = numValue
 	if s.PageNum <= 0 {
-		s.PageNum = 0
+		s.PageNum = 1
 	}
 
 	return true
