@@ -41,11 +41,19 @@ func (s *sessionImpl) ID() string {
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
-	s.context[key] = value
+	func() {
+		s.registry.sessionLock.Lock()
+		defer s.registry.sessionLock.Unlock()
+
+		s.context[key] = value
+	}()
+
 	s.save()
 }
 
 func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
 
 	value, found := s.context[key]
 
@@ -53,13 +61,21 @@ func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
 }
 
 func (s *sessionImpl) RemoveOption(key string) {
-	delete(s.context, key)
+	func() {
+		s.registry.sessionLock.Lock()
+		defer s.registry.sessionLock.Unlock()
+
+		delete(s.context, key)
+	}()
 
 	s.save()
 }
 
 func (s *sessionImpl) OptionKey() []string {
 	keys := []string{}
+
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
 
 	for key := range s.context {
 		keys = append(keys, key)
@@ -69,11 +85,16 @@ func (s *sessionImpl) OptionKey() []string {
 }
 
 func (s *sessionImpl) refresh() {
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
+
 	// 这里是在sessionRegistry里更新的，所以这里不用save
 	s.context["$$refreshTime"] = time.Now()
 }
 
 func (s *sessionImpl) timeOut() bool {
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
 
 	expiryDate, found := s.context[commonConst.ExpiryDate]
 	if found && expiryDate.(int) == -1 {
