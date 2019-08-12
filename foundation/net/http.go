@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/muidea/magicCommon/foundation/util"
 )
@@ -79,6 +80,8 @@ func GetHTTPRemoteAddress(req *http.Request) (ret string) {
 	if ret == "" {
 		ret = req.RemoteAddr
 	}
+
+	ret = strings.Split(ret, ", ")[0]
 
 	return
 }
