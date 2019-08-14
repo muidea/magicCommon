@@ -3,14 +3,21 @@ package def
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
 // Filter 过滤器
 type Filter struct {
+	items         []string
 	PageFilter    *util.PageFilter
 	ContentFilter *ContentFilter
+}
+
+// NewFilter new filter
+func NewFilter(items []string) *Filter {
+	return &Filter{items: items}
 }
 
 // Decode 内容过滤器
@@ -21,7 +28,7 @@ func (s *Filter) Decode(request *http.Request) bool {
 	}
 
 	contentFilter := &ContentFilter{}
-	if contentFilter.Decode(request) {
+	if contentFilter.Decode(request, s.items) {
 		s.ContentFilter = contentFilter
 	}
 
@@ -47,20 +54,30 @@ func (s *Filter) Encode() string {
 
 // ContentFilter contentFilter
 type ContentFilter struct {
-	FilterValue string
+	Items map[string]string
 }
 
 // Decode 解析内容过滤值
-func (s *ContentFilter) Decode(request *http.Request) bool {
-	s.FilterValue = request.URL.Query().Get("filterValue")
-	return s.FilterValue != ""
+func (s *ContentFilter) Decode(request *http.Request, items []string) bool {
+	s.Items = map[string]string{}
+	for _, k := range items {
+		val := request.URL.Query().Get(k)
+		if val != "" {
+			s.Items[k] = val
+		}
+	}
+
+	return true
 }
 
 // Encode ContentFilter
 func (s *ContentFilter) Encode() string {
-	if s.FilterValue == "" {
-		return ""
+	val := url.Values{}
+	for k, v := range s.Items {
+		if v != "" {
+			val.Set(k, v)
+		}
 	}
 
-	return fmt.Sprintf("filterValue=%s", s.FilterValue)
+	return val.Encode()
 }
