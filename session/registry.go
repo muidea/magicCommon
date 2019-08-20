@@ -62,8 +62,8 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 		sessionID = sessionInfo.ID
 	}
 
-	cur, found := sm.findSession(sessionID)
-	if !found {
+	cur := sm.findSession(sessionID)
+	if cur == nil {
 		if sessionInfo.Scope != commonConst.ShareSession {
 			sessionID = createUUID()
 		}
@@ -83,18 +83,22 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 
 // createSession 新建Session
 func (sm *sessionRegistryImpl) createSession(sessionID string) Session {
-	session := &sessionImpl{id: sessionID, context: make(map[string]interface{}), registry: sm, callBack: sm.callBack}
+	sessionPtr := &sessionImpl{id: sessionID, context: make(map[string]interface{}), registry: sm, callBack: sm.callBack}
 
-	session.refresh()
+	sessionPtr.refresh()
 
-	sm.commandChan.insert(session)
+	sessionPtr = sm.commandChan.insert(sessionPtr)
 
-	return session
+	return sessionPtr
 }
 
-func (sm *sessionRegistryImpl) findSession(sessionID string) (Session, bool) {
-	session, found := sm.commandChan.find(sessionID)
-	return session, found
+func (sm *sessionRegistryImpl) findSession(sessionID string) Session {
+	sessionPtr := sm.commandChan.find(sessionID)
+	if sessionPtr != nil {
+		return sessionPtr
+	}
+
+	return nil
 }
 
 // UpdateSession 更新Session
@@ -113,15 +117,15 @@ func (sm *sessionRegistryImpl) checkTimer() {
 	}
 }
 
-func (sm *sessionRegistryImpl) insert(session *sessionImpl) {
-	sm.commandChan.insert(session)
+func (sm *sessionRegistryImpl) insert(session *sessionImpl) *sessionImpl {
+	return sm.commandChan.insert(session)
 }
 
 func (sm *sessionRegistryImpl) delete(id string) {
 	sm.commandChan.remove(id)
 }
 
-func (sm *sessionRegistryImpl) find(id string) (*sessionImpl, bool) {
+func (sm *sessionRegistryImpl) find(id string) *sessionImpl {
 	return sm.commandChan.find(id)
 }
 
@@ -152,15 +156,15 @@ const (
 	end
 )
 
-type findResult struct {
-	value interface{}
-	found bool
-}
-
 type commandChanImpl chan commandData
 
-func (right commandChanImpl) insert(session *sessionImpl) {
-	right <- commandData{action: insert, value: session}
+func (right commandChanImpl) insert(session *sessionImpl) *sessionImpl {
+	reply := make(chan interface{})
+	right <- commandData{action: insert, value: session, result: reply}
+
+	result := (<-reply).(*sessionImpl)
+
+	return result
 }
 
 func (right commandChanImpl) remove(id string) {
@@ -175,17 +179,12 @@ func (right commandChanImpl) update(session *sessionImpl) bool {
 	return result
 }
 
-func (right commandChanImpl) find(id string) (*sessionImpl, bool) {
+func (right commandChanImpl) find(id string) *sessionImpl {
 	reply := make(chan interface{})
 	right <- commandData{action: find, value: id, result: reply}
 
-	result := (<-reply).(*findResult)
-
-	if result.found {
-		return result.value.(*sessionImpl), result.found
-	}
-
-	return nil, false
+	result := (<-reply).(*sessionImpl)
+	return result
 }
 
 func (right commandChanImpl) count() int {
@@ -202,12 +201,13 @@ func (right commandChanImpl) run() {
 		switch command.action {
 		case insert:
 			session := command.value.(*sessionImpl)
-			_, curOK := sessionContextMap[session.id]
-			if curOK {
-				log.Fatalf("duplication session id:%s", session.id)
-			} else {
-				sessionContextMap[session.id] = &sessionImpl{id: session.id, context: session.context, registry: session.registry, callBack: session.callBack}
+			curSession, curOK := sessionContextMap[session.id]
+			if !curOK {
+				curSession = &sessionImpl{id: session.id, context: session.context, registry: session.registry, callBack: session.callBack}
+				sessionContextMap[session.id] = curSession
 			}
+
+			command.result <- curSession
 		case remove:
 			id := command.value.(string)
 			delete(sessionContextMap, id)
@@ -228,8 +228,10 @@ func (right commandChanImpl) run() {
 			if found {
 				cur.refresh()
 				session = *cur
+				command.result <- &session
+			} else {
+				command.result <- nil
 			}
-			command.result <- &findResult{value: &session, found: found}
 		case checkTimeOut:
 			removeList := []string{}
 			for k, v := range sessionContextMap {
