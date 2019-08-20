@@ -183,8 +183,11 @@ func (right commandChanImpl) find(id string) *sessionImpl {
 	reply := make(chan interface{})
 	right <- commandData{action: find, value: id, result: reply}
 
-	result := (<-reply).(*sessionImpl)
-	return result
+	result := (<-reply)
+	if result == nil {
+		return nil
+	}
+	return result.(*sessionImpl)
 }
 
 func (right commandChanImpl) count() int {
