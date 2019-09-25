@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 )
 
@@ -48,4 +49,12 @@ func (s *PageFilter) Decode(request *http.Request) bool {
 // Encode compile
 func (s *PageFilter) Encode() string {
 	return fmt.Sprintf("pageSize=%d&pageNum=%d", s.PageSize, s.PageNum)
+}
+
+// Merge merge url.Values
+func (s *PageFilter) Merge(vals url.Values) url.Values {
+	vals.Set("pageSize", fmt.Sprintf("%d", s.PageSize))
+	vals.Set("pageNum", fmt.Sprintf("%d", s.PageNum))
+
+	return vals
 }
