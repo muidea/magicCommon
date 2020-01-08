@@ -38,11 +38,11 @@ func (s *rtItem) casHandler(res http.ResponseWriter, req *http.Request) {
 	sessionInfoVal, ok := session.GetOption(common.SessionIdentity)
 	if !ok {
 		result.ErrorCode = def.InvalidAuthority
-		result.Reason = "当前会话无权限"
+		result.Reason = "非法会话，请先登录"
 	} else {
 		if sessionInfoVal.(*common.SessionInfo).Token != sessionInfo.Token {
 			result.ErrorCode = def.InvalidAuthority
-			result.Reason = "当前会话无权限"
+			result.Reason = "非法会话，无效权限"
 		}
 	}
 
