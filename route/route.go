@@ -7,7 +7,6 @@ import (
 	"github.com/muidea/magicCommon/common"
 	"github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/session"
-	engine "github.com/muidea/magicEngine"
 )
 
 type rtItem struct {
@@ -60,7 +59,9 @@ func (s *rtItem) casHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusInternalServerError)
 }
 
+/*
 // CreateCasRoute create cas Route
 func CreateCasRoute(pattern, method string, sessionRegistry session.Registry, handler func(http.ResponseWriter, *http.Request)) engine.Route {
 	return &rtItem{pattern: pattern, method: method, sessionRegistry: sessionRegistry, handler: handler}
 }
+*/
