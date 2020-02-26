@@ -1,6 +1,7 @@
 package session
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -59,9 +60,12 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 		cookieInfo := &commonConst.SessionInfo{}
 		cookie, err := req.Cookie(sessionCookieID)
 		if err == nil {
-			err = json.Unmarshal([]byte(cookie.Value), cookieInfo)
-			if err == nil {
-				sessionInfo = cookieInfo
+			valData, valErr := base64.StdEncoding.DecodeString(cookie.Value)
+			if valErr == nil {
+				err = json.Unmarshal(valData, cookieInfo)
+				if err == nil {
+					sessionInfo = cookieInfo
+				}
 			}
 		}
 	}
@@ -83,7 +87,7 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 	// 存入cookie,使用cookie存储
 	dataValue, dataErr := json.Marshal(sessionInfo)
 	if dataErr == nil {
-		sessionCookie := http.Cookie{Name: sessionCookieID, Value: string(dataValue)}
+		sessionCookie := http.Cookie{Name: sessionCookieID, Value: base64.StdEncoding.EncodeToString(dataValue), Path: "/"}
 		http.SetCookie(res, &sessionCookie)
 
 		req.AddCookie(&sessionCookie)
