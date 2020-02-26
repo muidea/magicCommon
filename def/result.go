@@ -13,6 +13,8 @@ const (
 	NoExist
 	// Redirect 对象转移
 	Redirect
+	// UnExpected 意外错误
+	UnExpected
 )
 
 // Result 处理结果
