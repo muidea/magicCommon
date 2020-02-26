@@ -1,6 +1,7 @@
 package session
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -20,7 +21,7 @@ type CallBack interface {
 	OnTimeOut(session Session)
 }
 
-var sessionCookieID = "$session_id"
+var sessionCookieID = "$session_info"
 
 func init() {
 	sessionCookieID = createUUID()
@@ -54,14 +55,18 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 	sessionInfo.Decode(req)
 
 	sessionID := ""
-	cookie, err := req.Cookie(sessionCookieID)
-	if err == nil {
-		sessionID = cookie.Value
-	}
-	if len(sessionInfo.ID) > 0 {
-		sessionID = sessionInfo.ID
+	if len(sessionInfo.ID) == 0 {
+		cookieInfo := &commonConst.SessionInfo{}
+		cookie, err := req.Cookie(sessionCookieID)
+		if err == nil {
+			err = json.Unmarshal([]byte(cookie.Value), cookieInfo)
+			if err == nil {
+				sessionInfo = cookieInfo
+			}
+		}
 	}
 
+	sessionID = sessionInfo.ID
 	cur := sm.findSession(sessionID)
 	if cur == nil {
 		if sessionInfo.Scope != commonConst.ShareSession {
@@ -76,10 +81,13 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 	userSession.SetSessionInfo(sessionInfo)
 
 	// 存入cookie,使用cookie存储
-	sessionCookie := http.Cookie{Name: sessionCookieID, Value: userSession.ID(), Path: "/"}
-	http.SetCookie(res, &sessionCookie)
+	dataValue, dataErr := json.Marshal(sessionInfo)
+	if dataErr == nil {
+		sessionCookie := http.Cookie{Name: sessionCookieID, Value: string(dataValue)}
+		http.SetCookie(res, &sessionCookie)
 
-	req.AddCookie(&sessionCookie)
+		req.AddCookie(&sessionCookie)
+	}
 
 	return userSession
 }
