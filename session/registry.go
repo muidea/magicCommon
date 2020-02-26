@@ -72,6 +72,9 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 		userSession = cur
 	}
 
+	sessionInfo.ID = sessionID
+	userSession.SetOption(commonConst.SessionIdentity, sessionInfo)
+
 	// 存入cookie,使用cookie存储
 	sessionCookie := http.Cookie{Name: sessionCookieID, Value: userSession.ID(), Path: "/"}
 	http.SetCookie(res, &sessionCookie)
