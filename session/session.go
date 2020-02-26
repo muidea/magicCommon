@@ -6,17 +6,12 @@ import (
 	commonConst "github.com/muidea/magicCommon/common"
 )
 
-const (
-	// AccountKey account key
-	AccountKey = "$account_key$"
-	// TokenKey session token key
-	TokenKey = "$session_token$"
-)
-
 // Session 会话
 type Session interface {
 	ID() string
 
+	GetSessionInfo() *commonConst.SessionInfo
+	SetSessionInfo(info *commonConst.SessionInfo)
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
@@ -38,6 +33,30 @@ type sessionImpl struct {
 
 func (s *sessionImpl) ID() string {
 	return s.id
+}
+
+func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {
+	val, ok := s.GetOption(commonConst.SessionIdentity)
+	if !ok {
+		return
+	}
+
+	ret, ok = val.(*commonConst.SessionInfo)
+	if !ok {
+		s.RemoveOption(commonConst.SessionIdentity)
+		ret = nil
+		return
+	}
+
+	return
+}
+
+func (s *sessionImpl) SetSessionInfo(info *commonConst.SessionInfo) {
+	if info == nil {
+		return
+	}
+
+	s.SetOption(commonConst.SessionIdentity, info)
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
