@@ -20,6 +20,9 @@ const SessionIdentity = "sessionIdentity"
 // AuthAccount 鉴权Account
 const AuthAccount = "authAccount"
 
+// AuthPrivateGroup Account 权限组
+const AuthPrivateGroup = "authPrivateGroup"
+
 // AuthToken 鉴权Token
 const AuthToken = "authToken"
 
