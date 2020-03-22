@@ -38,13 +38,14 @@ func (s *sessionImpl) ID() string {
 func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {
 	val, ok := s.GetOption(commonConst.SessionIdentity)
 	if !ok {
+		ret = &commonConst.SessionInfo{}
 		return
 	}
 
 	ret, ok = val.(*commonConst.SessionInfo)
 	if !ok {
 		s.RemoveOption(commonConst.SessionIdentity)
-		ret = nil
+		ret = &commonConst.SessionInfo{}
 		return
 	}
 
