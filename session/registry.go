@@ -81,6 +81,12 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 		userSession = cur
 	}
 
+	preSessionInfo := userSession.GetSessionInfo()
+	if sessionInfo.Token != preSessionInfo.Token {
+		sessionInfo.Token = ""
+		sessionInfo.Scope = ""
+	}
+
 	sessionInfo.ID = sessionID
 	userSession.SetSessionInfo(sessionInfo)
 
