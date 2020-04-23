@@ -13,6 +13,7 @@ import (
 type Session interface {
 	ID() string
 
+	GetRequestInfo() *commonConst.SessionInfo
 	GetSessionInfo() *commonConst.SessionInfo
 	SetSessionInfo(info *commonConst.SessionInfo)
 	GetOption(key string) (interface{}, bool)
@@ -39,6 +40,10 @@ type sessionImpl struct {
 
 func (s *sessionImpl) ID() string {
 	return s.id
+}
+
+func (s *sessionImpl) GetRequestInfo() *commonConst.SessionInfo {
+	return getRequestInfo(s.bindReq)
 }
 
 func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {

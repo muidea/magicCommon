@@ -90,3 +90,8 @@ func (s *SessionInfo) Decode(req *http.Request) {
 	s.Token = req.URL.Query().Get(sessionToken)
 	s.Scope = req.URL.Query().Get(sessionScope)
 }
+
+// Same compare SessionInfo
+func (s *SessionInfo) Same(right *SessionInfo) bool {
+	return s.ID == right.ID && s.Token == right.Token && s.Scope == right.Scope
+}

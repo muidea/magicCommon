@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/muidea/magicCommon/common"
 	commonConst "github.com/muidea/magicCommon/common"
 	"github.com/muidea/magicCommon/foundation/util"
 )
@@ -32,6 +33,28 @@ func createUUID() string {
 	return util.RandomAlphanumeric(32)
 }
 
+func getRequestInfo(req *http.Request) *common.SessionInfo {
+	sessionInfo := &commonConst.SessionInfo{}
+	if req != nil {
+		sessionInfo.Decode(req)
+		if sessionInfo.ID == "" || sessionInfo.Token == "" {
+			cookieInfo := &commonConst.SessionInfo{}
+			cookie, err := req.Cookie(sessionCookieID)
+			if err == nil {
+				valData, valErr := base64.StdEncoding.DecodeString(cookie.Value)
+				if valErr == nil {
+					err = json.Unmarshal(valData, cookieInfo)
+					if err == nil {
+						sessionInfo = cookieInfo
+					}
+				}
+			}
+		}
+	}
+
+	return sessionInfo
+}
+
 type sessionRegistryImpl struct {
 	callBack    CallBack
 	commandChan commandChanImpl
@@ -51,44 +74,20 @@ func CreateRegistry(callback CallBack) Registry {
 // GetSession 获取Session对象
 func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Request) Session {
 	var userSession *sessionImpl
+	sessionInfo := getRequestInfo(req)
 
-	sessionInfo := &commonConst.SessionInfo{}
-	sessionInfo.Decode(req)
-
-	sessionID := ""
-	if sessionInfo.ID == "" || sessionInfo.Token == "" {
-		cookieInfo := &commonConst.SessionInfo{}
-		cookie, err := req.Cookie(sessionCookieID)
-		if err == nil {
-			valData, valErr := base64.StdEncoding.DecodeString(cookie.Value)
-			if valErr == nil {
-				err = json.Unmarshal(valData, cookieInfo)
-				if err == nil {
-					sessionInfo = cookieInfo
-				}
-			}
-		}
-	}
-
-	sessionID = sessionInfo.ID
+	sessionID := sessionInfo.ID
 	cur := sm.findSession(sessionID)
 	if cur == nil {
 		if sessionInfo.Scope != commonConst.ShareSession {
 			sessionID = createUUID()
 		}
 		userSession = sm.createSession(sessionID)
+		sessionInfo.ID = userSession.ID()
+		sessionInfo.Token = ""
 	} else {
 		userSession = cur
 	}
-
-	preSessionInfo := userSession.GetSessionInfo()
-	if sessionInfo.Token != preSessionInfo.Token {
-		sessionInfo.Token = ""
-		sessionInfo.Scope = ""
-	}
-
-	sessionInfo.ID = sessionID
-	userSession.SetSessionInfo(sessionInfo)
 
 	userSession.bindReq = req
 	userSession.bindRes = res
