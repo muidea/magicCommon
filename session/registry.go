@@ -50,13 +50,13 @@ func CreateRegistry(callback CallBack) Registry {
 
 // GetSession 获取Session对象
 func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Request) Session {
-	var userSession Session
+	var userSession *sessionImpl
 
 	sessionInfo := &commonConst.SessionInfo{}
 	sessionInfo.Decode(req)
 
 	sessionID := ""
-	if len(sessionInfo.ID) == 0 {
+	if sessionInfo.ID == "" || sessionInfo.Token == "" {
 		cookieInfo := &commonConst.SessionInfo{}
 		cookie, err := req.Cookie(sessionCookieID)
 		if err == nil {
@@ -84,20 +84,14 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 	sessionInfo.ID = sessionID
 	userSession.SetSessionInfo(sessionInfo)
 
-	// 存入cookie,使用cookie存储
-	dataValue, dataErr := json.Marshal(sessionInfo)
-	if dataErr == nil {
-		sessionCookie := http.Cookie{Name: sessionCookieID, Value: base64.StdEncoding.EncodeToString(dataValue), Path: "/"}
-		http.SetCookie(res, &sessionCookie)
-
-		req.AddCookie(&sessionCookie)
-	}
+	userSession.bindReq = req
+	userSession.bindRes = res
 
 	return userSession
 }
 
 // createSession 新建Session
-func (sm *sessionRegistryImpl) createSession(sessionID string) Session {
+func (sm *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
 	sessionPtr := &sessionImpl{id: sessionID, context: make(map[string]interface{}), registry: sm, callBack: sm.callBack}
 
 	sessionPtr.refresh()
@@ -107,7 +101,7 @@ func (sm *sessionRegistryImpl) createSession(sessionID string) Session {
 	return sessionPtr
 }
 
-func (sm *sessionRegistryImpl) findSession(sessionID string) Session {
+func (sm *sessionRegistryImpl) findSession(sessionID string) *sessionImpl {
 	sessionPtr := sm.commandChan.find(sessionID)
 	if sessionPtr != nil {
 		return sessionPtr

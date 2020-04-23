@@ -1,6 +1,9 @@
 package session
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
 	"time"
 
 	commonConst "github.com/muidea/magicCommon/common"
@@ -27,6 +30,9 @@ type sessionImpl struct {
 	id       string // session id
 	context  map[string]interface{}
 	registry *sessionRegistryImpl
+
+	bindReq *http.Request
+	bindRes http.ResponseWriter
 
 	callBack CallBack
 }
@@ -58,6 +64,23 @@ func (s *sessionImpl) SetSessionInfo(info *commonConst.SessionInfo) {
 	}
 
 	s.SetOption(commonConst.SessionIdentity, info)
+
+	if s.bindReq != nil {
+		// 存入cookie,使用cookie存储
+		dataValue, dataErr := json.Marshal(info)
+		if dataErr == nil {
+			sessionCookie := http.Cookie{
+				Name:   sessionCookieID,
+				Value:  base64.StdEncoding.EncodeToString(dataValue),
+				Path:   "/",
+				MaxAge: 600,
+			}
+
+			http.SetCookie(s.bindRes, &sessionCookie)
+
+			s.bindReq.AddCookie(&sessionCookie)
+		}
+	}
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
