@@ -93,6 +93,8 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 		userSession = cur
 	}
 
+	userSession.SetSessionInfo(sessionInfo)
+
 	userSession.bindReq = req
 	userSession.bindRes = res
 
