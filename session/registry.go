@@ -77,6 +77,10 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 	sessionInfo := getRequestInfo(req)
 
 	sessionID := sessionInfo.ID
+	if sessionID == "" {
+		sessionID = createUUID()
+	}
+
 	cur := sm.findSession(sessionID)
 	if cur == nil {
 		if sessionInfo.Scope != commonConst.ShareSession {
