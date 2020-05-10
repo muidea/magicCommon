@@ -44,30 +44,8 @@ type SessionInfo struct {
 	Scope string `json:"sessionScope"`
 }
 
-// Encode encode session info
-func (s *SessionInfo) Encode() (ret string) {
-	ret = ""
-
-	values := url.Values{}
-
-	if s.ID != "" {
-		values.Set(sessionID, s.ID)
-	}
-
-	if s.Token != "" {
-		values.Set(sessionToken, s.Token)
-	}
-
-	if s.Scope != "" {
-		values.Set(sessionScope, s.Scope)
-	}
-
-	ret = values.Encode()
-	return
-}
-
-// Merge merge values
-func (s *SessionInfo) Merge(values url.Values) (ret url.Values) {
+// Encode encode values
+func (s *SessionInfo) Encode(values url.Values) (ret url.Values) {
 	if s.ID != "" {
 		values.Set(sessionID, s.ID)
 	}
@@ -94,4 +72,10 @@ func (s *SessionInfo) Decode(req *http.Request) {
 // Same compare SessionInfo
 func (s *SessionInfo) Same(right *SessionInfo) bool {
 	return s.ID == right.ID && s.Token == right.Token && s.Scope == right.Scope
+}
+
+// ContextInfo context info
+type ContextInfo interface {
+	Decode(req *http.Request)
+	Encode(vals url.Values) url.Values
 }

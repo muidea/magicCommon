@@ -46,13 +46,8 @@ func (s *PageFilter) Decode(request *http.Request) bool {
 	return true
 }
 
-// Encode compile
-func (s *PageFilter) Encode() string {
-	return fmt.Sprintf("pageSize=%d&pageNum=%d", s.PageSize, s.PageNum)
-}
-
-// Merge merge url.Values
-func (s *PageFilter) Merge(vals url.Values) url.Values {
+// Encode encode url.Values
+func (s *PageFilter) Encode(vals url.Values) url.Values {
 	vals.Set("pageSize", fmt.Sprintf("%d", s.PageSize))
 	vals.Set("pageNum", fmt.Sprintf("%d", s.PageNum))
 

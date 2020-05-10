@@ -1,7 +1,6 @@
 package def
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -36,20 +35,15 @@ func (s *Filter) Decode(request *http.Request) bool {
 }
 
 // Encode encode filter
-func (s *Filter) Encode() string {
-	retVal := ""
+func (s *Filter) Encode(vals url.Values) url.Values {
 	if s.PageFilter != nil {
-		retVal = fmt.Sprintf("%s", s.PageFilter.Encode())
+		vals = s.PageFilter.Encode(vals)
 	}
 	if s.ContentFilter != nil {
-		if retVal == "" {
-			retVal = fmt.Sprintf("%s", s.ContentFilter.Encode())
-		} else {
-			retVal = fmt.Sprintf("%s&%s", retVal, s.ContentFilter.Encode())
-		}
+		vals = s.ContentFilter.Encode(vals)
 	}
 
-	return retVal
+	return vals
 }
 
 // ContentFilter contentFilter
@@ -71,13 +65,12 @@ func (s *ContentFilter) Decode(request *http.Request, items []string) bool {
 }
 
 // Encode ContentFilter
-func (s *ContentFilter) Encode() string {
-	val := url.Values{}
+func (s *ContentFilter) Encode(vals url.Values) url.Values {
 	for k, v := range s.Items {
 		if v != "" {
-			val.Set(k, v)
+			vals.Set(k, v)
 		}
 	}
 
-	return val.Encode()
+	return vals
 }

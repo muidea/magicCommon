@@ -13,6 +13,7 @@ import (
 type Session interface {
 	ID() string
 
+	GetContextInfo(ctx commonConst.ContextInfo)
 	GetRequestInfo() *commonConst.SessionInfo
 	GetSessionInfo() *commonConst.SessionInfo
 	SetSessionInfo(info *commonConst.SessionInfo)
@@ -40,6 +41,12 @@ type sessionImpl struct {
 
 func (s *sessionImpl) ID() string {
 	return s.id
+}
+
+func (s *sessionImpl) GetContextInfo(ctx commonConst.ContextInfo) {
+	if s.bindReq != nil && ctx != nil {
+		ctx.Decode(s.bindReq)
+	}
 }
 
 func (s *sessionImpl) GetRequestInfo() *commonConst.SessionInfo {
