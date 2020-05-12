@@ -79,3 +79,31 @@ type ContextInfo interface {
 	Decode(req *http.Request)
 	Encode(vals url.Values) url.Values
 }
+
+// SessionContext session context
+type SessionContext SessionInfo
+
+// Decode session context
+func (s *SessionContext) Decode(req *http.Request) {
+	s.ID = req.Header.Get(sessionID)
+	s.Token = req.Header.Get(sessionToken)
+	s.Scope = req.Header.Get(sessionScope)
+}
+
+// Encode session context
+func (s *SessionContext) Encode(values url.Values) (ret url.Values) {
+	if s.ID != "" {
+		values.Set(sessionID, s.ID)
+	}
+
+	if s.Token != "" {
+		values.Set(sessionToken, s.Token)
+	}
+
+	if s.Scope != "" {
+		values.Set(sessionScope, s.Scope)
+	}
+
+	ret = values
+	return
+}
