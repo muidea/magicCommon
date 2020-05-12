@@ -11,6 +11,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -143,8 +144,21 @@ func ParseJSONBody(req *http.Request, param interface{}) error {
 }
 
 // HTTPGet http get request
-func HTTPGet(httpClient *http.Client, url string, result interface{}) (ret []byte, err error) {
-	response, responseErr := httpClient.Get(url)
+func HTTPGet(httpClient *http.Client, url string, result interface{}, ctx ...url.Values) (ret []byte, err error) {
+	request, requestErr := http.NewRequest("GET", url, nil)
+	if requestErr != nil {
+		err = requestErr
+		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		return
+	}
+
+	for _, val := range ctx {
+		for k, v := range val {
+			request.Header.Set(k, v[0])
+		}
+	}
+
+	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
 		log.Printf("get request failed, err:%s", err.Error())
@@ -176,7 +190,7 @@ func HTTPGet(httpClient *http.Client, url string, result interface{}) (ret []byt
 }
 
 // HTTPPost http post request
-func HTTPPost(httpClient *http.Client, url string, param interface{}, result interface{}) (ret []byte, err error) {
+func HTTPPost(httpClient *http.Client, url string, param interface{}, result interface{}, ctx ...url.Values) (ret []byte, err error) {
 	var bufferReader *bytes.Buffer
 	if param != nil {
 		data, dataErr := json.Marshal(param)
@@ -197,6 +211,12 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 	}
 
 	request.Header.Set("content-type", "application/json")
+	for _, val := range ctx {
+		for k, v := range val {
+			request.Header.Set(k, v[0])
+		}
+	}
+
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
@@ -229,7 +249,7 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 }
 
 // HTTPPut http post request
-func HTTPPut(httpClient *http.Client, url string, param interface{}, result interface{}) (ret []byte, err error) {
+func HTTPPut(httpClient *http.Client, url string, param interface{}, result interface{}, ctx ...url.Values) (ret []byte, err error) {
 	var bufferReader *bytes.Buffer
 	if param != nil {
 		data, dataErr := json.Marshal(param)
@@ -250,6 +270,11 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 	}
 
 	request.Header.Set("content-type", "application/json")
+	for _, val := range ctx {
+		for k, v := range val {
+			request.Header.Set(k, v[0])
+		}
+	}
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
@@ -282,18 +307,23 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 }
 
 // HTTPDelete http delete request
-func HTTPDelete(httpClient *http.Client, url string, result interface{}) (ret []byte, err error) {
+func HTTPDelete(httpClient *http.Client, url string, result interface{}, ctx ...url.Values) (ret []byte, err error) {
 	request, requestErr := http.NewRequest("DELETE", url, nil)
 	if requestErr != nil {
 		err = requestErr
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
 		return
 	}
+	for _, val := range ctx {
+		for k, v := range val {
+			request.Header.Set(k, v[0])
+		}
+	}
 
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
-		log.Printf("post request failed, err:%s", err.Error())
+		log.Printf("delete request failed, err:%s", err.Error())
 		return
 	}
 
@@ -322,11 +352,23 @@ func HTTPDelete(httpClient *http.Client, url string, result interface{}) (ret []
 }
 
 // HTTPDownload http download file
-func HTTPDownload(httpClient *http.Client, url string, filePath string) (string, error) {
-	response, err := httpClient.Get(url)
-	if err != nil {
-		log.Printf("get request failed, err:%s", err.Error())
-		return "", err
+func HTTPDownload(httpClient *http.Client, url string, filePath string, ctx ...url.Values) (string, error) {
+	request, requestErr := http.NewRequest("GET", url, nil)
+	if requestErr != nil {
+		log.Printf("construct request failed, url:%s, err:%s", url, requestErr.Error())
+		return "", requestErr
+	}
+
+	for _, val := range ctx {
+		for k, v := range val {
+			request.Header.Set(k, v[0])
+		}
+	}
+
+	response, responseErr := httpClient.Do(request)
+	if responseErr != nil {
+		log.Printf("get request failed, err:%s", responseErr.Error())
+		return "", responseErr
 	}
 
 	if response.StatusCode != http.StatusOK {
@@ -351,7 +393,7 @@ func HTTPDownload(httpClient *http.Client, url string, filePath string) (string,
 }
 
 // HTTPUpload http upload file
-func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result interface{}) error {
+func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result interface{}, ctx ...url.Values) error {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
 
@@ -379,7 +421,26 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	contentType := bodyWriter.FormDataContentType()
 	bodyWriter.Close()
 
-	response, err := http.Post(url, contentType, bodyBuf)
+	request, requestErr := http.NewRequest("POST", url, bodyBuf)
+	if requestErr != nil {
+		err = requestErr
+		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		return err
+	}
+
+	request.Header.Set("content-type", contentType)
+	for _, val := range ctx {
+		for k, v := range val {
+			request.Header.Set(k, v[0])
+		}
+	}
+
+	response, responseErr := httpClient.Do(request)
+	if responseErr != nil {
+		log.Printf("post request failed, err:%s", responseErr.Error())
+		return responseErr
+	}
+
 	if response.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
 		return errors.New(msg)
