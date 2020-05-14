@@ -81,29 +81,48 @@ type ContextInfo interface {
 }
 
 // SessionContext session context
-type SessionContext SessionInfo
+type SessionContext struct {
+	sessionInfo *SessionInfo
+}
+
+// NewSessionContext new session context
+func NewSessionContext(sessionInfo *SessionInfo) *SessionContext {
+	return &SessionContext{sessionInfo: sessionInfo}
+}
 
 // Decode session context
 func (s *SessionContext) Decode(req *http.Request) {
-	s.ID = req.Header.Get(sessionID)
-	s.Token = req.Header.Get(sessionToken)
-	s.Scope = req.Header.Get(sessionScope)
+
+	sessionInfo := &SessionInfo{}
+	sessionInfo.ID = req.Header.Get(sessionID)
+	sessionInfo.Token = req.Header.Get(sessionToken)
+	sessionInfo.Scope = req.Header.Get(sessionScope)
+	if sessionInfo.ID != "" {
+		s.sessionInfo = sessionInfo
+	}
 }
 
 // Encode session context
 func (s *SessionContext) Encode(values url.Values) (ret url.Values) {
-	if s.ID != "" {
-		values.Set(sessionID, s.ID)
-	}
+	if s.sessionInfo != nil {
+		if s.sessionInfo.ID != "" {
+			values.Set(sessionID, s.sessionInfo.ID)
+		}
 
-	if s.Token != "" {
-		values.Set(sessionToken, s.Token)
-	}
+		if s.sessionInfo.Token != "" {
+			values.Set(sessionToken, s.sessionInfo.Token)
+		}
 
-	if s.Scope != "" {
-		values.Set(sessionScope, s.Scope)
+		if s.sessionInfo.Scope != "" {
+			values.Set(sessionScope, s.sessionInfo.Scope)
+		}
 	}
 
 	ret = values
 	return
+}
+
+// GetSessionInfo get session info
+func (s *SessionContext) GetSessionInfo() *SessionInfo {
+	return s.sessionInfo
 }
