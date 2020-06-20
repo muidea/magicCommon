@@ -1,5 +1,5 @@
 module github.com/muidea/magicCommon
 
-go 1.13
+go 1.14
 
 require github.com/go-sql-driver/mysql v1.5.0
