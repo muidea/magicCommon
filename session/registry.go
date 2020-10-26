@@ -71,7 +71,7 @@ func CreateRegistry(callback CallBack) Registry {
 	return &impl
 }
 
-func GetRequestInfo(res http.ResponseWriter, req *http.Request) *common.SessionInfo {
+func (sm *sessionRegistryImpl) GetRequestInfo(res http.ResponseWriter, req *http.Request) *common.SessionInfo {
 	return getRequestInfo(req)
 }
 
