@@ -15,6 +15,7 @@ import (
 
 // Registry 会话仓库
 type Registry interface {
+	GetRequestInfo(res http.ResponseWriter, req *http.Request) *common.SessionInfo
 	GetSession(res http.ResponseWriter, req *http.Request) Session
 }
 
