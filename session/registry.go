@@ -95,9 +95,6 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 
 	userSession.SetSessionInfo(sessionInfo)
 
-	userSession.bindReq = req
-	userSession.bindRes = res
-
 	return userSession
 }
 

@@ -12,15 +12,13 @@ import (
 // Session 会话
 type Session interface {
 	ID() string
+	Flush(res http.ResponseWriter, req *http.Request)
 
-	GetContextInfo(ctx commonConst.ContextInfo)
-	GetRequestInfo() *commonConst.SessionInfo
 	GetSessionInfo() *commonConst.SessionInfo
 	SetSessionInfo(info *commonConst.SessionInfo)
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
-
 	OptionKey() []string
 }
 
@@ -33,9 +31,6 @@ type sessionImpl struct {
 	context  map[string]interface{}
 	registry *sessionRegistryImpl
 
-	bindReq *http.Request
-	bindRes http.ResponseWriter
-
 	callBack CallBack
 }
 
@@ -43,14 +38,23 @@ func (s *sessionImpl) ID() string {
 	return s.id
 }
 
-func (s *sessionImpl) GetContextInfo(ctx commonConst.ContextInfo) {
-	if s.bindReq != nil && ctx != nil {
-		ctx.Decode(s.bindReq)
-	}
-}
+func (s *sessionImpl) Flush(res http.ResponseWriter, req *http.Request) {
+	info := s.GetSessionInfo()
 
-func (s *sessionImpl) GetRequestInfo() *commonConst.SessionInfo {
-	return getRequestInfo(s.bindReq)
+	// 存入cookie,使用cookie存储
+	dataValue, dataErr := json.Marshal(info)
+	if dataErr == nil {
+		sessionCookie := http.Cookie{
+			Name:   sessionCookieID,
+			Value:  base64.StdEncoding.EncodeToString(dataValue),
+			Path:   "/",
+			MaxAge: 600,
+		}
+
+		http.SetCookie(res, &sessionCookie)
+
+		req.AddCookie(&sessionCookie)
+	}
 }
 
 func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {
@@ -76,23 +80,6 @@ func (s *sessionImpl) SetSessionInfo(info *commonConst.SessionInfo) {
 	}
 
 	s.SetOption(commonConst.SessionIdentity, info)
-
-	if s.bindReq != nil {
-		// 存入cookie,使用cookie存储
-		dataValue, dataErr := json.Marshal(info)
-		if dataErr == nil {
-			sessionCookie := http.Cookie{
-				Name:   sessionCookieID,
-				Value:  base64.StdEncoding.EncodeToString(dataValue),
-				Path:   "/",
-				MaxAge: 600,
-			}
-
-			http.SetCookie(s.bindRes, &sessionCookie)
-
-			s.bindReq.AddCookie(&sessionCookie)
-		}
-	}
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
