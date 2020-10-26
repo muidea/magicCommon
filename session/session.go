@@ -40,6 +40,9 @@ func (s *sessionImpl) ID() string {
 
 func (s *sessionImpl) Flush(res http.ResponseWriter, req *http.Request) {
 	info := s.GetSessionInfo()
+	if info == nil {
+		return
+	}
 
 	// 存入cookie,使用cookie存储
 	dataValue, dataErr := json.Marshal(info)
@@ -60,14 +63,14 @@ func (s *sessionImpl) Flush(res http.ResponseWriter, req *http.Request) {
 func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {
 	val, ok := s.GetOption(commonConst.SessionIdentity)
 	if !ok {
-		ret = &commonConst.SessionInfo{}
+		ret = nil
 		return
 	}
 
 	ret, ok = val.(*commonConst.SessionInfo)
 	if !ok {
 		s.RemoveOption(commonConst.SessionIdentity)
-		ret = &commonConst.SessionInfo{}
+		ret = nil
 		return
 	}
 
