@@ -71,6 +71,10 @@ func CreateRegistry(callback CallBack) Registry {
 	return &impl
 }
 
+func GetRequestInfo(res http.ResponseWriter, req *http.Request) *common.SessionInfo {
+	return getRequestInfo(req)
+}
+
 // GetSession 获取Session对象
 func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Request) Session {
 	var userSession *sessionImpl
