@@ -105,17 +105,8 @@ func (s *SessionContext) Decode(req *http.Request) {
 // Encode session context
 func (s *SessionContext) Encode(values url.Values) (ret url.Values) {
 	if s.sessionInfo != nil {
-		if s.sessionInfo.ID != "" {
-			values.Set(sessionID, s.sessionInfo.ID)
-		}
-
-		if s.sessionInfo.Token != "" {
-			values.Set(sessionToken, s.sessionInfo.Token)
-		}
-
-		if s.sessionInfo.Scope != "" {
-			values.Set(sessionScope, s.sessionInfo.Scope)
-		}
+		ret = s.sessionInfo.Encode(values)
+		return
 	}
 
 	ret = values
