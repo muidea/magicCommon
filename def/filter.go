@@ -9,14 +9,13 @@ import (
 
 // Filter 过滤器
 type Filter struct {
-	items         []string
 	PageFilter    *util.PageFilter
 	ContentFilter *ContentFilter
 }
 
 // NewFilter new filter
-func NewFilter(items []string) *Filter {
-	return &Filter{items: items}
+func NewFilter() *Filter {
+	return &Filter{}
 }
 
 // Decode 内容过滤器
@@ -27,7 +26,7 @@ func (s *Filter) Decode(request *http.Request) bool {
 	}
 
 	contentFilter := &ContentFilter{}
-	if contentFilter.Decode(request, s.items) {
+	if contentFilter.Decode(request) {
 		s.ContentFilter = contentFilter
 	}
 
@@ -52,13 +51,11 @@ type ContentFilter struct {
 }
 
 // Decode 解析内容过滤值
-func (s *ContentFilter) Decode(request *http.Request, items []string) bool {
+func (s *ContentFilter) Decode(request *http.Request) bool {
 	s.Items = map[string]string{}
-	for _, k := range items {
-		val := request.URL.Query().Get(k)
-		if val != "" {
-			s.Items[k] = val
-		}
+	vals := request.URL.Query()
+	for k, v := range vals {
+		s.Items[k] = v[0]
 	}
 
 	return true
