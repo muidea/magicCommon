@@ -113,7 +113,7 @@ func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 
 // ParseJSONBody 解析http body请求提交的json数据
 func ParseJSONBody(req *http.Request, param interface{}) error {
-	util.ValidataPtr(param)
+	util.ValidatePtr(param)
 
 	if req.Body == nil {
 		return errors.New("missing form body")

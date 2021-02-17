@@ -9,8 +9,8 @@ func ValidateFunc(fun interface{}) {
 	}
 }
 
-// ValidataPtr 校验是否是指针
-func ValidataPtr(ptr interface{}) {
+// ValidatePtr 校验是否是指针
+func ValidatePtr(ptr interface{}) {
 	if reflect.TypeOf(ptr).Kind() != reflect.Ptr {
 		panic("fun must be a object ptr")
 	}
