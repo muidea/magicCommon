@@ -2,6 +2,10 @@ package task
 
 import "github.com/muidea/magicCommon/foundation/generator"
 
+func NewGeneratorTask(generator generator.Generator) *GeneratorTask {
+	return &GeneratorTask{generator: generator}
+}
+
 type GeneratorTask struct {
 	generator generator.Generator
 
