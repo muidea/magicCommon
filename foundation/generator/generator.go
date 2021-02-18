@@ -49,7 +49,8 @@ func New(mask string) (ret Generator, err error) {
 	return &genImpl{maskStr: mask, fixedWidth: fixedWidth, currentNum: currentNum}, nil
 }
 
-var maskPattern = "^([a-zA-Z]+[a-zA-Z0-9]*-)?({YYYYMMDDHHmmSS}-)?{(fixed\\([0-9]+\\)\\:)?(num|[0-9]+)}$"
+// ^(?!-)([a-zA-Z]+[a-zA-Z0-9]*)?(?!--)(-{1})?({YYYYMMDDHHmmSS})?(?!--)(-{1})?{(fixed\([0-9]+\)\:)?(num|[0-9]+)}$
+var maskPattern = "^([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?({YYYYMMDDHHmmSS})?(-{1})?{(fixed\\([0-9]+\\)\\:)?(num|[0-9]+)}$"
 var prefixReg = regexp.MustCompile("^[a-zA-Z]+[a-zA-Z0-9]*")
 var dateTimeReg = regexp.MustCompile("{YYYYMMDDHHmmSS}")
 var numberReg = regexp.MustCompile("{(fixed\\([0-9]+\\)\\:)?(num|[0-9]+)}$")
