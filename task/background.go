@@ -7,6 +7,23 @@ type Task interface {
 	Run()
 }
 
+type SyncTask struct {
+	resultChannel chan bool
+	rawTask       Task
+}
+
+func (s *SyncTask) Run() {
+	s.rawTask.Run()
+
+	s.resultChannel <- true
+}
+
+func (s *SyncTask) Wait() {
+	<-s.resultChannel
+
+	close(s.resultChannel)
+}
+
 type taskChannel chan Task
 
 // BackgroundRoutine backGround routine
@@ -36,6 +53,13 @@ func (s *BackgroundRoutine) loop() {
 // Post exec task
 func (s *BackgroundRoutine) Post(task Task) {
 	s.taskChannel <- task
+}
+
+func (s *BackgroundRoutine) Invoke(task Task) {
+	syncTask := &SyncTask{rawTask: task, resultChannel: make(chan bool)}
+	s.taskChannel <- syncTask
+
+	syncTask.Wait()
 }
 
 // Timer exec timer task
