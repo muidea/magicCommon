@@ -11,12 +11,12 @@ type taskChannel chan Task
 
 // BackgroundRoutine backGround routine
 type BackgroundRoutine struct {
-	taskchannel taskChannel
+	taskChannel taskChannel
 }
 
-// NewBackgroundRoutince new Background routince
-func NewBackgroundRoutince() *BackgroundRoutine {
-	bg := &BackgroundRoutine{taskchannel: make(taskChannel)}
+// NewBackgroundRoutine new Background routine
+func NewBackgroundRoutine() *BackgroundRoutine {
+	bg := &BackgroundRoutine{taskChannel: make(taskChannel)}
 	bg.run()
 
 	return bg
@@ -28,14 +28,14 @@ func (s *BackgroundRoutine) run() {
 
 func (s *BackgroundRoutine) loop() {
 	for {
-		task := <-s.taskchannel
+		task := <-s.taskChannel
 		task.Run()
 	}
 }
 
 // Post exec task
 func (s *BackgroundRoutine) Post(task Task) {
-	s.taskchannel <- task
+	s.taskChannel <- task
 }
 
 // Timer exec timer task
