@@ -20,8 +20,8 @@ type PageFilter struct {
 	PageNum int `json:"pageNum"`
 }
 
-func NewPageFilter() *PageFilter {
-	return &PageFilter{}
+func NewPageFilter(pageNum, pageSize int) *PageFilter {
+	return &PageFilter{PageNum: pageNum, PageSize: pageSize}
 }
 
 // Decode 从request里解析PageFilter
