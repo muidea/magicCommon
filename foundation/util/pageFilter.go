@@ -20,6 +20,10 @@ type PageFilter struct {
 	PageNum int `json:"pageNum"`
 }
 
+func NewPageFilter() *PageFilter {
+	return &PageFilter{}
+}
+
 // Decode 从request里解析PageFilter
 func (s *PageFilter) Decode(request *http.Request) bool {
 	pageSize := request.URL.Query().Get("pageSize")
