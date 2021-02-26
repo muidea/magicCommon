@@ -11,6 +11,14 @@ type Generator interface {
 	GenCode() string
 }
 
+var subReg = regexp.MustCompile("[\\d]+}")
+var numReg = regexp.MustCompile("[\\d]+")
+
+func SplitNum(mask string) (ret string) {
+	subItem := subReg.FindString(mask)
+	return numReg.FindString(subItem)
+}
+
 /*
 prefix-{num}
 prefix-{123}

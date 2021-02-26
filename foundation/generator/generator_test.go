@@ -53,3 +53,23 @@ func TestGenImpl_GenCode(t *testing.T) {
 		return
 	}
 }
+
+func TestSplitNum(t *testing.T) {
+	numStr := SplitNum("prefix-{num}")
+	if numStr != "" {
+		t.Error("SplitNum failed")
+		return
+	}
+
+	numStr = SplitNum("prefix-{123}")
+	if numStr != "123" {
+		t.Error("SplitNum failed")
+		return
+	}
+
+	numStr = SplitNum("prefix-{fixed(12):123}")
+	if numStr != "123" {
+		t.Error("SplitNum failed")
+		return
+	}
+}
