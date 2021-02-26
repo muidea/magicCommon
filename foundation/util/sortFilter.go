@@ -10,6 +10,10 @@ type SortFilter struct {
 	FieldName string `json:"fieldName"`
 }
 
+func NewSortFilter(name string, ascSort bool) *SortFilter {
+	return &SortFilter{AscSort: ascSort, FieldName: name}
+}
+
 // Name return name
 func (s *SortFilter) Name() string {
 	return s.FieldName
