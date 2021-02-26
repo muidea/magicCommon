@@ -66,4 +66,10 @@ func TestSplitNum(t *testing.T) {
 		t.Error("SplitNum failed")
 		return
 	}
+
+	numStr = SplitNum("123")
+	if numStr != "123" {
+		t.Error("SplitNum failed")
+		return
+	}
 }
