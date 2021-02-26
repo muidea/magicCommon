@@ -31,3 +31,7 @@ func (s *baseEvent) Destination() string {
 func (s *baseEvent) Data() interface{} {
 	return s.eventData
 }
+
+func (s *baseEvent) Match(pattern string) bool {
+	return matchID(pattern, s.eventID)
+}
