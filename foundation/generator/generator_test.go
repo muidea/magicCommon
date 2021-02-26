@@ -61,13 +61,7 @@ func TestSplitNum(t *testing.T) {
 		return
 	}
 
-	numStr = SplitNum("prefix-{123}")
-	if numStr != "123" {
-		t.Error("SplitNum failed")
-		return
-	}
-
-	numStr = SplitNum("prefix-{fixed(12):123}")
+	numStr = SplitNum("prefix-123")
 	if numStr != "123" {
 		t.Error("SplitNum failed")
 		return
