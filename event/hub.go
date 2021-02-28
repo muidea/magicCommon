@@ -17,7 +17,7 @@ type Result interface {
 
 type Observer interface {
 	ID() string
-	Notify(event Event, result ...Result)
+	Notify(event Event, result Result)
 }
 
 type Hub interface {
@@ -224,7 +224,7 @@ func (s *hImpl) postInternal(event Event, event2Observer ID2ObserverMap) ID2Obse
 		if matchID(key, event.ID()) {
 			for _, sv := range value {
 				if matchID(event.Destination(), sv.ID()) {
-					sv.Notify(event)
+					sv.Notify(event, nil)
 				}
 			}
 		}
