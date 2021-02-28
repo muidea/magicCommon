@@ -5,6 +5,7 @@ type baseEvent struct {
 	eventSource      string
 	eventDestination string
 	eventData        interface{}
+	eventResult      interface{}
 }
 
 func NewEvent(id, source, destination string, data interface{}) Event {
@@ -30,6 +31,10 @@ func (s *baseEvent) Destination() string {
 
 func (s *baseEvent) Data() interface{} {
 	return s.eventData
+}
+
+func (s *baseEvent) Result(result interface{}) {
+	s.eventResult = result
 }
 
 func (s *baseEvent) Match(pattern string) bool {

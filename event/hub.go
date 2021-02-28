@@ -7,6 +7,7 @@ type Event interface {
 	Source() string
 	Destination() string
 	Data() interface{}
+	Result(interface{})
 	Match(pattern string) bool
 }
 
