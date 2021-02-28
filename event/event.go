@@ -8,6 +8,10 @@ type baseEvent struct {
 	eventResult      interface{}
 }
 
+type baseResult struct {
+	result interface{}
+}
+
 func NewEvent(id, source, destination string, data interface{}) Event {
 	return &baseEvent{
 		eventID:          id,
@@ -15,6 +19,10 @@ func NewEvent(id, source, destination string, data interface{}) Event {
 		eventDestination: destination,
 		eventData:        data,
 	}
+}
+
+func NewResult() Result {
+	return &baseResult{}
 }
 
 func (s *baseEvent) ID() string {
@@ -39,4 +47,12 @@ func (s *baseEvent) Result(result interface{}) {
 
 func (s *baseEvent) Match(pattern string) bool {
 	return matchID(pattern, s.eventID)
+}
+
+func (s *baseResult) Set(data interface{}) {
+	s.result = data
+}
+
+func (s *baseResult) Get() interface{} {
+	return s.result
 }

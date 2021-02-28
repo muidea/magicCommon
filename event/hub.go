@@ -7,20 +7,24 @@ type Event interface {
 	Source() string
 	Destination() string
 	Data() interface{}
-	Result(interface{})
 	Match(pattern string) bool
+}
+
+type Result interface {
+	Set(interface{})
+	Get() interface{}
 }
 
 type Observer interface {
 	ID() string
-	Notify(event Event)
+	Notify(event Event, result ...Result)
 }
 
 type Hub interface {
 	Subscribe(eventID string, observer Observer)
 	Unsubscribe(eventID string, observer Observer)
 	Post(event Event)
-	Send(event Event)
+	Send(event Event) Result
 	Terminate()
 }
 
@@ -92,7 +96,7 @@ func (s *postData) Code() int {
 
 type sendData struct {
 	event  Event
-	result chan bool
+	result chan Result
 }
 
 func (s *sendData) Code() int {
@@ -126,8 +130,9 @@ func (s *hImpl) run() {
 			event2Observer = s.postInternal(data.event, event2Observer)
 		case send:
 			data := action.(*sendData)
-			event2Observer = s.sendInternal(data.event, event2Observer)
-			data.result <- true
+			result := NewResult()
+			event2Observer = s.sendInternal(data.event, result, event2Observer)
+			data.result <- result
 		case terminate:
 			data := action.(*terminateData)
 			data.result <- true
@@ -160,12 +165,12 @@ func (s *hImpl) Post(event Event) {
 	return
 }
 
-func (s *hImpl) Send(event Event) {
-	replay := make(chan bool)
+func (s *hImpl) Send(event Event) (ret Result) {
+	replay := make(chan Result)
 	action := &sendData{event: event, result: replay}
 
 	s.actionChannel <- action
-	<-replay
+	ret = <-replay
 
 	return
 }
@@ -227,12 +232,12 @@ func (s *hImpl) postInternal(event Event, event2Observer ID2ObserverMap) ID2Obse
 	return event2Observer
 }
 
-func (s *hImpl) sendInternal(event Event, event2Observer ID2ObserverMap) ID2ObserverMap {
+func (s *hImpl) sendInternal(event Event, result Result, event2Observer ID2ObserverMap) ID2ObserverMap {
 	for key, value := range event2Observer {
 		if matchID(key, event.ID()) {
 			for _, sv := range value {
 				if matchID(event.Destination(), sv.ID()) {
-					sv.Notify(event)
+					sv.Notify(event, result)
 				}
 			}
 		}
