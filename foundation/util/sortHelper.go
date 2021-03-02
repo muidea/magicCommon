@@ -1,6 +1,6 @@
 package util
 
-// ObjectSorter helpe object slice sort
+// ObjectSorter help object slice sort
 type ObjectSorter interface {
 	Less(left, right interface{}) bool
 }
