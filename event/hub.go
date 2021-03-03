@@ -1,6 +1,9 @@
 package event
 
-import "strings"
+import (
+	"strings"
+	"sync"
+)
 
 type Event interface {
 	ID() string
@@ -25,6 +28,7 @@ type Hub interface {
 	Unsubscribe(eventID string, observer Observer)
 	Post(event Event)
 	Send(event Event) Result
+	Call(event Event) Result
 	Terminate()
 }
 
@@ -32,7 +36,7 @@ type ObserverList []Observer
 type ID2ObserverMap map[string]ObserverList
 
 func NewHub() Hub {
-	hub := &hImpl{actionChannel: make(chan action)}
+	hub := &hImpl{event2Observer: ID2ObserverMap{}, actionChannel: make(chan action)}
 	go hub.run()
 	return hub
 }
@@ -112,36 +116,10 @@ func (s *terminateData) Code() int {
 }
 
 type hImpl struct {
+	event2Lock     sync.RWMutex
+	event2Observer ID2ObserverMap
+
 	actionChannel chan action
-}
-
-func (s *hImpl) run() {
-	event2Observer := ID2ObserverMap{}
-	for action := range s.actionChannel {
-		switch action.Code() {
-		case subscribe:
-			data := action.(*subscribeData)
-			event2Observer = s.subscribeInternal(data.eventID, data.observer, event2Observer)
-		case unsubscribe:
-			data := action.(*unsubscribeData)
-			event2Observer = s.unsubscribeInternal(data.eventID, data.observer, event2Observer)
-		case post:
-			data := action.(*postData)
-			event2Observer = s.postInternal(data.event, event2Observer)
-		case send:
-			data := action.(*sendData)
-			result := NewResult()
-			event2Observer = s.sendInternal(data.event, result, event2Observer)
-			data.result <- result
-		case terminate:
-			data := action.(*terminateData)
-			data.result <- true
-			break
-		default:
-		}
-	}
-
-	close(s.actionChannel)
 }
 
 func (s *hImpl) Subscribe(eventID string, observer Observer) {
@@ -175,6 +153,12 @@ func (s *hImpl) Send(event Event) (ret Result) {
 	return
 }
 
+func (s *hImpl) Call(event Event) Result {
+	result := NewResult()
+	s.sendInternal(event, result)
+	return result
+}
+
 func (s *hImpl) Terminate() {
 	replay := make(chan bool)
 	action := &terminateData{result: replay}
@@ -185,21 +169,53 @@ func (s *hImpl) Terminate() {
 	return
 }
 
-func (s *hImpl) subscribeInternal(eventID string, observer Observer, event2Observer ID2ObserverMap) ID2ObserverMap {
-	observerList, observerOK := event2Observer[eventID]
+func (s *hImpl) run() {
+	for action := range s.actionChannel {
+		switch action.Code() {
+		case subscribe:
+			data := action.(*subscribeData)
+			s.subscribeInternal(data.eventID, data.observer)
+		case unsubscribe:
+			data := action.(*unsubscribeData)
+			s.unsubscribeInternal(data.eventID, data.observer)
+		case post:
+			data := action.(*postData)
+			s.postInternal(data.event)
+		case send:
+			data := action.(*sendData)
+			result := NewResult()
+			s.sendInternal(data.event, result)
+			data.result <- result
+		case terminate:
+			data := action.(*terminateData)
+			data.result <- true
+			break
+		default:
+		}
+	}
+
+	close(s.actionChannel)
+}
+
+func (s *hImpl) subscribeInternal(eventID string, observer Observer) {
+	s.event2Lock.Lock()
+	defer s.event2Lock.Unlock()
+
+	observerList, observerOK := s.event2Observer[eventID]
 	if !observerOK {
 		observerList = ObserverList{}
 	}
 	observerList = append(observerList, observer)
-	event2Observer[eventID] = observerList
-
-	return event2Observer
+	s.event2Observer[eventID] = observerList
 }
 
-func (s *hImpl) unsubscribeInternal(eventID string, observer Observer, event2Observer ID2ObserverMap) ID2ObserverMap {
-	observerList, observerOK := event2Observer[eventID]
+func (s *hImpl) unsubscribeInternal(eventID string, observer Observer) {
+	s.event2Lock.Lock()
+	defer s.event2Lock.Unlock()
+
+	observerList, observerOK := s.event2Observer[eventID]
 	if !observerOK {
-		return event2Observer
+		return
 	}
 
 	newList := ObserverList{}
@@ -211,16 +227,18 @@ func (s *hImpl) unsubscribeInternal(eventID string, observer Observer, event2Obs
 		newList = append(newList, val)
 	}
 	if len(newList) > 0 {
-		event2Observer[eventID] = newList
-		return event2Observer
+		s.event2Observer[eventID] = newList
+		return
 	}
 
-	delete(event2Observer, eventID)
-	return event2Observer
+	delete(s.event2Observer, eventID)
 }
 
-func (s *hImpl) postInternal(event Event, event2Observer ID2ObserverMap) ID2ObserverMap {
-	for key, value := range event2Observer {
+func (s *hImpl) postInternal(event Event) {
+	s.event2Lock.RLock()
+	defer s.event2Lock.RUnlock()
+
+	for key, value := range s.event2Observer {
 		if matchID(key, event.ID()) {
 			for _, sv := range value {
 				if matchID(event.Destination(), sv.ID()) {
@@ -229,11 +247,13 @@ func (s *hImpl) postInternal(event Event, event2Observer ID2ObserverMap) ID2Obse
 			}
 		}
 	}
-	return event2Observer
 }
 
-func (s *hImpl) sendInternal(event Event, result Result, event2Observer ID2ObserverMap) ID2ObserverMap {
-	for key, value := range event2Observer {
+func (s *hImpl) sendInternal(event Event, result Result) {
+	s.event2Lock.RLock()
+	defer s.event2Lock.RUnlock()
+
+	for key, value := range s.event2Observer {
 		if matchID(key, event.ID()) {
 			for _, sv := range value {
 				if matchID(event.Destination(), sv.ID()) {
@@ -242,5 +262,4 @@ func (s *hImpl) sendInternal(event Event, result Result, event2Observer ID2Obser
 			}
 		}
 	}
-	return event2Observer
 }
