@@ -137,19 +137,24 @@ func (s *hImpl) Unsubscribe(eventID string, observer Observer) {
 }
 
 func (s *hImpl) Post(event Event) {
-	action := &postData{event: event}
+	go func() {
+		action := &postData{event: event}
 
-	s.actionChannel <- action
+		s.actionChannel <- action
+	}()
 	return
 }
 
 func (s *hImpl) Send(event Event) (ret Result) {
 	replay := make(chan Result)
-	action := &sendData{event: event, result: replay}
 
-	s.actionChannel <- action
+	go func() {
+		action := &sendData{event: event, result: replay}
+
+		s.actionChannel <- action
+	}()
+
 	ret = <-replay
-
 	return
 }
 
@@ -161,11 +166,13 @@ func (s *hImpl) Call(event Event) Result {
 
 func (s *hImpl) Terminate() {
 	replay := make(chan bool)
-	action := &terminateData{result: replay}
+	go func() {
+		action := &terminateData{result: replay}
 
-	s.actionChannel <- action
+		s.actionChannel <- action
+	}()
+
 	<-replay
-
 	return
 }
 
