@@ -120,9 +120,14 @@ type hImpl struct {
 	event2Observer ID2ObserverMap
 
 	actionChannel chan action
+	terminateFlag bool
 }
 
 func (s *hImpl) Subscribe(eventID string, observer Observer) {
+	if s.terminateFlag {
+		return
+	}
+
 	action := &subscribeData{eventID: eventID, observer: observer}
 
 	s.actionChannel <- action
@@ -130,6 +135,10 @@ func (s *hImpl) Subscribe(eventID string, observer Observer) {
 }
 
 func (s *hImpl) Unsubscribe(eventID string, observer Observer) {
+	if s.terminateFlag {
+		return
+	}
+
 	action := &unsubscribeData{eventID: eventID, observer: observer}
 
 	s.actionChannel <- action
@@ -137,6 +146,10 @@ func (s *hImpl) Unsubscribe(eventID string, observer Observer) {
 }
 
 func (s *hImpl) Post(event Event) {
+	if s.terminateFlag {
+		return
+	}
+
 	go func() {
 		action := &postData{event: event}
 
@@ -146,6 +159,10 @@ func (s *hImpl) Post(event Event) {
 }
 
 func (s *hImpl) Send(event Event) (ret Result) {
+	if s.terminateFlag {
+		return
+	}
+
 	replay := make(chan Result)
 
 	go func() {
@@ -159,12 +176,20 @@ func (s *hImpl) Send(event Event) (ret Result) {
 }
 
 func (s *hImpl) Call(event Event) Result {
+	if s.terminateFlag {
+		return nil
+	}
+
 	result := NewResult()
 	s.sendInternal(event, result)
 	return result
 }
 
 func (s *hImpl) Terminate() {
+	if s.terminateFlag {
+		return
+	}
+
 	replay := make(chan bool)
 	go func() {
 		action := &terminateData{result: replay}
@@ -173,10 +198,13 @@ func (s *hImpl) Terminate() {
 	}()
 
 	<-replay
+
+	s.event2Observer = nil
 	return
 }
 
 func (s *hImpl) run() {
+	s.terminateFlag = false
 	for action := range s.actionChannel {
 		switch action.Code() {
 		case subscribe:
@@ -201,6 +229,7 @@ func (s *hImpl) run() {
 		}
 	}
 
+	s.terminateFlag = true
 	close(s.actionChannel)
 }
 
