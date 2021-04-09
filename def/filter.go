@@ -45,6 +45,15 @@ func (s *Filter) Encode(vals url.Values) url.Values {
 	return vals
 }
 
+func (s *Filter) Get(key string) (val string, ok bool) {
+	if s.ContentFilter != nil {
+		val, ok = s.ContentFilter.Items[key]
+		return
+	}
+
+	return
+}
+
 // ContentFilter contentFilter
 type ContentFilter struct {
 	Items map[string]string
