@@ -136,9 +136,11 @@ func ParseJSONBody(req *http.Request, validator Validator, param interface{}) er
 			return err
 		}
 
-		err = validator.Validate(param)
-		if err != nil {
-			return err
+		if validator != nil {
+			err = validator.Validate(param)
+			if err != nil {
+				return err
+			}
 		}
 
 	default:
