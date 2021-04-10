@@ -15,6 +15,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
+
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -112,7 +114,7 @@ func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 }
 
 // ParseJSONBody 解析http body请求提交的json数据
-func ParseJSONBody(req *http.Request, param interface{}) error {
+func ParseJSONBody(req *http.Request, validate *validator.Validate, param interface{}) error {
 	util.ValidatePtr(param)
 
 	if req.Body == nil {
@@ -132,6 +134,11 @@ func ParseJSONBody(req *http.Request, param interface{}) error {
 		}
 
 		err = json.Unmarshal(payload, param)
+		if err != nil {
+			return err
+		}
+
+		err = validate.Struct(param)
 		if err != nil {
 			return err
 		}
