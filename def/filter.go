@@ -16,7 +16,7 @@ type Filter struct {
 
 // NewFilter new filter
 func NewFilter() *Filter {
-	return &Filter{PageFilter: nil, ContentFilter: &ContentFilter{}}
+	return &Filter{PageFilter: nil, ContentFilter: &ContentFilter{Items: map[string]interface{}{}}}
 }
 
 // Decode 内容过滤器
