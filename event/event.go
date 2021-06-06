@@ -19,6 +19,10 @@ type baseResult struct {
 	resultData interface{}
 }
 
+func NewValues() Values {
+	return map[string]string{}
+}
+
 func NewEvent(id, source, destination string, header Values, data interface{}) Event {
 	return &baseEvent{
 		eventID:          id,
