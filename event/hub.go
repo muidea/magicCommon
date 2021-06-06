@@ -7,6 +7,19 @@ import (
 
 type Values map[string]string
 
+func (s Values) Set(key, value string) {
+	s[key] = value
+}
+
+func (s Values) Get(key string) string {
+	val, ok := s[key]
+	if ok {
+		return val
+	}
+
+	return ""
+}
+
 type Event interface {
 	ID() string
 	Source() string
