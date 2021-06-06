@@ -5,16 +5,20 @@ import (
 	"sync"
 )
 
+type Values map[string]string
+
 type Event interface {
 	ID() string
 	Source() string
 	Destination() string
+	Header() Values
 	Data() interface{}
 	Match(pattern string) bool
 }
 
 type Result interface {
-	Set(interface{})
+	IsOK() bool
+	Set(data interface{})
 	Get() interface{}
 }
 
