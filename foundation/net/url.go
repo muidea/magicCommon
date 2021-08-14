@@ -1,26 +1,44 @@
 package net
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"path"
 )
 
-// JoinURL 合并Url路径
-func JoinURL(prefix, subfix string) string {
-	preURL, preErr := url.Parse(prefix)
+// JoinSuffix 合并Url路径
+func JoinSuffix(urlVal, suffix string) string {
+	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
-		log.Fatalf("illegal prefix,preErr:%s", preErr.Error())
+		log.Fatalf("illegal urlVal,preErr:%s", preErr.Error())
 	}
 
-	prefix = preURL.Path
-	if len(subfix) > 0 && subfix[len(subfix)-1] != '/' {
-		prefix = path.Join(prefix, subfix)
+	urlVal = valURL.Path
+	if len(suffix) > 0 && suffix[len(suffix)-1] != '/' {
+		urlVal = path.Join(urlVal, suffix)
 	} else {
-		prefix = path.Join(prefix, subfix) + "/"
+		urlVal = path.Join(urlVal, suffix) + "/"
 	}
-	preURL.Path = prefix
-	return preURL.String()
+	valURL.Path = urlVal
+	return valURL.String()
+}
+
+func JoinPrefix(urlVal, prefix string) string {
+	valURL, preErr := url.Parse(urlVal)
+	if preErr != nil {
+		log.Fatalf("illegal urlVal,preErr:%s", preErr.Error())
+	}
+
+	urlVal = valURL.Path
+	if len(urlVal) > 0 && urlVal[len(urlVal)-1] != '/' {
+		urlVal = path.Join(prefix, urlVal)
+	} else {
+		urlVal = path.Join(prefix, urlVal) + "/"
+	}
+
+	valURL.Path = urlVal
+	return valURL.String()
 }
 
 // SplitRESTAPI 分割出RestAPI的路径和ID
@@ -29,9 +47,9 @@ func SplitRESTAPI(url string) (string, string) {
 }
 
 // FormatRoutePattern 格式化RoutePattern
-func FormatRoutePattern(url, id string) string {
-	if len(id) == 0 {
-		return JoinURL(url, "")
+func FormatRoutePattern(url string, id interface{}) string {
+	if id != nil {
+		return JoinSuffix(url, fmt.Sprintf("%v", id))
 	}
 
 	return path.Join(url, ":id")

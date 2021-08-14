@@ -2,45 +2,87 @@ package net
 
 import "testing"
 
-func TestJoinURL(t *testing.T) {
-	pre := "aa"
-	sub := "bb"
-	ret := JoinURL(pre, sub)
+func TestJoinSuffix(t *testing.T) {
+	valURL := "aa"
+	suffix := "bb"
+	ret := JoinSuffix(valURL, suffix)
 	if ret != "aa/bb" {
-		t.Error("JoinURL unexpect, ret:" + ret)
+		t.Error("JoinSuffix unexpect, ret:" + ret)
 	}
 
-	pre = "aa/"
-	sub = "bb"
-	ret = JoinURL(pre, sub)
+	valURL = "aa/"
+	suffix = "bb"
+	ret = JoinSuffix(valURL, suffix)
 	if ret != "aa/bb" {
-		t.Error("JoinURL unexpect, ret:" + ret)
+		t.Error("JoinSuffix unexpect, ret:" + ret)
 	}
 
-	pre = "/aa//"
-	sub = "bb"
-	ret = JoinURL(pre, sub)
+	valURL = "/aa//"
+	suffix = "bb"
+	ret = JoinSuffix(valURL, suffix)
 	if ret != "/aa/bb" {
-		t.Error("JoinURL unexpect, ret:" + ret)
+		t.Error("JoinSuffix unexpect, ret:" + ret)
 	}
-	pre = "/aa/"
-	sub = "/bb"
-	ret = JoinURL(pre, sub)
+	valURL = "/aa/"
+	suffix = "/bb"
+	ret = JoinSuffix(valURL, suffix)
 	if ret != "/aa/bb" {
-		t.Error("JoinURL unexpect, ret:" + ret)
+		t.Error("JoinSuffix unexpect, ret:" + ret)
 	}
-	pre = "/aa/"
-	sub = "/bb/"
-	ret = JoinURL(pre, sub)
+	valURL = "/aa/"
+	suffix = "/bb/"
+	ret = JoinSuffix(valURL, suffix)
 	if ret != "/aa/bb/" {
-		t.Error("JoinURL unexpect, ret:" + ret)
+		t.Error("JoinSuffix unexpect, ret:" + ret)
 	}
 
-	pre = "http://127.9.9.1/aa/?a=b"
-	sub = "/bb/"
-	ret = JoinURL(pre, sub)
+	valURL = "http://127.9.9.1/aa/?a=b"
+	suffix = "/bb/"
+	ret = JoinSuffix(valURL, suffix)
 	if ret != "http://127.9.9.1/aa/bb/?a=b" {
-		t.Error("JoinURL unexpect, ret:" + ret)
+		t.Error("JoinSuffix unexpect, ret:" + ret)
+	}
+}
+
+func TestJoinPrefix(t *testing.T) {
+	valURL := "aa"
+	prefix := "bb"
+	ret := JoinPrefix(valURL, prefix)
+	if ret != "bb/aa" {
+		t.Error("JoinPrefix unexpect, ret:" + ret)
+	}
+
+	valURL = "aa/"
+	prefix = "bb"
+	ret = JoinPrefix(valURL, prefix)
+	if ret != "bb/aa/" {
+		t.Error("JoinPrefix unexpect, ret:" + ret)
+	}
+
+	valURL = "/aa//"
+	prefix = "bb"
+	ret = JoinPrefix(valURL, prefix)
+	if ret != "bb/aa/" {
+		t.Error("JoinPrefix unexpect, ret:" + ret)
+	}
+	valURL = "/aa/"
+	prefix = "/bb"
+	ret = JoinPrefix(valURL, prefix)
+	if ret != "/bb/aa/" {
+		t.Error("JoinPrefix unexpect, ret:" + ret)
+	}
+	valURL = "/aa/"
+	prefix = "/bb/"
+	ret = JoinPrefix(valURL, prefix)
+	if ret != "/bb/aa/" {
+		t.Error("JoinPrefix unexpect, ret:" + ret)
+	}
+
+	valURL = "http://127.9.9.1/aa/?a=b"
+	prefix = "/bb/"
+	ret = JoinPrefix(valURL, prefix)
+	if ret != "http://127.9.9.1/bb/aa/?a=b" {
+		t.Error("JoinPrefix unexpect, ret:" + ret)
 	}
 }
 
@@ -73,14 +115,14 @@ func TestFormatRoutePattern(t *testing.T) {
 	url := "/user/"
 	id := "abc"
 	pattern := FormatRoutePattern(url, id)
-	if pattern != "/user/:id" {
+	if pattern != "/user/abc" {
 		t.Errorf("FormatRoutePattern failed, url:%s, id:%s", url, id)
 	}
 
 	url = "/user/abc"
 	id = "ef"
 	pattern = FormatRoutePattern(url, id)
-	if pattern != "/user/abc/:id" {
+	if pattern != "/user/abc/ef" {
 		t.Errorf("FormatRoutePattern failed, url:%s, id:%s", url, id)
 	}
 
