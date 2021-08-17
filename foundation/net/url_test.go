@@ -140,3 +140,35 @@ func TestFormatRoutePattern(t *testing.T) {
 		t.Errorf("FormatRoutePattern failed, url:%s, id:%s", url, id)
 	}
 }
+
+func TestExtractID(t *testing.T) {
+	url := "/abc/bcd/cde/"
+	ret := ExtractID(url)
+	if ret != "" {
+		t.Errorf("ExtraceID failed, ret:%v", ret)
+		return
+	}
+
+	url = "/abc/bcd/cde"
+	ret = ExtractID(url)
+	if ret != "cde" {
+		t.Errorf("ExtraceID failed, ret:%v", ret)
+		return
+	}
+}
+
+func TestFormatID(t *testing.T) {
+	url := "/abc/bcd/cde"
+	ret := FormatID(url, 123)
+	if ret != url {
+		t.Errorf("FormatID failed,ret:%v", ret)
+		return
+	}
+
+	url = "/abc/bcd/:id"
+	ret = FormatID(url, 123)
+	if ret != "/abc/bcd/123" {
+		t.Errorf("FormatID failed,ret:%v", ret)
+		return
+	}
+}

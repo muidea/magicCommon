@@ -5,9 +5,10 @@ import (
 	"log"
 	"net/url"
 	"path"
+	"strings"
 )
 
-// JoinSuffix 合并Url路径
+// JoinSuffix 合并Url路径后缀
 func JoinSuffix(urlVal, suffix string) string {
 	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
@@ -24,6 +25,7 @@ func JoinSuffix(urlVal, suffix string) string {
 	return valURL.String()
 }
 
+// JoinPrefix 合并Url路径前缀
 func JoinPrefix(urlVal, prefix string) string {
 	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
@@ -44,6 +46,15 @@ func JoinPrefix(urlVal, prefix string) string {
 // SplitRESTAPI 分割出RestAPI的路径和ID
 func SplitRESTAPI(url string) (string, string) {
 	return path.Split(url)
+}
+
+func ExtractID(url string) (ret string) {
+	_, ret = path.Split(url)
+	return
+}
+
+func FormatID(url string, id interface{}) string {
+	return strings.ReplaceAll(url, ":id", fmt.Sprintf("%v", id))
 }
 
 // FormatRoutePattern 格式化RoutePattern
