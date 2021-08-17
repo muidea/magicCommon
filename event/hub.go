@@ -65,7 +65,7 @@ func matchID(pattern, id string) bool {
 		if ik >= len(pItems) {
 			return false
 		}
-		if pItems[ik] == "+" {
+		if pItems[ik] == "+" || pItems[ik] == ":id" {
 			continue
 		}
 		if pItems[ik] == "#" {
