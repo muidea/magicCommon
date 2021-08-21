@@ -59,25 +59,91 @@ func NewHub() Hub {
 }
 
 func matchID(pattern, id string) bool {
+	pIdx := 0
+	pOffset := 0
 	pItems := strings.Split(pattern, "/")
+
+	iIdx := 0
+	iOffset := 0
 	iItems := strings.Split(id, "/")
-	for ik, iv := range iItems {
-		if ik >= len(pItems) {
+	for iIdx < len(iItems) {
+		iv := iItems[iIdx]
+		if pIdx >= len(pItems) {
 			return false
 		}
-		if pItems[ik] == "+" || pItems[ik] == ":id" {
+
+		pv := pItems[pIdx]
+		if pv == iv {
+			pIdx++
+			iIdx++
 			continue
 		}
-		if pItems[ik] == "#" {
-			return true
-		}
-		if pItems[ik] == iv {
+
+		if (pv == "+" || pv == ":id") && iv != "" {
+			pIdx++
+			iIdx++
 			continue
 		}
+
+		if pv == "#" && iv != "" {
+			pOffset++
+			if pIdx+pOffset >= len(pItems) {
+				return true
+			}
+
+			iOffset++
+			if iIdx+iOffset >= len(iItems) {
+				return false
+			}
+
+			for iIdx+iOffset < len(iItems) {
+				if pIdx+pOffset >= len(pItems) {
+					return false
+				}
+
+				pn := pItems[pIdx+pOffset]
+				in := iItems[iIdx+iOffset]
+				if pn == in {
+					pIdx += pOffset + 1
+					pOffset = 0
+					break
+				}
+				if pn == "+" || pn == ":id" {
+					if pIdx+pOffset+1 >= len(pItems) {
+						return true
+					}
+
+					pnn := pItems[pIdx+pOffset+1]
+					if pnn == in {
+						pIdx += pOffset + 2
+						pOffset = 0
+						break
+					}
+
+					if pv != "#" {
+						pOffset++
+					}
+
+					iOffset++
+					continue
+				}
+
+				return false
+			}
+
+			iIdx += iOffset + 1
+			iOffset = 0
+			if pIdx > iIdx {
+				return false
+			}
+
+			continue
+		}
+
 		return false
 	}
 
-	return len(pItems) == len(iItems)
+	return pIdx == len(pItems)
 }
 
 const (
