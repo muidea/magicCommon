@@ -123,12 +123,10 @@ func matchID(pattern, id string) bool {
 					if pv != "#" {
 						pOffset++
 					}
-
-					iOffset++
-					continue
 				}
 
-				return false
+				iOffset++
+				continue
 			}
 
 			iIdx += iOffset + 1

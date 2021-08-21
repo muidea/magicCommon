@@ -314,4 +314,24 @@ func TestMatchID(t *testing.T) {
 		t.Errorf("matchID failed, pattern:%s, id:%s", pattern, id)
 		return
 	}
+
+	pattern = "/#/create/"
+	id = "/warehouse/shelf/create/"
+	if !matchID(pattern, id) {
+		t.Errorf("matchID failed, pattern:%s, id:%s", pattern, id)
+		return
+	}
+
+	pattern = "/#/+/create/"
+	id = "/warehouse/shelf/create/"
+	if !matchID(pattern, id) {
+		t.Errorf("matchID failed, pattern:%s, id:%s", pattern, id)
+		return
+	}
+	pattern = "/#/+/+/create/"
+	id = "/warehouse/shelf/create/"
+	if matchID(pattern, id) {
+		t.Errorf("matchID failed, pattern:%s, id:%s", pattern, id)
+		return
+	}
 }
