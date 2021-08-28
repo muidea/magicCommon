@@ -61,6 +61,12 @@ func (s *Filter) Set(key string, value interface{}) {
 	}
 }
 
+func (s *Filter) Remove(key string) {
+	if s.ContentFilter != nil {
+		delete(s.ContentFilter.Items, key)
+	}
+}
+
 // ContentFilter contentFilter
 type ContentFilter struct {
 	Items map[string]interface{}
