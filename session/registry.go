@@ -17,6 +17,7 @@ import (
 type Registry interface {
 	GetRequestInfo(res http.ResponseWriter, req *http.Request) *common.SessionInfo
 	GetSession(res http.ResponseWriter, req *http.Request) Session
+	CountSession() int
 }
 
 // CallBack session CallBack
@@ -101,6 +102,10 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 	userSession.SetSessionInfo(sessionInfo)
 
 	return userSession
+}
+
+func (sm *sessionRegistryImpl) CountSession() int {
+	return sm.count()
 }
 
 // createSession 新建Session
@@ -205,7 +210,7 @@ func (right commandChanImpl) find(id string) *sessionImpl {
 	reply := make(chan interface{})
 	right <- commandData{action: find, value: id, result: reply}
 
-	result := (<-reply)
+	result := <-reply
 	if result == nil {
 		return nil
 	}
