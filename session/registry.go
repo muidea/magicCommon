@@ -17,7 +17,7 @@ import (
 type Registry interface {
 	GetRequestInfo(res http.ResponseWriter, req *http.Request) *common.SessionInfo
 	GetSession(res http.ResponseWriter, req *http.Request) Session
-	CountSession() int
+	CountSession(filter util.Filter) int
 }
 
 // CallBack session CallBack
@@ -104,8 +104,8 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 	return userSession
 }
 
-func (sm *sessionRegistryImpl) CountSession() int {
-	return sm.count()
+func (sm *sessionRegistryImpl) CountSession(filter util.Filter) int {
+	return sm.count(filter)
 }
 
 // createSession 新建Session
@@ -156,8 +156,8 @@ func (sm *sessionRegistryImpl) find(id string) *sessionImpl {
 	return sm.commandChan.find(id)
 }
 
-func (sm *sessionRegistryImpl) count() int {
-	return sm.commandChan.count()
+func (sm *sessionRegistryImpl) count(filter util.Filter) int {
+	return sm.commandChan.count(filter)
 }
 
 func (sm *sessionRegistryImpl) update(session *sessionImpl) bool {
@@ -217,9 +217,9 @@ func (right commandChanImpl) find(id string) *sessionImpl {
 	return result.(*sessionImpl)
 }
 
-func (right commandChanImpl) count() int {
+func (right commandChanImpl) count(filter util.Filter) int {
 	reply := make(chan interface{})
-	right <- commandData{action: length, result: reply}
+	right <- commandData{action: length, value: filter, result: reply}
 
 	result := (<-reply).(int)
 	return result
@@ -278,7 +278,18 @@ func (right commandChanImpl) run() {
 				delete(sessionContextMap, removeList[key])
 			}
 		case length:
-			command.result <- len(sessionContextMap)
+			filter := command.value.(util.Filter)
+			if filter == nil {
+				command.result <- len(sessionContextMap)
+				return
+			}
+			count := 0
+			for _, val := range sessionContextMap {
+				if filter.Enable(val) {
+					count++
+				}
+			}
+			command.result <- count
 		case end:
 			close(right)
 		}
