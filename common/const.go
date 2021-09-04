@@ -20,6 +20,9 @@ const SessionIdentity = "sessionIdentity"
 // AuthAccount 鉴权Account
 const AuthAccount = "authAccount"
 
+// AuthRemoteAddress 远端地址
+const AuthRemoteAddress = "authRemoteAddress"
+
 // AuthPrivateGroup Account 权限组
 const AuthPrivateGroup = "authPrivateGroup"
 
