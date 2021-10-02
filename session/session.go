@@ -61,7 +61,7 @@ func (s *sessionImpl) Flush(res http.ResponseWriter, req *http.Request) {
 }
 
 func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {
-	val, ok := s.GetOption(commonConst.SessionIdentity)
+	val, ok := s.GetOption(commonConst.AuthSessionInfo)
 	if !ok {
 		ret = nil
 		return
@@ -69,7 +69,7 @@ func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {
 
 	ret, ok = val.(*commonConst.SessionInfo)
 	if !ok {
-		s.RemoveOption(commonConst.SessionIdentity)
+		s.RemoveOption(commonConst.AuthSessionInfo)
 		ret = nil
 		return
 	}
@@ -82,7 +82,7 @@ func (s *sessionImpl) SetSessionInfo(info *commonConst.SessionInfo) {
 		return
 	}
 
-	s.SetOption(commonConst.SessionIdentity, info)
+	s.SetOption(commonConst.AuthSessionInfo, info)
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
