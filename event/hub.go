@@ -5,13 +5,13 @@ import (
 	"sync"
 )
 
-type Values map[string]string
+type Values map[string]interface{}
 
-func (s Values) Set(key, value string) {
+func (s Values) Set(key string, value interface{}) {
 	s[key] = value
 }
 
-func (s Values) Get(key string) string {
+func (s Values) Get(key string) interface{} {
 	val, ok := s[key]
 	if ok {
 		return val

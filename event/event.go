@@ -20,7 +20,7 @@ type baseResult struct {
 }
 
 func NewValues() Values {
-	return map[string]string{}
+	return map[string]interface{}{}
 }
 
 func NewEvent(id, source, destination string, header Values, data interface{}) Event {
