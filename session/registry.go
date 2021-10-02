@@ -241,9 +241,9 @@ func (right commandChanImpl) run() {
 			delete(sessionContextMap, id)
 		case update:
 			session := command.value.(*sessionImpl)
-			curSesion, curOK := sessionContextMap[session.id]
+			curSession, curOK := sessionContextMap[session.id]
 			if curOK {
-				curSesion.context = session.context
+				curSession.context = session.context
 			} else {
 				log.Printf("illegal session id:%s", session.id)
 			}
