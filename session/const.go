@@ -14,17 +14,17 @@ const (
 	sessionScope = "sessionScope"
 )
 
-// AuthSessionAccount 鉴权Account
-const AuthSessionAccount = "authSessionAccount"
+// AuthAccount 鉴权Account
+const AuthAccount = "authSessionAccount"
 
-// AuthSessionRole Account 权限组
-const AuthSessionRole = "authSessionRole"
+// AuthRole Account 权限组
+const AuthRole = "authSessionRole"
 
-// AuthSessionNamespace Account namespace
-const AuthSessionNamespace = "authSessionNamespace"
+// AuthNamespace Account namespace
+const AuthNamespace = "authSessionNamespace"
 
-// AuthSessionRemoteAddress 远端地址
-const AuthSessionRemoteAddress = "authSessionRemoteAddress"
+// AuthRemoteAddress 远端地址
+const AuthRemoteAddress = "authSessionRemoteAddress"
 
 // authSessionInfo session info
 const authSessionInfo = "$authSessionInfo$"
