@@ -17,7 +17,49 @@ func (s Values) Get(key string) interface{} {
 		return val
 	}
 
+	return nil
+}
+
+func (s Values) GetString(key string) string {
+	val := s.Get(key)
+	if val == nil {
+		return ""
+	}
+
+	switch val.(type) {
+	case string:
+		return val.(string)
+	}
+
 	return ""
+}
+
+func (s Values) GetInt(key string) int {
+	val := s.Get(key)
+	if val == nil {
+		return 0
+	}
+
+	switch val.(type) {
+	case int:
+		return val.(int)
+	}
+
+	return 0
+}
+
+func (s Values) GetBool(key string) bool {
+	val := s.Get(key)
+	if val == nil {
+		return false
+	}
+
+	switch val.(type) {
+	case int:
+		return val.(bool)
+	}
+
+	return false
 }
 
 type Event interface {
