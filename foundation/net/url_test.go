@@ -88,26 +88,26 @@ func TestJoinPrefix(t *testing.T) {
 
 func TestParseRestAPIUrl(t *testing.T) {
 	url := "/user/abc"
-	dir, name := SplitRESTAPI(url)
+	dir, name := SplitRESTURL(url)
 	if dir != "/user/" && name != "abc" {
-		t.Errorf("SplitRESTAPI failed, dir:%s,name:%s", dir, name)
+		t.Errorf("SplitRESTURL failed, dir:%s,name:%s", dir, name)
 	}
 
 	url = "/user/abc/"
-	dir, name = SplitRESTAPI(url)
+	dir, name = SplitRESTURL(url)
 	if dir != "/user/abc/" && name != "" {
-		t.Errorf("SplitRESTAPI failed, dir:%s,name:%s", dir, name)
+		t.Errorf("SplitRESTURL failed, dir:%s,name:%s", dir, name)
 	}
 
 	url = "/user/"
-	dir, name = SplitRESTAPI(url)
+	dir, name = SplitRESTURL(url)
 	if dir != "/user/" && name != "" {
-		t.Errorf("SplitRESTAPI failed, dir:%s,name:%s", dir, name)
+		t.Errorf("SplitRESTURL failed, dir:%s,name:%s", dir, name)
 	}
 	url = "/user"
-	dir, name = SplitRESTAPI(url)
+	dir, name = SplitRESTURL(url)
 	if dir != "/" && name != "user" {
-		t.Errorf("SplitRESTAPI failed, dir:%s,name:%s", dir, name)
+		t.Errorf("SplitRESTURL failed, dir:%s,name:%s", dir, name)
 	}
 }
 
@@ -169,6 +169,33 @@ func TestFormatID(t *testing.T) {
 	ret = FormatID(url, 123)
 	if ret != "/abc/bcd/123" {
 		t.Errorf("FormatID failed,ret:%v", ret)
+		return
+	}
+}
+
+func TestSplitRESTID(t *testing.T) {
+	url := "/abc/bcd/cde"
+	id, err := SplitRESTID(url)
+	if err == nil {
+		t.Errorf("SpliteRESTID failed")
+		return
+	}
+
+	url = "/abc/bcd/cde/"
+	id, err = SplitRESTID(url)
+	if err == nil {
+		t.Errorf("SpliteRESTID failed")
+		return
+	}
+
+	url = "/abc/bcd/cde/123"
+	id, err = SplitRESTID(url)
+	if err != nil {
+		t.Errorf("SpliteRESTID failed")
+		return
+	}
+	if id != 123 {
+		t.Errorf("SpliteRESTID failed")
 		return
 	}
 }

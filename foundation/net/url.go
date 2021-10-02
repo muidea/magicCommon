@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -43,9 +44,15 @@ func JoinPrefix(urlVal, prefix string) string {
 	return valURL.String()
 }
 
-// SplitRESTAPI 分割出RestAPI的路径和ID
-func SplitRESTAPI(url string) (string, string) {
+// SplitRESTURL 分割出RestAPI的路径和ID
+func SplitRESTURL(url string) (string, string) {
 	return path.Split(url)
+}
+
+func SplitRESTID(url string) (ret int, err error) {
+	_, strID := SplitRESTURL(url)
+	ret, err = strconv.Atoi(strID)
+	return
 }
 
 func ExtractID(url string) (ret string) {
