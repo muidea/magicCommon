@@ -8,14 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/muidea/magicCommon/common"
-	commonConst "github.com/muidea/magicCommon/common"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
 // Registry 会话仓库
 type Registry interface {
-	GetRequestInfo(res http.ResponseWriter, req *http.Request) *common.SessionInfo
+	GetRequestInfo(res http.ResponseWriter, req *http.Request) *SessionInfo
 	GetSession(res http.ResponseWriter, req *http.Request) Session
 	CountSession(filter util.Filter) int
 }
@@ -35,12 +33,12 @@ func createUUID() string {
 	return util.RandomAlphanumeric(32)
 }
 
-func getRequestInfo(req *http.Request) *common.SessionInfo {
-	sessionInfo := &commonConst.SessionInfo{}
+func getRequestInfo(req *http.Request) *SessionInfo {
+	sessionInfo := &SessionInfo{}
 	if req != nil {
 		sessionInfo.Decode(req)
 		if sessionInfo.ID == "" || sessionInfo.Token == "" {
-			cookieInfo := &commonConst.SessionInfo{}
+			cookieInfo := &SessionInfo{}
 			cookie, err := req.Cookie(sessionCookieID)
 			if err == nil {
 				valData, valErr := base64.StdEncoding.DecodeString(cookie.Value)
@@ -73,7 +71,7 @@ func CreateRegistry(callback CallBack) Registry {
 	return &impl
 }
 
-func (sm *sessionRegistryImpl) GetRequestInfo(res http.ResponseWriter, req *http.Request) *common.SessionInfo {
+func (sm *sessionRegistryImpl) GetRequestInfo(res http.ResponseWriter, req *http.Request) *SessionInfo {
 	return getRequestInfo(req)
 }
 
@@ -89,7 +87,7 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 
 	cur := sm.findSession(sessionID)
 	if cur == nil {
-		if sessionInfo.Scope != commonConst.ShareSession {
+		if sessionInfo.Scope != ShareSession {
 			sessionID = createUUID()
 		}
 		userSession = sm.createSession(sessionID)

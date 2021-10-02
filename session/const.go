@@ -1,4 +1,4 @@
-package common
+package session
 
 import (
 	"net/http"
@@ -14,29 +14,29 @@ const (
 	sessionScope = "sessionScope"
 )
 
-// AuthSessionInfo session info
-const AuthSessionInfo = "authSessionInfo"
+// AuthSessionAccount 鉴权Account
+const AuthSessionAccount = "authSessionAccount"
 
-// AuthAccount 鉴权Account
-const AuthAccount = "authAccount"
+// AuthSessionRole Account 权限组
+const AuthSessionRole = "authSessionRole"
 
-// AuthRole Account 权限组
-const AuthRole = "authRole"
+// AuthSessionNamespace Account namespace
+const AuthSessionNamespace = "authSessionNamespace"
 
-// AuthNamespace Account namespace
-const AuthNamespace = "authNamespace"
+// AuthSessionRemoteAddress 远端地址
+const AuthSessionRemoteAddress = "authSessionRemoteAddress"
 
-// AuthRemoteAddress 远端地址
-const AuthRemoteAddress = "authRemoteAddress"
+// authSessionInfo session info
+const authSessionInfo = "$authSessionInfo$"
 
-// AuthToken 鉴权Token
-const AuthToken = "authToken"
+// authToken 鉴权Token
+const authToken = "authToken"
 
-// IdentifyID 标识ID
-const IdentifyID = "identifyID"
+// identifyID 标识ID
+const identifyID = "identifyID"
 
-// ExpiryDate 会话有效期
-const ExpiryDate = "expiryDate"
+// expiryDate 会话有效期
+const expiryDate = "expiryDate"
 
 const (
 	// ShareSession share session flag value

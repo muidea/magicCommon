@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
-
-	commonConst "github.com/muidea/magicCommon/common"
 )
 
 // Session 会话
@@ -14,8 +12,8 @@ type Session interface {
 	ID() string
 	Flush(res http.ResponseWriter, req *http.Request)
 
-	GetSessionInfo() *commonConst.SessionInfo
-	SetSessionInfo(info *commonConst.SessionInfo)
+	GetSessionInfo() *SessionInfo
+	SetSessionInfo(info *SessionInfo)
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
@@ -60,16 +58,16 @@ func (s *sessionImpl) Flush(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {
-	val, ok := s.GetOption(commonConst.AuthSessionInfo)
+func (s *sessionImpl) GetSessionInfo() (ret *SessionInfo) {
+	val, ok := s.GetOption(authSessionInfo)
 	if !ok {
 		ret = nil
 		return
 	}
 
-	ret, ok = val.(*commonConst.SessionInfo)
+	ret, ok = val.(*SessionInfo)
 	if !ok {
-		s.RemoveOption(commonConst.AuthSessionInfo)
+		s.RemoveOption(authSessionInfo)
 		ret = nil
 		return
 	}
@@ -77,12 +75,12 @@ func (s *sessionImpl) GetSessionInfo() (ret *commonConst.SessionInfo) {
 	return
 }
 
-func (s *sessionImpl) SetSessionInfo(info *commonConst.SessionInfo) {
+func (s *sessionImpl) SetSessionInfo(info *SessionInfo) {
 	if info == nil {
 		return
 	}
 
-	s.SetOption(commonConst.AuthSessionInfo, info)
+	s.SetOption(authSessionInfo, info)
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
@@ -141,7 +139,7 @@ func (s *sessionImpl) timeOut() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryDate, found := s.context[commonConst.ExpiryDate]
+	expiryDate, found := s.context[expiryDate]
 	if found && expiryDate.(int) == -1 {
 		return false
 	}
