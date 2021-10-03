@@ -70,7 +70,7 @@ func (s *BackgroundRoutine) Timer(task Task, intervalValue time.Duration, offset
 		now := time.Now()
 		nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
 		nowOffset += offsetValue
-		curOffset := (nowOffset/intervalValue+1)*intervalValue - nowOffset - offsetValue
+		curOffset := (nowOffset/intervalValue+1)*intervalValue - nowOffset
 
 		//expire := offsetValue + time.Duration(23-now.Hour())*time.Hour + time.Duration(59-now.Minute())*time.Minute + time.Duration(60-now.Second())*time.Second
 		time.Sleep(curOffset)
