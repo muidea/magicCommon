@@ -68,7 +68,7 @@ const onDayDuration = 24 * time.Hour
 func (s *BackgroundRoutine) Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) {
 	go func() {
 		now := time.Now()
-		curOffset := (intervalValue/onDayDuration+1)*intervalValue + offsetValue
+		curOffset := (onDayDuration/intervalValue+1)*intervalValue + offsetValue
 		curOffset -= time.Duration(now.Hour()) * time.Hour
 		curOffset -= time.Duration(now.Minute()) * time.Minute
 		curOffset -= time.Duration(now.Second()) * time.Second
