@@ -62,12 +62,19 @@ func (s *BackgroundRoutine) Invoke(task Task) {
 	syncTask.Wait()
 }
 
+const onDayDuration = 24 * time.Hour
+
 // Timer exec timer task
 func (s *BackgroundRoutine) Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) {
 	go func() {
 		now := time.Now()
-		expire := offsetValue + time.Duration(23-now.Hour())*time.Hour + time.Duration(59-now.Minute())*time.Minute + time.Duration(60-now.Second())*time.Second
-		time.Sleep(expire)
+		curOffset := (intervalValue/onDayDuration+1)*intervalValue + offsetValue
+		curOffset -= time.Duration(now.Hour()) * time.Hour
+		curOffset -= time.Duration(now.Minute()) * time.Minute
+		curOffset -= time.Duration(now.Second()) * time.Second
+
+		//expire := offsetValue + time.Duration(23-now.Hour())*time.Hour + time.Duration(59-now.Minute())*time.Minute + time.Duration(60-now.Second())*time.Second
+		time.Sleep(curOffset)
 
 		// 立即执行一次，然后根据周期来执行
 		task.Run()
