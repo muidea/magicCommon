@@ -23,7 +23,7 @@ type CallBack interface {
 	OnTimeOut(session Session)
 }
 
-var sessionCookieID = "$session_info"
+var sessionCookieID = "$$session_info"
 
 func init() {
 	sessionCookieID = createUUID()

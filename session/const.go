@@ -15,19 +15,19 @@ const (
 )
 
 // AuthAccount 鉴权Account
-const AuthAccount = "authSessionAccount"
+const AuthAccount = "$$authSessionAccount"
 
 // AuthRole Account 权限组
-const AuthRole = "authSessionRole"
+const AuthRole = "$$authSessionRole"
 
 // AuthNamespace Account namespace
-const AuthNamespace = "authSessionNamespace"
+const AuthNamespace = "$$authSessionNamespace"
 
 // AuthRemoteAddress 远端地址
-const AuthRemoteAddress = "authSessionRemoteAddress"
+const AuthRemoteAddress = "$$authSessionRemoteAddress"
 
 // authSessionInfo session info
-const authSessionInfo = "$authSessionInfo$"
+const authSessionInfo = "$$authSessionInfo"
 
 // authToken 鉴权Token
 const authToken = "authToken"
