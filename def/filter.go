@@ -16,7 +16,7 @@ type Filter struct {
 
 // NewFilter new filter
 func NewFilter() *Filter {
-	return &Filter{PageFilter: nil, ContentFilter: &ContentFilter{Items: map[string]interface{}{}}}
+	return &Filter{PageFilter: nil, ContentFilter: &ContentFilter{Items: map[string]string{}}}
 }
 
 // Decode 内容过滤器
@@ -55,7 +55,7 @@ func (s *Filter) Get(key string) (val interface{}, ok bool) {
 	return
 }
 
-func (s *Filter) Set(key string, value interface{}) {
+func (s *Filter) Set(key, value string) {
 	if s.ContentFilter != nil {
 		s.ContentFilter.Items[key] = value
 	}
@@ -69,12 +69,12 @@ func (s *Filter) Remove(key string) {
 
 // ContentFilter contentFilter
 type ContentFilter struct {
-	Items map[string]interface{}
+	Items map[string]string
 }
 
 // Decode 解析内容过滤值
 func (s *ContentFilter) Decode(request *http.Request) bool {
-	s.Items = map[string]interface{}{}
+	s.Items = map[string]string{}
 	vals := request.URL.Query()
 	for k, v := range vals {
 		s.Items[k] = v[0]
@@ -86,8 +86,8 @@ func (s *ContentFilter) Decode(request *http.Request) bool {
 // Encode ContentFilter
 func (s *ContentFilter) Encode(vals url.Values) url.Values {
 	for k, v := range s.Items {
-		if v != nil {
-			vals.Set(k, fmt.Sprintf("%v", v))
+		if v != "" {
+			vals.Set(k, fmt.Sprintf("%s", v))
 		}
 	}
 
