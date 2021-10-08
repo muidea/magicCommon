@@ -73,8 +73,9 @@ type Event interface {
 
 type Result interface {
 	IsOK() bool
-	Set(data interface{})
-	Get() interface{}
+	Error() error
+	Set(data interface{}, err error)
+	Get() (interface{}, error)
 }
 
 type Observer interface {
