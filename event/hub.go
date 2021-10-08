@@ -72,7 +72,6 @@ type Event interface {
 }
 
 type Result interface {
-	IsOK() bool
 	Error() error
 	Set(data interface{}, err error)
 	Get() (interface{}, error)

@@ -4,11 +4,6 @@ import (
 	"errors"
 )
 
-const (
-	waitExecute = iota
-	finishExecute
-)
-
 type baseEvent struct {
 	eventID          string
 	eventSource      string
@@ -19,7 +14,6 @@ type baseEvent struct {
 }
 
 type baseResult struct {
-	statusCode int
 	resultData interface{}
 	resultErr  error
 }
@@ -39,7 +33,7 @@ func NewEvent(id, source, destination string, header Values, data interface{}) E
 }
 
 func NewResult() Result {
-	return &baseResult{statusCode: waitExecute, resultErr: errors.New("非法请求")}
+	return &baseResult{resultErr: errors.New("非法请求")}
 }
 
 func (s *baseEvent) ID() string {
@@ -71,13 +65,8 @@ func (s *baseEvent) Match(pattern string) bool {
 }
 
 func (s *baseResult) Set(data interface{}, err error) {
-	s.statusCode = finishExecute
 	s.resultData = data
 	s.resultErr = err
-}
-
-func (s *baseResult) IsOK() bool {
-	return s.statusCode == finishExecute
 }
 
 func (s *baseResult) Error() error {
