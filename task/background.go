@@ -1,6 +1,8 @@
 package task
 
-import "time"
+import (
+	"time"
+)
 
 // Task 任务对象
 type Task interface {
@@ -67,10 +69,15 @@ const onDayDuration = 24 * time.Hour
 // Timer exec timer task
 func (s *BackgroundRoutine) Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) {
 	go func() {
-		now := time.Now()
-		nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
-		nowOffset += offsetValue
-		curOffset := (nowOffset/intervalValue+1)*intervalValue - nowOffset
+		curOffset := func() time.Duration {
+			now := time.Now()
+			nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
+			if intervalValue < 24*time.Hour {
+				return (nowOffset/intervalValue+1)*intervalValue - nowOffset
+			}
+
+			return (offsetValue + intervalValue - nowOffset + 24*time.Hour) % (24 * time.Hour)
+		}()
 
 		//expire := offsetValue + time.Duration(23-now.Hour())*time.Hour + time.Duration(59-now.Minute())*time.Minute + time.Duration(60-now.Second())*time.Second
 		time.Sleep(curOffset)

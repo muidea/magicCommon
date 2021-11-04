@@ -7,16 +7,21 @@ import (
 )
 
 func TestBackgroundRoutine_Timer(t *testing.T) {
-	intervalValue := 5 * time.Minute
-	//intervalValue := 2 * time.Hour
-	offsetValue := time.Duration(0)
-	//offsetValue := 11 *time.Hour
+	//intervalValue := 10 * time.Minute
+	intervalValue := 24 * time.Hour
+	//offsetValue := time.Duration(0)
+	offsetValue := 1 * time.Hour
 
-	now := time.Now()
-	nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
-	nowOffset += offsetValue
-	curOffset := (nowOffset/intervalValue+1)*intervalValue - nowOffset
+	curOffset := func() time.Duration {
+		now := time.Now()
+		log.Printf("%v", now)
+		nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
+		if intervalValue < 24*time.Hour {
+			return (nowOffset/intervalValue+1)*intervalValue - nowOffset
+		}
 
-	log.Printf("%v", now)
+		return (offsetValue + intervalValue - nowOffset + 24*time.Hour) % (24 * time.Hour)
+	}()
+
 	log.Printf("%v", curOffset)
 }
