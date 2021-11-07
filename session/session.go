@@ -117,12 +117,14 @@ func (s *sessionImpl) RemoveOption(key string) {
 func (s *sessionImpl) OptionKey() []string {
 	keys := []string{}
 
-	s.registry.sessionLock.RLock()
-	defer s.registry.sessionLock.RUnlock()
+	func() {
+		s.registry.sessionLock.RLock()
+		defer s.registry.sessionLock.RUnlock()
 
-	for key := range s.context {
-		keys = append(keys, key)
-	}
+		for key := range s.context {
+			keys = append(keys, key)
+		}
+	}()
 
 	return keys
 }
