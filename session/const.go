@@ -15,22 +15,22 @@ const (
 )
 
 // AuthAccount 鉴权Account
-const AuthAccount = "$$authSessionAccount"
+const AuthAccount = "$$sessionAccount"
 
 // AuthRole Account 权限组
-const AuthRole = "$$authSessionRole"
+const AuthRole = "$$sessionRole"
 
 // AuthNamespace Account namespace
-const AuthNamespace = "$$authSessionNamespace"
+const AuthNamespace = "$$sessionNamespace"
 
 // AuthRemoteAddress 远端地址
-const AuthRemoteAddress = "$$authSessionRemoteAddress"
+const AuthRemoteAddress = "$$sessionRemoteAddress"
 
 // ExpiryValue 会话有效期
-const ExpiryValue = "$$expiryValue"
+const ExpiryValue = "$$sessionExpiryValue"
 
 // authSessionInfo session info
-const authSessionInfo = "$$authSessionInfo"
+const authSessionInfo = "$$sessionInfo"
 
 // authToken 鉴权Token
 const authToken = "authToken"
