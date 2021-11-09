@@ -21,7 +21,7 @@ type Session interface {
 }
 
 const (
-	maxTimeOut = 10
+	defaultSessionTimeOutValue = 10 * time.Minute // 10 minute
 )
 
 type sessionImpl struct {
@@ -141,9 +141,12 @@ func (s *sessionImpl) timeOut() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryDate, found := s.context[expiryDate]
-	if found && expiryDate.(int) == -1 {
+	expiryDate, found := s.context[ExpiryValue]
+	if found && expiryDate.(time.Duration) == -1 {
 		return false
+	}
+	if !found {
+		expiryDate = defaultSessionTimeOutValue
 	}
 
 	preTime, found := s.context["$$refreshTime"]
@@ -152,9 +155,9 @@ func (s *sessionImpl) timeOut() bool {
 	}
 
 	nowTime := time.Now()
-	elapse := nowTime.Sub(preTime.(time.Time)).Minutes()
+	elapse := nowTime.Sub(preTime.(time.Time))
 
-	return elapse > maxTimeOut
+	return elapse > expiryDate.(time.Duration)
 }
 
 func (s *sessionImpl) save() {

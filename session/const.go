@@ -26,6 +26,9 @@ const AuthNamespace = "$$authSessionNamespace"
 // AuthRemoteAddress 远端地址
 const AuthRemoteAddress = "$$authSessionRemoteAddress"
 
+// ExpiryValue 会话有效期
+const ExpiryValue = "$$expiryValue"
+
 // authSessionInfo session info
 const authSessionInfo = "$$authSessionInfo"
 
@@ -34,9 +37,6 @@ const authToken = "authToken"
 
 // identifyID 标识ID
 const identifyID = "identifyID"
-
-// expiryDate 会话有效期
-const expiryDate = "expiryDate"
 
 const (
 	// ShareSession share session flag value
