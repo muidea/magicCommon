@@ -55,7 +55,7 @@ func (s Values) GetBool(key string) bool {
 	}
 
 	switch val.(type) {
-	case int:
+	case bool:
 		return val.(bool)
 	}
 
