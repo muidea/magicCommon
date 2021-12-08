@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,8 @@ func LoadConfig(filePath string, ptr interface{}) (err error) {
 		err = fileErr
 		return
 	}
+	defer fileHandle.Close()
+
 	byteContent, byteErr := ioutil.ReadAll(fileHandle)
 	if byteErr != nil {
 		err = byteErr
@@ -33,6 +36,19 @@ func SaveConfig(filePath string, ptr interface{}) (err error) {
 		return
 	}
 
-	err = ioutil.WriteFile(filePath, byteContent, os.ModeType)
+	fileHandle, fileErr := os.OpenFile(filePath, os.O_TRUNC, os.ModeType)
+	if fileErr != nil {
+		err = fileErr
+		return
+	}
+	defer fileHandle.Close()
+
+	var byteBuffer bytes.Buffer
+	err = json.Indent(&byteBuffer, byteContent, "", "\t")
+	if err != nil {
+		return
+	}
+
+	_, err = byteBuffer.WriteTo(fileHandle)
 	return
 }
