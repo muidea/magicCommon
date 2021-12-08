@@ -21,3 +21,18 @@ func LoadConfig(filePath string, ptr interface{}) (err error) {
 	err = json.Unmarshal(byteContent, ptr)
 	return
 }
+
+func SaveConfig(filePath string, ptr interface{}) (err error) {
+	if ptr == nil {
+		return
+	}
+
+	byteContent, byteErr := json.Marshal(ptr)
+	if byteErr != nil {
+		err = byteErr
+		return
+	}
+
+	err = ioutil.WriteFile(filePath, byteContent, os.ModeType)
+	return
+}
