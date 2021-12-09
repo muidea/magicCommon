@@ -8,7 +8,7 @@ import (
 )
 
 func LoadConfig(filePath string, ptr interface{}) (err error) {
-	fileHandle, fileErr := os.OpenFile(filePath, os.O_RDONLY, os.ModeType)
+	fileHandle, fileErr := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if fileErr != nil {
 		err = fileErr
 		return
@@ -36,7 +36,7 @@ func SaveConfig(filePath string, ptr interface{}) (err error) {
 		return
 	}
 
-	fileHandle, fileErr := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModeType)
+	fileHandle, fileErr := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if fileErr != nil {
 		err = fileErr
 		return
