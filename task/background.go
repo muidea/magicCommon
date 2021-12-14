@@ -9,6 +9,12 @@ type Task interface {
 	Run()
 }
 
+type BackgroundRoutine interface {
+	Post(task Task)
+	Invoke(task Task)
+	Timer(task Task, intervalValue time.Duration, offsetValue time.Duration)
+}
+
 type SyncTask struct {
 	resultChannel chan bool
 	rawTask       Task
@@ -28,24 +34,24 @@ func (s *SyncTask) Wait() {
 
 type taskChannel chan Task
 
-// BackgroundRoutine backGround routine
-type BackgroundRoutine struct {
+// backgroundRoutine backGround routine
+type backgroundRoutine struct {
 	taskChannel taskChannel
 }
 
 // NewBackgroundRoutine new Background routine
-func NewBackgroundRoutine() *BackgroundRoutine {
-	bg := &BackgroundRoutine{taskChannel: make(taskChannel)}
+func NewBackgroundRoutine() BackgroundRoutine {
+	bg := &backgroundRoutine{taskChannel: make(taskChannel)}
 	bg.run()
 
 	return bg
 }
 
-func (s *BackgroundRoutine) run() {
+func (s *backgroundRoutine) run() {
 	go s.loop()
 }
 
-func (s *BackgroundRoutine) loop() {
+func (s *backgroundRoutine) loop() {
 	for {
 		task := <-s.taskChannel
 		task.Run()
@@ -53,11 +59,11 @@ func (s *BackgroundRoutine) loop() {
 }
 
 // Post exec task
-func (s *BackgroundRoutine) Post(task Task) {
+func (s *backgroundRoutine) Post(task Task) {
 	s.taskChannel <- task
 }
 
-func (s *BackgroundRoutine) Invoke(task Task) {
+func (s *backgroundRoutine) Invoke(task Task) {
 	syncTask := &SyncTask{rawTask: task, resultChannel: make(chan bool)}
 	s.taskChannel <- syncTask
 
@@ -67,7 +73,7 @@ func (s *BackgroundRoutine) Invoke(task Task) {
 const onDayDuration = 24 * time.Hour
 
 // Timer exec timer task
-func (s *BackgroundRoutine) Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) {
+func (s *backgroundRoutine) Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) {
 	go func() {
 		curOffset := func() time.Duration {
 			now := time.Now()
