@@ -15,18 +15,18 @@ type BackgroundRoutine interface {
 	Timer(task Task, intervalValue time.Duration, offsetValue time.Duration)
 }
 
-type SyncTask struct {
+type syncTask struct {
 	resultChannel chan bool
 	rawTask       Task
 }
 
-func (s *SyncTask) Run() {
+func (s *syncTask) Run() {
 	s.rawTask.Run()
 
 	s.resultChannel <- true
 }
 
-func (s *SyncTask) Wait() {
+func (s *syncTask) Wait() {
 	<-s.resultChannel
 
 	close(s.resultChannel)
@@ -64,7 +64,7 @@ func (s *backgroundRoutine) Post(task Task) {
 }
 
 func (s *backgroundRoutine) Invoke(task Task) {
-	syncTask := &SyncTask{rawTask: task, resultChannel: make(chan bool)}
+	syncTask := &syncTask{rawTask: task, resultChannel: make(chan bool)}
 	s.taskChannel <- syncTask
 
 	syncTask.Wait()
