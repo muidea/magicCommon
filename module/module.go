@@ -10,7 +10,7 @@ type Service interface {
 	Name() string
 	Startup()
 	Run()
-	Teardown()
+	Shutdown()
 }
 
 var name2ModuleList map[string][]Module

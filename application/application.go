@@ -16,7 +16,7 @@ type Application interface {
 	UnbindService(service module.Service)
 	Startup()
 	Run()
-	Teardown()
+	Shutdown()
 }
 
 var application Application
@@ -93,13 +93,13 @@ func (s *appImpl) Run() {
 	wg.Wait()
 }
 
-func (s *appImpl) Teardown() {
+func (s *appImpl) Shutdown() {
 	var wg sync.WaitGroup
 	s.name2Service.Range(func(key, value interface{}) bool {
 		service := value.(module.Service)
 		wg.Add(1)
 		go func() {
-			service.Teardown()
+			service.Shutdown()
 			wg.Done()
 		}()
 
