@@ -10,13 +10,13 @@ import (
 )
 
 type Application interface {
+	Startup()
+	Run()
+	Shutdown()
 	EventHub() event.Hub
 	BackgroundRoutine() task.BackgroundRoutine
 	BindService(service module.Service)
 	UnbindService(service module.Service)
-	Startup()
-	Run()
-	Shutdown()
 }
 
 var application Application
@@ -37,28 +37,6 @@ type appImpl struct {
 	backgroundRoutine task.BackgroundRoutine
 	eventHub          event.Hub
 	name2Service      sync.Map
-}
-
-func (s *appImpl) EventHub() event.Hub {
-	return s.eventHub
-}
-
-func (s *appImpl) BackgroundRoutine() task.BackgroundRoutine {
-	return s.backgroundRoutine
-}
-
-func (s *appImpl) BindService(service module.Service) {
-	_, ok := s.name2Service.Load(service.Name())
-	if ok {
-		log.Fatalf("duplicate service, name:%s", service.Name())
-		return
-	}
-
-	s.name2Service.Store(service.Name(), service)
-}
-
-func (s *appImpl) UnbindService(service module.Service) {
-	s.name2Service.Delete(service.Name())
 }
 
 func (s *appImpl) Startup() {
@@ -107,4 +85,26 @@ func (s *appImpl) Shutdown() {
 	})
 
 	wg.Wait()
+}
+
+func (s *appImpl) EventHub() event.Hub {
+	return s.eventHub
+}
+
+func (s *appImpl) BackgroundRoutine() task.BackgroundRoutine {
+	return s.backgroundRoutine
+}
+
+func (s *appImpl) BindService(service module.Service) {
+	_, ok := s.name2Service.Load(service.Name())
+	if ok {
+		log.Fatalf("duplicate service, name:%s", service.Name())
+		return
+	}
+
+	s.name2Service.Store(service.Name(), service)
+}
+
+func (s *appImpl) UnbindService(service module.Service) {
+	s.name2Service.Delete(service.Name())
 }

@@ -2,8 +2,8 @@ package module
 
 type Module interface {
 	ID() string
-	Startup()
-	Shutdown()
+	Setup()
+	Teardown()
 }
 
 type Service interface {
