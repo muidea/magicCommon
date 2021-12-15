@@ -1,7 +1,6 @@
 package application
 
 import (
-	"log"
 	"sync"
 
 	"github.com/muidea/magicCommon/event"
@@ -10,13 +9,11 @@ import (
 )
 
 type Application interface {
-	Startup()
+	Startup(service module.Service)
 	Run()
 	Shutdown()
 	EventHub() event.Hub
 	BackgroundRoutine() task.BackgroundRoutine
-	BindService(service module.Service)
-	UnbindService(service module.Service)
 }
 
 var application Application
@@ -36,55 +33,28 @@ func GetApp() Application {
 type appImpl struct {
 	backgroundRoutine task.BackgroundRoutine
 	eventHub          event.Hub
-	name2Service      sync.Map
+	service           module.Service
 }
 
-func (s *appImpl) Startup() {
-	var wg sync.WaitGroup
-	s.name2Service.Range(func(key, value interface{}) bool {
-		service := value.(module.Service)
-		wg.Add(1)
-		go func() {
-			service.Startup()
-			wg.Done()
-		}()
-
-		return true
-	})
-
-	wg.Wait()
+func (s *appImpl) Startup(service module.Service) {
+	s.service = service
+	s.service.Startup()
 }
 
 func (s *appImpl) Run() {
-	var wg sync.WaitGroup
-	s.name2Service.Range(func(key, value interface{}) bool {
-		service := value.(module.Service)
-		wg.Add(1)
-		go func() {
-			service.Run()
-			wg.Done()
-		}()
+	if s.service == nil {
+		return
+	}
 
-		return true
-	})
-
-	wg.Wait()
+	s.service.Run()
 }
 
 func (s *appImpl) Shutdown() {
-	var wg sync.WaitGroup
-	s.name2Service.Range(func(key, value interface{}) bool {
-		service := value.(module.Service)
-		wg.Add(1)
-		go func() {
-			service.Shutdown()
-			wg.Done()
-		}()
+	if s.service == nil {
+		return
+	}
 
-		return true
-	})
-
-	wg.Wait()
+	s.service.Shutdown()
 }
 
 func (s *appImpl) EventHub() event.Hub {
@@ -93,18 +63,4 @@ func (s *appImpl) EventHub() event.Hub {
 
 func (s *appImpl) BackgroundRoutine() task.BackgroundRoutine {
 	return s.backgroundRoutine
-}
-
-func (s *appImpl) BindService(service module.Service) {
-	_, ok := s.name2Service.Load(service.Name())
-	if ok {
-		log.Fatalf("duplicate service, name:%s", service.Name())
-		return
-	}
-
-	s.name2Service.Store(service.Name(), service)
-}
-
-func (s *appImpl) UnbindService(service module.Service) {
-	s.name2Service.Delete(service.Name())
 }
