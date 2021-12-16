@@ -9,10 +9,9 @@ import (
 )
 
 type Application interface {
-	Startup(endpointName string, service module.Service)
+	Startup(service module.Service)
 	Run()
 	Shutdown()
-	EndpointName() string
 	EventHub() event.Hub
 	BackgroundRoutine() task.BackgroundRoutine
 }
@@ -34,12 +33,10 @@ func GetApp() Application {
 type appImpl struct {
 	backgroundRoutine task.BackgroundRoutine
 	eventHub          event.Hub
-	endpointName      string
 	service           module.Service
 }
 
-func (s *appImpl) Startup(endpointName string, service module.Service) {
-	s.endpointName = endpointName
+func (s *appImpl) Startup(service module.Service) {
 	s.service = service
 	s.service.Startup()
 }
@@ -58,10 +55,6 @@ func (s *appImpl) Shutdown() {
 	}
 
 	s.service.Shutdown()
-}
-
-func (s *appImpl) EndpointName() string {
-	return s.endpointName
 }
 
 func (s *appImpl) EventHub() event.Hub {
