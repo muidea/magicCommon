@@ -13,23 +13,12 @@ type Service interface {
 	Shutdown()
 }
 
-var name2ModuleList map[string][]Module
+var moduleList []Module
 
-func Register(serviceName string, module Module) {
-	list, ok := name2ModuleList[serviceName]
-	if !ok {
-		list = []Module{}
-	}
-
-	list = append(list, module)
-	name2ModuleList[serviceName] = list
+func Register(module Module) {
+	moduleList = append(moduleList, module)
 }
 
-func GetModules(serviceName string) []Module {
-	list, ok := name2ModuleList[serviceName]
-	if ok {
-		return list
-	}
-
-	return []Module{}
+func GetModules() []Module {
+	return moduleList
 }
