@@ -2,7 +2,7 @@ package module
 
 type Module interface {
 	ID() string
-	Setup()
+	Setup(endpointName string)
 	Teardown()
 }
 
