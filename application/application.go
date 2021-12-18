@@ -38,7 +38,7 @@ type appImpl struct {
 
 func (s *appImpl) Startup(service module.Service) {
 	s.service = service
-	s.service.Startup()
+	s.service.Startup(s.eventHub, s.backgroundRoutine)
 }
 
 func (s *appImpl) Run() {
