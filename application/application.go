@@ -4,12 +4,12 @@ import (
 	"sync"
 
 	"github.com/muidea/magicCommon/event"
-	"github.com/muidea/magicCommon/module"
+	"github.com/muidea/magicCommon/service"
 	"github.com/muidea/magicCommon/task"
 )
 
 type Application interface {
-	Startup(service module.Service)
+	Startup(service service.Service)
 	Run()
 	Shutdown()
 	EventHub() event.Hub
@@ -33,10 +33,10 @@ func GetApp() Application {
 type appImpl struct {
 	backgroundRoutine task.BackgroundRoutine
 	eventHub          event.Hub
-	service           module.Service
+	service           service.Service
 }
 
-func (s *appImpl) Startup(service module.Service) {
+func (s *appImpl) Startup(service service.Service) {
 	s.service = service
 	s.service.Startup(s.eventHub, s.backgroundRoutine)
 }

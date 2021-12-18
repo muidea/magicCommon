@@ -11,12 +11,6 @@ type Module interface {
 	Teardown()
 }
 
-type Service interface {
-	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine)
-	Run()
-	Shutdown()
-}
-
 var moduleList []Module
 
 func Register(module Module) {
