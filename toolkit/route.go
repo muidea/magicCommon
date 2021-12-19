@@ -1,14 +1,15 @@
 package toolkit
 
 import (
+	"context"
 	"net/http"
 
 	engine "github.com/muidea/magicEngine"
 )
 
-// RouteRegistry private route registry
+// RouteRegistry route registry
 type RouteRegistry interface {
-	AddHandler(pattern, method string, handler func(http.ResponseWriter, *http.Request))
+	AddHandler(pattern, method string, handler func(context.Context, http.ResponseWriter, *http.Request))
 
 	AddRoute(route engine.Route, filters ...engine.MiddleWareHandler)
 }
@@ -26,7 +27,7 @@ type routeRegistryImpl struct {
 // AddHandler add route handler
 func (s *routeRegistryImpl) AddHandler(
 	pattern, method string,
-	handler func(http.ResponseWriter, *http.Request)) {
+	handler func(context.Context, http.ResponseWriter, *http.Request)) {
 
 	s.router.AddRoute(engine.CreateRoute(pattern, method, handler))
 }

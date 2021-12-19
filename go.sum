@@ -43,6 +43,8 @@ github.com/muidea/magicEngine v0.0.0-20200620092726-660b2483d050 h1:g9a+yblCpyXH
 github.com/muidea/magicEngine v0.0.0-20200620092726-660b2483d050/go.mod h1:pfFI5o05gCTQHrjHxwrhLd4uAAIfaTAGxymsy1fj5YA=
 github.com/muidea/magicEngine v0.0.0-20211011141410-5418acb3657d h1:oaEGHDcxDhXhWIK+t+GN5t9L4kF4NDEmNfoRHOk8VQQ=
 github.com/muidea/magicEngine v0.0.0-20211011141410-5418acb3657d/go.mod h1:pfFI5o05gCTQHrjHxwrhLd4uAAIfaTAGxymsy1fj5YA=
+github.com/muidea/magicEngine v0.0.0-20211219074645-49a3a434d25e h1:wnDdw+s7uWK12JFaMdQe0p2DWmIhpXnp0Wi+Y67Huks=
+github.com/muidea/magicEngine v0.0.0-20211219074645-49a3a434d25e/go.mod h1:pfFI5o05gCTQHrjHxwrhLd4uAAIfaTAGxymsy1fj5YA=
 github.com/muidea/magicOrm v0.0.0-20211122095034-dd9b465691da h1:N3fArIP2hxHz+6hIg/5fKulVKPLF9J85zL7xJds3u+g=
 github.com/muidea/magicOrm v0.0.0-20211122095034-dd9b465691da/go.mod h1:NedpFphDEYahbS/ZLrnYapm/wZAf3Yjbhpbw9n7mv0k=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
