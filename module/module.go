@@ -32,9 +32,9 @@ func validModule(ptr interface{}) {
 	}
 
 	vType = vType.Elem()
-	_, idOK := vType.FieldByName("ID")
-	_, setupOK := vType.FieldByName("Setup")
-	_, teardownOK := vType.FieldByName("Teardown")
+	_, idOK := vType.MethodByName("ID")
+	_, setupOK := vType.MethodByName("Setup")
+	_, teardownOK := vType.MethodByName("Teardown")
 	if !idOK || !setupOK || !teardownOK {
 		panic("invalid module")
 	}
