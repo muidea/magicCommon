@@ -31,7 +31,6 @@ func validModule(ptr interface{}) {
 		panic("must be a object ptr")
 	}
 
-	vType = vType.Elem()
 	_, idOK := vType.MethodByName("ID")
 	_, setupOK := vType.MethodByName("Setup")
 	_, teardownOK := vType.MethodByName("Teardown")
@@ -40,10 +39,8 @@ func validModule(ptr interface{}) {
 	}
 }
 
-func Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, module interface{}) (err error) {
+func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err error) {
 	vVal := reflect.ValueOf(module)
-	vVal = vVal.Elem()
-
 	setupFun := vVal.MethodByName("Setup")
 	if setupFun.IsNil() {
 		err = fmt.Errorf("illegal module")
@@ -52,8 +49,16 @@ func Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.Backg
 
 	param := make([]reflect.Value, 3)
 	param[0] = reflect.ValueOf(endpointName)
-	param[1] = reflect.ValueOf(eventHub)
-	param[2] = reflect.ValueOf(backgroundRoutine)
+	if eventHub != nil {
+		param[1] = reflect.ValueOf(eventHub)
+	} else {
+		param[1] = reflect.New(setupFun.Type().In(1)).Elem()
+	}
+	if backgroundRoutine != nil {
+		param[2] = reflect.ValueOf(backgroundRoutine)
+	} else {
+		param[2] = reflect.New(setupFun.Type().In(2)).Elem()
+	}
 
 	setupFun.Call(param)
 	return
@@ -61,8 +66,6 @@ func Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.Backg
 
 func Teardown(module interface{}) (err error) {
 	vVal := reflect.ValueOf(module)
-	vVal = vVal.Elem()
-
 	teardownFun := vVal.MethodByName("Teardown")
 	if teardownFun.IsNil() {
 		err = fmt.Errorf("illegal module")
