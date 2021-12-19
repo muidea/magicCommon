@@ -2,6 +2,7 @@ package module
 
 import (
 	"fmt"
+	"github.com/muidea/magicBatis/client"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
 	"reflect"
@@ -74,5 +75,24 @@ func Teardown(module interface{}) (err error) {
 
 	param := make([]reflect.Value, 0)
 	teardownFun.Call(param)
+	return
+}
+
+func BindBatisClient(module interface{}, clnt client.Client) (err error) {
+	if clnt == nil {
+		err = fmt.Errorf("illegal batis client")
+		return
+	}
+
+	vVal := reflect.ValueOf(module)
+	bindFun := vVal.MethodByName("BindBatisClient")
+	if bindFun.IsNil() {
+		return
+	}
+
+	param := make([]reflect.Value, 1)
+	param[0] = reflect.ValueOf(clnt)
+
+	bindFun.Call(param)
 	return
 }
