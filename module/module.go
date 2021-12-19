@@ -40,7 +40,7 @@ func validModule(ptr interface{}) {
 	}
 }
 
-func Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, module interface{}) (ret interface{}, err error) {
+func Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, module interface{}) (err error) {
 	vVal := reflect.ValueOf(module)
 	vVal = vVal.Elem()
 
@@ -59,7 +59,7 @@ func Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.Backg
 	return
 }
 
-func Teardown(module interface{}) (ret interface{}, err error) {
+func Teardown(module interface{}) (err error) {
 	vVal := reflect.ValueOf(module)
 	vVal = vVal.Elem()
 
