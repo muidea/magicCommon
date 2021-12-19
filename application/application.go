@@ -19,7 +19,22 @@ type Application interface {
 var application Application
 var applicationOnce sync.Once
 
-func GetApp() Application {
+func Startup(service service.Service) {
+	app := Get()
+	app.Startup(service)
+}
+
+func Run() {
+	app := Get()
+	app.Run()
+}
+
+func Shutdown() {
+	app := Get()
+	app.Shutdown()
+}
+
+func Get() Application {
 	applicationOnce.Do(func() {
 		application = &appImpl{
 			backgroundRoutine: task.NewBackgroundRoutine(),
