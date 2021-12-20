@@ -25,8 +25,9 @@ type CasRegistry interface {
 }
 
 // NewCasRegistry create cas Registry
-func NewCasRegistry(verifier CasVerifier, router engine.Router) CasRegistry {
-	return &casRegistryImpl{casVerifier: verifier, router: router}
+func NewCasRegistry(verifier CasVerifier, router engine.Router) (ret CasRegistry) {
+	ret = &casRegistryImpl{casVerifier: verifier, router: router}
+	return
 }
 
 // casRegistryImpl cas route registry

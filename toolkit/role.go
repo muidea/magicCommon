@@ -29,8 +29,9 @@ type RoleRegistry interface {
 }
 
 // NewRoleRegistry create routeRegistry
-func NewRoleRegistry(verifier RoleVerifier, router engine.Router) RoleRegistry {
-	return &roleRegistryImpl{roleVerifier: verifier, router: router, privateItemSlice: privateItemSlice{}}
+func NewRoleRegistry(verifier RoleVerifier, router engine.Router) (ret RoleRegistry) {
+	ret = &roleRegistryImpl{roleVerifier: verifier, router: router, privateItemSlice: privateItemSlice{}}
+	return
 }
 
 type privateItem struct {

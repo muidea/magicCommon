@@ -17,8 +17,9 @@ type RouteRegistry interface {
 }
 
 // NewRouteRegistry create routeRegistry
-func NewRouteRegistry(router engine.Router) RouteRegistry {
-	return &routeRegistryImpl{router: router}
+func NewRouteRegistry(router engine.Router) (ret RouteRegistry) {
+	ret = &routeRegistryImpl{router: router}
+	return
 }
 
 // routeRegistryImpl route registry
