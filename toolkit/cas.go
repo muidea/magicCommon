@@ -12,7 +12,7 @@ import (
 
 // CasVerifier cas verifier
 type CasVerifier interface {
-	Verify(ctx context.Context, res http.ResponseWriter, req *http.Request) (def.Entity, error)
+	Verify(ctx context.Context, res http.ResponseWriter, req *http.Request) (*def.Entity, error)
 }
 
 // CasRegistry private route registry
