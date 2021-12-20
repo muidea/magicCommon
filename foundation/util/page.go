@@ -15,9 +15,9 @@ const (
 // PageFilter 页面过滤器
 type PageFilter struct {
 	// 单页条目数
-	PageSize int `json:"pageSize"`
+	PageSize int `json:"page_size"`
 	// 页码
-	PageNum int `json:"pageNum"`
+	PageNum int `json:"page_num"`
 }
 
 func NewPageFilter() *PageFilter {
@@ -26,8 +26,8 @@ func NewPageFilter() *PageFilter {
 
 // Decode 从request里解析PageFilter
 func (s *PageFilter) Decode(request *http.Request) bool {
-	pageSize := request.URL.Query().Get("pageSize")
-	pageNum := request.URL.Query().Get("pageNum")
+	pageSize := request.URL.Query().Get("page_size")
+	pageNum := request.URL.Query().Get("page_num")
 	if pageSize == "" && pageNum == "" {
 		return false
 	}
@@ -52,8 +52,8 @@ func (s *PageFilter) Decode(request *http.Request) bool {
 
 // Encode encode url.Values
 func (s *PageFilter) Encode(vals url.Values) url.Values {
-	vals.Set("pageSize", fmt.Sprintf("%d", s.PageSize))
-	vals.Set("pageNum", fmt.Sprintf("%d", s.PageNum))
+	vals.Set("page_size", fmt.Sprintf("%d", s.PageSize))
+	vals.Set("page_num", fmt.Sprintf("%d", s.PageNum))
 
 	return vals
 }

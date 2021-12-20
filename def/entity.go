@@ -1,7 +1,7 @@
 package def
 
 type Entity struct {
-	EName string `json:"name"`
-	EID   int    `json:"eID"`
-	EType string `json:"eType"`
+	EName string `json:"ename"`
+	EID   int    `json:"eid"`
+	EType string `json:"etype"`
 }
