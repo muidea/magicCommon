@@ -9,6 +9,8 @@ import (
 
 // RouteRegistry route registry
 type RouteRegistry interface {
+	SetApiVersion(version string)
+
 	AddHandler(pattern, method string, handler func(context.Context, http.ResponseWriter, *http.Request))
 
 	AddRoute(route engine.Route, filters ...engine.MiddleWareHandler)
@@ -22,6 +24,10 @@ func NewRouteRegistry(router engine.Router) RouteRegistry {
 // routeRegistryImpl route registry
 type routeRegistryImpl struct {
 	router engine.Router
+}
+
+func (s *routeRegistryImpl) SetApiVersion(version string) {
+	s.router.SetApiVersion(version)
 }
 
 // AddHandler add route handler

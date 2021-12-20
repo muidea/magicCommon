@@ -19,6 +19,8 @@ type RoleVerifier interface {
 
 // RoleRegistry role route registry
 type RoleRegistry interface {
+	SetApiVersion(version string)
+
 	AddHandler(pattern, method string, privateValue int, handler func(context.Context, http.ResponseWriter, *http.Request))
 
 	AddRoute(route engine.Route, privateValue int, filters ...engine.MiddleWareHandler)
@@ -44,6 +46,10 @@ type roleRegistryImpl struct {
 	roleVerifier     RoleVerifier
 	router           engine.Router
 	privateItemSlice privateItemSlice
+}
+
+func (s *roleRegistryImpl) SetApiVersion(version string) {
+	s.router.SetApiVersion(version)
 }
 
 // AddHandler add route handler

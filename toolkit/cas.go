@@ -17,6 +17,8 @@ type CasVerifier interface {
 
 // CasRegistry private route registry
 type CasRegistry interface {
+	SetApiVersion(version string)
+
 	AddHandler(pattern, method string, handler func(context.Context, http.ResponseWriter, *http.Request))
 
 	AddRoute(route engine.Route, filters ...engine.MiddleWareHandler)
@@ -31,6 +33,10 @@ func NewCasRegistry(verifier CasVerifier, router engine.Router) CasRegistry {
 type casRegistryImpl struct {
 	casVerifier CasVerifier
 	router      engine.Router
+}
+
+func (s *casRegistryImpl) SetApiVersion(version string) {
+	s.router.SetApiVersion(version)
 }
 
 // AddHandler add route handler
