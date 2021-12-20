@@ -2,10 +2,12 @@ package module
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/muidea/magicBatis/client"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
-	"reflect"
+	"github.com/muidea/magicCommon/toolkit"
 )
 
 type Module interface {
@@ -48,6 +50,12 @@ func Setup(module interface{}, endpointName string, eventHub event.Hub, backgrou
 		return
 	}
 
+	defer func() {
+		if info := recover(); info != nil {
+			err = fmt.Errorf("setup unexpect, err:%v", info)
+		}
+	}()
+
 	param := make([]reflect.Value, 3)
 	param[0] = reflect.ValueOf(endpointName)
 	if eventHub != nil {
@@ -73,6 +81,12 @@ func Teardown(module interface{}) (err error) {
 		return
 	}
 
+	defer func() {
+		if info := recover(); info != nil {
+			err = fmt.Errorf("teardown unexpect, err:%v", info)
+		}
+	}()
+
 	param := make([]reflect.Value, 0)
 	teardownFun.Call(param)
 	return
@@ -90,8 +104,41 @@ func BindBatisClient(module interface{}, clnt client.Client) (err error) {
 		return
 	}
 
+	defer func() {
+		if info := recover(); info != nil {
+			err = fmt.Errorf("bind batis client unexpect, err:%v", info)
+		}
+	}()
+
 	param := make([]reflect.Value, 1)
 	param[0] = reflect.ValueOf(clnt)
+
+	bindFun.Call(param)
+	return
+}
+
+func BindRegistry(module interface{}, routeRegistry toolkit.RouteRegistry, casRegistry toolkit.CasRegistry, roleRegistry toolkit.RoleRegistry) (err error) {
+	if routeRegistry == nil || casRegistry == nil || roleRegistry == nil {
+		err = fmt.Errorf("illegal registry")
+		return
+	}
+
+	vVal := reflect.ValueOf(module)
+	bindFun := vVal.MethodByName("BindRegistry")
+	if bindFun.IsNil() {
+		return
+	}
+
+	defer func() {
+		if info := recover(); info != nil {
+			err = fmt.Errorf("bind registry unexpect, err:%v", info)
+		}
+	}()
+
+	param := make([]reflect.Value, 3)
+	param[0] = reflect.ValueOf(routeRegistry)
+	param[1] = reflect.ValueOf(casRegistry)
+	param[2] = reflect.ValueOf(roleRegistry)
 
 	bindFun.Call(param)
 	return
