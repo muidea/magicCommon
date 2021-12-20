@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/muidea/magicBatis/client"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
-	"github.com/muidea/magicCommon/toolkit"
 )
 
 type Module interface {
@@ -92,7 +90,7 @@ func Teardown(module interface{}) (err error) {
 	return
 }
 
-func BindBatisClient(module interface{}, clnt client.Client) (err error) {
+func BindBatisClient(module interface{}, clnt interface{}) (err error) {
 	if clnt == nil {
 		err = fmt.Errorf("illegal batis client")
 		return
@@ -110,6 +108,11 @@ func BindBatisClient(module interface{}, clnt client.Client) (err error) {
 		}
 	}()
 
+	clntVal := reflect.ValueOf(clnt).Elem()
+	if bindFun.Type().In(0).String() != clntVal.Type().String() {
+		return
+	}
+
 	param := make([]reflect.Value, 1)
 	param[0] = reflect.ValueOf(clnt)
 
@@ -117,7 +120,7 @@ func BindBatisClient(module interface{}, clnt client.Client) (err error) {
 	return
 }
 
-func BindRegistry(module interface{}, routeRegistry toolkit.RouteRegistry, casRegistry toolkit.CasRegistry, roleRegistry toolkit.RoleRegistry) (err error) {
+func BindRegistry(module interface{}, registry ...interface{}) (err error) {
 	vVal := reflect.ValueOf(module)
 	bindFun := vVal.MethodByName("BindRegistry")
 	if bindFun.IsNil() {
@@ -130,21 +133,13 @@ func BindRegistry(module interface{}, routeRegistry toolkit.RouteRegistry, casRe
 		}
 	}()
 
-	param := make([]reflect.Value, 3)
-	if routeRegistry != nil {
-		param[0] = reflect.ValueOf(routeRegistry)
-	} else {
-		param[0] = reflect.New(bindFun.Type().In(0)).Elem()
-	}
-	if casRegistry != nil {
-		param[1] = reflect.ValueOf(casRegistry)
-	} else {
-		param[1] = reflect.New(bindFun.Type().In(1)).Elem()
-	}
-	if roleRegistry != nil {
-		param[2] = reflect.ValueOf(roleRegistry)
-	} else {
-		param[2] = reflect.New(bindFun.Type().In(2)).Elem()
+	param := make([]reflect.Value, len(registry))
+	for idx, val := range registry {
+		if val != nil {
+			param[idx] = reflect.ValueOf(val)
+		} else {
+			param[idx] = reflect.New(bindFun.Type().In(idx)).Elem()
+		}
 	}
 
 	bindFun.Call(param)
