@@ -118,11 +118,6 @@ func BindBatisClient(module interface{}, clnt client.Client) (err error) {
 }
 
 func BindRegistry(module interface{}, routeRegistry toolkit.RouteRegistry, casRegistry toolkit.CasRegistry, roleRegistry toolkit.RoleRegistry) (err error) {
-	if routeRegistry == nil || casRegistry == nil || roleRegistry == nil {
-		err = fmt.Errorf("illegal registry")
-		return
-	}
-
 	vVal := reflect.ValueOf(module)
 	bindFun := vVal.MethodByName("BindRegistry")
 	if bindFun.IsNil() {
@@ -136,9 +131,21 @@ func BindRegistry(module interface{}, routeRegistry toolkit.RouteRegistry, casRe
 	}()
 
 	param := make([]reflect.Value, 3)
-	param[0] = reflect.ValueOf(routeRegistry)
-	param[1] = reflect.ValueOf(casRegistry)
-	param[2] = reflect.ValueOf(roleRegistry)
+	if routeRegistry != nil {
+		param[0] = reflect.ValueOf(routeRegistry)
+	} else {
+		param[0] = reflect.New(bindFun.Type().In(0)).Elem()
+	}
+	if casRegistry != nil {
+		param[1] = reflect.ValueOf(casRegistry)
+	} else {
+		param[1] = reflect.New(bindFun.Type().In(1)).Elem()
+	}
+	if roleRegistry != nil {
+		param[2] = reflect.ValueOf(roleRegistry)
+	} else {
+		param[2] = reflect.New(bindFun.Type().In(2)).Elem()
+	}
 
 	bindFun.Call(param)
 	return
