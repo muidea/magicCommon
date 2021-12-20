@@ -6,72 +6,77 @@ import (
 	"net/url"
 )
 
-// Filter 过滤器
-type Filter struct {
-	PageFilter    *PageFilter
-	ContentFilter *ContentFilter
+// Filter value filter
+type Filter interface {
+	Filter(val interface{}) bool
+}
+
+// ContentFilter 过滤器
+type ContentFilter struct {
+	Pagination *Pagination
+	ParamItems *ParamItems
 }
 
 // NewFilter new filter
-func NewFilter() *Filter {
-	return &Filter{PageFilter: nil, ContentFilter: &ContentFilter{Items: map[string]string{}}}
+func NewFilter() *ContentFilter {
+	return &ContentFilter{Pagination: nil, ParamItems: &ParamItems{Items: map[string]string{}}}
 }
 
 // Decode 内容过滤器
-func (s *Filter) Decode(request *http.Request) bool {
-	pageFilter := &PageFilter{}
+func (s *ContentFilter) Decode(request *http.Request) bool {
+	pageFilter := &Pagination{}
 	if pageFilter.Decode(request) {
-		s.PageFilter = pageFilter
+		s.Pagination = pageFilter
 	}
 
-	contentFilter := &ContentFilter{}
+	contentFilter := &ParamItems{}
 	if contentFilter.Decode(request) {
-		s.ContentFilter = contentFilter
+		s.ParamItems = contentFilter
 	}
 
-	return s.PageFilter != nil || s.ContentFilter != nil
+	return s.Pagination != nil || s.ParamItems != nil
 }
 
 // Encode encode filter
-func (s *Filter) Encode(vals url.Values) url.Values {
-	if s.PageFilter != nil {
-		vals = s.PageFilter.Encode(vals)
+func (s *ContentFilter) Encode(vals url.Values) url.Values {
+	if s.Pagination != nil {
+		vals = s.Pagination.Encode(vals)
 	}
-	if s.ContentFilter != nil {
-		vals = s.ContentFilter.Encode(vals)
+	if s.ParamItems != nil {
+		vals = s.ParamItems.Encode(vals)
 	}
 
 	return vals
 }
 
-func (s *Filter) Get(key string) (val string, ok bool) {
-	if s.ContentFilter != nil {
-		val, ok = s.ContentFilter.Items[key]
+func (s *ContentFilter) Get(key string) (val string, ok bool) {
+	if s.ParamItems != nil {
+		val, ok = s.ParamItems.Items[key]
 		return
 	}
 
 	return
 }
 
-func (s *Filter) Set(key, value string) {
-	if s.ContentFilter != nil {
-		s.ContentFilter.Items[key] = value
+func (s *ContentFilter) Set(key, value string) {
+	if s.ParamItems != nil {
+		s.ParamItems.Items[key] = value
 	}
 }
 
-func (s *Filter) Remove(key string) {
-	if s.ContentFilter != nil {
-		delete(s.ContentFilter.Items, key)
+func (s *ContentFilter) Remove(key string) {
+	if s.ParamItems != nil {
+		delete(s.ParamItems.Items, key)
 	}
 }
 
-// ContentFilter contentFilter
-type ContentFilter struct {
+// ParamItems contentFilter
+type ParamItems struct {
 	Items map[string]string
 }
 
 // Decode 解析内容过滤值
-func (s *ContentFilter) Decode(request *http.Request) bool {
+func (s *ParamItems) Decode(request *http.Request) bool {
 	s.Items = map[string]string{}
 	vals := request.URL.Query()
 	for k, v := range vals {
@@ -81,8 +86,8 @@ func (s *ContentFilter) Decode(request *http.Request) bool {
 	return true
 }
 
-// Encode ContentFilter
-func (s *ContentFilter) Encode(vals url.Values) url.Values {
+// Encode ParamItems
+func (s *ParamItems) Encode(vals url.Values) url.Values {
 	for k, v := range s.Items {
 		if v != "" {
 			vals.Set(k, fmt.Sprintf("%s", v))

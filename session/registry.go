@@ -283,7 +283,7 @@ func (right commandChanImpl) run() {
 			}
 			count := 0
 			for _, val := range sessionContextMap {
-				if filter.Enable(val) {
+				if filter.Filter(val) {
 					count++
 				}
 			}

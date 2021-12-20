@@ -8,18 +8,13 @@ import (
 // ObjectList object list
 type ObjectList []interface{}
 
-// ObjectFilter object filter
-type ObjectFilter interface {
-	Filter(obj interface{}) bool
-}
-
 // ObjectRegistry object 仓库
 type ObjectRegistry interface {
 	Put(id string, object interface{})
 	Get(id string) interface{}
 	Sort(sorter ObjectSorter)
-	FetchList(pageFilter *PageFilter) *ObjectList
-	Filter(filter ObjectFilter, pageFilter *PageFilter) *ObjectList
+	FetchList(pageFilter *Pagination) *ObjectList
+	Filter(filter Filter, pageFilter *Pagination) *ObjectList
 	Remove(id string)
 }
 
@@ -28,8 +23,8 @@ type CatalogObjectRegistry interface {
 	Put(id, catalog string, object interface{})
 	Get(id, catalog string) interface{}
 	Sort(catalog string, sorter ObjectSorter)
-	FetchList(catalog string, pageFilter *PageFilter) *ObjectList
-	Filter(catalog string, filter ObjectFilter, pageFilter *PageFilter) *ObjectList
+	FetchList(catalog string, pageFilter *Pagination) *ObjectList
+	Filter(catalog string, filter Filter, pageFilter *Pagination) *ObjectList
 	Remove(id, catalog string)
 }
 
@@ -89,7 +84,7 @@ func (s *catalogRegistry) Sort(catalog string, sorter ObjectSorter) {
 	registry.Sort(sorter)
 }
 
-func (s *catalogRegistry) FetchList(catalog string, pageFilter *PageFilter) *ObjectList {
+func (s *catalogRegistry) FetchList(catalog string, pageFilter *Pagination) *ObjectList {
 	s.registryLock.RLock()
 	defer s.registryLock.RUnlock()
 
@@ -101,7 +96,7 @@ func (s *catalogRegistry) FetchList(catalog string, pageFilter *PageFilter) *Obj
 	return registry.FetchList(pageFilter)
 }
 
-func (s *catalogRegistry) Filter(catalog string, filter ObjectFilter, pageFilter *PageFilter) *ObjectList {
+func (s *catalogRegistry) Filter(catalog string, filter Filter, pageFilter *Pagination) *ObjectList {
 	s.registryLock.RLock()
 	defer s.registryLock.RUnlock()
 
@@ -165,7 +160,7 @@ type sortResult struct {
 }
 
 type fetchParam struct {
-	pageFilter *PageFilter
+	pageFilter *Pagination
 }
 
 type fetchResult struct {
@@ -174,8 +169,8 @@ type fetchResult struct {
 }
 
 type filterParam struct {
-	filter     ObjectFilter
-	pageFilter *PageFilter
+	filter     Filter
+	pageFilter *Pagination
 }
 
 type filterResult struct {
@@ -341,7 +336,7 @@ func (s *registry) Sort(sorter ObjectSorter) {
 	<-reply
 }
 
-func (s *registry) FetchList(pageFilter *PageFilter) *ObjectList {
+func (s *registry) FetchList(pageFilter *Pagination) *ObjectList {
 	reply := make(chan interface{})
 
 	item := &actionObj{action: fetchObjList, param: &fetchParam{pageFilter: pageFilter}, reply: reply}
@@ -352,7 +347,7 @@ func (s *registry) FetchList(pageFilter *PageFilter) *ObjectList {
 	return result.objList
 }
 
-func (s *registry) Filter(filter ObjectFilter, pageFilter *PageFilter) *ObjectList {
+func (s *registry) Filter(filter Filter, pageFilter *Pagination) *ObjectList {
 	reply := make(chan interface{})
 
 	item := &actionObj{action: filterObj, param: &filterParam{filter: filter, pageFilter: pageFilter}, reply: reply}
