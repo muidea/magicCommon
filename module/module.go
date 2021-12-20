@@ -87,7 +87,7 @@ func invokeFunc(module interface{}, funcName string, params ...interface{}) (err
 				rVal = rVal.Elem()
 			}
 
-			if !rVal.Type().Implements(fType) {
+			if rVal.Type().String() != fType.String() && !rVal.Type().Implements(fType) {
 				panic(fmt.Sprintf("[mismatch param, expect type:%s, value type:%s]", fType.String(), rVal.Type().String()))
 			}
 
