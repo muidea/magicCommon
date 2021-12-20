@@ -41,52 +41,12 @@ func validModule(ptr interface{}) {
 }
 
 func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err error) {
-	vVal := reflect.ValueOf(module)
-	setupFun := vVal.MethodByName("Setup")
-	if setupFun.IsNil() {
-		err = fmt.Errorf("illegal module")
-		return
-	}
-
-	defer func() {
-		if info := recover(); info != nil {
-			err = fmt.Errorf("setup unexpect, err:%v", info)
-		}
-	}()
-
-	param := make([]reflect.Value, 3)
-	param[0] = reflect.ValueOf(endpointName)
-	if eventHub != nil {
-		param[1] = reflect.ValueOf(eventHub)
-	} else {
-		param[1] = reflect.New(setupFun.Type().In(1)).Elem()
-	}
-	if backgroundRoutine != nil {
-		param[2] = reflect.ValueOf(backgroundRoutine)
-	} else {
-		param[2] = reflect.New(setupFun.Type().In(2)).Elem()
-	}
-
-	setupFun.Call(param)
+	err = invokeFunc(module, "Setup", endpointName, eventHub, backgroundRoutine)
 	return
 }
 
 func Teardown(module interface{}) (err error) {
-	vVal := reflect.ValueOf(module)
-	teardownFun := vVal.MethodByName("Teardown")
-	if teardownFun.IsNil() {
-		err = fmt.Errorf("illegal module")
-		return
-	}
-
-	defer func() {
-		if info := recover(); info != nil {
-			err = fmt.Errorf("teardown unexpect, err:%v", info)
-		}
-	}()
-
-	param := make([]reflect.Value, 0)
-	teardownFun.Call(param)
+	err = invokeFunc(module, "Teardown")
 	return
 }
 
@@ -96,52 +56,47 @@ func BindBatisClient(module interface{}, clnt interface{}) (err error) {
 		return
 	}
 
-	vVal := reflect.ValueOf(module)
-	bindFun := vVal.MethodByName("BindBatisClient")
-	if bindFun.IsNil() {
-		return
-	}
-
-	defer func() {
-		if info := recover(); info != nil {
-			err = fmt.Errorf("bind batis client unexpect, err:%v", info)
-		}
-	}()
-
-	clntVal := reflect.ValueOf(clnt).Elem()
-	if bindFun.Type().In(0).String() != clntVal.Type().String() {
-		return
-	}
-
-	param := make([]reflect.Value, 1)
-	param[0] = reflect.ValueOf(clnt)
-
-	bindFun.Call(param)
+	err = invokeFunc(module, "BindBatisClient", clnt)
 	return
 }
 
 func BindRegistry(module interface{}, registry ...interface{}) (err error) {
+	err = invokeFunc(module, "BindRegistry", registry...)
+	return
+}
+
+func invokeFunc(module interface{}, funcName string, params ...interface{}) (err error) {
 	vVal := reflect.ValueOf(module)
-	bindFun := vVal.MethodByName("BindRegistry")
-	if bindFun.IsNil() {
+	funcVal := vVal.MethodByName(funcName)
+	if funcVal.IsNil() {
 		return
 	}
 
 	defer func() {
 		if info := recover(); info != nil {
-			err = fmt.Errorf("bind registry unexpect, err:%v", info)
+			err = fmt.Errorf("invoke %s unexpect, err:%v", funcName, info)
 		}
 	}()
 
-	param := make([]reflect.Value, len(registry))
-	for idx, val := range registry {
+	param := make([]reflect.Value, len(params))
+	for idx, val := range params {
+		fType := funcVal.Type().In(idx)
 		if val != nil {
-			param[idx] = reflect.ValueOf(val)
+			rVal := reflect.ValueOf(val)
+			if rVal.Kind() == reflect.Interface {
+				rVal = rVal.Elem()
+			}
+
+			if fType.String() != rVal.Type().String() {
+				panic(fmt.Sprintf("[mismatch param, expect type:%s, value type:%s]", fType.String(), rVal.Type().String()))
+			}
+
+			param[idx] = rVal
 		} else {
-			param[idx] = reflect.New(bindFun.Type().In(idx)).Elem()
+			param[idx] = reflect.New(fType).Elem()
 		}
 	}
 
-	bindFun.Call(param)
+	funcVal.Call(param)
 	return
 }
