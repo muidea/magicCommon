@@ -62,11 +62,3 @@ type Role struct {
 	Description string         `json:"description"`
 	Private     []*PrivateItem `json:"private"`
 }
-
-// SuperRole get super role
-func SuperRole() *Role {
-	return &Role{
-		Name:    "superRole",
-		Private: []*PrivateItem{{Value: GetPrivateInfo(AllPrivate), Path: "*"}},
-	}
-}
