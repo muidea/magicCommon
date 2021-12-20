@@ -77,4 +77,9 @@ func TestBindRegistry(t *testing.T) {
 	if err != nil {
 		t.Errorf("BindRegistry failed, err:%s", err.Error())
 	}
+
+	err = BindBatisClient(demo, 100)
+	if err != nil {
+		t.Errorf("BindBatisClient failed, err:%s", err.Error())
+	}
 }

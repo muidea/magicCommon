@@ -68,7 +68,7 @@ func BindRegistry(module interface{}, registry ...interface{}) (err error) {
 func invokeFunc(module interface{}, funcName string, params ...interface{}) (err error) {
 	vVal := reflect.ValueOf(module)
 	funcVal := vVal.MethodByName(funcName)
-	if funcVal.IsNil() {
+	if !funcVal.IsValid() {
 		return
 	}
 
