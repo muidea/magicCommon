@@ -29,7 +29,7 @@ func GetModules() []interface{} {
 func validModule(ptr interface{}) {
 	vType := reflect.TypeOf(ptr)
 	if vType.Kind() != reflect.Ptr {
-		panic("must be a object ptr")
+		panic("must be a pointer")
 	}
 
 	_, idOK := vType.MethodByName("ID")
@@ -74,7 +74,8 @@ func invokeFunc(module interface{}, funcName string, params ...interface{}) (err
 
 	defer func() {
 		if info := recover(); info != nil {
-			err = fmt.Errorf("invoke %s unexpect, err:%v", funcName, info)
+			err = fmt.Errorf("invoke %s unexpect, %v", funcName, info)
+			panic(err)
 		}
 	}()
 
