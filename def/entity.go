@@ -8,6 +8,7 @@ import (
 )
 
 type Entity struct {
+	ID    int    `json:"id"`
 	EName string `json:"ename"`
 	EID   int    `json:"eid"`
 	EType string `json:"etype"`
@@ -23,7 +24,9 @@ func (s *Entity) Decode(req *http.Request) (err error) {
 		}
 	} else {
 		err = fmt.Errorf("illegal entity info")
+		return
 	}
+
 	s.EName = req.URL.Query().Get("entityName")
 	s.EType = req.URL.Query().Get("entityType")
 	return
