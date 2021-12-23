@@ -14,6 +14,9 @@ const (
 	sessionScope = "sessionScope"
 )
 
+// AuthSession authSession
+const AuthSession = "$$contextSession"
+
 // AuthAccount 鉴权Account
 const AuthAccount = "$$sessionAccount"
 
@@ -31,12 +34,6 @@ const ExpiryValue = "$$sessionExpiryValue"
 
 // authSessionInfo session info
 const authSessionInfo = "$$sessionInfo"
-
-// authToken 鉴权Token
-const authToken = "authToken"
-
-// identifyID 标识ID
-const identifyID = "identifyID"
 
 const (
 	// ShareSession share session flag value
