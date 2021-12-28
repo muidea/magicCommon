@@ -40,32 +40,32 @@ func validModule(ptr interface{}) {
 	}
 }
 
-func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err error) {
-	err = invokeFunc(module, "Setup", endpointName, eventHub, backgroundRoutine)
+func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+	invokeFunc(module, "Setup", endpointName, eventHub, backgroundRoutine)
 	return
 }
 
-func Teardown(module interface{}) (err error) {
-	err = invokeFunc(module, "Teardown")
+func Teardown(module interface{}) {
+	invokeFunc(module, "Teardown")
 	return
 }
 
-func BindBatisClient(module interface{}, clnt interface{}) (err error) {
+func BindBatisClient(module interface{}, clnt interface{}) {
 	if clnt == nil {
-		err = fmt.Errorf("illegal batis client")
+		panic("illegal batis client")
 		return
 	}
 
-	err = invokeFunc(module, "BindBatisClient", clnt)
+	invokeFunc(module, "BindBatisClient", clnt)
 	return
 }
 
-func BindRegistry(module interface{}, registry ...interface{}) (err error) {
-	err = invokeFunc(module, "BindRegistry", registry...)
+func BindRegistry(module interface{}, registry ...interface{}) {
+	invokeFunc(module, "BindRegistry", registry...)
 	return
 }
 
-func invokeFunc(module interface{}, funcName string, params ...interface{}) (err error) {
+func invokeFunc(module interface{}, funcName string, params ...interface{}) {
 	vVal := reflect.ValueOf(module)
 	funcVal := vVal.MethodByName(funcName)
 	if !funcVal.IsValid() {
@@ -74,7 +74,7 @@ func invokeFunc(module interface{}, funcName string, params ...interface{}) (err
 
 	defer func() {
 		if info := recover(); info != nil {
-			err = fmt.Errorf("invoke %s unexpect, %v", funcName, info)
+			err := fmt.Errorf("invoke %s unexpect, %v", funcName, info)
 			panic(err)
 		}
 	}()

@@ -50,20 +50,14 @@ func TestSetup(t *testing.T) {
 	var demo interface{}
 	demo = &Demo{}
 
-	err := Setup(demo, "abc", nil, nil)
-	if err != nil {
-		t.Errorf("Setup failed, err:%s", err.Error())
-	}
+	Setup(demo, "abc", nil, nil)
 }
 
 func TestTeardown(t *testing.T) {
 	var demo interface{}
 	demo = &Demo{}
 
-	err := Teardown(demo)
-	if err != nil {
-		t.Errorf("Teardown failed, err:%s", err.Error())
-	}
+	Teardown(demo)
 }
 
 func TestBindRegistry(t *testing.T) {
@@ -73,13 +67,7 @@ func TestBindRegistry(t *testing.T) {
 	var a interface{}
 	a = &abc{}
 
-	err := BindRegistry(demo, a)
-	if err != nil {
-		t.Errorf("BindRegistry failed, err:%s", err.Error())
-	}
+	BindRegistry(demo, a)
 
-	err = BindBatisClient(demo, 100)
-	if err != nil {
-		t.Errorf("BindBatisClient failed, err:%s", err.Error())
-	}
+	BindBatisClient(demo, 100)
 }
