@@ -21,7 +21,7 @@ const (
 // ErrorCode 错误码
 // Reason 错误信息
 type Result struct {
-	ErrorCode int    `json:"error_code"`
+	ErrorCode int    `json:"errorCode"`
 	Reason    string `json:"reason"`
 }
 
