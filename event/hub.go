@@ -400,7 +400,7 @@ func (s *hImpl) postInternal(event Event) {
 	for key, value := range s.event2Observer {
 		if matchID(key, event.ID()) {
 			for _, sv := range value {
-				if matchID(event.Destination(), sv.ID()) {
+				if event.Source() != sv.ID() && matchID(event.Destination(), sv.ID()) {
 					sv.Notify(event, nil)
 				}
 			}
@@ -415,7 +415,7 @@ func (s *hImpl) sendInternal(event Event, result Result) {
 	for key, value := range s.event2Observer {
 		if matchID(key, event.ID()) {
 			for _, sv := range value {
-				if matchID(event.Destination(), sv.ID()) {
+				if event.Source() != sv.ID() && matchID(event.Destination(), sv.ID()) {
 					sv.Notify(event, result)
 				}
 			}
