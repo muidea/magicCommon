@@ -166,12 +166,12 @@ func HTTPGet(httpClient *http.Client, url string, result interface{}, ctx ...url
 	}
 
 	response, responseErr := httpClient.Do(request)
-	defer response.Body.Close()
 	if responseErr != nil {
 		err = responseErr
 		log.Printf("get request failed, err:%s", err.Error())
 		return
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
@@ -226,12 +226,12 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 	}
 
 	response, responseErr := httpClient.Do(request)
-	defer response.Body.Close()
 	if responseErr != nil {
 		err = responseErr
 		log.Printf("post request failed, err:%s", err.Error())
 		return
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
@@ -285,12 +285,12 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 		}
 	}
 	response, responseErr := httpClient.Do(request)
-	defer response.Body.Close()
 	if responseErr != nil {
 		err = responseErr
 		log.Printf("post request failed, err:%s", err.Error())
 		return
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
@@ -331,12 +331,12 @@ func HTTPDelete(httpClient *http.Client, url string, result interface{}, ctx ...
 	}
 
 	response, responseErr := httpClient.Do(request)
-	defer response.Body.Close()
 	if responseErr != nil {
 		err = responseErr
 		log.Printf("delete request failed, err:%s", err.Error())
 		return
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
@@ -377,11 +377,11 @@ func HTTPDownload(httpClient *http.Client, url string, filePath string, ctx ...u
 	}
 
 	response, responseErr := httpClient.Do(request)
-	defer response.Body.Close()
 	if responseErr != nil {
 		log.Printf("get request failed, err:%s", responseErr.Error())
 		return "", responseErr
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
@@ -448,11 +448,11 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	}
 
 	response, responseErr := httpClient.Do(request)
-	defer response.Body.Close()
 	if responseErr != nil {
 		log.Printf("post request failed, err:%s", responseErr.Error())
 		return responseErr
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
