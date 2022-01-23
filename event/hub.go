@@ -201,6 +201,7 @@ type action interface {
 type subscribeData struct {
 	eventID  string
 	observer Observer
+	result   chan bool
 }
 
 func (s *subscribeData) Code() int {
@@ -251,9 +252,14 @@ func (s *hImpl) Subscribe(eventID string, observer Observer) {
 		return
 	}
 
-	action := &subscribeData{eventID: eventID, observer: observer}
+	replay := make(chan bool)
+	go func() {
+		action := &subscribeData{eventID: eventID, observer: observer, result: replay}
 
-	s.actionChannel <- action
+		s.actionChannel <- action
+	}()
+	<-replay
+
 	return
 }
 
@@ -262,9 +268,14 @@ func (s *hImpl) Unsubscribe(eventID string, observer Observer) {
 		return
 	}
 
-	action := &unsubscribeData{eventID: eventID, observer: observer}
+	replay := make(chan bool)
+	go func() {
+		action := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
 
-	s.actionChannel <- action
+		s.actionChannel <- action
+	}()
+	<-replay
+
 	return
 }
 
@@ -333,9 +344,11 @@ func (s *hImpl) run() {
 		case subscribe:
 			data := action.(*subscribeData)
 			s.subscribeInternal(data.eventID, data.observer)
+			data.result <- true
 		case unsubscribe:
 			data := action.(*unsubscribeData)
 			s.unsubscribeInternal(data.eventID, data.observer)
+			data.result <- true
 		case post:
 			data := action.(*postData)
 			s.postInternal(data.event)
@@ -347,7 +360,6 @@ func (s *hImpl) run() {
 		case terminate:
 			data := action.(*terminateData)
 			data.result <- true
-			break
 		default:
 		}
 	}
