@@ -334,4 +334,10 @@ func TestMatchID(t *testing.T) {
 		t.Errorf("matchID failed, pattern:%s, id:%s", pattern, id)
 		return
 	}
+
+	pattern = "/#/notify/+"
+	id = "/bill/notify/123"
+	if !matchID(pattern, id) {
+		t.Errorf("matchID failed, pattern:%s, id:%s", pattern, id)
+	}
 }
