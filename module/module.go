@@ -8,12 +8,6 @@ import (
 	"github.com/muidea/magicCommon/task"
 )
 
-type Module interface {
-	ID() string
-	Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine)
-	Teardown()
-}
-
 var moduleList []interface{}
 
 func Register(module interface{}) {
@@ -42,6 +36,11 @@ func validModule(ptr interface{}) {
 
 func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
 	invokeFunc(module, "Setup", endpointName, eventHub, backgroundRoutine)
+	return
+}
+
+func Run(module interface{}) {
+	invokeFunc(module, "Run")
 	return
 }
 
