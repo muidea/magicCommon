@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultPageSize = 10
+	defaultPageSize = 20
 	defaultPageNum  = 1
 )
 
@@ -20,8 +20,8 @@ type Pagination struct {
 	PageNum int `json:"pageNum"`
 }
 
-func NewPagination() *Pagination {
-	return &Pagination{}
+func NewPagination(defaultSize, defaultNum int) *Pagination {
+	return &Pagination{PageSize: defaultSize, PageNum: defaultNum}
 }
 
 // Decode 从request里解析PageFilter
