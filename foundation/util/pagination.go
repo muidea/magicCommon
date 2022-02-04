@@ -33,19 +33,16 @@ func (s *Pagination) Decode(request *http.Request) bool {
 	}
 
 	sizeValue, err := strconv.Atoi(pageSize)
-	if err != nil {
+	if err != nil || sizeValue == 0 {
 		sizeValue = defaultPageSize
 	}
 	s.PageSize = sizeValue
 
 	numValue, err := strconv.Atoi(pageNum)
-	if err != nil {
+	if err != nil || numValue <= 0 {
 		numValue = defaultPageNum
 	}
 	s.PageNum = numValue
-	if s.PageNum <= 0 {
-		s.PageNum = 1
-	}
 
 	return true
 }
