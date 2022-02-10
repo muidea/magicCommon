@@ -199,7 +199,7 @@ func HTTPGet(httpClient *http.Client, url string, result interface{}, ctx ...url
 
 // HTTPPost http post request
 func HTTPPost(httpClient *http.Client, url string, param interface{}, result interface{}, ctx ...url.Values) (ret []byte, err error) {
-	var bufferReader *bytes.Buffer
+	byteBuff := bytes.NewBuffer(nil)
 	if param != nil {
 		data, dataErr := json.Marshal(param)
 		if dataErr != nil {
@@ -208,10 +208,10 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 			return
 		}
 
-		bufferReader = bytes.NewBuffer(data)
+		byteBuff.Write(data)
 	}
 
-	request, requestErr := http.NewRequest("POST", url, bufferReader)
+	request, requestErr := http.NewRequest("POST", url, byteBuff)
 	if requestErr != nil {
 		err = requestErr
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
@@ -259,7 +259,7 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 
 // HTTPPut http post request
 func HTTPPut(httpClient *http.Client, url string, param interface{}, result interface{}, ctx ...url.Values) (ret []byte, err error) {
-	var bufferReader *bytes.Buffer
+	byteBuff := bytes.NewBuffer(nil)
 	if param != nil {
 		data, dataErr := json.Marshal(param)
 		if dataErr != nil {
@@ -268,10 +268,10 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 			return
 		}
 
-		bufferReader = bytes.NewBuffer(data)
+		byteBuff.Write(data)
 	}
 
-	request, requestErr := http.NewRequest("PUT", url, bufferReader)
+	request, requestErr := http.NewRequest("PUT", url, byteBuff)
 	if requestErr != nil {
 		err = requestErr
 		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
