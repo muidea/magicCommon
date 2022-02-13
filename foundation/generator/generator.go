@@ -139,26 +139,31 @@ func NewWithVal(patternVal, initVal string) (ret Generator, err error) {
 		return
 	}
 
-	patternWidth, _, patternErr := splitPatternSuffix(patternSuffix)
+	patternWidth, patternNumber, patternErr := splitPatternSuffix(patternSuffix)
 	if patternErr != nil {
 		err = patternErr
 		return
 	}
 
-	initPrefix, initDateTime, initSuffix, initErr := splitInitValue(initVal)
-	if initErr != nil {
-		err = initErr
-		return
-	}
-	initWidth, initNumber, initErr := splitInitSuffix(initSuffix)
-	if initErr != nil {
-		err = initErr
-		return
-	}
+	initNumber := patternNumber
+	if initVal != "" {
+		initPrefix, initDateTime, initSuffix, initErr := splitInitValue(initVal)
+		if initErr != nil {
+			err = initErr
+			return
+		}
 
-	if patternPrefix != initPrefix || len(patternDateTime) != (len(initDateTime)+2) || patternWidth != initWidth {
-		err = fmt.Errorf("illegal initval")
-		return
+		initWidth := patternWidth
+		initWidth, initNumber, initErr = splitInitSuffix(initSuffix)
+		if initErr != nil {
+			err = initErr
+			return
+		}
+
+		if patternPrefix != initPrefix || len(patternDateTime) != (len(initDateTime)+2) || patternWidth != initWidth {
+			err = fmt.Errorf("illegal initval")
+			return
+		}
 	}
 
 	return &genImpl{patternMask: patternVal, fixedWidth: patternWidth, currentNum: initNumber}, nil
