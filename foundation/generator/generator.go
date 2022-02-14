@@ -28,7 +28,7 @@ prefix-{YYYYMMDDHHmmSS}-{fixed(12):123}
 prefix-{YYYYMMDDHHmmSS}-{fixed(12):num}
 */
 // ^(?!-)([a-zA-Z]+[a-zA-Z0-9]*)?(?!--)(-{1})?({YYYYMMDDHHmmSS})?(?!--)(-{1})?{(fixed\([0-9]+\)\:)?(num|[0-9]+)}$
-var maskPatternVal = "^([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?{YYYYMMDDHHmmSS}?(-{1})?{(fixed\\(\\d+\\):)?(num|\\d+)}$"
+var maskPatternVal = "^([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?({YYYYMMDDHHmmSS})?(-{1})?{(fixed\\(\\d+\\):)?(num|\\d+)}$"
 var maskInitVal = "^([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?(\\d{14})?(-{1})?(\\d+)$"
 var maskPrefix = "^[a-zA-Z]+[a-zA-Z0-9]*"
 var maskDateTime = "{YYYYMMDDHHmmSS}|\\d{14}"

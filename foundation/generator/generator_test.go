@@ -22,6 +22,32 @@ func TestNewWithVal(t *testing.T) {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
 		return
 	}
+
+	generator, generatorErr = NewWithVal("prefix-{YYYYMMDDHHmmSS}-{fixed(5):123}", "")
+	if generatorErr != nil {
+		t.Errorf("illgel gengerator")
+		return
+	}
+
+	expect = fmt.Sprintf("prefix-%s-%05d", datTime, 124)
+	result = generator.GenCode()
+	if expect != result {
+		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
+		return
+	}
+
+	generator, generatorErr = NewWithVal("prefix-{YYYYMMDDHHmmSS}-{fixed(5):123}", "")
+	if generatorErr != nil {
+		t.Errorf("illgel gengerator")
+		return
+	}
+
+	expect = fmt.Sprintf("prefix-%s-%05d", datTime, 124)
+	result = generator.GenCode()
+	if expect != result {
+		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
+		return
+	}
 }
 
 func TestGenImpl_GenCode(t *testing.T) {
