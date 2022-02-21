@@ -48,6 +48,19 @@ func TestNewWithVal(t *testing.T) {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
 		return
 	}
+
+	generator, generatorErr = NewWithVal("{fixed(6):100000}", "100020")
+	if generatorErr != nil {
+		t.Errorf("illgel gengerator")
+		return
+	}
+
+	expect = fmt.Sprintf("100021")
+	result = generator.GenCode()
+	if expect != result {
+		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
+		return
+	}
 }
 
 func TestGenImpl_GenCode(t *testing.T) {

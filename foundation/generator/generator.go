@@ -31,14 +31,16 @@ prefix-{YYYYMMDDHHmmSS}-{fixed(12):num}
 var maskPatternVal = "^([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?({YYYYMMDDHHmmSS})?(-{1})?{(fixed\\(\\d+\\):)?(num|\\d+)}$"
 var maskInitVal = "^([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?(\\d{14})?(-{1})?(\\d+)$"
 var maskPrefix = "^[a-zA-Z]+[a-zA-Z0-9]*"
-var maskDateTime = "{YYYYMMDDHHmmSS}|\\d{14}"
+var maskMiddle = "{YYYYMMDDHHmmSS}|\\d{14}"
+var maskDateTime = "YYYYMMDDHHmmSS|\\d{14}"
 var maskSuffix = "({(fixed\\(\\d+\\):)?(num|\\d+)}|\\d+)$"
 var maskFixed = "fixed\\(\\d+\\)"
 var maskInit = ":\\d+"
 var maskNumber = "(num|\\d+)"
 var prefixReg = regexp.MustCompile(maskPrefix)
-var dateTimeReg = regexp.MustCompile(maskDateTime)
+var middleReg = regexp.MustCompile(maskMiddle)
 var suffixReg = regexp.MustCompile(maskSuffix)
+var dateTimeReg = regexp.MustCompile(maskDateTime)
 var fixedReg = regexp.MustCompile(maskFixed)
 var initReg = regexp.MustCompile(maskInit)
 var numberReg = regexp.MustCompile(maskNumber)
@@ -70,7 +72,7 @@ func New(patternVal string) (ret Generator, err error) {
 	return &genImpl{patternMask: patternVal, fixedWidth: fixedWidth, currentNum: currentNum}, nil
 }
 
-func splitPatternValue(val string) (prefixVal, dateTimeVal, suffixVal string, err error) {
+func splitPatternValue(val string) (prefixVal, middleVal, suffixVal string, err error) {
 	validFlag, validErr := regexp.MatchString(maskPatternVal, val)
 	if !validFlag || validErr != nil {
 		err = fmt.Errorf("illegal patternVal, expect :%s", maskPatternVal)
@@ -78,8 +80,13 @@ func splitPatternValue(val string) (prefixVal, dateTimeVal, suffixVal string, er
 	}
 
 	prefixVal = prefixReg.FindString(val)
-	dateTimeVal = dateTimeReg.FindString(val)
+	middleVal = middleReg.FindString(val)
 	suffixVal = suffixReg.FindString(val)
+	return
+}
+
+func splitPatternMiddle(middleVal string) (dateTimeVal string, err error) {
+	dateTimeVal = dateTimeReg.FindString(middleVal)
 	return
 }
 
@@ -133,7 +140,13 @@ func splitInitSuffix(suffixVal string) (numberWidth string, numberVal int, err e
 }
 
 func NewWithVal(patternVal, initVal string) (ret Generator, err error) {
-	patternPrefix, patternDateTime, patternSuffix, patternErr := splitPatternValue(patternVal)
+	patternPrefix, patternMiddle, patternSuffix, patternErr := splitPatternValue(patternVal)
+	if patternErr != nil {
+		err = patternErr
+		return
+	}
+
+	patternDateTime, patternErr := splitPatternMiddle(patternMiddle)
 	if patternErr != nil {
 		err = patternErr
 		return
@@ -147,7 +160,13 @@ func NewWithVal(patternVal, initVal string) (ret Generator, err error) {
 
 	initNumber := patternNumber
 	if initVal != "" {
-		initPrefix, initDateTime, initSuffix, initErr := splitInitValue(initVal)
+		initPrefix, initMiddle, initSuffix, initErr := splitInitValue(initVal)
+		if initErr != nil {
+			err = initErr
+			return
+		}
+
+		initDateTime, initErr := splitPatternMiddle(initMiddle)
 		if initErr != nil {
 			err = initErr
 			return
@@ -160,7 +179,7 @@ func NewWithVal(patternVal, initVal string) (ret Generator, err error) {
 			return
 		}
 
-		if patternPrefix != initPrefix || len(patternDateTime) != (len(initDateTime)+2) || patternWidth != initWidth {
+		if patternPrefix != initPrefix || len(patternDateTime) != len(initDateTime) || patternWidth != initWidth {
 			err = fmt.Errorf("illegal initval")
 			return
 		}
@@ -176,7 +195,7 @@ type genImpl struct {
 }
 
 func (s *genImpl) GenCode() string {
-	result := dateTimeReg.ReplaceAllString(s.patternMask, s.genDateTime())
+	result := middleReg.ReplaceAllString(s.patternMask, s.genDateTime())
 	result = suffixReg.ReplaceAllString(result, s.genNum())
 	return result
 }
