@@ -61,6 +61,46 @@ func TestNewWithVal(t *testing.T) {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
 		return
 	}
+
+	generator, generatorErr = NewWithVal("STORE-{fixed(4):1000}", "STORE-1002")
+	if generatorErr != nil {
+		t.Errorf("illgel gengerator")
+		return
+	}
+
+	expect = fmt.Sprintf("STORE-1003")
+	result = generator.GenCode()
+	if expect != result {
+		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
+		return
+	}
+
+	generator, generatorErr = NewWithVal("STORE-{fixed(4):1000}", "")
+	if generatorErr != nil {
+		t.Errorf("illgel gengerator")
+		return
+	}
+
+	expect = fmt.Sprintf("STORE-1001")
+	result = generator.GenCode()
+	if expect != result {
+		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
+		return
+	}
+
+	generator, generatorErr = NewWithVal("SO-{YYYYMMDDHHmmSS}-{fixed(5):num}", "")
+	if generatorErr != nil {
+		t.Errorf("illgel gengerator")
+		return
+	}
+
+	expect = fmt.Sprintf("STORE-1001")
+	result = generator.GenCode()
+	if expect != result {
+		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
+		return
+	}
+
 }
 
 func TestGenImpl_GenCode(t *testing.T) {
