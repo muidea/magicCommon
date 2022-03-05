@@ -314,7 +314,7 @@ func (s *hImpl) Call(event Event) Result {
 		return nil
 	}
 
-	result := NewResult()
+	result := NewResult(event.ID(), event.Source(), event.Destination())
 	s.sendInternal(event, result)
 	return result
 }
@@ -354,7 +354,7 @@ func (s *hImpl) run() {
 			s.postInternal(data.event)
 		case send:
 			data := action.(*sendData)
-			result := NewResult()
+			result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
 			s.sendInternal(data.event, result)
 			data.result <- result
 		case terminate:
