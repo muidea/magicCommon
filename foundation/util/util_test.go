@@ -10,9 +10,16 @@ func TestExtractTelephone(t *testing.T) {
 		return
 	}
 
+	// 3.2213918686045
 	val = "jenny  2.18  /2.22"
 	telephone = ExtractTelephone(val)
 	if telephone != "" {
+		t.Errorf("extrace telephone failed,raw:%s", val)
+		return
+	}
+	val = "3.2213918686045"
+	telephone = ExtractTelephone(val)
+	if telephone == "" {
 		t.Errorf("extrace telephone failed,raw:%s", val)
 		return
 	}
