@@ -111,7 +111,7 @@ func NewHub() Hub {
 }
 
 func NewSimpleObserver(id string) SimpleObserver {
-	return &simpleObserver{id: id}
+	return &simpleObserver{id: id, id2ObserverFunc: ID2ObserverFuncMap{}}
 }
 
 func matchID(pattern, id string) bool {
