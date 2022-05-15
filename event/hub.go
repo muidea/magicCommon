@@ -110,8 +110,8 @@ func NewHub() Hub {
 	return hub
 }
 
-func NewSimpleObserver(id string) SimpleObserver {
-	return &simpleObserver{id: id, id2ObserverFunc: ID2ObserverFuncMap{}}
+func NewSimpleObserver(id string, hub Hub) SimpleObserver {
+	return &simpleObserver{id: id, eventHub: hub, id2ObserverFunc: ID2ObserverFuncMap{}}
 }
 
 func matchID(pattern, id string) bool {
@@ -460,6 +460,7 @@ func (s *hImpl) sendInternal(event Event, result Result) {
 
 type simpleObserver struct {
 	id              string
+	eventHub        Hub
 	id2ObserverFunc ID2ObserverFuncMap
 	idLock          sync.RWMutex
 }
@@ -500,6 +501,7 @@ func (s *simpleObserver) Subscribe(eventID string, observerFunc ObserverFunc) {
 	}
 
 	s.id2ObserverFunc[eventID] = observerFunc
+	s.eventHub.Subscribe(eventID, s)
 }
 
 func (s *simpleObserver) Unsubscribe(eventID string) {
@@ -513,4 +515,5 @@ func (s *simpleObserver) Unsubscribe(eventID string) {
 	}
 
 	delete(s.id2ObserverFunc, eventID)
+	s.eventHub.Unsubscribe(eventID, s)
 }
