@@ -376,7 +376,16 @@ func (s *hImpl) subscribeInternal(eventID string, observer Observer) {
 	if !observerOK {
 		observerList = ObserverList{}
 	}
-	observerList = append(observerList, observer)
+	existFlag := false
+	for _, val := range observerList {
+		if val.ID() == observer.ID() {
+			existFlag = true
+			break
+		}
+	}
+	if !existFlag {
+		observerList = append(observerList, observer)
+	}
 	s.event2Observer[eventID] = observerList
 }
 
