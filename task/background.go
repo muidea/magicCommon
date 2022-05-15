@@ -60,12 +60,16 @@ func (s *backgroundRoutine) loop() {
 
 // Post exec task
 func (s *backgroundRoutine) Post(task Task) {
-	s.taskChannel <- task
+	go func() {
+		s.taskChannel <- task
+	}()
 }
 
 func (s *backgroundRoutine) Invoke(task Task) {
 	syncTask := &syncTask{rawTask: task, resultChannel: make(chan bool)}
-	s.taskChannel <- syncTask
+	go func() {
+		s.taskChannel <- syncTask
+	}()
 
 	syncTask.Wait()
 }
