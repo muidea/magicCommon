@@ -24,6 +24,10 @@ func NewPagination(defaultSize, defaultNum int) *Pagination {
 	return &Pagination{PageSize: defaultSize, PageNum: defaultNum}
 }
 
+func DefaultPagination() *Pagination {
+	return &Pagination{PageSize: defaultPageSize, PageNum: defaultPageNum}
+}
+
 // Decode 从request里解析PageFilter
 func (s *Pagination) Decode(request *http.Request) bool {
 	pageSize := request.URL.Query().Get("pageSize")
