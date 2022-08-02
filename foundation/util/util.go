@@ -37,3 +37,35 @@ func ExtractTelephone(val string) (ret string) {
 	ret = telephoneReg.FindString(val)
 	return
 }
+
+type StringSet []string
+
+func (s StringSet) Add(val string) StringSet {
+	exist := false
+	for _, sv := range s {
+		if sv == val {
+			exist = true
+			break
+		}
+	}
+
+	if !exist {
+		return append(s, val)
+	}
+	return s
+}
+
+func (s StringSet) Remove(val string) StringSet {
+	newVal := []string{}
+	for _, sv := range s {
+		if sv != val {
+			newVal = append(newVal, sv)
+		}
+	}
+
+	return newVal
+}
+
+func (s StringSet) Empty() bool {
+	return len(s) == 0
+}
