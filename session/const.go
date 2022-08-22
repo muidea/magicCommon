@@ -14,6 +14,11 @@ const (
 	sessionScope = "sessionScope"
 )
 
+const (
+	// ShareSession share session flag value
+	ShareSession = "shareSession"
+)
+
 // AuthSession auth Session
 const AuthSession = "$$contextSession"
 
@@ -29,16 +34,16 @@ const AuthNamespace = "$$sessionNamespace"
 // AuthRemoteAddress 远端地址
 const AuthRemoteAddress = "$$sessionRemoteAddress"
 
-// ExpiryValue 会话有效期
-const ExpiryValue = "$$sessionExpiryValue"
+// expiryValue 会话有效期
+const expiryValue = "$$sessionExpiryValue"
+
+// refreshTime 会话刷新时间
+const refreshTime = "$$sessionRefreshTime"
 
 // authSessionInfo session info
 const authSessionInfo = "$$sessionInfo"
 
-const (
-	// ShareSession share session flag value
-	ShareSession = "shareSession"
-)
+const defaultSessionCookieID = "$$session_info"
 
 // SessionInfo session info
 type SessionInfo struct {

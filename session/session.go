@@ -22,6 +22,7 @@ type Session interface {
 
 const (
 	defaultSessionTimeOutValue = 10 * time.Minute // 10 minute
+	tempSessionTimeOutValue    = 1 * time.Minute  // 1 minute
 )
 
 type sessionImpl struct {
@@ -134,14 +135,14 @@ func (s *sessionImpl) refresh() {
 	defer s.registry.sessionLock.RUnlock()
 
 	// 这里是在sessionRegistry里更新的，所以这里不用save
-	s.context["$$refreshTime"] = time.Now()
+	s.context[refreshTime] = time.Now()
 }
 
 func (s *sessionImpl) timeOut() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryDate, found := s.context[ExpiryValue]
+	expiryDate, found := s.context[expiryValue]
 	if found && expiryDate.(time.Duration) == -1 {
 		return false
 	}
@@ -149,7 +150,7 @@ func (s *sessionImpl) timeOut() bool {
 		expiryDate = defaultSessionTimeOutValue
 	}
 
-	preTime, found := s.context["$$refreshTime"]
+	preTime, found := s.context[refreshTime]
 	if !found {
 		return true
 	}

@@ -23,7 +23,7 @@ type CallBack interface {
 	OnTimeOut(session Session)
 }
 
-var sessionCookieID = "$$session_info"
+var sessionCookieID = defaultSessionCookieID
 
 func init() {
 	sessionCookieID = createUUID()
@@ -91,8 +91,6 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 			sessionID = createUUID()
 		}
 		userSession = sm.createSession(sessionID)
-		sessionInfo.ID = userSession.ID()
-		sessionInfo.Token = ""
 	} else {
 		userSession = cur
 	}
@@ -108,7 +106,7 @@ func (sm *sessionRegistryImpl) CountSession(filter util.Filter) int {
 
 // createSession 新建Session
 func (sm *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
-	sessionPtr := &sessionImpl{id: sessionID, context: make(map[string]interface{}), registry: sm, callBack: sm.callBack}
+	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{expiryValue: tempSessionTimeOutValue}, registry: sm, callBack: sm.callBack}
 
 	sessionPtr.refresh()
 
