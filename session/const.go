@@ -17,6 +17,7 @@ const (
 const (
 	// ShareSession share session flag value
 	ShareSession = "shareSession"
+	NamespaceID  = "Namespace"
 )
 
 // AuthSession auth Session

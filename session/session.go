@@ -12,6 +12,7 @@ type Session interface {
 	ID() string
 	Flush(res http.ResponseWriter, req *http.Request)
 
+	Namespace() string
 	GetSessionInfo() *SessionInfo
 	SetSessionInfo(info *SessionInfo)
 	GetOption(key string) (interface{}, bool)
@@ -57,6 +58,15 @@ func (s *sessionImpl) Flush(res http.ResponseWriter, req *http.Request) {
 
 		req.AddCookie(&sessionCookie)
 	}
+}
+
+func (s *sessionImpl) Namespace() string {
+	val, ok := s.GetOption(AuthNamespace)
+	if !ok {
+		return ""
+	}
+
+	return val.(string)
 }
 
 func (s *sessionImpl) GetSessionInfo() (ret *SessionInfo) {

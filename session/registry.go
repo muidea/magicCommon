@@ -4,7 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -55,6 +57,25 @@ func getRequestInfo(req *http.Request) *SessionInfo {
 	return sessionInfo
 }
 
+func getNamespace(req *http.Request) string {
+	namespace := req.Header.Get(NamespaceID)
+	if namespace != "" {
+		return namespace
+	}
+
+	items := strings.Split(req.Host, ":")
+	if nil != net.ParseIP(items[0]) {
+		return ""
+	}
+
+	items = strings.Split(items[0], ".")
+	if len(items) <= 1 {
+		return ""
+	}
+
+	return items[0]
+}
+
 type sessionRegistryImpl struct {
 	callBack    CallBack
 	commandChan commandChanImpl
@@ -93,6 +114,11 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 		userSession = sm.createSession(sessionID)
 	} else {
 		userSession = cur
+	}
+
+	namespace := getNamespace(req)
+	if namespace != "" {
+		userSession.SetOption(AuthNamespace, namespace)
 	}
 
 	userSession.SetSessionInfo(sessionInfo)
