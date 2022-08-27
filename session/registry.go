@@ -58,7 +58,7 @@ func getRequestInfo(req *http.Request) *SessionInfo {
 }
 
 func getNamespace(req *http.Request) string {
-	namespace := req.Header.Get(NamespaceID)
+	namespace := req.Header.Get(namespaceID)
 	if namespace != "" {
 		return namespace
 	}

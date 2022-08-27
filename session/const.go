@@ -12,12 +12,13 @@ const (
 	sessionToken = "sessionToken"
 	// sessionScope 会话域，标识是否是共享会话
 	sessionScope = "sessionScope"
+	// namespaceID 会话namespace
+	namespaceID = "Namespace"
 )
 
 const (
 	// ShareSession share session flag value
 	ShareSession = "shareSession"
-	NamespaceID  = "Namespace"
 )
 
 // AuthSession auth Session
