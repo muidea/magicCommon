@@ -101,7 +101,7 @@ func (s *sessionImpl) SetOption(key string, value interface{}) {
 
 		s.context[key] = value
 
-		if key == AuthAccount {
+		if key == AuthEntity {
 			s.context[expiryValue] = defaultSessionTimeOutValue
 		}
 	}()
@@ -124,7 +124,7 @@ func (s *sessionImpl) RemoveOption(key string) {
 		defer s.registry.sessionLock.Unlock()
 
 		delete(s.context, key)
-		if key == AuthAccount {
+		if key == AuthEntity {
 			s.context[expiryValue] = tempSessionTimeOutValue
 		}
 	}()

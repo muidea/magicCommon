@@ -23,8 +23,8 @@ const (
 // AuthSession auth Session
 const AuthSession = "$$contextSession"
 
-// AuthAccount 鉴权Account
-const AuthAccount = "$$sessionAccount"
+// AuthEntity 鉴权Entity
+const AuthEntity = "$$sessionEntity"
 
 // AuthRole Account 权限组
 const AuthRole = "$$sessionRole"
