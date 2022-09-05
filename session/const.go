@@ -36,8 +36,8 @@ const AuthNamespace = "$$sessionNamespace"
 // AuthRemoteAddress 远端地址
 const AuthRemoteAddress = "$$sessionRemoteAddress"
 
-// expiryValue 会话有效期
-const expiryValue = "$$sessionExpiryValue"
+// AuthExpiryValue 会话有效期
+const AuthExpiryValue = "$$sessionExpiryValue"
 
 // refreshTime 会话刷新时间
 const refreshTime = "$$sessionRefreshTime"
