@@ -110,8 +110,10 @@ func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Req
 	if cur == nil {
 		if sessionInfo.Scope != ShareSession {
 			sessionID = createUUID()
+			sessionInfo.ID = sessionID
 		}
 		userSession = sm.createSession(sessionID)
+
 	} else {
 		userSession = cur
 	}
