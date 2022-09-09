@@ -27,9 +27,9 @@ type CallBack interface {
 
 var sessionCookieID = defaultSessionCookieID
 
-func init() {
-	sessionCookieID = createUUID()
-}
+//func init() {
+//	sessionCookieID = createUUID()
+//}
 
 func createUUID() string {
 	return util.RandomAlphanumeric(32)

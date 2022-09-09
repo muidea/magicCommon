@@ -45,7 +45,7 @@ const refreshTime = "$$sessionRefreshTime"
 // authSessionInfo session info
 const authSessionInfo = "$$sessionInfo"
 
-const defaultSessionCookieID = "$$session_info"
+const defaultSessionCookieID = "magicCookies"
 
 // SessionInfo session info
 type SessionInfo struct {
