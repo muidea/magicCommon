@@ -22,9 +22,9 @@ type Session interface {
 }
 
 const (
-	defaultSessionTimeOutValue = 10 * time.Minute // 10 minute
-	tempSessionTimeOutValue    = 1 * time.Minute  // 1 minute
-	ForeverSessionTimeOutValue = -1               // forever time out value
+	defaultSessionTimeOutValue = 10 * time.Minute  // 10 minute
+	tempSessionTimeOutValue    = 1 * time.Minute   // 1 minute
+	ForeverSessionTimeOutValue = time.Duration(-1) // forever time out value
 )
 
 type sessionImpl struct {
