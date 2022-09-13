@@ -7,11 +7,11 @@ import (
 
 const (
 	// sessionID 会话ID
-	sessionID = "sessionID"
+	sessionID = "SessionID"
 	// sessionToken 会话Token
-	sessionToken = "sessionToken"
+	sessionToken = "SessionToken"
 	// sessionScope 会话域，标识是否是共享会话
-	sessionScope = "sessionScope"
+	sessionScope = "SessionScope"
 )
 
 const (
@@ -45,7 +45,7 @@ const refreshTime = "$$sessionRefreshTime"
 // authSessionInfo session info
 const authSessionInfo = "$$sessionInfo"
 
-const defaultSessionCookieID = "magicCookies"
+const defaultSessionCookieID = "magicTicket"
 
 // SessionInfo session info
 type SessionInfo struct {
