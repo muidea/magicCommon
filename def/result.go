@@ -30,13 +30,21 @@ type Result struct {
 }
 
 // Success 成功
-func (result *Result) Success() bool {
-	return result.ErrorCode == Success
+func (s *Result) Success() bool {
+	return s.ErrorCode == Success
 }
 
 // Fail 失败
-func (result *Result) Fail() bool {
-	return result.ErrorCode != Success
+func (s *Result) Fail() bool {
+	return s.ErrorCode != Success
+}
+
+func (s *Result) Error() error {
+	if s.ErrorCode == Success {
+		return nil
+	}
+
+	return fmt.Errorf("errorCode:%v, reason:%v", s.ErrorCode, s.Reason)
 }
 
 func GetError(errCode ErrorCode, reason string) error {
