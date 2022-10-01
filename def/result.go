@@ -39,10 +39,10 @@ func (result *Result) Fail() bool {
 	return result.ErrorCode != Success
 }
 
-func GetError(errCode ErrorCode) error {
+func GetError(errCode ErrorCode, reason string) error {
 	if errCode == Success {
 		return nil
 	}
 
-	return fmt.Errorf("errorCode:%v", errCode)
+	return fmt.Errorf("errorCode:%v, reason:%v", errCode, reason)
 }
