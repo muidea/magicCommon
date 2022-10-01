@@ -1,5 +1,7 @@
 package def
 
+type ErrorCode int
+
 const (
 	// Success 成功
 	Success = iota
@@ -21,8 +23,8 @@ const (
 // ErrorCode 错误码
 // Reason 错误信息
 type Result struct {
-	ErrorCode int    `json:"errorCode"`
-	Reason    string `json:"reason"`
+	ErrorCode ErrorCode `json:"errorCode"`
+	Reason    string    `json:"reason"`
 }
 
 // Success 成功
