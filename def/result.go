@@ -1,5 +1,7 @@
 package def
 
+import "fmt"
+
 type ErrorCode int
 
 const (
@@ -35,4 +37,12 @@ func (result *Result) Success() bool {
 // Fail 失败
 func (result *Result) Fail() bool {
 	return result.ErrorCode != Success
+}
+
+func GetError(errCode ErrorCode) error {
+	if errCode == Success {
+		return nil
+	}
+
+	return fmt.Errorf("errorCode:%v", errCode)
 }
