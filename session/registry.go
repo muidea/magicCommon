@@ -251,7 +251,7 @@ func (right commandChanImpl) run() {
 			session := command.value.(*sessionImpl)
 			curSession, curOK := sessionContextMap[session.id]
 			if !curOK {
-				curSession = &sessionImpl{id: session.id, context: session.context, registry: session.registry}
+				curSession = &sessionImpl{id: session.id, context: session.context, observer: session.observer, registry: session.registry}
 				sessionContextMap[session.id] = curSession
 			}
 
