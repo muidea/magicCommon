@@ -15,6 +15,8 @@ type Session interface {
 	Namespace() string
 	GetSessionInfo() *SessionInfo
 	SetSessionInfo(info *SessionInfo)
+	RefreshTime() time.Time
+	ExpireTime() time.Time
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
@@ -93,6 +95,25 @@ func (s *sessionImpl) SetSessionInfo(info *SessionInfo) {
 	}
 
 	s.SetOption(authSessionInfo, info)
+}
+
+func (s *sessionImpl) RefreshTime() time.Time {
+	timeVal, timeOK := s.GetOption(refreshTime)
+	if timeOK {
+		return timeVal.(time.Time)
+	}
+
+	return time.Now()
+}
+
+func (s *sessionImpl) ExpireTime() time.Time {
+	timeVal, timeOK := s.GetOption(AuthExpiryValue)
+	if timeOK {
+		refreshTime := s.RefreshTime()
+		return refreshTime.Add(timeVal.(time.Duration))
+	}
+
+	return time.Now().Add(-1 * time.Minute)
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
