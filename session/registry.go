@@ -128,7 +128,7 @@ func (sm *sessionRegistryImpl) CountSession(filter util.Filter) int {
 
 // createSession 新建Session
 func (sm *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
-	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{AuthExpiryValue: tempSessionTimeOutValue}, registry: sm}
+	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{AuthExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: sm}
 
 	sessionPtr.refresh()
 
