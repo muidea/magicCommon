@@ -20,11 +20,6 @@ type Registry interface {
 	CountSession(filter util.Filter) int
 }
 
-// CallBack session CallBack
-type CallBack interface {
-	OnTimeOut(session Session)
-}
-
 var sessionCookieID = defaultSessionCookieID
 
 //func init() {
@@ -77,14 +72,13 @@ func getNamespace(req *http.Request) string {
 }
 
 type sessionRegistryImpl struct {
-	callBack    CallBack
 	commandChan commandChanImpl
 	sessionLock sync.RWMutex
 }
 
 // CreateRegistry 创建Session仓库
-func CreateRegistry(callback CallBack) Registry {
-	impl := sessionRegistryImpl{callBack: callback}
+func CreateRegistry() Registry {
+	impl := sessionRegistryImpl{}
 	impl.commandChan = make(commandChanImpl)
 	go impl.commandChan.run()
 	go impl.checkTimer()
@@ -134,7 +128,7 @@ func (sm *sessionRegistryImpl) CountSession(filter util.Filter) int {
 
 // createSession 新建Session
 func (sm *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
-	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{AuthExpiryValue: tempSessionTimeOutValue}, registry: sm, callBack: sm.callBack}
+	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{AuthExpiryValue: tempSessionTimeOutValue}, registry: sm}
 
 	sessionPtr.refresh()
 
@@ -257,7 +251,7 @@ func (right commandChanImpl) run() {
 			session := command.value.(*sessionImpl)
 			curSession, curOK := sessionContextMap[session.id]
 			if !curOK {
-				curSession = &sessionImpl{id: session.id, context: session.context, registry: session.registry, callBack: session.callBack}
+				curSession = &sessionImpl{id: session.id, context: session.context, registry: session.registry}
 				sessionContextMap[session.id] = curSession
 			}
 
@@ -287,20 +281,22 @@ func (right commandChanImpl) run() {
 				command.result <- nil
 			}
 		case checkTimeOut:
-			removeList := []string{}
+			removeList := make(map[string]*sessionImpl)
 			for k, v := range sessionContextMap {
 				if v.timeOut() {
-					if v.callBack != nil {
-						go v.callBack.OnTimeOut(v)
-					}
-
-					removeList = append(removeList, k)
+					removeList[k] = v
 				}
 			}
 
-			for key := range removeList {
-				delete(sessionContextMap, removeList[key])
+			for k, _ := range removeList {
+				delete(sessionContextMap, k)
 			}
+
+			go func() {
+				for _, v := range removeList {
+					v.terminate()
+				}
+			}()
 		case length:
 			filter := command.value.(util.Filter)
 			if filter == nil {

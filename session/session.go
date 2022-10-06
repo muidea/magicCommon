@@ -7,10 +7,25 @@ import (
 	"time"
 )
 
+type Status int
+
+const (
+	StatusRunning = iota
+	StatusTerminate
+)
+
+// Observer session Observer
+type Observer interface {
+	ID() string
+	OnStatusChange(session Session, status Status)
+}
+
 // Session 会话
 type Session interface {
 	ID() string
 	Flush(res http.ResponseWriter, req *http.Request)
+	BindObserver(observer Observer)
+	UnbindObserver(observer Observer)
 
 	Namespace() string
 	GetSessionInfo() *SessionInfo
@@ -32,9 +47,8 @@ const (
 type sessionImpl struct {
 	id       string // session id
 	context  map[string]interface{}
+	observer map[string]Observer
 	registry *sessionRegistryImpl
-
-	callBack CallBack
 }
 
 func (s *sessionImpl) ID() string {
@@ -61,6 +75,29 @@ func (s *sessionImpl) Flush(res http.ResponseWriter, req *http.Request) {
 
 		req.AddCookie(&sessionCookie)
 	}
+}
+
+func (s *sessionImpl) BindObserver(observer Observer) {
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
+
+	_, ok := s.observer[observer.ID()]
+	if ok {
+		return
+	}
+	s.observer[observer.ID()] = observer
+}
+
+func (s *sessionImpl) UnbindObserver(observer Observer) {
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
+
+	_, ok := s.observer[observer.ID()]
+	if !ok {
+		return
+	}
+
+	delete(s.observer, observer.ID())
 }
 
 func (s *sessionImpl) Namespace() string {
@@ -206,6 +243,15 @@ func (s *sessionImpl) timeOut() bool {
 	elapse := nowTime.Sub(preTime.(time.Time))
 
 	return elapse > expiryDate.(time.Duration)
+}
+
+func (s *sessionImpl) terminate() {
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
+
+	for _, val := range s.observer {
+		go val.OnStatusChange(s, StatusTerminate)
+	}
 }
 
 func (s *sessionImpl) save() {
