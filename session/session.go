@@ -107,13 +107,13 @@ func (s *sessionImpl) RefreshTime() time.Time {
 }
 
 func (s *sessionImpl) ExpireTime() time.Time {
+	refreshTime := s.RefreshTime()
 	timeVal, timeOK := s.GetOption(AuthExpiryValue)
 	if timeOK {
-		refreshTime := s.RefreshTime()
 		return refreshTime.Add(timeVal.(time.Duration))
 	}
 
-	return time.Now().Add(-1 * time.Minute)
+	return refreshTime
 }
 
 func (s *sessionImpl) SetOption(key string, value interface{}) {
