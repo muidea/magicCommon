@@ -10,7 +10,7 @@ import (
 type Status int
 
 const (
-	StatusRunning = iota
+	StatusRefresh = iota
 	StatusTerminate
 )
 
@@ -167,6 +167,10 @@ func (s *sessionImpl) SetOption(key string, value interface{}) {
 		defer s.registry.sessionLock.Unlock()
 
 		s.context[key] = value
+
+		for _, val := range s.observer {
+			go val.OnStatusChange(s, StatusRefresh)
+		}
 	}()
 
 	s.save()
@@ -187,6 +191,10 @@ func (s *sessionImpl) RemoveOption(key string) {
 		defer s.registry.sessionLock.Unlock()
 
 		delete(s.context, key)
+
+		for _, val := range s.observer {
+			go val.OnStatusChange(s, StatusRefresh)
+		}
 	}()
 
 	s.save()
@@ -208,11 +216,7 @@ func (s *sessionImpl) OptionKey() []string {
 }
 
 func (s *sessionImpl) refresh() {
-	s.registry.sessionLock.RLock()
-	defer s.registry.sessionLock.RUnlock()
-
-	// 这里是在sessionRegistry里更新的，所以这里不用save
-	s.context[refreshTime] = time.Now()
+	s.SetOption(refreshTime, time.Now())
 }
 
 func (s *sessionImpl) timeOut() bool {
