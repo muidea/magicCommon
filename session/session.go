@@ -39,7 +39,7 @@ type Session interface {
 }
 
 const (
-	defaultSessionTimeOutValue = 10 * time.Minute  // 10 minute
+	DefaultSessionTimeOutValue = 10 * time.Minute  // 10 minute
 	tempSessionTimeOutValue    = 1 * time.Minute   // 1 minute
 	ForeverSessionTimeOutValue = time.Duration(-1) // forever time out value
 )
@@ -167,10 +167,6 @@ func (s *sessionImpl) SetOption(key string, value interface{}) {
 		defer s.registry.sessionLock.Unlock()
 
 		s.context[key] = value
-
-		if key == AuthEntity {
-			s.context[AuthExpiryValue] = defaultSessionTimeOutValue
-		}
 	}()
 
 	s.save()
@@ -191,9 +187,6 @@ func (s *sessionImpl) RemoveOption(key string) {
 		defer s.registry.sessionLock.Unlock()
 
 		delete(s.context, key)
-		if key == AuthEntity {
-			s.context[AuthExpiryValue] = tempSessionTimeOutValue
-		}
 	}()
 
 	s.save()
@@ -231,7 +224,7 @@ func (s *sessionImpl) timeOut() bool {
 		return false
 	}
 	if !found {
-		expiryDate = defaultSessionTimeOutValue
+		expiryDate = DefaultSessionTimeOutValue
 	}
 
 	preTime, found := s.context[refreshTime]
