@@ -1,74 +1,32 @@
 package session
 
 import (
-	"encoding/base64"
-	"encoding/json"
-	"log"
-	"net"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	log "github.com/cihub/seelog"
+	"github.com/golang-jwt/jwt/v4"
+
 	"github.com/muidea/magicCommon/foundation/util"
+)
+
+const (
+	jwtToken         = "Bearer"
+	sigToken         = "Sig"
+	hmacSampleSecret = "rangh@foxmail.com"
 )
 
 // Registry 会话仓库
 type Registry interface {
-	GetRequestInfo(res http.ResponseWriter, req *http.Request) *SessionInfo
 	GetSession(res http.ResponseWriter, req *http.Request) Session
 	CountSession(filter util.Filter) int
 }
 
-var sessionCookieID = defaultSessionCookieID
-
-//func init() {
-//	sessionCookieID = createUUID()
-//}
-
 func createUUID() string {
 	return util.RandomAlphanumeric(32)
-}
-
-func getRequestInfo(req *http.Request) *SessionInfo {
-	sessionInfo := &SessionInfo{}
-	if req != nil {
-		sessionInfo.Decode(req)
-		if sessionInfo.ID == "" || sessionInfo.Token == "" {
-			cookieInfo := &SessionInfo{}
-			cookie, err := req.Cookie(sessionCookieID)
-			if err == nil {
-				valData, valErr := base64.StdEncoding.DecodeString(cookie.Value)
-				if valErr == nil {
-					err = json.Unmarshal(valData, cookieInfo)
-					if err == nil {
-						sessionInfo = cookieInfo
-					}
-				}
-			}
-		}
-	}
-
-	return sessionInfo
-}
-
-func getNamespace(req *http.Request) string {
-	namespace := req.Header.Get(NamespaceID)
-	if namespace != "" {
-		return namespace
-	}
-
-	items := strings.Split(req.Host, ":")
-	if nil != net.ParseIP(items[0]) {
-		return ""
-	}
-
-	items = strings.Split(items[0], ".")
-	if len(items) <= 1 {
-		return ""
-	}
-
-	return items[0]
 }
 
 type sessionRegistryImpl struct {
@@ -86,59 +44,85 @@ func CreateRegistry() Registry {
 	return &impl
 }
 
-func (sm *sessionRegistryImpl) GetRequestInfo(res http.ResponseWriter, req *http.Request) *SessionInfo {
-	return getRequestInfo(req)
-}
-
 // GetSession 获取Session对象
-func (sm *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Request) Session {
-	var userSession *sessionImpl
-	sessionInfo := getRequestInfo(req)
-
-	sessionID := sessionInfo.ID
-	if sessionID == "" {
-		sessionID = createUUID()
+func (s *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Request) Session {
+	sessionInfo := s.getSession(req)
+	if sessionInfo != nil {
+		return sessionInfo
 	}
 
-	cur := sm.findSession(sessionID)
-	if cur == nil {
-		if sessionInfo.Scope != ShareSession {
-			sessionID = createUUID()
-			sessionInfo.ID = sessionID
-		}
-		userSession = sm.createSession(sessionID)
-
-	} else {
-		userSession = cur
-	}
-
-	namespace := getNamespace(req)
-	if namespace != "" {
-		userSession.SetOption(AuthNamespace, namespace)
-	}
-
-	userSession.SetSessionInfo(sessionInfo)
-
-	return userSession
+	return s.createSession(createUUID())
 }
 
-func (sm *sessionRegistryImpl) CountSession(filter util.Filter) int {
-	return sm.count(filter)
+func (s *sessionRegistryImpl) CountSession(filter util.Filter) int {
+	return s.count(filter)
+}
+
+func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
+	authorization := req.Header.Get("Authorization")
+	if authorization == "" {
+		return nil
+	}
+
+	items := strings.Split(authorization, " ")
+	itemsSize := len(items)
+	if items[0] == jwtToken && itemsSize > 1 {
+		return s.decodeJWT(items[1])
+	}
+
+	if items[0] == sigToken && itemsSize > 1 {
+		return s.decodeSig(req)
+	}
+
+	return nil
+}
+
+func (s *sessionRegistryImpl) decodeJWT(sigVal string) *sessionImpl {
+	token, err := jwt.Parse(sigVal, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v ", token.Header["alg"])
+		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return []byte(hmacSampleSecret), nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		sessionInfo := &sessionImpl{context: map[string]interface{}{}, observer: map[string]Observer{}, registry: s}
+		for k, v := range claims {
+			if k == sessionID {
+				sessionInfo.id = v.(string)
+				continue
+			}
+
+			sessionInfo.context[k] = v
+		}
+
+		return sessionInfo
+	}
+
+	log.Infof("illegal jwt value:%s, err:%s", sigVal[1], err.Error())
+	return nil
+}
+
+func (s *sessionRegistryImpl) decodeSig(req *http.Request) *sessionImpl {
+	// TODO
+	return nil
 }
 
 // createSession 新建Session
-func (sm *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
-	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{AuthExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: sm}
+func (s *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
+	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{}, observer: map[string]Observer{}, registry: s}
+	sessionPtr = s.commandChan.insert(sessionPtr)
 
 	sessionPtr.refresh()
-
-	sessionPtr = sm.commandChan.insert(sessionPtr)
 
 	return sessionPtr
 }
 
-func (sm *sessionRegistryImpl) findSession(sessionID string) *sessionImpl {
-	sessionPtr := sm.commandChan.find(sessionID)
+func (s *sessionRegistryImpl) findSession(sessionID string) *sessionImpl {
+	sessionPtr := s.commandChan.find(sessionID)
 	if sessionPtr != nil {
 		return sessionPtr
 	}
@@ -147,39 +131,38 @@ func (sm *sessionRegistryImpl) findSession(sessionID string) *sessionImpl {
 }
 
 // UpdateSession 更新Session
-func (sm *sessionRegistryImpl) updateSession(session *sessionImpl) bool {
-
-	return sm.commandChan.update(session)
+func (s *sessionRegistryImpl) updateSession(session *sessionImpl) bool {
+	return s.commandChan.update(session)
 }
 
-func (sm *sessionRegistryImpl) checkTimer() {
+func (s *sessionRegistryImpl) checkTimer() {
 	timeOutTimer := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case <-timeOutTimer.C:
-			sm.commandChan.checkTimeOut()
+			s.commandChan.checkTimeOut()
 		}
 	}
 }
 
-func (sm *sessionRegistryImpl) insert(session *sessionImpl) *sessionImpl {
-	return sm.commandChan.insert(session)
+func (s *sessionRegistryImpl) insert(session *sessionImpl) *sessionImpl {
+	return s.commandChan.insert(session)
 }
 
-func (sm *sessionRegistryImpl) delete(id string) {
-	sm.commandChan.remove(id)
+func (s *sessionRegistryImpl) delete(id string) {
+	s.commandChan.remove(id)
 }
 
-func (sm *sessionRegistryImpl) find(id string) *sessionImpl {
-	return sm.commandChan.find(id)
+func (s *sessionRegistryImpl) find(id string) *sessionImpl {
+	return s.commandChan.find(id)
 }
 
-func (sm *sessionRegistryImpl) count(filter util.Filter) int {
-	return sm.commandChan.count(filter)
+func (s *sessionRegistryImpl) count(filter util.Filter) int {
+	return s.commandChan.count(filter)
 }
 
-func (sm *sessionRegistryImpl) update(session *sessionImpl) bool {
-	return sm.commandChan.update(session)
+func (s *sessionRegistryImpl) update(session *sessionImpl) bool {
+	return s.commandChan.update(session)
 }
 
 type commandData struct {
@@ -265,7 +248,7 @@ func (right commandChanImpl) run() {
 			if curOK {
 				curSession.context = session.context
 			} else {
-				log.Printf("illegal session id:%s", session.id)
+				log.Errorf("illegal session id:%s", session.id)
 			}
 
 			command.result <- curOK
@@ -283,7 +266,7 @@ func (right commandChanImpl) run() {
 		case checkTimeOut:
 			removeList := make(map[string]*sessionImpl)
 			for k, v := range sessionContextMap {
-				if v.timeOut() {
+				if v.timeout() {
 					removeList[k] = v
 				}
 			}
@@ -315,16 +298,8 @@ func (right commandChanImpl) run() {
 		}
 	}
 
-	log.Print("session manager sessionImpl exit")
+	log.Infof("session manager sessionImpl exit")
 }
-
-/*
-func (right commandChanImpl) close() map[string]interface{} {
-	reply := make(chan map[string]interface{})
-	right <- commandData{action: end, data: reply}
-	return <-reply
-}
-*/
 
 func (right commandChanImpl) checkTimeOut() {
 	right <- commandData{action: checkTimeOut}

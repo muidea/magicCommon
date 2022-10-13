@@ -1,16 +1,15 @@
 package session
 
 import (
-	"encoding/base64"
-	"encoding/json"
-	"net/http"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type Status int
 
 const (
-	StatusRefresh = iota
+	StatusUpdate = iota
 	StatusTerminate
 )
 
@@ -23,26 +22,14 @@ type Observer interface {
 // Session 会话
 type Session interface {
 	ID() string
-	Flush(res http.ResponseWriter, req *http.Request)
+	SignedString() (string, error)
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
 
-	Namespace() string
-	GetSessionInfo() *SessionInfo
-	SetSessionInfo(info *SessionInfo)
-	RefreshTime() int64
-	ExpireTime() int64
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
-	OptionKey() []string
 }
-
-const (
-	DefaultSessionTimeOutValue = 10 * time.Minute  // 10 minute
-	tempSessionTimeOutValue    = 1 * time.Minute   // 1 minute
-	ForeverSessionTimeOutValue = time.Duration(-1) // forever time out value
-)
 
 type sessionImpl struct {
 	id       string // session id
@@ -55,26 +42,22 @@ func (s *sessionImpl) ID() string {
 	return s.id
 }
 
-func (s *sessionImpl) Flush(res http.ResponseWriter, req *http.Request) {
-	info := s.GetSessionInfo()
-	if info == nil {
-		return
+func (s *sessionImpl) SignedString() (string, error) {
+	mc := jwt.MapClaims{}
+	if s.id != "" {
+		mc[sessionID] = s.id
 	}
 
-	// 存入cookie,使用cookie存储
-	dataValue, dataErr := json.Marshal(info)
-	if dataErr == nil {
-		sessionCookie := http.Cookie{
-			Name:   sessionCookieID,
-			Value:  base64.StdEncoding.EncodeToString(dataValue),
-			Path:   "/",
-			MaxAge: 600,
+	for k, v := range s.context {
+		if k == AuthRemoteAddress || k == AuthExpiryValue {
+			continue
 		}
 
-		http.SetCookie(res, &sessionCookie)
-
-		req.AddCookie(&sessionCookie)
+		mc[k] = v
 	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mc)
+	return token.SignedString([]byte(hmacSampleSecret))
 }
 
 func (s *sessionImpl) BindObserver(observer Observer) {
@@ -100,67 +83,6 @@ func (s *sessionImpl) UnbindObserver(observer Observer) {
 	delete(s.observer, observer.ID())
 }
 
-func (s *sessionImpl) Namespace() string {
-	val, ok := s.GetOption(AuthNamespace)
-	if !ok {
-		return ""
-	}
-
-	return val.(string)
-}
-
-func (s *sessionImpl) GetSessionInfo() (ret *SessionInfo) {
-	val, ok := s.GetOption(authSessionInfo)
-	if !ok {
-		ret = nil
-		return
-	}
-
-	ret, ok = val.(*SessionInfo)
-	if !ok {
-		s.RemoveOption(authSessionInfo)
-		ret = nil
-		return
-	}
-
-	return
-}
-
-func (s *sessionImpl) SetSessionInfo(info *SessionInfo) {
-	if info == nil {
-		return
-	}
-
-	s.SetOption(authSessionInfo, info)
-}
-
-func (s *sessionImpl) RefreshTime() int64 {
-	timeVal, timeOK := s.GetOption(refreshTime)
-	if timeOK {
-		return timeVal.(time.Time).UTC().Unix()
-	}
-
-	return time.Now().UTC().Unix()
-}
-
-func (s *sessionImpl) ExpireTime() int64 {
-	timeVal, timeOK := s.GetOption(AuthExpiryValue)
-	if !timeOK {
-		return 0
-	}
-
-	if timeVal.(time.Duration) == ForeverSessionTimeOutValue {
-		return -1
-	}
-
-	refreshTime, refreshOK := s.GetOption(refreshTime)
-	if refreshOK {
-		return refreshTime.(time.Time).Add(timeVal.(time.Duration)).UTC().Unix()
-	}
-
-	return 0
-}
-
 func (s *sessionImpl) SetOption(key string, value interface{}) {
 	func() {
 		s.registry.sessionLock.Lock()
@@ -169,7 +91,7 @@ func (s *sessionImpl) SetOption(key string, value interface{}) {
 		s.context[key] = value
 
 		for _, val := range s.observer {
-			go val.OnStatusChange(s, StatusRefresh)
+			go val.OnStatusChange(s, StatusUpdate)
 		}
 	}()
 
@@ -193,42 +115,24 @@ func (s *sessionImpl) RemoveOption(key string) {
 		delete(s.context, key)
 
 		for _, val := range s.observer {
-			go val.OnStatusChange(s, StatusRefresh)
+			go val.OnStatusChange(s, StatusUpdate)
 		}
 	}()
 
 	s.save()
 }
 
-func (s *sessionImpl) OptionKey() []string {
-	keys := []string{}
-
-	func() {
-		s.registry.sessionLock.RLock()
-		defer s.registry.sessionLock.RUnlock()
-
-		for key := range s.context {
-			keys = append(keys, key)
-		}
-	}()
-
-	return keys
-}
-
 func (s *sessionImpl) refresh() {
 	s.SetOption(refreshTime, time.Now())
 }
 
-func (s *sessionImpl) timeOut() bool {
+func (s *sessionImpl) timeout() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
 	expiryDate, found := s.context[AuthExpiryValue]
-	if found && expiryDate.(time.Duration) == ForeverSessionTimeOutValue {
-		return false
-	}
-	if !found {
-		expiryDate = DefaultSessionTimeOutValue
+	if found {
+		return true
 	}
 
 	preTime, found := s.context[refreshTime]

@@ -1,37 +1,15 @@
 package session
 
-import (
-	"net/http"
-	"net/url"
-)
-
 const (
 	// sessionID 会话ID
-	sessionID = "SessionID"
-	// sessionToken 会话Token
-	sessionToken = "SessionToken"
-	// sessionScope 会话域，标识是否是共享会话
-	sessionScope = "SessionScope"
+	sessionID = "sessionID"
+	// AuthNamespace Account namespace
+	AuthNamespace = "sessionNamespace"
+	// AuthEntity Entity
+	AuthEntity = "authEntity"
+	// AuthRole 权限组
+	AuthRole = "authRole"
 )
-
-const (
-	// ShareSession share session flag value
-	ShareSession = "shareSession"
-	// NamespaceID 会话namespace
-	NamespaceID = "Namespace"
-)
-
-// AuthSession auth Session
-const AuthSession = "$$contextSession"
-
-// AuthEntity 鉴权Entity
-const AuthEntity = "$$sessionEntity"
-
-// AuthRole Account 权限组
-const AuthRole = "$$sessionRole"
-
-// AuthNamespace Account namespace
-const AuthNamespace = "$$sessionNamespace"
 
 // AuthRemoteAddress 远端地址
 const AuthRemoteAddress = "$$sessionRemoteAddress"
@@ -41,51 +19,3 @@ const AuthExpiryValue = "$$sessionExpiryValue"
 
 // refreshTime 会话刷新时间
 const refreshTime = "$$sessionRefreshTime"
-
-// authSessionInfo session info
-const authSessionInfo = "$$sessionInfo"
-
-const defaultSessionCookieID = "magicTicket"
-
-// SessionInfo session info
-type SessionInfo struct {
-	ID    string `json:"sessionID"`
-	Token string `json:"sessionToken"`
-	Scope string `json:"sessionScope"`
-}
-
-// Encode encode values
-func (s *SessionInfo) Encode(values url.Values) (ret url.Values) {
-	if s.ID != "" {
-		values.Set(sessionID, s.ID)
-	}
-
-	if s.Token != "" {
-		values.Set(sessionToken, s.Token)
-	}
-
-	if s.Scope != "" {
-		values.Set(sessionScope, s.Scope)
-	}
-
-	ret = values
-	return
-}
-
-// Decode decode session info
-func (s *SessionInfo) Decode(req *http.Request) {
-	s.ID = req.Header.Get(sessionID)
-	s.Token = req.Header.Get(sessionToken)
-	s.Scope = req.Header.Get(sessionScope)
-}
-
-// Same compare SessionInfo
-func (s *SessionInfo) Same(right *SessionInfo) bool {
-	return s.ID == right.ID && s.Token == right.Token && s.Scope == right.Scope
-}
-
-// ContextInfo context info
-type ContextInfo interface {
-	Decode(req *http.Request)
-	Encode(vals url.Values) url.Values
-}
