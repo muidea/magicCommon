@@ -3,12 +3,6 @@ package session
 const (
 	// sessionID 会话ID
 	sessionID = "sessionID"
-	// AuthNamespace Account namespace
-	AuthNamespace = "sessionNamespace"
-	// AuthEntity Entity
-	AuthEntity = "authEntity"
-	// AuthRole 权限组
-	AuthRole = "authRole"
 )
 
 // AuthRemoteAddress 远端地址
