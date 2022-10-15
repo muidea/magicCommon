@@ -3,6 +3,8 @@ package session
 import (
 	"time"
 
+	log "github.com/cihub/seelog"
+
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -22,7 +24,7 @@ type Observer interface {
 // Session 会话
 type Session interface {
 	ID() string
-	SignedString() (string, error)
+	SignedString() string
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
 
@@ -43,7 +45,7 @@ func (s *sessionImpl) ID() string {
 	return s.id
 }
 
-func (s *sessionImpl) SignedString() (string, error) {
+func (s *sessionImpl) SignedString() string {
 	mc := jwt.MapClaims{}
 	if s.id != "" {
 		mc[sessionID] = s.id
@@ -58,7 +60,11 @@ func (s *sessionImpl) SignedString() (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mc)
-	return token.SignedString([]byte(hmacSampleSecret))
+	valStr, valErr := token.SignedString([]byte(hmacSampleSecret))
+	if valErr != nil {
+		log.Errorf("SignedString failed, err:%s", valErr.Error())
+	}
+	return valStr
 }
 
 func (s *sessionImpl) BindObserver(observer Observer) {
