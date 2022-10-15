@@ -34,7 +34,13 @@ type Session interface {
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
 
-	Namespace() string
+	RefreshTime() int64
+	ExpireTime() int64
+	GetString(key string) (string, bool)
+	GetInt(key string) (int64, bool)
+	GetUint(key string) (uint64, bool)
+	GetFloat(key string) (float64, bool)
+	GetBool(key string) (bool, bool)
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
@@ -58,7 +64,7 @@ func (s *sessionImpl) SignedString() string {
 	}
 
 	for k, v := range s.context {
-		if k == AuthRemoteAddress || k == AuthExpiryValue {
+		if k == RemoteAddress || k == ExpiryValue || k == refreshTime {
 			continue
 		}
 
@@ -96,13 +102,123 @@ func (s *sessionImpl) UnbindObserver(observer Observer) {
 	delete(s.observer, observer.ID())
 }
 
-func (s *sessionImpl) Namespace() string {
-	namespaceVal, namespaceOK := s.GetOption(AuthNamespace)
-	if !namespaceOK {
-		return ""
+func (s *sessionImpl) RefreshTime() int64 {
+	timeVal, timeOK := s.GetOption(refreshTime)
+	if timeOK {
+		return timeVal.(time.Time).UTC().Unix()
 	}
 
-	return namespaceVal.(string)
+	return time.Now().UTC().Unix()
+}
+
+func (s *sessionImpl) ExpireTime() int64 {
+	timeVal, timeOK := s.GetOption(ExpiryValue)
+	if !timeOK {
+		return 0
+	}
+
+	if timeVal.(time.Duration) == ForeverSessionTimeOutValue {
+		return -1
+	}
+
+	refreshTime, refreshOK := s.GetOption(refreshTime)
+	if refreshOK {
+		return refreshTime.(time.Time).Add(timeVal.(time.Duration)).UTC().Unix()
+	}
+
+	return 0
+}
+
+func (s *sessionImpl) GetString(key string) (string, bool) {
+	val, ok := s.GetOption(key)
+	if !ok {
+		return "", ok
+	}
+
+	strVal, strOK := val.(string)
+	return strVal, strOK
+}
+
+func (s *sessionImpl) GetInt(key string) (int64, bool) {
+	val, ok := s.GetOption(key)
+	if !ok {
+		return 0, ok
+	}
+
+	switch val.(type) {
+	case int8:
+		return int64(val.(int8)), true
+	case int16:
+		return int64(val.(int16)), true
+	case int32:
+		return int64(val.(int32)), true
+	case int64:
+		return val.(int64), true
+	case int:
+		return int64(val.(int)), true
+	case float64:
+		return int64(val.(float64)), true
+	case float32:
+		return int64(val.(float32)), true
+	}
+
+	return 0, false
+}
+
+func (s *sessionImpl) GetUint(key string) (uint64, bool) {
+	val, ok := s.GetOption(key)
+	if !ok {
+		return 0, ok
+	}
+
+	switch val.(type) {
+	case uint8:
+		return uint64(val.(uint8)), true
+	case uint16:
+		return uint64(val.(uint16)), true
+	case uint32:
+		return uint64(val.(uint32)), true
+	case uint64:
+		return val.(uint64), true
+	case uint:
+		return uint64(val.(uint)), true
+	case float64:
+		return uint64(val.(float64)), true
+	case float32:
+		return uint64(val.(float32)), true
+	}
+
+	return 0, false
+}
+
+func (s *sessionImpl) GetFloat(key string) (float64, bool) {
+	val, ok := s.GetOption(key)
+	if !ok {
+		return 0.00, ok
+	}
+
+	switch val.(type) {
+	case float64:
+		return val.(float64), true
+	case float32:
+		return float64(val.(float32)), true
+	}
+
+	return 0.00, false
+}
+
+func (s *sessionImpl) GetBool(key string) (bool, bool) {
+	val, ok := s.GetOption(key)
+	if !ok {
+		return false, ok
+	}
+
+	switch val.(type) {
+	case bool:
+		return val.(bool), true
+	}
+
+	return false, false
 }
 
 func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
@@ -152,7 +268,7 @@ func (s *sessionImpl) timeout() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryDate, _ := s.context[AuthExpiryValue]
+	expiryDate, _ := s.context[ExpiryValue]
 	if expiryDate.(time.Duration) == ForeverSessionTimeOutValue {
 		return false
 	}

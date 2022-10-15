@@ -7,18 +7,14 @@ import (
 
 const (
 	// sessionID 会话ID
-	sessionID     = "sessionID"
-	AuthNamespace = "authNamespace"
+	sessionID = "sessionID"
+	// RemoteAddress 远端地址
+	RemoteAddress = "$$sessionRemoteAddress"
+	// ExpiryValue 会话有效期
+	ExpiryValue = "$$sessionExpiryValue"
+	// refreshTime 会话刷新时间
+	refreshTime = "$$sessionRefreshTime"
 )
-
-// AuthRemoteAddress 远端地址
-const AuthRemoteAddress = "$$sessionRemoteAddress"
-
-// AuthExpiryValue 会话有效期
-const AuthExpiryValue = "$$sessionExpiryValue"
-
-// refreshTime 会话刷新时间
-const refreshTime = "$$sessionRefreshTime"
 
 // ContextInfo context info
 type ContextInfo interface {

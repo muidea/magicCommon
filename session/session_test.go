@@ -22,3 +22,48 @@ func TestUUID(t *testing.T) {
 
 	log.Printf("total size:%d", len(ids))
 }
+
+func TestSessionImpl_SignedString(t *testing.T) {
+	impl := &sessionImpl{
+		id:      createUUID(),
+		context: map[string]interface{}{},
+	}
+
+	impl.context["AuthEntity"] = 123
+
+	impl.context["Namespace"] = "xijian"
+	impl.context["AuthRole"] = 123.456
+
+	sigVal := impl.SignedString()
+
+	log.Printf("%s", sigVal)
+
+	regImpl := &sessionRegistryImpl{}
+	session := regImpl.decodeJWT(sigVal)
+	if session == nil {
+		t.Errorf("decodeSessionImpl failed")
+		return
+	}
+
+	entityVal, entityOK := session.GetInt("AuthEntity")
+	if !entityOK {
+		t.Errorf("decodeSessionImpl authEntity failed")
+		return
+	}
+
+	if entityVal != 123 {
+		t.Errorf("illegal authEntity auth value failed")
+		return
+	}
+
+	roleVal, roleOK := session.GetFloat("AuthRole")
+	if !roleOK {
+		t.Errorf("decodeSessionImpl AuthRole failed")
+		return
+
+	}
+	if roleVal != 123.456 {
+		t.Errorf("decodeSessionImpl AuthRole failed")
+		return
+	}
+}
