@@ -26,6 +26,7 @@ type Session interface {
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
 
+	Namespace() string
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
@@ -83,6 +84,24 @@ func (s *sessionImpl) UnbindObserver(observer Observer) {
 	delete(s.observer, observer.ID())
 }
 
+func (s *sessionImpl) Namespace() string {
+	namespaceVal, namespaceOK := s.GetOption(AuthNamespace)
+	if !namespaceOK {
+		return ""
+	}
+
+	return namespaceVal.(string)
+}
+
+func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
+
+	value, found := s.context[key]
+
+	return value, found
+}
+
 func (s *sessionImpl) SetOption(key string, value interface{}) {
 	func() {
 		s.registry.sessionLock.Lock()
@@ -96,15 +115,6 @@ func (s *sessionImpl) SetOption(key string, value interface{}) {
 	}()
 
 	s.save()
-}
-
-func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
-	s.registry.sessionLock.RLock()
-	defer s.registry.sessionLock.RUnlock()
-
-	value, found := s.context[key]
-
-	return value, found
 }
 
 func (s *sessionImpl) RemoveOption(key string) {
