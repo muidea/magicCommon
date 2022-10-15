@@ -1,5 +1,10 @@
 package session
 
+import (
+	"net/http"
+	"net/url"
+)
+
 const (
 	// sessionID 会话ID
 	sessionID = "sessionID"
@@ -13,3 +18,9 @@ const AuthExpiryValue = "$$sessionExpiryValue"
 
 // refreshTime 会话刷新时间
 const refreshTime = "$$sessionRefreshTime"
+
+// ContextInfo context info
+type ContextInfo interface {
+	Decode(req *http.Request)
+	Encode(vals url.Values) url.Values
+}
