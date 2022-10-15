@@ -1,6 +1,8 @@
 package session
 
 import (
+	"net/http"
+	"net/url"
 	"time"
 
 	log "github.com/cihub/seelog"
@@ -9,10 +11,22 @@ import (
 )
 
 type Status int
+type Token string
 
 const (
 	StatusUpdate = iota
 	StatusTerminate
+)
+
+const (
+	// sessionID 会话ID
+	sessionID = "sessionID"
+	// RemoteAddress 远端地址
+	RemoteAddress = "$$sessionRemoteAddress"
+	// ExpiryValue 会话有效期
+	ExpiryValue = "$$sessionExpiryValue"
+	// refreshTime 会话刷新时间
+	refreshTime = "$$sessionRefreshTime"
 )
 
 const (
@@ -30,7 +44,7 @@ type Observer interface {
 // Session 会话
 type Session interface {
 	ID() string
-	SignedString() string
+	SignedString() Token
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
 
@@ -57,7 +71,7 @@ func (s *sessionImpl) ID() string {
 	return s.id
 }
 
-func (s *sessionImpl) SignedString() string {
+func (s *sessionImpl) SignedString() Token {
 	mc := jwt.MapClaims{}
 	if s.id != "" {
 		mc[sessionID] = s.id
@@ -76,7 +90,8 @@ func (s *sessionImpl) SignedString() string {
 	if valErr != nil {
 		log.Errorf("SignedString failed, err:%s", valErr.Error())
 	}
-	return valStr
+
+	return Token(valStr)
 }
 
 func (s *sessionImpl) BindObserver(observer Observer) {
@@ -292,4 +307,10 @@ func (s *sessionImpl) terminate() {
 
 func (s *sessionImpl) save() {
 	s.registry.updateSession(s)
+}
+
+// Context context info
+type Context interface {
+	Decode(req *http.Request)
+	Encode(vals url.Values) url.Values
 }
