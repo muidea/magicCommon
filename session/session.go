@@ -15,6 +15,12 @@ const (
 	StatusTerminate
 )
 
+const (
+	DefaultSessionTimeOutValue = 10 * time.Minute  // 10 minute
+	tempSessionTimeOutValue    = 1 * time.Minute   // 1 minute
+	ForeverSessionTimeOutValue = time.Duration(-1) // forever time out value
+)
+
 // Observer session Observer
 type Observer interface {
 	ID() string
@@ -146,15 +152,12 @@ func (s *sessionImpl) timeout() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryDate, found := s.context[AuthExpiryValue]
-	if found {
-		return true
+	expiryDate, _ := s.context[AuthExpiryValue]
+	if expiryDate.(time.Duration) == ForeverSessionTimeOutValue {
+		return false
 	}
 
-	preTime, found := s.context[refreshTime]
-	if !found {
-		return true
-	}
+	preTime, _ := s.context[refreshTime]
 
 	nowTime := time.Now()
 	elapse := nowTime.Sub(preTime.(time.Time))
