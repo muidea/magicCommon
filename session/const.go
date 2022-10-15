@@ -7,8 +7,7 @@ import (
 
 const (
 	// sessionID 会话ID
-	sessionID  = "sessionID"
-	AuthEntity = "authEntity"
+	sessionID = "sessionID"
 )
 
 // AuthRemoteAddress 远端地址
