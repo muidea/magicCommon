@@ -109,7 +109,7 @@ func (s *sessionImpl) Reset() {
 		s.registry.sessionLock.RLock()
 		defer s.registry.sessionLock.RUnlock()
 
-		s.context = map[string]interface{}{ExpiryValue: tempSessionTimeOutValue}
+		s.context = map[string]interface{}{refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}
 		s.observer = map[string]Observer{}
 	}()
 
