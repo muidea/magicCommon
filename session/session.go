@@ -71,6 +71,15 @@ func (s *sessionImpl) ID() string {
 	return s.id
 }
 
+func (s *sessionImpl) innerKey(key string) bool {
+	switch key {
+	case RemoteAddress, ExpiryValue, refreshTime:
+		return true
+	}
+
+	return false
+}
+
 func (s *sessionImpl) SignedString() Token {
 	mc := jwt.MapClaims{}
 	if s.id != "" {
@@ -78,7 +87,7 @@ func (s *sessionImpl) SignedString() Token {
 	}
 
 	for k, v := range s.context {
-		if k == RemoteAddress || k == ExpiryValue || k == refreshTime {
+		if s.innerKey(k) {
 			continue
 		}
 
