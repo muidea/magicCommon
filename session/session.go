@@ -45,6 +45,7 @@ type Observer interface {
 type Session interface {
 	ID() string
 	SignedString() Token
+	Reset()
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
 
@@ -101,6 +102,18 @@ func (s *sessionImpl) SignedString() Token {
 	}
 
 	return Token(valStr)
+}
+
+func (s *sessionImpl) Reset() {
+	func() {
+		s.registry.sessionLock.RLock()
+		defer s.registry.sessionLock.RUnlock()
+
+		s.context = map[string]interface{}{ExpiryValue: tempSessionTimeOutValue}
+		s.observer = map[string]Observer{}
+	}()
+
+	s.save()
 }
 
 func (s *sessionImpl) BindObserver(observer Observer) {
