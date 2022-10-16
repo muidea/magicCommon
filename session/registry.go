@@ -97,7 +97,7 @@ func (s *sessionRegistryImpl) decodeJWT(sigVal string) *sessionImpl {
 	})
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		sessionInfo := &sessionImpl{context: map[string]interface{}{}, observer: map[string]Observer{}, registry: s}
+		sessionInfo := &sessionImpl{context: map[string]interface{}{refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
 		for k, v := range claims {
 			if k == sessionID {
 				sessionInfo.id = v.(string)
@@ -121,10 +121,8 @@ func (s *sessionRegistryImpl) decodeSig(req *http.Request) *sessionImpl {
 
 // createSession 新建Session
 func (s *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
-	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
+	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
 	sessionPtr = s.commandChan.insert(sessionPtr)
-
-	sessionPtr.refresh()
 
 	return sessionPtr
 }
