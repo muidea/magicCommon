@@ -64,17 +64,25 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		return nil
 	}
 
+	var sessionPtr *sessionImpl
 	items := strings.Split(authorization, " ")
 	itemsSize := len(items)
 	if items[0] == jwtToken && itemsSize > 1 {
-		return s.decodeJWT(items[1])
+		sessionPtr = s.decodeJWT(items[1])
 	}
 
 	if items[0] == sigToken && itemsSize > 1 {
-		return s.decodeSig(req)
+		sessionPtr = s.decodeSig(req)
 	}
 
-	return nil
+	if sessionPtr != nil {
+		curSession := s.findSession(sessionPtr.id)
+		if curSession != nil {
+			sessionPtr = curSession
+		}
+	}
+
+	return sessionPtr
 }
 
 func (s *sessionRegistryImpl) decodeJWT(sigVal string) *sessionImpl {
