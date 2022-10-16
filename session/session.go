@@ -298,7 +298,9 @@ func (s *sessionImpl) RemoveOption(key string) {
 }
 
 func (s *sessionImpl) refresh() {
-	s.SetOption(refreshTime, time.Now())
+	s.registry.sessionLock.Lock()
+	defer s.registry.sessionLock.Unlock()
+	s.context[refreshTime] = time.Now()
 }
 
 func (s *sessionImpl) timeout() bool {
