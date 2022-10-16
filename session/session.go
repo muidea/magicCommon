@@ -44,7 +44,7 @@ type Observer interface {
 // Session 会话
 type Session interface {
 	ID() string
-	SignedString() Token
+	Signature() Token
 	Reset()
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
@@ -81,7 +81,7 @@ func (s *sessionImpl) innerKey(key string) bool {
 	return false
 }
 
-func (s *sessionImpl) SignedString() Token {
+func (s *sessionImpl) Signature() Token {
 	mc := jwt.MapClaims{}
 	if s.id != "" {
 		mc[sessionID] = s.id
@@ -98,7 +98,7 @@ func (s *sessionImpl) SignedString() Token {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mc)
 	valStr, valErr := token.SignedString([]byte(hmacSampleSecret))
 	if valErr != nil {
-		log.Errorf("SignedString failed, err:%s", valErr.Error())
+		log.Errorf("Signature failed, err:%s", valErr.Error())
 	}
 
 	return Token(valStr)

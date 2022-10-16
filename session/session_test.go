@@ -34,7 +34,7 @@ func TestSessionImpl_SignedString(t *testing.T) {
 	impl.context["Namespace"] = "xijian"
 	impl.context["AuthRole"] = 123.456
 
-	sigVal := impl.SignedString()
+	sigVal := impl.Signature()
 
 	log.Printf("%s", sigVal)
 
