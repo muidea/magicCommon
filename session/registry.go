@@ -1,6 +1,7 @@
 package session
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
@@ -72,7 +73,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}
 
 	if items[0] == sigToken && itemsSize > 1 {
-		sessionPtr = s.decodeSig(req)
+		sessionPtr = s.decodeSig(items[1], req)
 	}
 
 	if sessionPtr != nil {
@@ -114,8 +115,27 @@ func (s *sessionRegistryImpl) decodeJWT(sigVal string) *sessionImpl {
 	return nil
 }
 
-func (s *sessionRegistryImpl) decodeSig(req *http.Request) *sessionImpl {
-	// TODO
+func (s *sessionRegistryImpl) decodeSig(sigVal string, req *http.Request) *sessionImpl {
+	items := strings.Split(sigVal, ",")
+	if len(items) != 3 {
+		return nil
+	}
+
+	endpoint, identityID, err := decodeCredential(items[0])
+	if err != nil {
+		return nil
+	}
+	headers, err := decodeSignedHeaders(items[1])
+	if err != nil {
+		return nil
+	}
+
+	sessionInfo := &sessionImpl{context: map[string]interface{}{refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
+	for _, val := range headers {
+		sessionInfo.context[val] = req.Header.Get(val)
+	}
+	sessionInfo.id = hex.EncodeToString(util.CryptoByMd5([]byte(endpoint + identityID)))
+
 	return nil
 }
 

@@ -2,12 +2,14 @@ package session
 
 import (
 	"fmt"
-	log "github.com/cihub/seelog"
-	"github.com/muidea/magicCommon/foundation/util"
 	"net/url"
 	"sort"
 	"strings"
 	"time"
+
+	log "github.com/cihub/seelog"
+
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 type Endpoint struct {
@@ -17,7 +19,7 @@ type Endpoint struct {
 }
 
 func signature(endpoint *Endpoint, ctxVal url.Values) Token {
-	credentialVal := fmt.Sprintf("Credential=%s/%s/%s", endpoint.Endpoint, endpoint.IdentifyID, time.Now().UTC().Format("200601021504"))
+	credentialVal := fmt.Sprintf("Credential=%s/%s/%s", endpoint.Endpoint, endpoint.IdentifyID, time.Now().UTC().Format("2006010215"))
 
 	headers := []string{}
 	for k, _ := range ctxVal {
@@ -34,4 +36,31 @@ func signature(endpoint *Endpoint, ctxVal url.Values) Token {
 	signatureVal := fmt.Sprintf("Signature=%s", encryptVal)
 
 	return Token(strings.Join([]string{credentialVal, signedHeadersVal, signatureVal}, ","))
+}
+
+func decodeCredential(val string) (endpoint string, identifyID string, err error) {
+	items := strings.Split(val, "=")
+	if len(items) != 2 {
+		err = fmt.Errorf("illegal Credential")
+		return
+	}
+	items = strings.Split(items[1], "/")
+	if len(items) != 3 {
+		err = fmt.Errorf("illegal Credential value")
+		return
+	}
+
+	endpoint = items[0]
+	identifyID = items[1]
+	return
+}
+
+func decodeSignedHeaders(val string) (headers []string, err error) {
+	items := strings.Split(val, "=")
+	if len(items) != 2 {
+		err = fmt.Errorf("illegal SignedHeaders")
+		return
+	}
+	headers = strings.Split(items[1], ";")
+	return
 }

@@ -3,6 +3,7 @@ package session
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	log "github.com/cihub/seelog"
@@ -197,6 +198,9 @@ func (s *sessionImpl) GetInt(key string) (int64, bool) {
 		return int64(val.(float64)), true
 	case float32:
 		return int64(val.(float32)), true
+	case string:
+		val, err := strconv.ParseInt(val.(string), 10, 64)
+		return val, err == nil
 	}
 
 	return 0, false
@@ -223,6 +227,9 @@ func (s *sessionImpl) GetUint(key string) (uint64, bool) {
 		return uint64(val.(float64)), true
 	case float32:
 		return uint64(val.(float32)), true
+	case string:
+		val, err := strconv.ParseUint(val.(string), 10, 64)
+		return val, err == nil
 	}
 
 	return 0, false
@@ -239,6 +246,9 @@ func (s *sessionImpl) GetFloat(key string) (float64, bool) {
 		return val.(float64), true
 	case float32:
 		return float64(val.(float32)), true
+	case string:
+		val, err := strconv.ParseFloat(val.(string), 64)
+		return val, err == nil
 	}
 
 	return 0.00, false
@@ -253,6 +263,9 @@ func (s *sessionImpl) GetBool(key string) (bool, bool) {
 	switch val.(type) {
 	case bool:
 		return val.(bool), true
+	case string:
+		val, err := strconv.ParseBool(val.(string))
+		return val, err == nil
 	}
 
 	return false, false

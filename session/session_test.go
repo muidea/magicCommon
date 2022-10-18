@@ -23,7 +23,7 @@ func TestUUID(t *testing.T) {
 	log.Printf("total size:%d", len(ids))
 }
 
-func TestSessionImpl_SignedString(t *testing.T) {
+func TestSessionImpl_Signature(t *testing.T) {
 	impl := &sessionImpl{
 		id:      createUUID(),
 		context: map[string]interface{}{},
@@ -39,7 +39,7 @@ func TestSessionImpl_SignedString(t *testing.T) {
 	log.Printf("%s", sigVal)
 
 	regImpl := &sessionRegistryImpl{}
-	session := regImpl.decodeJWT(sigVal)
+	session := regImpl.decodeJWT(string(sigVal))
 	if session == nil {
 		t.Errorf("decodeSessionImpl failed")
 		return
