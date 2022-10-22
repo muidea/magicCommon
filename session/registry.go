@@ -15,8 +15,6 @@ import (
 )
 
 const (
-	jwtToken         = "Bearer"
-	sigToken         = "Sig"
 	hmacSampleSecret = "rangh@foxmail.com"
 )
 
@@ -68,11 +66,11 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	var sessionPtr *sessionImpl
 	items := strings.Split(authorization, " ")
 	itemsSize := len(items)
-	if items[0] == jwtToken && itemsSize > 1 {
+	if items[0] == JwtToken && itemsSize > 1 {
 		sessionPtr = s.decodeJWT(items[1])
 	}
 
-	if items[0] == sigToken && itemsSize > 1 {
+	if items[0] == SigToken && itemsSize > 1 {
 		sessionPtr = s.decodeSig(items[1], req)
 	}
 
@@ -129,8 +127,11 @@ func (s *sessionRegistryImpl) decodeSig(sigVal string, req *http.Request) *sessi
 	if err != nil {
 		return nil
 	}
-
-	sessionInfo := &sessionImpl{context: map[string]interface{}{refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
+	signature, err := decodeSignature(items[2])
+	if err != nil {
+		return nil
+	}
+	sessionInfo := &sessionImpl{context: map[string]interface{}{refreshTime: time.Now(), signatureValue: signature, ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
 	for _, val := range headers {
 		sessionInfo.context[val] = req.Header.Get(val)
 	}

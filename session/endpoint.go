@@ -64,3 +64,13 @@ func decodeSignedHeaders(val string) (headers []string, err error) {
 	headers = strings.Split(items[1], ";")
 	return
 }
+
+func decodeSignature(val string) (signature string, err error) {
+	items := strings.Split(val, "=")
+	if len(items) != 2 {
+		err = fmt.Errorf("illegal Signature")
+		return
+	}
+	signature = items[1]
+	return
+}
