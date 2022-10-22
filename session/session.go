@@ -22,6 +22,8 @@ const (
 const (
 	// sessionID 会话ID
 	sessionID = "sessionID"
+	// AuthType 会话认证方式
+	AuthType = "$$sessionAuthType"
 	// RemoteAddress 远端地址
 	RemoteAddress = "$$sessionRemoteAddress"
 	// ExpiryValue 会话有效期
@@ -31,6 +33,9 @@ const (
 )
 
 const (
+	JWTToken      = "Bearer"
+	EndpointToken = "Sig"
+
 	DefaultSessionTimeOutValue = 10 * time.Minute  // 10 minute
 	tempSessionTimeOutValue    = 1 * time.Minute   // 1 minute
 	ForeverSessionTimeOutValue = time.Duration(-1) // forever time out value
@@ -75,7 +80,7 @@ func (s *sessionImpl) ID() string {
 
 func (s *sessionImpl) innerKey(key string) bool {
 	switch key {
-	case RemoteAddress, ExpiryValue, refreshTime:
+	case AuthType, RemoteAddress, ExpiryValue, refreshTime:
 		return true
 	}
 
