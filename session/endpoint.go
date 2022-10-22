@@ -5,11 +5,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-	"time"
-
-	log "github.com/cihub/seelog"
-
-	"github.com/muidea/magicCommon/foundation/util"
 )
 
 type Endpoint struct {
@@ -19,7 +14,7 @@ type Endpoint struct {
 }
 
 func signature(endpoint *Endpoint, ctxVal url.Values) Token {
-	credentialVal := fmt.Sprintf("Credential=%s/%s/%s", endpoint.Endpoint, endpoint.IdentifyID, time.Now().UTC().Format("2006010215"))
+	credentialVal := fmt.Sprintf("Credential=%s/%s/%s", endpoint.Endpoint, endpoint.IdentifyID, endpoint.AuthToken)
 
 	headers := []string{}
 	for k, _ := range ctxVal {
@@ -28,17 +23,10 @@ func signature(endpoint *Endpoint, ctxVal url.Values) Token {
 	sort.Sort(sort.StringSlice(headers))
 	signedHeadersVal := fmt.Sprintf("SignedHeaders=%s", strings.Join(headers, ";"))
 
-	encryptVal, encryptErr := util.EncryptByAes(strings.Join([]string{credentialVal, signedHeadersVal}, ","), endpoint.AuthToken)
-	if encryptErr != nil {
-		log.Errorf("EncryptByAes failed, err:%s", encryptErr.Error())
-		return ""
-	}
-	signatureVal := fmt.Sprintf("Signature=%s", encryptVal)
-
-	return Token(strings.Join([]string{credentialVal, signedHeadersVal, signatureVal}, ","))
+	return Token(strings.Join([]string{credentialVal, signedHeadersVal}, ","))
 }
 
-func decodeCredential(val string) (endpoint string, identifyID string, err error) {
+func decodeCredential(val string) (endpoint *Endpoint, err error) {
 	items := strings.Split(val, "=")
 	if len(items) != 2 {
 		err = fmt.Errorf("illegal Credential")
@@ -50,8 +38,11 @@ func decodeCredential(val string) (endpoint string, identifyID string, err error
 		return
 	}
 
-	endpoint = items[0]
-	identifyID = items[1]
+	endpoint = &Endpoint{
+		Endpoint:   items[0],
+		IdentifyID: items[1],
+		AuthToken:  items[2],
+	}
 	return
 }
 
