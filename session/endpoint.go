@@ -8,13 +8,12 @@ import (
 )
 
 type Endpoint struct {
-	Endpoint   string `json:"endpoint"`
-	IdentifyID string `json:"identifyID"`
-	AuthToken  string `json:"authToken"`
+	Endpoint  string `json:"endpoint"`
+	AuthToken string `json:"authToken"`
 }
 
 func signature(endpoint *Endpoint, ctxVal url.Values) Token {
-	credentialVal := fmt.Sprintf("Credential=%s/%s/%s", endpoint.Endpoint, endpoint.IdentifyID, endpoint.AuthToken)
+	credentialVal := fmt.Sprintf("Credential=%s/%s", endpoint.Endpoint, endpoint.AuthToken)
 
 	headers := []string{}
 	for k, _ := range ctxVal {
@@ -39,9 +38,8 @@ func decodeCredential(val string) (endpoint *Endpoint, err error) {
 	}
 
 	endpoint = &Endpoint{
-		Endpoint:   items[0],
-		IdentifyID: items[1],
-		AuthToken:  items[2],
+		Endpoint:  items[0],
+		AuthToken: items[1],
 	}
 	return
 }

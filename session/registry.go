@@ -131,7 +131,7 @@ func (s *sessionRegistryImpl) decodeSig(sigVal string, req *http.Request) *sessi
 	for _, val := range headers {
 		sessionInfo.context[val] = req.Header.Get(val)
 	}
-	sessionInfo.id = hex.EncodeToString(util.CryptoByMd5([]byte(endpoint.Endpoint + endpoint.IdentifyID + endpoint.AuthToken)))
+	sessionInfo.id = hex.EncodeToString(util.CryptoByMd5([]byte(endpoint.Endpoint + endpoint.AuthToken)))
 
 	return nil
 }
