@@ -1,16 +1,12 @@
 package session
 
 import (
-	"encoding/hex"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	log "github.com/cihub/seelog"
-	"github.com/golang-jwt/jwt/v4"
-
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -64,17 +60,21 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}
 
 	var sessionPtr *sessionImpl
-	items := strings.Split(authorization, " ")
-	itemsSize := len(items)
-	if items[0] == JWTToken && itemsSize > 1 {
-		sessionPtr = s.decodeJWT(items[1])
+	offset := strings.Index(authorization, " ")
+	if offset == -1 {
+		return nil
 	}
 
-	if items[0] == EndpointToken && itemsSize > 1 {
-		sessionPtr = s.decodeSig(items[1], req)
+	if authorization[:offset] == jwtToken {
+		sessionPtr = decodeJWT(authorization[offset+1:])
+	}
+
+	if authorization[:offset] == endpointToken {
+		sessionPtr = decodeEndpoint(authorization[offset+1:])
 	}
 
 	if sessionPtr != nil {
+		sessionPtr.registry = s
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
 			sessionPtr = curSession
@@ -82,58 +82,6 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}
 
 	return sessionPtr
-}
-
-func (s *sessionRegistryImpl) decodeJWT(sigVal string) *sessionImpl {
-	token, err := jwt.Parse(sigVal, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v ", token.Header["alg"])
-		}
-
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte(hmacSampleSecret), nil
-	})
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		sessionInfo := &sessionImpl{context: map[string]interface{}{AuthType: JWTToken, refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
-		for k, v := range claims {
-			if k == sessionID {
-				sessionInfo.id = v.(string)
-				continue
-			}
-
-			sessionInfo.context[k] = v
-		}
-
-		return sessionInfo
-	}
-
-	log.Infof("illegal jwt value:%s, err:%s", sigVal[1], err.Error())
-	return nil
-}
-
-func (s *sessionRegistryImpl) decodeSig(sigVal string, req *http.Request) *sessionImpl {
-	items := strings.Split(sigVal, ",")
-	if len(items) != 3 {
-		return nil
-	}
-
-	endpoint, err := decodeCredential(items[0])
-	if err != nil {
-		return nil
-	}
-	headers, err := decodeSignedHeaders(items[1])
-	if err != nil {
-		return nil
-	}
-	sessionInfo := &sessionImpl{context: map[string]interface{}{AuthType: EndpointToken, refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
-	for _, val := range headers {
-		sessionInfo.context[val] = req.Header.Get(val)
-	}
-	sessionInfo.id = hex.EncodeToString(util.CryptoByMd5([]byte(endpoint.Endpoint + endpoint.AuthToken)))
-
-	return nil
 }
 
 // createSession 新建Session

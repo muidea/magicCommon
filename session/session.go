@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/cihub/seelog"
-
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -22,8 +20,6 @@ const (
 const (
 	// sessionID 会话ID
 	sessionID = "sessionID"
-	// AuthType 会话认证方式
-	AuthType = "$$sessionAuthType"
 	// RemoteAddress 远端地址
 	RemoteAddress = "$$sessionRemoteAddress"
 	// ExpiryValue 会话有效期
@@ -33,8 +29,8 @@ const (
 )
 
 const (
-	JWTToken      = "Bearer"
-	EndpointToken = "Sig"
+	jwtToken      = "Bearer"
+	endpointToken = "Sig"
 
 	DefaultSessionTimeOutValue = 10 * time.Minute  // 10 minute
 	tempSessionTimeOutValue    = 1 * time.Minute   // 1 minute
@@ -50,7 +46,7 @@ type Observer interface {
 // Session 会话
 type Session interface {
 	ID() string
-	Signature() Token
+	Signature() (Token, error)
 	Reset()
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
@@ -80,14 +76,14 @@ func (s *sessionImpl) ID() string {
 
 func (s *sessionImpl) innerKey(key string) bool {
 	switch key {
-	case AuthType, RemoteAddress, ExpiryValue, refreshTime:
+	case RemoteAddress, ExpiryValue, refreshTime:
 		return true
 	}
 
 	return false
 }
 
-func (s *sessionImpl) Signature() Token {
+func (s *sessionImpl) Signature() (Token, error) {
 	mc := jwt.MapClaims{}
 	if s.id != "" {
 		mc[sessionID] = s.id
@@ -101,13 +97,7 @@ func (s *sessionImpl) Signature() Token {
 		mc[k] = v
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mc)
-	valStr, valErr := token.SignedString([]byte(hmacSampleSecret))
-	if valErr != nil {
-		log.Errorf("Signature failed, err:%s", valErr.Error())
-	}
-
-	return Token(valStr)
+	return SignatureJWT(mc)
 }
 
 func (s *sessionImpl) Reset() {
