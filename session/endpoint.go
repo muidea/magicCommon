@@ -40,7 +40,7 @@ func SignatureEndpoint(endpoint string, authToken string) (Token, error) {
 	return Token(strings.Join([]string{credentialVal, signatureVal}, ",")), nil
 }
 
-func decodeEndpoint(sigVal string) *sessionImpl {
+func DecodeEndpoint(sigVal string) *sessionImpl {
 	offset := strings.Index(sigVal, ",")
 	if offset == -1 {
 		return nil
@@ -62,7 +62,7 @@ func decodeEndpoint(sigVal string) *sessionImpl {
 	for k, v := range endpointPtr.Context {
 		sessionPtr.context[k] = v
 	}
-	sessionPtr.id = sigVal[:offset]
+	sessionPtr.id = sigVal[offset+1:]
 
 	return sessionPtr
 }
