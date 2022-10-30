@@ -52,7 +52,7 @@ func TestDecodeEndpoint(t *testing.T) {
 		return
 	}
 
-	sessionPtr := DecodeEndpoint(string(token))
+	sessionPtr := decodeEndpoint(string(token))
 	if sessionPtr == nil {
 		t.Errorf("decode endpoint failed, err:%s", err.Error())
 		return

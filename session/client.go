@@ -6,11 +6,6 @@ import (
 	"net/url"
 )
 
-type endpointInfo struct {
-	endpoint  string
-	authToken string
-}
-
 type Client interface {
 	AttachContext(ctx Context)
 	DetachContext()
@@ -22,6 +17,11 @@ type Client interface {
 	UnBindEndpoint()
 
 	Release()
+}
+
+type endpointInfo struct {
+	endpoint  string
+	authToken string
 }
 
 type BaseClient struct {

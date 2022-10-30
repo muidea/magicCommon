@@ -40,7 +40,7 @@ func SignatureEndpoint(endpoint string, authToken string) (Token, error) {
 	return Token(strings.Join([]string{credentialVal, signatureVal}, ",")), nil
 }
 
-func DecodeEndpoint(sigVal string) *sessionImpl {
+func decodeEndpoint(sigVal string) *sessionImpl {
 	offset := strings.Index(sigVal, ",")
 	if offset == -1 {
 		return nil

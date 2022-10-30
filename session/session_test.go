@@ -8,7 +8,7 @@ import (
 func TestUUID(t *testing.T) {
 	ids := map[string]string{}
 
-	for idx := 0; idx < 10000000; idx++ {
+	for idx := 0; idx < 10; idx++ {
 		id := createUUID()
 		_, ok := ids[id]
 		if ok {

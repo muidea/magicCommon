@@ -70,7 +70,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}
 
 	if authorization[:offset] == endpointToken {
-		sessionPtr = DecodeEndpoint(authorization[offset+1:])
+		sessionPtr = decodeEndpoint(authorization[offset+1:])
 	}
 
 	if sessionPtr != nil {
