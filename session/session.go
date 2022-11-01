@@ -22,8 +22,8 @@ const (
 	sessionID = "sessionID"
 	// RemoteAddress 远端地址
 	RemoteAddress = "$$sessionRemoteAddress"
-	// ExpiryValue 会话有效期
-	ExpiryValue = "$$sessionExpiryValue"
+	// expiryValue 会话有效期
+	expiryValue = "$$sessionExpiryValue"
 	// refreshTime 会话刷新时间
 	refreshTime = "$$sessionRefreshTime"
 )
@@ -32,9 +32,7 @@ const (
 	jwtToken      = "Bearer"
 	endpointToken = "Sig"
 
-	DefaultSessionTimeOutValue = 10 * time.Minute  // 10 minute
-	tempSessionTimeOutValue    = 1 * time.Minute   // 1 minute
-	ForeverSessionTimeOutValue = time.Duration(-1) // forever time out value
+	defaultSessionTimeOutValue = 10 * time.Minute // 10 minute
 )
 
 // Observer session Observer
@@ -51,8 +49,6 @@ type Session interface {
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
 
-	RefreshTime() int64
-	ExpireTime() int64
 	GetString(key string) (string, bool)
 	GetInt(key string) (int64, bool)
 	GetUint(key string) (uint64, bool)
@@ -76,7 +72,7 @@ func (s *sessionImpl) ID() string {
 
 func (s *sessionImpl) innerKey(key string) bool {
 	switch key {
-	case RemoteAddress, ExpiryValue, refreshTime:
+	case RemoteAddress, expiryValue, refreshTime:
 		return true
 	}
 
@@ -105,7 +101,7 @@ func (s *sessionImpl) Reset() {
 		s.registry.sessionLock.RLock()
 		defer s.registry.sessionLock.RUnlock()
 
-		s.context = map[string]interface{}{refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}
+		s.context = map[string]interface{}{refreshTime: time.Now(), expiryValue: defaultSessionTimeOutValue}
 		s.observer = map[string]Observer{}
 	}()
 
@@ -133,33 +129,6 @@ func (s *sessionImpl) UnbindObserver(observer Observer) {
 	}
 
 	delete(s.observer, observer.ID())
-}
-
-func (s *sessionImpl) RefreshTime() int64 {
-	timeVal, timeOK := s.GetOption(refreshTime)
-	if timeOK {
-		return timeVal.(time.Time).UTC().Unix()
-	}
-
-	return time.Now().UTC().Unix()
-}
-
-func (s *sessionImpl) ExpireTime() int64 {
-	timeVal, timeOK := s.GetOption(ExpiryValue)
-	if !timeOK {
-		return 0
-	}
-
-	if timeVal.(time.Duration) == ForeverSessionTimeOutValue {
-		return -1
-	}
-
-	refreshTime, refreshOK := s.GetOption(refreshTime)
-	if refreshOK {
-		return refreshTime.(time.Time).Add(timeVal.(time.Duration)).UTC().Unix()
-	}
-
-	return 0
 }
 
 func (s *sessionImpl) GetString(key string) (string, bool) {
@@ -315,11 +284,7 @@ func (s *sessionImpl) timeout() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryDate, _ := s.context[ExpiryValue]
-	if expiryDate.(time.Duration) == ForeverSessionTimeOutValue {
-		return false
-	}
-
+	expiryDate, _ := s.context[expiryValue]
 	preTime, _ := s.context[refreshTime]
 
 	nowTime := time.Now()

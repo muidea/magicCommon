@@ -58,7 +58,7 @@ func decodeEndpoint(sigVal string) *sessionImpl {
 		return nil
 	}
 
-	sessionPtr := &sessionImpl{context: map[string]interface{}{refreshTime: time.Now(), ExpiryValue: tempSessionTimeOutValue}, observer: map[string]Observer{}}
+	sessionPtr := &sessionImpl{context: map[string]interface{}{refreshTime: time.Now(), expiryValue: defaultSessionTimeOutValue}, observer: map[string]Observer{}}
 	for k, v := range endpointPtr.Context {
 		sessionPtr.context[k] = v
 	}
