@@ -32,7 +32,7 @@ const (
 	jwtToken      = "Bearer"
 	endpointToken = "Sig"
 
-	defaultSessionTimeOutValue = 10 * time.Minute // 10 minute
+	DefaultSessionTimeOutValue = 10 * time.Minute // 10 minute
 )
 
 // Observer session Observer
@@ -101,7 +101,7 @@ func (s *sessionImpl) Reset() {
 		s.registry.sessionLock.RLock()
 		defer s.registry.sessionLock.RUnlock()
 
-		s.context = map[string]interface{}{refreshTime: time.Now(), expiryValue: defaultSessionTimeOutValue}
+		s.context = map[string]interface{}{refreshTime: time.Now(), expiryValue: DefaultSessionTimeOutValue}
 		s.observer = map[string]Observer{}
 	}()
 
