@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/muidea/magicCommon/foundation/util"
 )
@@ -58,7 +57,7 @@ func decodeEndpoint(sigVal string) *sessionImpl {
 		return nil
 	}
 
-	sessionPtr := &sessionImpl{context: map[string]interface{}{refreshTime: time.Now(), expiryValue: DefaultSessionTimeOutValue}, observer: map[string]Observer{}}
+	sessionPtr := &sessionImpl{context: map[string]interface{}{}, observer: map[string]Observer{}}
 	for k, v := range endpointPtr.Context {
 		sessionPtr.context[k] = v
 	}

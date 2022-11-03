@@ -20,12 +20,10 @@ const (
 const (
 	// sessionID 会话ID
 	sessionID = "sessionID"
+	// expiryTime 会话有效期
+	expiryTime = "expiryTime"
 	// RemoteAddress 远端地址
 	RemoteAddress = "$$sessionRemoteAddress"
-	// expiryValue 会话有效期
-	expiryValue = "$$sessionExpiryValue"
-	// refreshTime 会话刷新时间
-	refreshTime = "$$sessionRefreshTime"
 )
 
 const (
@@ -72,7 +70,7 @@ func (s *sessionImpl) ID() string {
 
 func (s *sessionImpl) innerKey(key string) bool {
 	switch key {
-	case RemoteAddress, expiryValue, refreshTime:
+	case RemoteAddress:
 		return true
 	}
 
@@ -97,11 +95,12 @@ func (s *sessionImpl) Signature() (Token, error) {
 }
 
 func (s *sessionImpl) Reset() {
+	expiryValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().Unix()
 	func() {
 		s.registry.sessionLock.RLock()
 		defer s.registry.sessionLock.RUnlock()
 
-		s.context = map[string]interface{}{refreshTime: time.Now(), expiryValue: DefaultSessionTimeOutValue}
+		s.context = map[string]interface{}{expiryTime: expiryValue}
 		s.observer = map[string]Observer{}
 	}()
 
@@ -275,22 +274,21 @@ func (s *sessionImpl) RemoveOption(key string) {
 }
 
 func (s *sessionImpl) refresh() {
+	expiryValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().Unix()
+
 	s.registry.sessionLock.Lock()
 	defer s.registry.sessionLock.Unlock()
-	s.context[refreshTime] = time.Now()
+	s.context[expiryTime] = expiryValue
 }
 
 func (s *sessionImpl) timeout() bool {
+	nowTime := time.Now().UTC().Unix()
+
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryDate, _ := s.context[expiryValue]
-	preTime, _ := s.context[refreshTime]
-
-	nowTime := time.Now()
-	elapse := nowTime.Sub(preTime.(time.Time))
-
-	return elapse > expiryDate.(time.Duration)
+	expiryTime, _ := s.context[expiryTime]
+	return expiryTime.(int64) < nowTime
 }
 
 func (s *sessionImpl) terminate() {

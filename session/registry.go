@@ -86,7 +86,8 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 
 // createSession 新建Session
 func (s *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
-	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{refreshTime: time.Now(), expiryValue: DefaultSessionTimeOutValue}, observer: map[string]Observer{}, registry: s}
+	expiryValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().Unix()
+	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{expiryTime: expiryValue}, observer: map[string]Observer{}, registry: s}
 	sessionPtr = s.commandChan.insert(sessionPtr)
 
 	return sessionPtr
