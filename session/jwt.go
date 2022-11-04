@@ -30,7 +30,7 @@ func decodeJWT(sigVal string) *sessionImpl {
 		return []byte(hmacSampleSecret), nil
 	})
 
-	currentValue := time.Now().UTC().Unix()
+	currentTime := time.Now().UTC()
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		sessionPtr := &sessionImpl{context: map[string]interface{}{}, observer: map[string]Observer{}}
 		for k, v := range claims {
@@ -40,10 +40,13 @@ func decodeJWT(sigVal string) *sessionImpl {
 			}
 
 			if k == expiryTime {
-				if v.(float64) < float64(currentValue) {
+				if v.(float64) < float64(currentTime.Unix()) {
 					log.Infof("illegal jwt,expiry time")
 					return nil
 				}
+
+				sessionPtr.context[k] = currentTime.Add(DefaultSessionTimeOutValue).Unix()
+				continue
 			}
 
 			sessionPtr.context[k] = v
