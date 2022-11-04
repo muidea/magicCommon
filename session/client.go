@@ -47,11 +47,11 @@ func (s *BaseClient) GetContextValues() url.Values {
 	}
 
 	if s.sessionToken != "" {
-		ret.Set("Authorization", fmt.Sprintf("%s %s", jwtToken, s.sessionToken))
+		ret.Set(authorization, fmt.Sprintf("%s %s", jwtToken, s.sessionToken))
 	}
 	if s.sessionEndpoint != nil {
 		tokenVal, _ := SignatureEndpoint(s.sessionEndpoint.endpoint, s.sessionEndpoint.authToken)
-		ret.Set("Authorization", fmt.Sprintf("%s %s", endpointToken, tokenVal))
+		ret.Set(authorization, fmt.Sprintf("%s %s", endpointToken, tokenVal))
 	}
 
 	return ret
