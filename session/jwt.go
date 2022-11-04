@@ -40,7 +40,7 @@ func decodeJWT(sigVal string) *sessionImpl {
 			}
 
 			if k == expiryTime {
-				if v.(int64) < expiryValue {
+				if v.(float64) < float64(expiryValue) {
 					log.Infof("illegal jwt,expiry time")
 					return nil
 				}
