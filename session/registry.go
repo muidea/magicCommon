@@ -54,31 +54,33 @@ func (s *sessionRegistryImpl) CountSession(filter util.Filter) int {
 }
 
 func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
-	authorization := req.Header.Get("Authorization")
-	if authorization == "" {
+	authorizationValue := req.Header.Get(authorization)
+	if authorizationValue == "" {
 		return nil
 	}
 
 	var sessionPtr *sessionImpl
-	offset := strings.Index(authorization, " ")
+	offset := strings.Index(authorizationValue, " ")
 	if offset == -1 {
 		return nil
 	}
 
-	if authorization[:offset] == jwtToken {
-		sessionPtr = decodeJWT(authorization[offset+1:])
+	if authorizationValue[:offset] == jwtToken {
+		sessionPtr = decodeJWT(authorizationValue[offset+1:])
 	}
 
-	if authorization[:offset] == endpointToken {
-		sessionPtr = decodeEndpoint(authorization[offset+1:])
+	if authorizationValue[:offset] == endpointToken {
+		sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
 	}
 
 	if sessionPtr != nil {
-		sessionPtr.registry = s
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
 			sessionPtr = curSession
 		}
+
+		sessionPtr.registry = s
+		sessionPtr.context[authorization] = authorizationValue
 	}
 
 	return sessionPtr
