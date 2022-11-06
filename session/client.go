@@ -7,6 +7,8 @@ import (
 )
 
 type Client interface {
+	GetServerURL() string
+
 	AttachContext(ctx Context)
 	DetachContext()
 
@@ -27,8 +29,8 @@ type endpointInfo struct {
 	authToken string
 }
 
-func NewBaseClient(serverUrl string) *BaseClient {
-	return &BaseClient{serverURL: serverUrl, httpClient: &http.Client{}}
+func NewBaseClient(serverUrl string) BaseClient {
+	return BaseClient{serverURL: serverUrl, httpClient: &http.Client{}}
 }
 
 type BaseClient struct {
@@ -39,6 +41,10 @@ type BaseClient struct {
 	sessionToken         Token
 	sessionEndpoint      *endpointInfo
 	contextInfo          Context
+}
+
+func (s *BaseClient) GetServerURL() string {
+	return s.serverURL
 }
 
 func (s *BaseClient) AttachContext(ctx Context) {
