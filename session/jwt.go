@@ -29,6 +29,10 @@ func decodeJWT(sigVal string) *sessionImpl {
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return []byte(hmacSampleSecret), nil
 	})
+	if err != nil {
+		log.Infof("illegal jwt value:%s, err:%s", sigVal[1], err.Error())
+		return nil
+	}
 
 	currentTime := time.Now().UTC()
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
@@ -55,6 +59,5 @@ func decodeJWT(sigVal string) *sessionImpl {
 		return sessionPtr
 	}
 
-	log.Infof("illegal jwt value:%s, err:%s", sigVal[1], err.Error())
 	return nil
 }
