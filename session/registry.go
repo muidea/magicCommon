@@ -54,7 +54,7 @@ func (s *sessionRegistryImpl) CountSession(filter util.Filter) int {
 }
 
 func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
-	authorizationValue := req.Header.Get(authorization)
+	authorizationValue := req.Header.Get(Authorization)
 	if authorizationValue == "" {
 		return nil
 	}
@@ -80,7 +80,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		}
 
 		sessionPtr.registry = s
-		sessionPtr.context[authorization] = authorizationValue
+		sessionPtr.context[Authorization] = authorizationValue
 	}
 
 	return sessionPtr

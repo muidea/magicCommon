@@ -23,7 +23,7 @@ const (
 	// expiryTime 会话有效期
 	expiryTime = "expiryTime"
 	// Authorization info, from request header
-	authorization = "Authorization"
+	Authorization = "Authorization"
 	// RemoteAddress 远端地址
 	RemoteAddress = "$$sessionRemoteAddress"
 )
@@ -72,7 +72,7 @@ func (s *sessionImpl) ID() string {
 
 func (s *sessionImpl) innerKey(key string) bool {
 	switch key {
-	case RemoteAddress, authorization:
+	case RemoteAddress, Authorization:
 		return true
 	}
 
