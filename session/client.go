@@ -8,6 +8,7 @@ import (
 
 type Client interface {
 	GetServerURL() string
+	GetHTTPClient() *http.Client
 
 	AttachContext(ctx Context)
 	DetachContext()
@@ -45,6 +46,10 @@ type BaseClient struct {
 
 func (s *BaseClient) GetServerURL() string {
 	return s.serverURL
+}
+
+func (s *BaseClient) GetHTTPClient() *http.Client {
+	return s.httpClient
 }
 
 func (s *BaseClient) AttachContext(ctx Context) {
