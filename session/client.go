@@ -10,6 +10,9 @@ type Client interface {
 	AttachContext(ctx Context)
 	DetachContext()
 
+	AttachAuthorization(authorization string)
+	DetachAuthorization()
+
 	BindToken(token Token)
 	UnBindToken()
 
@@ -24,12 +27,18 @@ type endpointInfo struct {
 	authToken string
 }
 
+func NewBaseClient(serverUrl string) *BaseClient {
+	return &BaseClient{serverURL: serverUrl, httpClient: &http.Client{}}
+}
+
 type BaseClient struct {
-	serverURL       string
-	sessionToken    Token
-	sessionEndpoint *endpointInfo
-	contextInfo     Context
-	httpClient      *http.Client
+	serverURL  string
+	httpClient *http.Client
+
+	sessionAuthorization string
+	sessionToken         Token
+	sessionEndpoint      *endpointInfo
+	contextInfo          Context
 }
 
 func (s *BaseClient) AttachContext(ctx Context) {
@@ -53,8 +62,19 @@ func (s *BaseClient) GetContextValues() url.Values {
 		tokenVal, _ := SignatureEndpoint(s.sessionEndpoint.endpoint, s.sessionEndpoint.authToken)
 		ret.Set(authorization, fmt.Sprintf("%s %s", endpointToken, tokenVal))
 	}
+	if s.sessionAuthorization != "" {
+		ret.Set(authorization, s.sessionAuthorization)
+	}
 
 	return ret
+}
+
+func (s *BaseClient) AttachAuthorization(authorization string) {
+	s.sessionAuthorization = authorization
+}
+
+func (s *BaseClient) DetachAuthorization() {
+	s.sessionAuthorization = ""
 }
 
 func (s *BaseClient) BindToken(sessionToken Token) {
