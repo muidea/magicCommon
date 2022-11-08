@@ -221,8 +221,6 @@ func (right commandChanImpl) run() {
 			curSession, curOK := sessionContextMap[session.id]
 			if curOK {
 				curSession.context = session.context
-			} else {
-				log.Errorf("illegal session id:%s", session.id)
 			}
 
 			command.result <- curOK
