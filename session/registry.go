@@ -2,6 +2,7 @@ package session
 
 import (
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -11,8 +12,17 @@ import (
 )
 
 const (
-	hmacSampleSecret = "rangh@foxmail.com"
+	hmacSecret = "rangh@foxmail.com"
 )
+
+func getSecret() string {
+	secretVal := os.Getenv("HMAC_SECRET")
+	if secretVal != "" {
+		return secretVal
+	}
+
+	return hmacSecret
+}
 
 // Registry 会话仓库
 type Registry interface {

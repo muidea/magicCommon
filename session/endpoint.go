@@ -25,7 +25,7 @@ func EncryptEndpoint(endpoint *Endpoint) (string, error) {
 	}
 
 	valStr := fmt.Sprintf("%s/%s", endpoint.Endpoint, string(valData))
-	valStr, valErr = util.EncryptByAes(valStr, hmacSampleSecret)
+	valStr, valErr = util.EncryptByAes(valStr, getSecret())
 	if valErr != nil {
 		return "", valErr
 	}
@@ -94,7 +94,7 @@ func decodeSignature(val string) (ret *Endpoint, err error) {
 		return
 	}
 
-	strVal, strErr := util.DecryptByAes(val[offset+1:], hmacSampleSecret)
+	strVal, strErr := util.DecryptByAes(val[offset+1:], getSecret())
 	if strErr != nil {
 		err = strErr
 		return

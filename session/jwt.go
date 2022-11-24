@@ -10,7 +10,7 @@ import (
 
 func SignatureJWT(mc jwt.MapClaims) (Token, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mc)
-	valStr, valErr := token.SignedString([]byte(hmacSampleSecret))
+	valStr, valErr := token.SignedString([]byte(getSecret()))
 	if valErr != nil {
 		log.Errorf("Signature failed, err:%s", valErr.Error())
 		return "", valErr
@@ -26,8 +26,8 @@ func decodeJWT(sigVal string) *sessionImpl {
 			return nil, fmt.Errorf("Unexpected signing method: %v ", token.Header["alg"])
 		}
 
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte(hmacSampleSecret), nil
+		// hmacSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return []byte(getSecret()), nil
 	})
 	if err != nil {
 		log.Infof("illegal jwt value:%s, err:%s", sigVal[1], err.Error())
