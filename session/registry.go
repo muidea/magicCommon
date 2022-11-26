@@ -75,13 +75,21 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		return nil
 	}
 
-	if authorizationValue[:offset] == jwtToken {
-		sessionPtr = decodeJWT(authorizationValue[offset+1:])
-	}
+	func() {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Errorf("decode authorization failed, err:%v", err)
+			}
+		}()
 
-	if authorizationValue[:offset] == endpointToken {
-		sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
-	}
+		if authorizationValue[:offset] == jwtToken {
+			sessionPtr = decodeJWT(authorizationValue[offset+1:])
+		}
+
+		if authorizationValue[:offset] == endpointToken {
+			sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
+		}
+	}()
 
 	if sessionPtr != nil {
 		curSession := s.findSession(sessionPtr.id)
