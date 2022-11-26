@@ -78,7 +78,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	func() {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf("decode authorization failed, err:%v", err)
+				log.Errorf("decode authorization failed, authorizationValue:%s, err:%v", authorizationValue, err)
 			}
 		}()
 
