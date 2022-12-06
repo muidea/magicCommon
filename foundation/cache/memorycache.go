@@ -133,6 +133,9 @@ func (right *MemoryCache) run() {
 			result := &fetchOutResult{}
 			result.found = found
 			if found {
+				cacheData.cacheTime = time.Now()
+				_cacheData[id] = cacheData
+
 				result.value = cacheData.data
 			}
 

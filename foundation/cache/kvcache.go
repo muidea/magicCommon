@@ -148,6 +148,9 @@ func (right *MemoryKVCache) run() {
 			result := &fetchOutKVResult{}
 			result.found = found
 			if found {
+				cacheKVData.cacheTime = time.Now()
+				_cacheData[key] = cacheKVData
+
 				result.value = cacheKVData.data
 			}
 
