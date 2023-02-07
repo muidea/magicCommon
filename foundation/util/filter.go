@@ -19,7 +19,7 @@ type ContentFilter struct {
 
 // NewFilter new filter
 func NewFilter() *ContentFilter {
-	return &ContentFilter{Pagination: nil, ParamItems: &ParamItems{Items: map[string]string{}}}
+	return &ContentFilter{Pagination: nil, ParamItems: &ParamItems{Items: map[string]interface{}{}}}
 }
 
 // Decode 内容过滤器
@@ -49,7 +49,7 @@ func (s *ContentFilter) Encode(vals url.Values) url.Values {
 	return vals
 }
 
-func (s *ContentFilter) Get(key string) (val string, ok bool) {
+func (s *ContentFilter) Get(key string) (val interface{}, ok bool) {
 	if s.ParamItems != nil {
 		val, ok = s.ParamItems.Items[key]
 		return
@@ -58,9 +58,27 @@ func (s *ContentFilter) Get(key string) (val string, ok bool) {
 	return
 }
 
-func (s *ContentFilter) Set(key, value string) {
+func (s *ContentFilter) Set(key string, value interface{}) {
 	if s.ParamItems != nil {
 		s.ParamItems.Items[key] = value
+	}
+}
+
+func (s *ContentFilter) Like(key string, value interface{}) {
+	if s.ParamItems != nil {
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|like", value)
+	}
+}
+
+func (s *ContentFilter) Below(key string, value interface{}) {
+	if s.ParamItems != nil {
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|<", value)
+	}
+}
+
+func (s *ContentFilter) Above(key string, value interface{}) {
+	if s.ParamItems != nil {
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|>", value)
 	}
 }
 
@@ -72,12 +90,12 @@ func (s *ContentFilter) Remove(key string) {
 
 // ParamItems contentFilter
 type ParamItems struct {
-	Items map[string]string
+	Items map[string]interface{}
 }
 
 // Decode 解析内容过滤值
 func (s *ParamItems) Decode(request *http.Request) bool {
-	s.Items = map[string]string{}
+	s.Items = map[string]interface{}{}
 	vals := request.URL.Query()
 	for k, v := range vals {
 		s.Items[k] = v[0]
