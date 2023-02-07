@@ -60,25 +60,49 @@ func (s *ContentFilter) Get(key string) (val interface{}, ok bool) {
 
 func (s *ContentFilter) Set(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = value
+		s.ParamItems.Items[key] = MarshalString(value)
 	}
 }
 
-func (s *ContentFilter) Like(key string, value interface{}) {
+func (s *ContentFilter) Equal(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|like", value)
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|=", MarshalString(value))
+	}
+}
+
+func (s *ContentFilter) NotEqual(key string, value interface{}) {
+	if s.ParamItems != nil {
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|!=", MarshalString(value))
 	}
 }
 
 func (s *ContentFilter) Below(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|<", value)
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|<", MarshalString(value))
 	}
 }
 
 func (s *ContentFilter) Above(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|>", value)
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|>", MarshalString(value))
+	}
+}
+
+func (s *ContentFilter) In(key string, value interface{}) {
+	if s.ParamItems != nil {
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|in", MarshalString(value))
+	}
+}
+
+func (s *ContentFilter) NotIn(key string, value interface{}) {
+	if s.ParamItems != nil {
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|!in", MarshalString(value))
+	}
+}
+
+func (s *ContentFilter) Like(key string, value interface{}) {
+	if s.ParamItems != nil {
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|like", MarshalString(value))
 	}
 }
 

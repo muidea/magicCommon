@@ -1,10 +1,20 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 )
+
+func MarshalString(val interface{}) string {
+	byteVal, err := json.Marshal(val)
+	if err != nil {
+		return ""
+	}
+
+	return string(byteVal)
+}
 
 // ExtractSummary 抽取摘要
 func ExtractSummary(content string) string {
