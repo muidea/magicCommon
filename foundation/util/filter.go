@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // Filter value filter
@@ -19,7 +20,7 @@ type ContentFilter struct {
 
 // NewFilter new filter
 func NewFilter() *ContentFilter {
-	return &ContentFilter{Pagination: nil, ParamItems: &ParamItems{Items: map[string]interface{}{}}}
+	return &ContentFilter{Pagination: nil, ParamItems: &ParamItems{Items: map[string]string{}}}
 }
 
 // Decode 内容过滤器
@@ -49,7 +50,7 @@ func (s *ContentFilter) Encode(vals url.Values) url.Values {
 	return vals
 }
 
-func (s *ContentFilter) Get(key string) (val interface{}, ok bool) {
+func (s *ContentFilter) Get(key string) (val string, ok bool) {
 	if s.ParamItems != nil {
 		val, ok = s.ParamItems.Items[key]
 		return
@@ -114,12 +115,12 @@ func (s *ContentFilter) Remove(key string) {
 
 // ParamItems contentFilter
 type ParamItems struct {
-	Items map[string]interface{}
+	Items map[string]string
 }
 
 // Decode 解析内容过滤值
 func (s *ParamItems) Decode(request *http.Request) bool {
-	s.Items = map[string]interface{}{}
+	s.Items = map[string]string{}
 	vals := request.URL.Query()
 	for k, v := range vals {
 		s.Items[k] = v[0]
@@ -137,4 +138,95 @@ func (s *ParamItems) Encode(vals url.Values) url.Values {
 	}
 
 	return vals
+}
+
+func (s *ParamItems) IsEqual(key string) bool {
+	val, ok := s.Items[key]
+	if !ok {
+		return false
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return true
+	}
+	return val[idx+1:] == "="
+}
+
+func (s *ParamItems) IsNotEqual(key string) bool {
+	val, ok := s.Items[key]
+	if !ok {
+		return false
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return false
+	}
+	return val[idx+1:] == "!="
+}
+
+func (s *ParamItems) IsBelow(key string) bool {
+	val, ok := s.Items[key]
+	if !ok {
+		return false
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return true
+	}
+	return val[idx+1:] == "<"
+}
+
+func (s *ParamItems) IsAbove(key string) bool {
+	val, ok := s.Items[key]
+	if !ok {
+		return false
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return false
+	}
+	return val[idx+1:] == ">"
+}
+
+func (s *ParamItems) IsIn(key string) bool {
+	val, ok := s.Items[key]
+	if !ok {
+		return false
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return true
+	}
+	return val[idx+1:] == "in"
+}
+
+func (s *ParamItems) IsNotIn(key string) bool {
+	val, ok := s.Items[key]
+	if !ok {
+		return false
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return false
+	}
+	return val[idx+1:] == "!in"
+}
+
+func (s *ParamItems) IsLike(key string) bool {
+	val, ok := s.Items[key]
+	if !ok {
+		return false
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return false
+	}
+	return val[idx+1:] == "like"
 }
