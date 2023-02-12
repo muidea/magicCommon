@@ -153,6 +153,22 @@ func (s *ParamItems) IsEqual(key string) bool {
 	return val[idx+1:] == "="
 }
 
+func (s *ParamItems) GetEqual(key string) interface{} {
+	val, ok := s.Items[key]
+	if !ok {
+		return nil
+	}
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return val
+	}
+	if val[idx+1:] != "=" {
+		return nil
+	}
+
+	return val[:idx]
+}
+
 func (s *ParamItems) IsNotEqual(key string) bool {
 	val, ok := s.Items[key]
 	if !ok {
@@ -164,6 +180,23 @@ func (s *ParamItems) IsNotEqual(key string) bool {
 		return false
 	}
 	return val[idx+1:] == "!="
+}
+
+func (s *ParamItems) GetNotEqual(key string) interface{} {
+	val, ok := s.Items[key]
+	if !ok {
+		return nil
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "!=" {
+		return nil
+	}
+
+	return val[:idx]
 }
 
 func (s *ParamItems) IsBelow(key string) bool {
@@ -179,6 +212,23 @@ func (s *ParamItems) IsBelow(key string) bool {
 	return val[idx+1:] == "<"
 }
 
+func (s *ParamItems) GetBelow(key string) interface{} {
+	val, ok := s.Items[key]
+	if !ok {
+		return nil
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "<" {
+		return nil
+	}
+
+	return val[:idx]
+}
+
 func (s *ParamItems) IsAbove(key string) bool {
 	val, ok := s.Items[key]
 	if !ok {
@@ -190,6 +240,23 @@ func (s *ParamItems) IsAbove(key string) bool {
 		return false
 	}
 	return val[idx+1:] == ">"
+}
+
+func (s *ParamItems) GetAbove(key string) interface{} {
+	val, ok := s.Items[key]
+	if !ok {
+		return nil
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != ">" {
+		return nil
+	}
+
+	return val[:idx]
 }
 
 func (s *ParamItems) IsIn(key string) bool {
@@ -205,6 +272,22 @@ func (s *ParamItems) IsIn(key string) bool {
 	return val[idx+1:] == "in"
 }
 
+func (s *ParamItems) GetIn(key string) interface{} {
+	val, ok := s.Items[key]
+	if !ok {
+		return nil
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "in" {
+		return nil
+	}
+	return val[:idx]
+}
+
 func (s *ParamItems) IsNotIn(key string) bool {
 	val, ok := s.Items[key]
 	if !ok {
@@ -218,6 +301,22 @@ func (s *ParamItems) IsNotIn(key string) bool {
 	return val[idx+1:] == "!in"
 }
 
+func (s *ParamItems) GetNotIn(key string) interface{} {
+	val, ok := s.Items[key]
+	if !ok {
+		return nil
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "!in" {
+		return nil
+	}
+	return val[:idx]
+}
+
 func (s *ParamItems) IsLike(key string) bool {
 	val, ok := s.Items[key]
 	if !ok {
@@ -229,4 +328,20 @@ func (s *ParamItems) IsLike(key string) bool {
 		return false
 	}
 	return val[idx+1:] == "like"
+}
+
+func (s *ParamItems) GetLike(key string) interface{} {
+	val, ok := s.Items[key]
+	if !ok {
+		return nil
+	}
+
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "like" {
+		return nil
+	}
+	return val[:idx]
 }
