@@ -32,32 +32,70 @@ func TestContentFilter_Encode(t *testing.T) {
 		t.Error("invalid equal key")
 		return
 	}
+	if newFilter.ParamItems.GetEqual("set") == nil {
+		t.Error("invalid equal key")
+		return
+	}
 
 	if !newFilter.ParamItems.IsEqual("equal") {
 		t.Error("invalid equal key")
 		return
 	}
+	if newFilter.ParamItems.GetEqual("equal") == nil {
+		t.Error("invalid equal key")
+		return
+	}
+
 	if !newFilter.ParamItems.IsNotEqual("notequal") {
 		t.Error("invalid not equal key")
 		return
 	}
+	if newFilter.ParamItems.GetNotEqual("notequal") == nil {
+		t.Error("invalid not equal key")
+		return
+	}
+
 	if !newFilter.ParamItems.IsBelow("below") {
 		t.Error("invalid below key")
 		return
 	}
+	if newFilter.ParamItems.GetBelow("below") == nil {
+		t.Error("invalid below key")
+		return
+	}
+
 	if !newFilter.ParamItems.IsAbove("above") {
 		t.Error("invalid above key")
 		return
 	}
+	if newFilter.ParamItems.GetAbove("above") == nil {
+		t.Error("invalid above key")
+		return
+	}
+
 	if !newFilter.ParamItems.IsIn("in") {
 		t.Error("invalid in key")
 		return
 	}
+	if newFilter.ParamItems.GetIn("in") == nil {
+		t.Error("invalid in key")
+		return
+	}
+
 	if !newFilter.ParamItems.IsNotIn("notin") {
 		t.Error("invalid not in key")
 		return
 	}
+	if newFilter.ParamItems.GetNotIn("notin") == nil {
+		t.Error("invalid not in key")
+		return
+	}
+
 	if !newFilter.ParamItems.IsLike("like") {
+		t.Error("invalid like key")
+		return
+	}
+	if newFilter.ParamItems.GetLike("like") == nil {
 		t.Error("invalid like key")
 		return
 	}
