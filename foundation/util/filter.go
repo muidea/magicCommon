@@ -61,7 +61,8 @@ func (s *ContentFilter) Get(key string) (val string, ok bool) {
 
 func (s *ContentFilter) Set(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = MarshalString(value)
+		//s.ParamItems.Items[key] = MarshalString(value)
+		s.ParamItems.Items[key] = fmt.Sprintf("%v", value)
 	}
 }
 
