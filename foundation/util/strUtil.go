@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 func MarshalString(val interface{}) string {
@@ -14,6 +15,84 @@ func MarshalString(val interface{}) string {
 	}
 
 	return string(byteVal)
+}
+
+func UnmarshalString(val string) interface{} {
+	//val = strings.Trim(val,"\"")
+	//if val == "" {
+	//	return val
+	//}
+
+	var ret interface{}
+	for {
+		nLen := len(val)
+		if val[0] != '[' {
+			if unicode.IsNumber(rune(val[0])) || val[0] == '-' {
+				fVal := 0.00
+				err := json.Unmarshal([]byte(val), &fVal)
+				if err == nil {
+					ret = fVal
+					break
+				}
+
+				break
+			}
+
+			if nLen == 4 {
+				bVal := false
+				err := json.Unmarshal([]byte(val), &bVal)
+				if err == nil {
+					ret = bVal
+					break
+				}
+			}
+
+			strVal := ""
+			err := json.Unmarshal([]byte(val), &strVal)
+			if err == nil {
+				ret = strVal
+				break
+			}
+
+			break
+		}
+
+		if nLen < 2 {
+			ret = val
+			break
+		}
+
+		if unicode.IsNumber(rune(val[1])) || val[1] == '-' {
+			fVal := []float64{}
+			err := json.Unmarshal([]byte(val), &fVal)
+			if err == nil {
+				ret = fVal
+				break
+			}
+
+			ret = val
+			break
+		}
+
+		bVal := []bool{}
+		err := json.Unmarshal([]byte(val), &bVal)
+		if err == nil {
+			ret = bVal
+			break
+		}
+
+		strVal := []string{}
+		err = json.Unmarshal([]byte(val), &strVal)
+		if err == nil {
+			ret = strVal
+			break
+		}
+
+		ret = val
+		break
+	}
+
+	return ret
 }
 
 // ExtractSummary 抽取摘要

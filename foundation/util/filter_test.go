@@ -9,12 +9,14 @@ import (
 
 func TestContentFilter_Encode(t *testing.T) {
 	filter := NewFilter()
-	filter.Set("set", "123")
-	filter.Equal("equal", "123")
+	filter.Set("set", -123)
+	filter.Set("setB", true)
+	filter.Equal("equal", -123)
 	filter.NotEqual("notequal", "123")
 	filter.Below("below", 40)
 	filter.Above("above", 40)
 	filter.In("in", []float32{12.23, 23.45})
+	filter.In("inB", []bool{true, false, true})
 	filter.NotIn("notin", []float32{12.23, 23.45})
 	filter.Like("like", "hello world")
 
@@ -33,6 +35,15 @@ func TestContentFilter_Encode(t *testing.T) {
 		return
 	}
 	if newFilter.ParamItems.GetEqual("set") == nil {
+		t.Error("invalid equal key")
+		return
+	}
+
+	if !newFilter.ParamItems.IsEqual("setB") {
+		t.Error("invalid equal key")
+		return
+	}
+	if newFilter.ParamItems.GetEqual("setB") == nil {
 		t.Error("invalid equal key")
 		return
 	}
@@ -78,6 +89,15 @@ func TestContentFilter_Encode(t *testing.T) {
 		return
 	}
 	if newFilter.ParamItems.GetIn("in") == nil {
+		t.Error("invalid in key")
+		return
+	}
+
+	if !newFilter.ParamItems.IsIn("inB") {
+		t.Error("invalid in key")
+		return
+	}
+	if newFilter.ParamItems.GetIn("inB") == nil {
 		t.Error("invalid in key")
 		return
 	}

@@ -61,8 +61,7 @@ func (s *ContentFilter) Get(key string) (val string, ok bool) {
 
 func (s *ContentFilter) Set(key string, value interface{}) {
 	if s.ParamItems != nil {
-		//s.ParamItems.Items[key] = MarshalString(value)
-		s.ParamItems.Items[key] = fmt.Sprintf("%v", value)
+		s.ParamItems.Items[key] = MarshalString(value)
 	}
 }
 
@@ -161,13 +160,13 @@ func (s *ParamItems) GetEqual(key string) interface{} {
 	}
 	idx := strings.LastIndex(val, "|")
 	if idx == -1 {
-		return val
+		return UnmarshalString(val)
 	}
 	if val[idx+1:] != "=" {
 		return nil
 	}
 
-	return val[:idx]
+	return UnmarshalString(val[:idx])
 }
 
 func (s *ParamItems) IsNotEqual(key string) bool {
@@ -197,7 +196,7 @@ func (s *ParamItems) GetNotEqual(key string) interface{} {
 		return nil
 	}
 
-	return val[:idx]
+	return UnmarshalString(val[:idx])
 }
 
 func (s *ParamItems) IsBelow(key string) bool {
@@ -227,7 +226,7 @@ func (s *ParamItems) GetBelow(key string) interface{} {
 		return nil
 	}
 
-	return val[:idx]
+	return UnmarshalString(val[:idx])
 }
 
 func (s *ParamItems) IsAbove(key string) bool {
@@ -257,7 +256,7 @@ func (s *ParamItems) GetAbove(key string) interface{} {
 		return nil
 	}
 
-	return val[:idx]
+	return UnmarshalString(val[:idx])
 }
 
 func (s *ParamItems) IsIn(key string) bool {
@@ -286,7 +285,8 @@ func (s *ParamItems) GetIn(key string) interface{} {
 	if val[idx+1:] != "in" {
 		return nil
 	}
-	return val[:idx]
+
+	return UnmarshalString(val[:idx])
 }
 
 func (s *ParamItems) IsNotIn(key string) bool {
@@ -315,7 +315,8 @@ func (s *ParamItems) GetNotIn(key string) interface{} {
 	if val[idx+1:] != "!in" {
 		return nil
 	}
-	return val[:idx]
+
+	return UnmarshalString(val[:idx])
 }
 
 func (s *ParamItems) IsLike(key string) bool {
@@ -344,5 +345,6 @@ func (s *ParamItems) GetLike(key string) interface{} {
 	if val[idx+1:] != "like" {
 		return nil
 	}
-	return val[:idx]
+
+	return UnmarshalString(val[:idx])
 }
