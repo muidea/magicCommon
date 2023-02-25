@@ -53,6 +53,7 @@ func (s *ContentFilter) Encode(vals url.Values) url.Values {
 func (s *ContentFilter) Get(key string) (val string, ok bool) {
 	if s.ParamItems != nil {
 		val, ok = s.ParamItems.Items[key]
+		val = strings.Trim(val, "\"")
 		return
 	}
 

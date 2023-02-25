@@ -11,6 +11,7 @@ func TestContentFilter_Encode(t *testing.T) {
 	filter := NewFilter()
 	filter.Set("set", -123)
 	filter.Set("setB", true)
+	filter.Set("setHey", "hey")
 	filter.Equal("equal", -123)
 	filter.NotEqual("notequal", "123")
 	filter.Below("below", 40)
@@ -29,6 +30,26 @@ func TestContentFilter_Encode(t *testing.T) {
 
 	newFilter := NewFilter()
 	newFilter.Decode(req)
+
+	gVal, gOk := newFilter.Get("set")
+	if !gOk {
+		t.Error("invalid get key")
+		return
+	}
+	if gVal != "-123" {
+		t.Error("invalid get key")
+		return
+	}
+
+	gVal, gOk = newFilter.Get("setHey")
+	if !gOk {
+		t.Error("invalid get key")
+		return
+	}
+	if gVal != "hey" {
+		t.Error("invalid get key")
+		return
+	}
 
 	if !newFilter.ParamItems.IsEqual("set") {
 		t.Error("invalid equal key")
