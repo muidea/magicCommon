@@ -1,6 +1,10 @@
 package util
 
-import "testing"
+import (
+	"fmt"
+	"log"
+	"testing"
+)
 
 func TestIntArray2Str(t *testing.T) {
 	tempArray := []int{1, 2}
@@ -49,5 +53,187 @@ func TestStr2IntArray(t *testing.T) {
 	tempArray, ok = Str2IntArray(str)
 	if !ok || len(tempArray) != 4 || tempArray[0] != 1 {
 		t.Errorf("Str2IntArray failed, ok=%v, len(tempArray)=%d", ok, len(tempArray))
+	}
+}
+
+func TestMarshalString(t *testing.T) {
+	iVal := 1234
+	marshalVal := MarshalString(iVal)
+	if marshalVal != "1234" {
+		t.Errorf("marshal int failed")
+	}
+
+	strVal := "1234"
+	marshalVal = MarshalString(strVal)
+	if marshalVal != "1234" {
+		t.Errorf("marshal string failed")
+	}
+
+	fVal := 12.34
+	marshalVal = MarshalString(fVal)
+	if marshalVal != "12.34" {
+		t.Errorf("marshal float failed")
+	}
+
+	bVal := false
+	marshalVal = MarshalString(bVal)
+	if marshalVal != "false" {
+		t.Errorf("marshal bool failed")
+	}
+
+	bVal = true
+	marshalVal = MarshalString(bVal)
+	if marshalVal != "true" {
+		t.Errorf("marshal bool failed")
+	}
+}
+
+func TestUnMarshalString(t *testing.T) {
+	rawVal := "1234"
+	iVal := 1234
+	uVal := UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case float64:
+		if int(uVal.(float64)) != iVal {
+			t.Errorf("unmarshal int failed")
+		}
+	default:
+		t.Errorf("unmarshal int failed")
+	}
+
+	rawVal = "a1234"
+	strVal := "a1234"
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case string:
+		if uVal.(string) != strVal {
+			t.Errorf("unmarshal string failed")
+		}
+	default:
+		t.Errorf("unmarshal int failed")
+	}
+
+	rawVal = "12.34"
+	fVal := 12.34
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case float64:
+		if uVal.(float64) != fVal {
+			t.Errorf("unmarshal float failed")
+		}
+	default:
+		t.Errorf("unmarshal float failed")
+	}
+
+	rawVal = "false"
+	bVal := false
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case bool:
+		if uVal.(bool) != bVal {
+			t.Errorf("unmarshal bool failed")
+		}
+	default:
+		t.Errorf("unmarshal bool failed")
+	}
+
+	rawVal = "true"
+	bVal = true
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case bool:
+		if uVal.(bool) != bVal {
+			t.Errorf("unmarshal bool failed")
+		}
+	default:
+		t.Errorf("unmarshal bool failed")
+	}
+}
+
+func TestArrayMarshalString(t *testing.T) {
+	iVal := []int{1234}
+	sVal := fmt.Sprintf("%v", iVal)
+	log.Print(sVal)
+	marshalVal := MarshalString(iVal)
+	if marshalVal != "[1234]" {
+		t.Errorf("marshal int failed")
+	}
+
+	strVal := []string{"1234"}
+	marshalVal = MarshalString(strVal)
+	if marshalVal != "[\"1234\"]" {
+		t.Errorf("marshal string failed")
+	}
+
+	fVal := []float64{12.34}
+	marshalVal = MarshalString(fVal)
+	if marshalVal != "[12.34]" {
+		t.Errorf("marshal float failed")
+	}
+
+	bVal := []bool{false}
+	marshalVal = MarshalString(bVal)
+	if marshalVal != "[false]" {
+		t.Errorf("marshal bool failed")
+	}
+
+	bVal = []bool{true}
+	marshalVal = MarshalString(bVal)
+	if marshalVal != "[true]" {
+		t.Errorf("marshal bool failed")
+	}
+}
+
+func TestArrayUnMarshalString(t *testing.T) {
+	rawVal := "[1234]"
+	iVal := []int{1234}
+	uVal := UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case []float64:
+		tVal := uVal.([]float64)
+		if len(tVal) != len(iVal) {
+			t.Errorf("unmarshal int failed")
+		}
+	default:
+		t.Errorf("unmarshal int failed")
+	}
+
+	rawVal = "[\"1234\"]"
+	strVal := []string{"1234"}
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case []string:
+		tVal := uVal.([]string)
+		if len(tVal) != len(strVal) {
+			t.Errorf("unmarshal string failed")
+		}
+	default:
+		t.Errorf("unmarshal string failed")
+	}
+
+	rawVal = "[12.34]"
+	fVal := []float64{12.34}
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case []float64:
+		tVal := uVal.([]float64)
+		if len(tVal) != len(fVal) {
+			t.Errorf("unmarshal float failed")
+		}
+	default:
+		t.Errorf("unmarshal float failed")
+	}
+
+	rawVal = "[false,true,false,true,true,false,false]"
+	bVal := []bool{false, true, false, true, true, false, false}
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case []bool:
+		tVal := uVal.([]bool)
+		if len(tVal) != len(bVal) {
+			t.Errorf("unmarshal bool failed")
+		}
+	default:
+		t.Errorf("unmarshal bool failed")
 	}
 }

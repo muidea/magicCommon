@@ -9,6 +9,12 @@ import (
 )
 
 func MarshalString(val interface{}) string {
+	switch val.(type) {
+	case string:
+		return val.(string)
+	default:
+	}
+
 	byteVal, err := json.Marshal(val)
 	if err != nil {
 		return ""
@@ -38,7 +44,8 @@ func UnmarshalString(val string) interface{} {
 				break
 			}
 
-			if nLen == 4 {
+			// true or false
+			if nLen == 4 || nLen == 5 {
 				bVal := false
 				err := json.Unmarshal([]byte(val), &bVal)
 				if err == nil {
@@ -47,13 +54,7 @@ func UnmarshalString(val string) interface{} {
 				}
 			}
 
-			strVal := ""
-			err := json.Unmarshal([]byte(val), &strVal)
-			if err == nil {
-				ret = strVal
-				break
-			}
-
+			ret = val
 			break
 		}
 
