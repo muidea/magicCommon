@@ -94,7 +94,7 @@ func TestNewWithVal(t *testing.T) {
 		return
 	}
 
-	expect = fmt.Sprintf("STORE-1001")
+	expect = fmt.Sprintf("SO-%s-00001", datTime)
 	result = generator.GenCode()
 	if expect != result {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
