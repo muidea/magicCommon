@@ -104,7 +104,7 @@ func (s *ContentFilter) NotIn(key string, value interface{}) {
 
 func (s *ContentFilter) Like(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|like", MarshalString(value))
+		s.ParamItems.Items[key] = fmt.Sprintf("%v|like", value)
 	}
 }
 
@@ -347,5 +347,5 @@ func (s *ParamItems) GetLike(key string) interface{} {
 		return nil
 	}
 
-	return UnmarshalString(val[:idx])
+	return val[:idx]
 }
