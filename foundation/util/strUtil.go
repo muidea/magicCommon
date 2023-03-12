@@ -25,9 +25,9 @@ func MarshalString(val interface{}) string {
 
 func UnmarshalString(val string) interface{} {
 	//val = strings.Trim(val,"\"")
-	//if val == "" {
-	//	return val
-	//}
+	if val == "" {
+		return nil
+	}
 
 	var ret interface{}
 	for {
