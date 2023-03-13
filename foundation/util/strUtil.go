@@ -32,6 +32,14 @@ func UnmarshalString(val string) interface{} {
 	var ret interface{}
 	for {
 		nLen := len(val)
+		if val[0] == '{' {
+			mVal := map[string]interface{}{}
+			err := json.Unmarshal([]byte(val), &mVal)
+			if err == nil {
+				ret = mVal
+				return ret
+			}
+		}
 		if val[0] != '[' {
 			if unicode.IsNumber(rune(val[0])) || val[0] == '-' {
 				fVal := 0.00

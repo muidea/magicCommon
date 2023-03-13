@@ -6,6 +6,19 @@ import (
 	"testing"
 )
 
+type Car struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type User struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Desc string `json:"desc"`
+	Age  int    `json:"age"`
+	Car  *Car   `json:"car"`
+}
+
 func TestIntArray2Str(t *testing.T) {
 	tempArray := []int{1, 2}
 	str := IntArray2Str(tempArray)
@@ -86,6 +99,33 @@ func TestMarshalString(t *testing.T) {
 	if marshalVal != "true" {
 		t.Errorf("marshal bool failed")
 	}
+
+	obj1 := &User{
+		ID:   110,
+		Name: "Hello",
+		Desc: "hey boy",
+		Age:  123,
+		Car:  &Car{ID: 100, Name: "Car"},
+	}
+
+	marshalVal = MarshalString(obj1)
+	if marshalVal == "" {
+		t.Errorf("marshal user failed")
+	}
+	log.Print(marshalVal)
+
+	obj2 := &User{
+		ID:   110,
+		Name: "Hello",
+		Desc: "hey boy",
+		Age:  123,
+	}
+
+	marshalVal = MarshalString(obj2)
+	if marshalVal == "" {
+		t.Errorf("marshal user failed")
+	}
+	log.Print(marshalVal)
 }
 
 func TestUnMarshalString(t *testing.T) {
@@ -147,6 +187,33 @@ func TestUnMarshalString(t *testing.T) {
 		}
 	default:
 		t.Errorf("unmarshal bool failed")
+	}
+
+	rawVal = "{\"id\":110,\"name\":\"Hello\",\"desc\":\"hey boy\",\"age\":123,\"car\":{\"id\":100,\"name\":\"Car\"}}"
+	/*
+		objVal := &User{
+			ID: 110,
+			Name: "Hello",
+			Desc: "hey boy",
+			Age: 123,
+		}
+	*/
+
+	uVal = UnmarshalString(rawVal)
+	if uVal == nil {
+		t.Errorf("unmarshal object failed")
+	}
+
+	rawVal = "{\"id\":110,\"name\":\"Hello\",\"desc\":\"hey boy\",\"age\":123,\"car\":null}"
+	uVal = UnmarshalString(rawVal)
+	if uVal == nil {
+		t.Errorf("unmarshal object failed")
+	}
+
+	rawVal = "{\"id\":110,\"name\":\"Hello\",\"desc\":\"hey boy\",\"age\":123}"
+	uVal = UnmarshalString(rawVal)
+	if uVal == nil {
+		t.Errorf("unmarshal object failed")
 	}
 }
 
