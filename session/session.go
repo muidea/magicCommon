@@ -85,13 +85,17 @@ func (s *sessionImpl) Signature() (Token, error) {
 		mc[sessionID] = s.id
 	}
 
-	for k, v := range s.context {
-		if s.innerKey(k) {
-			continue
-		}
+	func() {
+		s.registry.sessionLock.RLock()
+		defer s.registry.sessionLock.RUnlock()
+		for k, v := range s.context {
+			if s.innerKey(k) {
+				continue
+			}
 
-		mc[k] = v
-	}
+			mc[k] = v
+		}
+	}()
 
 	return SignatureJWT(mc)
 }

@@ -82,6 +82,8 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 			}
 		}()
 
+		s.sessionLock.Lock()
+		defer s.sessionLock.Unlock()
 		if authorizationValue[:offset] == jwtToken {
 			sessionPtr = decodeJWT(authorizationValue[offset+1:])
 		}
@@ -97,6 +99,8 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 			sessionPtr = curSession
 		}
 
+		s.sessionLock.Lock()
+		defer s.sessionLock.Unlock()
 		sessionPtr.registry = s
 		sessionPtr.context[Authorization] = authorizationValue
 	}
