@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime"
 	"mime/multipart"
@@ -96,7 +95,7 @@ func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 		reader = io.LimitReader(req.Body, maxFormSize+1)
 	}
 
-	payload, payloadErr := ioutil.ReadAll(reader)
+	payload, payloadErr := io.ReadAll(reader)
 	if payloadErr != nil {
 		err = payloadErr
 		return
@@ -178,7 +177,7 @@ func HTTPGet(httpClient *http.Client, url string, result interface{}, ctx ...url
 		return
 	}
 
-	content, contentErr := ioutil.ReadAll(response.Body)
+	content, contentErr := io.ReadAll(response.Body)
 	if contentErr != nil {
 		err = contentErr
 		log.Printf("read respose data failed, err:%s", err.Error())
@@ -238,7 +237,7 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 		return
 	}
 
-	content, contentErr := ioutil.ReadAll(response.Body)
+	content, contentErr := io.ReadAll(response.Body)
 	if contentErr != nil {
 		err = contentErr
 		log.Printf("read respose data failed, err:%s", err.Error())
@@ -297,7 +296,7 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 		return
 	}
 
-	content, contentErr := ioutil.ReadAll(response.Body)
+	content, contentErr := io.ReadAll(response.Body)
 	if contentErr != nil {
 		err = contentErr
 		log.Printf("read respose data failed, err:%s", err.Error())
@@ -343,7 +342,7 @@ func HTTPDelete(httpClient *http.Client, url string, result interface{}, ctx ...
 		return
 	}
 
-	content, contentErr := ioutil.ReadAll(response.Body)
+	content, contentErr := io.ReadAll(response.Body)
 	if contentErr != nil {
 		err = contentErr
 		log.Printf("read respose data failed, err:%s", err.Error())
@@ -460,7 +459,7 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	}
 
 	if result != nil {
-		content, err := ioutil.ReadAll(response.Body)
+		content, err := io.ReadAll(response.Body)
 		if err != nil {
 			log.Printf("read respose data failed, err:%s", err.Error())
 			return err

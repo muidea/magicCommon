@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/url"
@@ -21,6 +22,20 @@ func TestContentFilter_Encode(t *testing.T) {
 	filter.NotIn("notin", []float32{12.23, 23.45})
 	filter.Like("like", "hello world")
 
+	byteVal, byteErr := json.Marshal(filter)
+	if byteErr != nil {
+		t.Error("encode json value failed")
+		return
+	}
+
+	nf := NewFilter()
+	byteErr = json.Unmarshal(byteVal, nf)
+	if byteErr != nil {
+		t.Error("decode json value failed")
+		return
+	}
+	checkFilter(t, nf)
+
 	val := url.Values{}
 	val = filter.Encode(val)
 
@@ -31,6 +46,10 @@ func TestContentFilter_Encode(t *testing.T) {
 	newFilter := NewFilter()
 	newFilter.Decode(req)
 
+	checkFilter(t, newFilter)
+}
+
+func checkFilter(t *testing.T, newFilter *ContentFilter) {
 	gVal, gOk := newFilter.Get("set")
 	if !gOk {
 		t.Error("invalid get key")
