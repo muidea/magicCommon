@@ -9,7 +9,7 @@ import (
 )
 
 func TestContentFilter_Encode(t *testing.T) {
-	filter := NewFilter()
+	filter := NewFilter("name", "pkgPath")
 	filter.Set("set", -123)
 	filter.Set("setB", true)
 	filter.Set("setHey", "hey")
@@ -28,7 +28,7 @@ func TestContentFilter_Encode(t *testing.T) {
 		return
 	}
 
-	nf := NewFilter()
+	nf := NewFilter("name", "pkgPath")
 	byteErr = json.Unmarshal(byteVal, nf)
 	if byteErr != nil {
 		t.Error("decode json value failed")
@@ -43,7 +43,7 @@ func TestContentFilter_Encode(t *testing.T) {
 
 	req := &http.Request{URL: &url.URL{RawQuery: val.Encode()}}
 
-	newFilter := NewFilter()
+	newFilter := NewFilter("name", "pkgPath")
 	newFilter.Decode(req)
 
 	checkFilter(t, newFilter)

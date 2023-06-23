@@ -19,8 +19,8 @@ type ContentFilter struct {
 }
 
 // NewFilter new filter
-func NewFilter() *ContentFilter {
-	return &ContentFilter{Pagination: nil, ParamItems: &ParamItems{Items: map[string]string{}}}
+func NewFilter(name, pkgPath string) *ContentFilter {
+	return &ContentFilter{Pagination: nil, ParamItems: &ParamItems{Name: name, PkgPath: pkgPath, Items: map[string]string{}}}
 }
 
 // Decode 内容过滤器
@@ -116,7 +116,9 @@ func (s *ContentFilter) Remove(key string) {
 
 // ParamItems contentFilter
 type ParamItems struct {
-	Items map[string]string
+	Name    string            `json:"name"`
+	PkgPath string            `json:"pkgPath"`
+	Items   map[string]string `json:"items"`
 }
 
 // Decode 解析内容过滤值
