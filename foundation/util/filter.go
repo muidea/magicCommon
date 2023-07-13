@@ -161,15 +161,8 @@ func (s *ParamItems) GetEqual(key string) interface{} {
 	if !ok {
 		return nil
 	}
-	idx := strings.LastIndex(val, "|")
-	if idx == -1 {
-		return UnmarshalString(val)
-	}
-	if val[idx+1:] != "=" {
-		return nil
-	}
 
-	return UnmarshalString(val[:idx])
+	return GetEqual(val)
 }
 
 func (s *ParamItems) IsNotEqual(key string) bool {
@@ -191,15 +184,7 @@ func (s *ParamItems) GetNotEqual(key string) interface{} {
 		return nil
 	}
 
-	idx := strings.LastIndex(val, "|")
-	if idx == -1 {
-		return nil
-	}
-	if val[idx+1:] != "!=" {
-		return nil
-	}
-
-	return UnmarshalString(val[:idx])
+	return GetNotEqual(val)
 }
 
 func (s *ParamItems) IsBelow(key string) bool {
@@ -221,15 +206,7 @@ func (s *ParamItems) GetBelow(key string) interface{} {
 		return nil
 	}
 
-	idx := strings.LastIndex(val, "|")
-	if idx == -1 {
-		return nil
-	}
-	if val[idx+1:] != "<" {
-		return nil
-	}
-
-	return UnmarshalString(val[:idx])
+	return GetBelow(val)
 }
 
 func (s *ParamItems) IsAbove(key string) bool {
@@ -251,15 +228,7 @@ func (s *ParamItems) GetAbove(key string) interface{} {
 		return nil
 	}
 
-	idx := strings.LastIndex(val, "|")
-	if idx == -1 {
-		return nil
-	}
-	if val[idx+1:] != ">" {
-		return nil
-	}
-
-	return UnmarshalString(val[:idx])
+	return GetAbove(val)
 }
 
 func (s *ParamItems) IsIn(key string) bool {
@@ -281,15 +250,7 @@ func (s *ParamItems) GetIn(key string) interface{} {
 		return nil
 	}
 
-	idx := strings.LastIndex(val, "|")
-	if idx == -1 {
-		return nil
-	}
-	if val[idx+1:] != "in" {
-		return nil
-	}
-
-	return UnmarshalString(val[:idx])
+	return GetIn(val)
 }
 
 func (s *ParamItems) IsNotIn(key string) bool {
@@ -311,15 +272,7 @@ func (s *ParamItems) GetNotIn(key string) interface{} {
 		return nil
 	}
 
-	idx := strings.LastIndex(val, "|")
-	if idx == -1 {
-		return nil
-	}
-	if val[idx+1:] != "!in" {
-		return nil
-	}
-
-	return UnmarshalString(val[:idx])
+	return GetNotIn(val)
 }
 
 func (s *ParamItems) IsLike(key string) bool {
@@ -341,6 +294,82 @@ func (s *ParamItems) GetLike(key string) interface{} {
 		return nil
 	}
 
+	return GetLike(val)
+}
+
+func GetEqual(val string) interface{} {
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return UnmarshalString(val)
+	}
+	if val[idx+1:] != "=" {
+		return nil
+	}
+
+	return UnmarshalString(val[:idx])
+}
+
+func GetNotEqual(val string) interface{} {
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "!=" {
+		return nil
+	}
+
+	return UnmarshalString(val[:idx])
+}
+
+func GetBelow(val string) interface{} {
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "<" {
+		return nil
+	}
+
+	return UnmarshalString(val[:idx])
+}
+
+func GetAbove(val string) interface{} {
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != ">" {
+		return nil
+	}
+
+	return UnmarshalString(val[:idx])
+}
+
+func GetIn(val string) interface{} {
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "in" {
+		return nil
+	}
+
+	return UnmarshalString(val[:idx])
+}
+
+func GetNotIn(val string) interface{} {
+	idx := strings.LastIndex(val, "|")
+	if idx == -1 {
+		return nil
+	}
+	if val[idx+1:] != "!in" {
+		return nil
+	}
+
+	return UnmarshalString(val[:idx])
+}
+
+func GetLike(val string) interface{} {
 	idx := strings.LastIndex(val, "|")
 	if idx == -1 {
 		return nil
