@@ -48,8 +48,6 @@ func UnmarshalString(val string) interface{} {
 					ret = fVal
 					break
 				}
-
-				break
 			}
 
 			// true or false
@@ -61,9 +59,6 @@ func UnmarshalString(val string) interface{} {
 					break
 				}
 			}
-
-			ret = val
-			break
 		}
 
 		if nLen < 2 {
@@ -78,9 +73,6 @@ func UnmarshalString(val string) interface{} {
 				ret = fVal
 				break
 			}
-
-			ret = val
-			break
 		}
 
 		bVal := []bool{}

@@ -100,6 +100,36 @@ func TestMarshalString(t *testing.T) {
 		t.Errorf("marshal bool failed")
 	}
 
+	strVal = "61d383cb134f4db6a367046ffac3051d"
+	marshalVal = MarshalString(strVal)
+	if marshalVal != "61d383cb134f4db6a367046ffac3051d" {
+		t.Errorf("marshal string failed")
+	}
+
+	strVal = "[61d383cb134f4db]6a367046ffac3051d"
+	marshalVal = MarshalString(strVal)
+	if marshalVal != "[61d383cb134f4db]6a367046ffac3051d" {
+		t.Errorf("marshal string failed")
+	}
+
+	strVal = "{61d383cb134f4db6a367046ffac3051d"
+	marshalVal = MarshalString(strVal)
+	if marshalVal != "{61d383cb134f4db6a367046ffac3051d" {
+		t.Errorf("marshal string failed")
+	}
+
+	strVal = "%61d383cb134f4db6a367046ffac3051d"
+	marshalVal = MarshalString(strVal)
+	if marshalVal != "%61d383cb134f4db6a367046ffac3051d" {
+		t.Errorf("marshal string failed")
+	}
+
+	strVal = "-61d383cb134f4db6a367046ffac3051d"
+	marshalVal = MarshalString(strVal)
+	if marshalVal != "-61d383cb134f4db6a367046ffac3051d" {
+		t.Errorf("marshal string failed")
+	}
+
 	obj1 := &User{
 		ID:   110,
 		Name: "Hello",
@@ -187,6 +217,78 @@ func TestUnMarshalString(t *testing.T) {
 		}
 	default:
 		t.Errorf("unmarshal bool failed")
+	}
+
+	rawVal = "61d383cb134f4db6a367046ffac3051d"
+	strVal = "61d383cb134f4db6a367046ffac3051d"
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case string:
+		if uVal.(string) != strVal {
+			t.Errorf("unmarshal string failed")
+		}
+	default:
+		t.Errorf("unmarshal string failed")
+	}
+
+	rawVal = "[61d383cb134f4db6a367046ffac3051d"
+	strVal = "[61d383cb134f4db6a367046ffac3051d"
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case string:
+		if uVal.(string) != strVal {
+			t.Errorf("unmarshal string failed")
+		}
+	default:
+		t.Errorf("unmarshal string failed")
+	}
+
+	rawVal = "[61d383cb13]4f4db6a367046ffac3051d"
+	strVal = "[61d383cb13]4f4db6a367046ffac3051d"
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case string:
+		if uVal.(string) != strVal {
+			t.Errorf("unmarshal string failed")
+		}
+	default:
+		t.Errorf("unmarshal string failed")
+	}
+
+	rawVal = "{61d383cb134f4db6a367046ffac3051d"
+	strVal = "{61d383cb134f4db6a367046ffac3051d"
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case string:
+		if uVal.(string) != strVal {
+			t.Errorf("unmarshal string failed")
+		}
+	default:
+		t.Errorf("unmarshal string failed")
+	}
+
+	rawVal = "%61d383cb134f4db6a367046ffac3051d"
+	strVal = "%61d383cb134f4db6a367046ffac3051d"
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case string:
+		if uVal.(string) != strVal {
+			t.Errorf("unmarshal string failed")
+		}
+	default:
+		t.Errorf("unmarshal string failed")
+	}
+
+	rawVal = "-61d383cb134f4db6a367046ffac3051d"
+	strVal = "-61d383cb134f4db6a367046ffac3051d"
+	uVal = UnmarshalString(rawVal)
+	switch uVal.(type) {
+	case string:
+		if uVal.(string) != strVal {
+			t.Errorf("unmarshal string failed")
+		}
+	default:
+		t.Errorf("unmarshal string failed")
 	}
 
 	rawVal = "{\"id\":110,\"name\":\"Hello\",\"desc\":\"hey boy\",\"age\":123,\"car\":{\"id\":100,\"name\":\"Car\"}}"
