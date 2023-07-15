@@ -11,7 +11,8 @@ import (
 type Cache interface {
 	// maxAge单位minute
 	Put(data interface{}, maxAge float64) string
-	Fetch(id string) (interface{}, bool)
+	Fetch(id string) interface{}
+	Search(opr SearchOpr) interface{}
 	Remove(id string)
 	ClearAll()
 	Release()
@@ -42,8 +43,13 @@ type fetchOutData struct {
 
 type fetchOutResult struct {
 	value interface{}
-	found bool
 }
+
+type searchData struct {
+	opr SearchOpr
+}
+
+type searchResult fetchOutKVResult
 
 type removeData struct {
 	id string
@@ -66,24 +72,40 @@ func (right *MemoryCache) Put(data interface{}, maxAge float64) string {
 	putInData.data = data
 	putInData.maxAge = maxAge
 
-	*right <- commandData{action: putData, value: putInData, result: reply}
+	*right <- commandData{action: putIn, value: putInData, result: reply}
 
 	result := (<-reply).(*putInResult).value
 	return result
 }
 
 // Fetch 获取数据
-func (right *MemoryCache) Fetch(id string) (interface{}, bool) {
+func (right *MemoryCache) Fetch(id string) interface{} {
 
 	reply := make(chan interface{})
 
 	fetchOutData := &fetchOutData{}
 	fetchOutData.id = id
 
-	*right <- commandData{action: fetchData, value: fetchOutData, result: reply}
+	*right <- commandData{action: fetchOut, value: fetchOutData, result: reply}
 
 	result := (<-reply).(*fetchOutResult)
-	return result.value, result.found
+	return result.value
+}
+
+func (right *MemoryCache) Search(opr SearchOpr) interface{} {
+	if opr == nil {
+		return nil
+	}
+
+	reply := make(chan interface{})
+
+	searchData := &searchData{}
+	searchData.opr = opr
+
+	*right <- commandData{action: search, value: searchData, result: reply}
+
+	result := (<-reply).(*searchResult)
+	return result.value
 }
 
 // Remove 清除数据
@@ -108,58 +130,68 @@ func (right *MemoryCache) Release() {
 }
 
 func (right *MemoryCache) run() {
-	_cacheData := make(map[string]cacheData)
+	localCacheData := make(map[string]cacheData)
 
 	for command := range *right {
 		switch command.action {
-		case putData:
+		case putIn:
 			id := strings.ToLower(util.RandomAlphanumeric(32))
 
 			cacheData := cacheData{}
 			cacheData.putInData = *(command.value.(*putInData))
 			cacheData.cacheTime = time.Now()
 
-			_cacheData[id] = cacheData
+			localCacheData[id] = cacheData
 
 			result := &putInResult{}
 			result.value = id
 
 			command.result <- result
-		case fetchData:
+		case fetchOut:
 			id := command.value.(*fetchOutData).id
 
-			cacheData, found := _cacheData[id]
+			cacheData, found := localCacheData[id]
 
 			result := &fetchOutResult{}
-			result.found = found
 			if found {
 				cacheData.cacheTime = time.Now()
-				_cacheData[id] = cacheData
+				localCacheData[id] = cacheData
 
 				result.value = cacheData.data
+			}
+
+			command.result <- result
+		case search:
+			opr := command.value.(*searchKVData).opr
+
+			result := &searchKVResult{}
+			for _, v := range localCacheData {
+				if opr(v) {
+					result.value = v
+					break
+				}
 			}
 
 			command.result <- result
 		case remove:
 			id := command.value.(*removeData).id
 
-			delete(_cacheData, id)
+			delete(localCacheData, id)
 		case clearAll:
-			_cacheData = make(map[string]cacheData)
-
+			localCacheData = make(map[string]cacheData)
 		case checkTimeOut:
 			// 检查每项数据是否超时，超时数据需要主动清除掉
-			for k, v := range _cacheData {
+			for k, v := range localCacheData {
 				if v.maxAge != MaxAgeValue {
 					current := time.Now()
 					elapse := current.Sub(v.cacheTime).Minutes()
 					if elapse > v.maxAge {
-						delete(_cacheData, k)
+						delete(localCacheData, k)
 					}
 				}
 			}
 		case end:
-			_cacheData = nil
+			localCacheData = nil
 		}
 	}
 }
