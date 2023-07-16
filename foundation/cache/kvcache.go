@@ -8,10 +8,9 @@ import (
 type KVCache interface {
 	// maxAge单位minute
 	Put(key string, data interface{}, maxAge float64) string
-	Fetch(key string) interface{}
-	Search(opr SearchOpr) interface{}
+	Fetch(key string) (interface{}, bool)
 	Remove(key string)
-	GetAll() []interface{}
+	GetAll() []string
 	ClearAll()
 	Release()
 }
@@ -42,16 +41,11 @@ type fetchOutKVData struct {
 
 type fetchOutKVResult struct {
 	value interface{}
+	found bool
 }
-
-type searchKVData struct {
-	opr SearchOpr
-}
-
-type searchKVResult fetchOutKVResult
 
 type getAllKVResult struct {
-	value []interface{}
+	value []string
 }
 
 type removeKVData struct {
@@ -68,46 +62,32 @@ type MemoryKVCache chan commandData
 
 // Put 投放数据，返回数据的唯一标示
 func (right *MemoryKVCache) Put(key string, data interface{}, maxAge float64) string {
+
 	reply := make(chan interface{})
 
-	putInData := &putInKVData{}
-	putInData.key = key
-	putInData.data = data
-	putInData.maxAge = maxAge
+	putInKVData := &putInKVData{}
+	putInKVData.key = key
+	putInKVData.data = data
+	putInKVData.maxAge = maxAge
 
-	*right <- commandData{action: putIn, value: putInData, result: reply}
+	*right <- commandData{action: putData, value: putInKVData, result: reply}
 
 	result := (<-reply).(*putInKVResult).value
 	return result
 }
 
 // Fetch 获取数据
-func (right *MemoryKVCache) Fetch(key string) interface{} {
+func (right *MemoryKVCache) Fetch(key string) (interface{}, bool) {
+
 	reply := make(chan interface{})
 
-	fetchOutData := &fetchOutKVData{}
-	fetchOutData.key = key
+	fetchOutKVData := &fetchOutKVData{}
+	fetchOutKVData.key = key
 
-	*right <- commandData{action: fetchOut, value: fetchOutData, result: reply}
+	*right <- commandData{action: fetchData, value: fetchOutKVData, result: reply}
 
 	result := (<-reply).(*fetchOutKVResult)
-	return result.value
-}
-
-func (right *MemoryKVCache) Search(opr SearchOpr) interface{} {
-	if opr == nil {
-		return nil
-	}
-
-	reply := make(chan interface{})
-
-	searchData := &searchKVData{}
-	searchData.opr = opr
-
-	*right <- commandData{action: search, value: searchData, result: reply}
-
-	result := (<-reply).(*searchKVResult)
-	return result.value
+	return result.value, result.found
 }
 
 // Remove 清除数据
@@ -119,7 +99,7 @@ func (right *MemoryKVCache) Remove(key string) {
 }
 
 // GetAll 获取所有的数据
-func (right *MemoryKVCache) GetAll() (ret []interface{}) {
+func (right *MemoryKVCache) GetAll() (ret []string) {
 	reply := make(chan interface{})
 
 	*right <- commandData{action: getAll, value: nil, result: reply}
@@ -145,73 +125,63 @@ func (right *MemoryKVCache) Release() {
 }
 
 func (right *MemoryKVCache) run() {
-	localCacheData := make(map[string]cacheKVData)
+	_cacheData := make(map[string]cacheKVData)
 
 	for command := range *right {
 		switch command.action {
-		case putIn:
+		case putData:
 			cacheKVData := cacheKVData{}
 			cacheKVData.putInKVData = *(command.value.(*putInKVData))
 			cacheKVData.cacheTime = time.Now()
 
-			localCacheData[cacheKVData.key] = cacheKVData
+			_cacheData[cacheKVData.key] = cacheKVData
 
 			result := &putInKVResult{}
 			result.value = cacheKVData.key
 
 			command.result <- result
-		case fetchOut:
+		case fetchData:
 			key := command.value.(*fetchOutKVData).key
 
-			cacheKVData, found := localCacheData[key]
+			cacheKVData, found := _cacheData[key]
 
 			result := &fetchOutKVResult{}
+			result.found = found
 			if found {
 				cacheKVData.cacheTime = time.Now()
-				localCacheData[key] = cacheKVData
+				_cacheData[key] = cacheKVData
 
 				result.value = cacheKVData.data
-			}
-
-			command.result <- result
-		case search:
-			opr := command.value.(*searchKVData).opr
-
-			result := &searchKVResult{}
-			for _, v := range localCacheData {
-				if opr(v) {
-					result.value = v
-					break
-				}
 			}
 
 			command.result <- result
 		case remove:
 			key := command.value.(*removeKVData).key
 
-			delete(localCacheData, key)
+			delete(_cacheData, key)
 		case getAll:
-			result := &getAllKVResult{value: []interface{}{}}
-			for _, v := range localCacheData {
-				result.value = append(result.value, v.data)
+			result := &getAllKVResult{value: []string{}}
+			for k := range _cacheData {
+				result.value = append(result.value, k)
 			}
 
 			command.result <- result
 		case clearAll:
-			localCacheData = make(map[string]cacheKVData)
+			_cacheData = make(map[string]cacheKVData)
+
 		case checkTimeOut:
 			// 检查每项数据是否超时，超时数据需要主动清除掉
-			for k, v := range localCacheData {
+			for k, v := range _cacheData {
 				if v.maxAge != MaxAgeValue {
 					current := time.Now()
 					elapse := current.Sub(v.cacheTime).Minutes()
 					if elapse > v.maxAge {
-						delete(localCacheData, k)
+						delete(_cacheData, k)
 					}
 				}
 			}
 		case end:
-			localCacheData = nil
+			_cacheData = nil
 		}
 	}
 }

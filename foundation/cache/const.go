@@ -6,17 +6,14 @@ const MaxAgeValue = -1
 type commandAction int
 
 const (
-	putIn        commandAction = iota // 存放数据
-	fetchOut                          // 获取数据
-	search                            // 搜索数据
+	putData      commandAction = iota // 存放数据
+	fetchData                         // 获取数据
 	remove                            // 删除指定数据
 	getAll                            // 获取全部
 	clearAll                          // 清除全部数据
 	checkTimeOut                      // 检查超过生命周期的数据
 	end                               // 停止Cache
 )
-
-type SearchOpr func(val interface{}) bool
 
 type commandData struct {
 	action commandAction
