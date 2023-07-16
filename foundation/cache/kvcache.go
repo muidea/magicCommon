@@ -180,7 +180,7 @@ func (right *MemoryKVCache) run() {
 			result := &searchKVResult{}
 			for _, v := range localCacheData {
 				if opr(v.data) {
-					result.value = v
+					result.value = v.data
 					break
 				}
 			}
