@@ -50,6 +50,22 @@ func (s *ContentFilter) Encode(vals url.Values) url.Values {
 	return vals
 }
 
+func (s *ContentFilter) GetName() string {
+	if s.ParamItems != nil {
+		return s.ParamItems.Name
+	}
+
+	return ""
+}
+
+func (s *ContentFilter) GetPkgPath() string {
+	if s.ParamItems != nil {
+		return s.ParamItems.PkgPath
+	}
+
+	return ""
+}
+
 func (s *ContentFilter) Get(key string) (val string, ok bool) {
 	if s.ParamItems != nil {
 		val, ok = s.ParamItems.Items[key]
