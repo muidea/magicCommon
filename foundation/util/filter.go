@@ -15,7 +15,7 @@ type Filter interface {
 // ContentFilter 过滤器
 type ContentFilter struct {
 	Pagination *Pagination `json:"pagination"`
-	ParamItems *ParamItems `json:"items"`
+	ParamItems *ParamItems `json:"params"`
 }
 
 // NewFilter new filter
