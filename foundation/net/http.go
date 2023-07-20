@@ -149,6 +149,21 @@ func ParseJSONBody(req *http.Request, validator util.Validator, param interface{
 	return nil
 }
 
+func PackageHTTPResponse(res http.ResponseWriter, result interface{}) {
+	if result == nil {
+		res.WriteHeader(http.StatusOK)
+		return
+	}
+
+	block, err := json.Marshal(result)
+	if err == nil {
+		res.Write(block)
+		return
+	}
+
+	res.WriteHeader(http.StatusExpectationFailed)
+}
+
 // HTTPGet http get request
 func HTTPGet(httpClient *http.Client, url string, result interface{}, ctx ...url.Values) (ret []byte, err error) {
 	request, requestErr := http.NewRequest("GET", url, nil)
