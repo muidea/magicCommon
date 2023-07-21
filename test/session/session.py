@@ -12,6 +12,7 @@ class MagicSession(object):
         self.base_url = base_url
         self.namespace = namespace
         self.session_token = None
+        self.application = None
 
     def new_session(self):
         """fork new session"""
@@ -20,10 +21,16 @@ class MagicSession(object):
     def bind_token(self, token):
         self.session_token = token
 
+    def bind_application(self, application):
+        self.application = application
+
     def header(self):
         header = {
             "X-Namespace": self.namespace
         }
+
+        if self.application:
+            header['X-Application'] = self.application
 
         if self.session_token:
             header["Authorization"] = 'Bearer %s' % self.session_token
