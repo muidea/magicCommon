@@ -10,7 +10,7 @@ def uuid():
     return id.uuid4().hex
 
 
-def number(b=10, e=100):
+def int(b=10, e=100):
     return random.randint(b, e)
 
 
@@ -150,7 +150,7 @@ def picker_dict(data_dict, num):
 
 if __name__ == '__main__':
     print(uuid())
-    print(number())
+    print(int())
     print(float())
     print(word())
     print(name())
