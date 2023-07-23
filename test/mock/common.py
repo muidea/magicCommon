@@ -2,6 +2,7 @@
 
 import random
 import uuid as id
+import time as dt
 
 RAW_CONTENT = 'abcdefghijklmnopqrstuvwxyz'
 
@@ -16,6 +17,10 @@ def int(b=10, e=100):
 
 def float(b=12, e=200):
     return random.uniform(b, e)
+
+
+def time():
+    return dt.strftime("%Y-%m-%d %H:%M:%S", dt.localtime())
 
 
 # 随机生成一个词
