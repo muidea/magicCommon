@@ -9,6 +9,15 @@ RAW_CONTENT = 'abcdefghijklmnopqrstuvwxyz'
 def uuid():
     return id.uuid4().hex
 
+
+def number(b=10, e=100):
+    return random.randint(b, e)
+
+
+def float(b=12, e=200):
+    return random.uniform(b, e)
+
+
 # 随机生成一个词
 def word():
     """word"""
@@ -141,6 +150,8 @@ def picker_dict(data_dict, num):
 
 if __name__ == '__main__':
     print(uuid())
+    print(number())
+    print(float())
     print(word())
     print(name())
     print(sentence())
