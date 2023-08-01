@@ -33,7 +33,11 @@ def word():
 # 随机生成一个名字，首字母大写
 def name():
     """name"""
-    return word().title()
+    return word()
+
+
+def title(val):
+    return val.title()
 
 
 # 随机生成一个句子
