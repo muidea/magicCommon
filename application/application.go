@@ -3,6 +3,8 @@ package application
 import (
 	"sync"
 
+	_ "github.com/muidea/magicCommon/foundation/log"
+
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/service"
 	"github.com/muidea/magicCommon/task"

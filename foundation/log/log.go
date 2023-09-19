@@ -1,4 +1,4 @@
-package application
+package log
 
 import (
 	log "github.com/cihub/seelog"
@@ -30,3 +30,27 @@ var logConfig = `<?xml version="1.0" encoding="utf-8"?>
     <format id="main" format="%Date %Time [%LEV] %RelFile:%Line | %Msg%n"/> 
   </formats> 
 </seelog>`
+
+func Tracef(format string, params ...interface{}) {
+	log.Tracef(format, params)
+}
+
+func Debugf(format string, params ...interface{}) {
+	log.Debugf(format, params)
+}
+
+func Infof(format string, params ...interface{}) {
+	log.Infof(format, params)
+}
+
+func Warnf(format string, params ...interface{}) {
+	log.Warnf(format, params)
+}
+
+func Errorf(format string, params ...interface{}) {
+	log.Errorf(format, params)
+}
+
+func Criticalf(format string, params ...interface{}) {
+	log.Criticalf(format, params)
+}
