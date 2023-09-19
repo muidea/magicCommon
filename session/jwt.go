@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/cihub/seelog"
 	"github.com/golang-jwt/jwt/v4"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 func SignatureJWT(mc jwt.MapClaims) (Token, error) {

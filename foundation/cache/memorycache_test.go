@@ -23,8 +23,8 @@ func TestMemoryCache(t *testing.T) {
 	select {
 	case <-timeOutTimer.C:
 	}
-	_, found := cache.Fetch(id)
-	if found {
+	found := cache.Fetch(id)
+	if found != nil {
 		t.Error("memorycache maxAge unexpect.")
 	}
 
@@ -34,8 +34,8 @@ func TestMemoryCache(t *testing.T) {
 	}
 	time.Sleep(100)
 
-	val, found := cache.Fetch(id)
-	if !found {
+	val := cache.Fetch(id)
+	if val == nil {
 		t.Error("memorycache Fetch unexpect.")
 	}
 
@@ -44,8 +44,8 @@ func TestMemoryCache(t *testing.T) {
 	}
 
 	cache.Remove(id)
-	_, found = cache.Fetch(id)
-	if found {
+	found = cache.Fetch(id)
+	if found != nil {
 		t.Error("memorycache maxAge unexpect.")
 	}
 	time.Sleep(10000)

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	log "github.com/cihub/seelog"
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 type Values map[string]interface{}
