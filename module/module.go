@@ -49,13 +49,13 @@ func Teardown(module interface{}) {
 	return
 }
 
-func BindBatisClient(module interface{}, clnt interface{}) {
+func BindPlatformClient(module interface{}, clnt interface{}) {
 	if clnt == nil {
-		panic("illegal batis client")
+		panic("illegal platform client")
 		return
 	}
 
-	invokeFunc(module, "BindBatisClient", clnt)
+	invokeFunc(module, "BindPlatformClient", clnt)
 	return
 }
 
