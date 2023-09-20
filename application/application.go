@@ -11,7 +11,7 @@ import (
 )
 
 type Application interface {
-	Startup(service service.Service)
+	Startup(service service.Service) error
 	Run()
 	Shutdown()
 	EventHub() event.Hub
@@ -21,9 +21,9 @@ type Application interface {
 var application Application
 var applicationOnce sync.Once
 
-func Startup(service service.Service) {
+func Startup(service service.Service) error {
 	app := Get()
-	app.Startup(service)
+	return app.Startup(service)
 }
 
 func Run() {
@@ -53,9 +53,9 @@ type appImpl struct {
 	service           service.Service
 }
 
-func (s *appImpl) Startup(service service.Service) {
+func (s *appImpl) Startup(service service.Service) error {
 	s.service = service
-	s.service.Startup(s.eventHub, s.backgroundRoutine)
+	return s.service.Startup(s.eventHub, s.backgroundRoutine)
 }
 
 func (s *appImpl) Run() {

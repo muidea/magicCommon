@@ -6,7 +6,7 @@ import (
 )
 
 type Service interface {
-	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine)
+	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) error
 	Run()
 	Shutdown()
 }
