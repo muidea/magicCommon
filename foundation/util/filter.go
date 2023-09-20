@@ -1,9 +1,11 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 )
 
@@ -61,6 +63,14 @@ func (s *ContentFilter) GetName() string {
 func (s *ContentFilter) GetPkgPath() string {
 	if s.ParamItems != nil {
 		return s.ParamItems.PkgPath
+	}
+
+	return ""
+}
+
+func (s *ContentFilter) GetPkeKey() string {
+	if s.ParamItems != nil {
+		return path.Join(s.ParamItems.PkgPath, s.ParamItems.Name)
 	}
 
 	return ""
@@ -130,11 +140,30 @@ func (s *ContentFilter) Remove(key string) {
 	}
 }
 
+func (s *ContentFilter) SortFilter(ptr *SortFilter) {
+	if s.ParamItems != nil {
+		s.ParamItems.SortFilter = ptr
+	}
+}
+
+func (s *ContentFilter) ValueMask(val any) {
+	if s.ParamItems != nil {
+		byteVal, byteErr := json.Marshal(val)
+		if byteErr != nil {
+			return
+		}
+
+		s.ParamItems.ValueMask = byteVal
+	}
+}
+
 // ParamItems contentFilter
 type ParamItems struct {
-	Name    string            `json:"name"`
-	PkgPath string            `json:"pkgPath"`
-	Items   map[string]string `json:"items"`
+	Name       string            `json:"name"`
+	PkgPath    string            `json:"pkgPath"`
+	Items      map[string]string `json:"items"`
+	SortFilter *SortFilter       `json:"sortFilter"`
+	ValueMask  json.RawMessage   `json:"valueMask"`
 }
 
 // Decode 解析内容过滤值
