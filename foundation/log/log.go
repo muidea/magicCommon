@@ -32,25 +32,55 @@ var logConfig = `<?xml version="1.0" encoding="utf-8"?>
 </seelog>`
 
 func Tracef(format string, params ...interface{}) {
-	log.Tracef(format, params)
+	if params != nil {
+		log.Tracef(format, params)
+		return
+	}
+
+	log.Trace(format)
 }
 
 func Debugf(format string, params ...interface{}) {
-	log.Debugf(format, params)
+	if params != nil {
+		log.Debugf(format, params)
+		return
+	}
+
+	log.Debug(format)
 }
 
 func Infof(format string, params ...interface{}) {
-	log.Infof(format, params)
+	if params != nil {
+		log.Infof(format, params)
+		return
+	}
+
+	log.Info(format)
 }
 
 func Warnf(format string, params ...interface{}) {
-	log.Warnf(format, params)
+	if params != nil {
+		log.Warnf(format, params)
+		return
+	}
+
+	log.Warn(params)
 }
 
 func Errorf(format string, params ...interface{}) {
-	log.Errorf(format, params)
+	if params != nil {
+		log.Errorf(format, params)
+		return
+	}
+
+	log.Error(format)
 }
 
 func Criticalf(format string, params ...interface{}) {
-	log.Criticalf(format, params)
+	if params != nil {
+		log.Criticalf(format, params)
+		return
+	}
+
+	log.Critical(format)
 }
