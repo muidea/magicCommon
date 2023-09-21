@@ -1,8 +1,9 @@
 package util
 
 import (
-	"log"
 	"testing"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 func TestEncryptByAes(t *testing.T) {
@@ -15,7 +16,7 @@ func TestEncryptByAes(t *testing.T) {
 		return
 	}
 
-	log.Printf("%s\n", encryVal)
+	log.Infof("%s\n", encryVal)
 	rawVal, rawErr := DecryptByAes(encryVal, key)
 	if rawErr != nil {
 		t.Errorf("DecryptByAes failed, err:%s", rawErr.Error())

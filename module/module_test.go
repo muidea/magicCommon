@@ -69,5 +69,5 @@ func TestBindRegistry(t *testing.T) {
 
 	BindRegistry(demo, a)
 
-	BindBatisClient(demo, 100)
+	BindPlatformClient(demo, 100)
 }
