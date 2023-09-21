@@ -16,20 +16,20 @@ type Filter interface {
 
 // ContentFilter 过滤器
 type ContentFilter struct {
-	Pagination *Pagination `json:"pagination"`
-	ParamItems *ParamItems `json:"params"`
+	PaginationPtr *Pagination `json:"pagination"`
+	ParamItems    *ParamItems `json:"params"`
 }
 
 // NewFilter new filter
 func NewFilter(name, pkgPath string) *ContentFilter {
-	return &ContentFilter{Pagination: nil, ParamItems: &ParamItems{Name: name, PkgPath: pkgPath, Items: map[string]string{}}}
+	return &ContentFilter{PaginationPtr: nil, ParamItems: &ParamItems{Name: name, PkgPath: pkgPath, Items: map[string]string{}}}
 }
 
 // Decode 内容过滤器
 func (s *ContentFilter) Decode(request *http.Request) bool {
 	pageFilter := &Pagination{}
 	if pageFilter.Decode(request) {
-		s.Pagination = pageFilter
+		s.PaginationPtr = pageFilter
 	}
 
 	contentFilter := &ParamItems{}
@@ -37,13 +37,13 @@ func (s *ContentFilter) Decode(request *http.Request) bool {
 		s.ParamItems = contentFilter
 	}
 
-	return s.Pagination != nil || s.ParamItems != nil
+	return s.PaginationPtr != nil || s.ParamItems != nil
 }
 
 // Encode encode filter
 func (s *ContentFilter) Encode(vals url.Values) url.Values {
-	if s.Pagination != nil {
-		vals = s.Pagination.Encode(vals)
+	if s.PaginationPtr != nil {
+		vals = s.PaginationPtr.Encode(vals)
 	}
 	if s.ParamItems != nil {
 		vals = s.ParamItems.Encode(vals)
@@ -138,6 +138,10 @@ func (s *ContentFilter) Remove(key string) {
 	if s.ParamItems != nil {
 		delete(s.ParamItems.Items, key)
 	}
+}
+
+func (s *ContentFilter) Pagination(ptr *Pagination) {
+	s.PaginationPtr = ptr
 }
 
 func (s *ContentFilter) SortFilter(ptr *SortFilter) {
