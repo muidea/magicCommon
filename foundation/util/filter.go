@@ -150,6 +150,13 @@ func (s *ContentFilter) SortFilter(ptr *SortFilter) {
 	}
 }
 
+func (s *ContentFilter) BindObject(name, pkgPath string) {
+	if s.ParamItems != nil {
+		s.ParamItems.Name = name
+		s.ParamItems.PkgPath = pkgPath
+	}
+}
+
 func (s *ContentFilter) ValueMask(val any) {
 	if s.ParamItems != nil {
 		byteVal, byteErr := json.Marshal(val)
