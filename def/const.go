@@ -1,6 +1,6 @@
 package def
 
 const (
-	LiteMode = 1
-	ViewMode = 2
+	LiteMode = "1"
+	ViewMode = "2"
 )
