@@ -150,7 +150,7 @@ func (s *ContentFilter) SortFilter(ptr *SortFilter) {
 	}
 }
 
-func (s *ContentFilter) BindObject(name, pkgPath string) {
+func (s *ContentFilter) BindEntity(name, pkgPath string) {
 	if s.ParamItems != nil {
 		s.ParamItems.Name = name
 		s.ParamItems.PkgPath = pkgPath
