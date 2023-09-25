@@ -34,7 +34,7 @@ var logConfig = `<?xml version="1.0" encoding="utf-8"?>
 
 func Tracef(format string, params ...interface{}) {
 	if len(params) > 0 {
-		log.Tracef(format, params)
+		log.Tracef(format, params...)
 		return
 	}
 
@@ -43,7 +43,7 @@ func Tracef(format string, params ...interface{}) {
 
 func Debugf(format string, params ...interface{}) {
 	if len(params) > 0 {
-		log.Debugf(format, params)
+		log.Debugf(format, params...)
 		return
 	}
 
@@ -52,7 +52,7 @@ func Debugf(format string, params ...interface{}) {
 
 func Infof(format string, params ...interface{}) {
 	if len(params) > 0 {
-		log.Infof(format, params)
+		log.Infof(format, params...)
 		return
 	}
 
@@ -61,7 +61,7 @@ func Infof(format string, params ...interface{}) {
 
 func Warnf(format string, params ...interface{}) {
 	if len(params) > 0 {
-		log.Warnf(format, params)
+		log.Warnf(format, params...)
 		return
 	}
 
@@ -70,7 +70,7 @@ func Warnf(format string, params ...interface{}) {
 
 func Errorf(format string, params ...interface{}) {
 	if len(params) > 0 {
-		log.Errorf(format, params)
+		log.Errorf(format, params...)
 		return
 	}
 
