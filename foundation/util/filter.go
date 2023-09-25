@@ -185,6 +185,15 @@ func (s *ParamItems) Decode(request *http.Request) bool {
 		s.Items[k] = v[0]
 	}
 
+	sortVal := vals.Get("sort")
+	if sortVal != "" {
+		ptr := &SortFilter{}
+		err := json.Unmarshal([]byte(sortVal), ptr)
+		if err == nil {
+			s.SortFilter = ptr
+		}
+	}
+
 	return true
 }
 
