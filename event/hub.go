@@ -1,6 +1,7 @@
 package event
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
@@ -81,7 +82,7 @@ type Result interface {
 
 type Observer interface {
 	ID() string
-	Notify(event Event, result Result)
+	Notify(event Event, result Result) bool
 }
 
 type SimpleObserver interface {
@@ -101,7 +102,7 @@ type Hub interface {
 
 type ObserverList []Observer
 type ID2ObserverMap map[string]ObserverList
-type ObserverFunc func(Event, Result)
+type ObserverFunc func(Event, Result) bool
 type ID2ObserverFuncMap map[string]ObserverFunc
 
 func NewHub() Hub {
@@ -447,14 +448,21 @@ func (s *hImpl) sendInternal(event Event, result Result) {
 	s.event2Lock.RLock()
 	defer s.event2Lock.RUnlock()
 
+	finalFlag := false
 	for key, value := range s.event2Observer {
 		if matchID(key, event.ID()) {
 			for _, sv := range value {
 				if matchID(event.Destination(), sv.ID()) {
-					sv.Notify(event, result)
+					if sv.Notify(event, result) {
+						finalFlag = true
+					}
 				}
 			}
 		}
+	}
+
+	if !finalFlag && result != nil {
+		result.Set(nil, fmt.Errorf("missing observer, event id:%s", event.ID()))
 	}
 }
 
@@ -469,7 +477,7 @@ func (s *simpleObserver) ID() string {
 	return s.id
 }
 
-func (s *simpleObserver) Notify(event Event, result Result) {
+func (s *simpleObserver) Notify(event Event, result Result) bool {
 	var funcVal ObserverFunc
 	func() {
 		s.idLock.RLock()
@@ -483,11 +491,12 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 		}
 	}()
 
+	okVal := false
 	if funcVal != nil {
-		funcVal(event, result)
+		okVal = funcVal(event, result)
 	}
 
-	return
+	return okVal
 }
 
 func (s *simpleObserver) Subscribe(eventID string, observerFunc ObserverFunc) {
