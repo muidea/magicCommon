@@ -98,10 +98,26 @@ func (s *ContentFilter) Equal(key string, value interface{}) {
 	}
 }
 
+func (s *ContentFilter) GetEqual(key string) interface{} {
+	if s.ParamItems != nil {
+		return s.ParamItems.GetEqual(key)
+	}
+
+	return nil
+}
+
 func (s *ContentFilter) NotEqual(key string, value interface{}) {
 	if s.ParamItems != nil {
 		s.ParamItems.Items[key] = fmt.Sprintf("%v|!=", MarshalString(value))
 	}
+}
+
+func (s *ContentFilter) GetNotEqual(key string) interface{} {
+	if s.ParamItems != nil {
+		return s.ParamItems.GetNotEqual(key)
+	}
+
+	return nil
 }
 
 func (s *ContentFilter) Below(key string, value interface{}) {
@@ -110,10 +126,26 @@ func (s *ContentFilter) Below(key string, value interface{}) {
 	}
 }
 
+func (s *ContentFilter) GetBelow(key string) interface{} {
+	if s.ParamItems != nil {
+		return s.ParamItems.GetBelow(key)
+	}
+
+	return nil
+}
+
 func (s *ContentFilter) Above(key string, value interface{}) {
 	if s.ParamItems != nil {
 		s.ParamItems.Items[key] = fmt.Sprintf("%v|>", MarshalString(value))
 	}
+}
+
+func (s *ContentFilter) GetAbove(key string) interface{} {
+	if s.ParamItems != nil {
+		return s.ParamItems.GetAbove(key)
+	}
+
+	return nil
 }
 
 func (s *ContentFilter) In(key string, value interface{}) {
@@ -122,16 +154,40 @@ func (s *ContentFilter) In(key string, value interface{}) {
 	}
 }
 
+func (s *ContentFilter) GetIn(key string) interface{} {
+	if s.ParamItems != nil {
+		return s.ParamItems.GetIn(key)
+	}
+
+	return nil
+}
+
 func (s *ContentFilter) NotIn(key string, value interface{}) {
 	if s.ParamItems != nil {
 		s.ParamItems.Items[key] = fmt.Sprintf("%v|!in", MarshalString(value))
 	}
 }
 
+func (s *ContentFilter) GetNotIn(key string) interface{} {
+	if s.ParamItems != nil {
+		return s.ParamItems.GetNotIn(key)
+	}
+
+	return nil
+}
+
 func (s *ContentFilter) Like(key string, value interface{}) {
 	if s.ParamItems != nil {
 		s.ParamItems.Items[key] = fmt.Sprintf("%v|like", value)
 	}
+}
+
+func (s *ContentFilter) GetLike(key string) interface{} {
+	if s.ParamItems != nil {
+		return s.ParamItems.GetLike(key)
+	}
+
+	return nil
 }
 
 func (s *ContentFilter) Remove(key string) {
