@@ -71,6 +71,8 @@ type Event interface {
 	Destination() string
 	Header() Values
 	Data() interface{}
+	SetData(key string, val interface{})
+	GetData(key string) interface{}
 	Match(pattern string) bool
 }
 

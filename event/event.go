@@ -5,12 +5,14 @@ import (
 	"fmt"
 )
 
+const innerDataKey = "_innerDataKey_"
+
 type baseEvent struct {
 	eventID          string
 	eventSource      string
 	eventDestination string
 	eventHeader      Values
-	eventData        interface{}
+	eventData        map[string]interface{}
 	eventResult      interface{}
 }
 
@@ -29,7 +31,7 @@ func NewEvent(id, source, destination string, header Values, data interface{}) E
 		eventSource:      source,
 		eventDestination: destination,
 		eventHeader:      header,
-		eventData:        data,
+		eventData:        map[string]interface{}{innerDataKey: data},
 	}
 }
 
@@ -55,7 +57,24 @@ func (s *baseEvent) Header() Values {
 }
 
 func (s *baseEvent) Data() interface{} {
-	return s.eventData
+	val, ok := s.eventData[innerDataKey]
+	if ok {
+		return val
+	}
+	return nil
+}
+
+func (s *baseEvent) SetData(key string, val interface{}) {
+	s.eventData[key] = val
+}
+
+func (s *baseEvent) GetData(key string) interface{} {
+	val, ok := s.eventData[key]
+	if ok {
+		return val
+	}
+
+	return nil
 }
 
 func (s *baseEvent) Result(result interface{}) {
