@@ -84,7 +84,7 @@ type Result interface {
 
 type Observer interface {
 	ID() string
-	Notify(event Event, result Result) bool
+	Notify(event Event, result Result)
 }
 
 type SimpleObserver interface {
@@ -104,7 +104,7 @@ type Hub interface {
 
 type ObserverList []Observer
 type ID2ObserverMap map[string]ObserverList
-type ObserverFunc func(Event, Result) bool
+type ObserverFunc func(Event, Result)
 type ID2ObserverFuncMap map[string]ObserverFunc
 
 func NewHub() Hub {
@@ -455,9 +455,8 @@ func (s *hImpl) sendInternal(event Event, result Result) {
 		if matchID(key, event.ID()) {
 			for _, sv := range value {
 				if matchID(event.Destination(), sv.ID()) {
-					if sv.Notify(event, result) {
-						finalFlag = true
-					}
+					sv.Notify(event, result)
+					finalFlag = true
 				}
 			}
 		}
@@ -479,7 +478,7 @@ func (s *simpleObserver) ID() string {
 	return s.id
 }
 
-func (s *simpleObserver) Notify(event Event, result Result) bool {
+func (s *simpleObserver) Notify(event Event, result Result) {
 	var funcVal ObserverFunc
 	func() {
 		s.idLock.RLock()
@@ -493,12 +492,9 @@ func (s *simpleObserver) Notify(event Event, result Result) bool {
 		}
 	}()
 
-	okVal := false
 	if funcVal != nil {
-		okVal = funcVal(event, result)
+		funcVal(event, result)
 	}
-
-	return okVal
 }
 
 func (s *simpleObserver) Subscribe(eventID string, observerFunc ObserverFunc) {
