@@ -80,6 +80,8 @@ type Result interface {
 	Error() error
 	Set(data interface{}, err error)
 	Get() (interface{}, error)
+	SetVal(key string, val interface{})
+	GetVal(key string) interface{}
 }
 
 type Observer interface {

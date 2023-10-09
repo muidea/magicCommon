@@ -6,6 +6,7 @@ import (
 )
 
 const innerDataKey = "_innerDataKey_"
+const innerValKey = "_innerValKey_"
 
 type baseEvent struct {
 	eventID          string
@@ -17,7 +18,7 @@ type baseEvent struct {
 }
 
 type baseResult struct {
-	resultData interface{}
+	resultData map[string]interface{}
 	resultErr  error
 }
 
@@ -37,7 +38,7 @@ func NewEvent(id, source, destination string, header Values, data interface{}) E
 
 func NewResult(id, source, destination string) Result {
 	msg := fmt.Sprintf("illegal event, id:%s, source:%s, destination:%s", id, source, destination)
-	return &baseResult{resultErr: errors.New(msg)}
+	return &baseResult{resultErr: errors.New(msg), resultData: map[string]interface{}{}}
 }
 
 func (s *baseEvent) ID() string {
@@ -86,7 +87,7 @@ func (s *baseEvent) Match(pattern string) bool {
 }
 
 func (s *baseResult) Set(data interface{}, err error) {
-	s.resultData = data
+	s.resultData[innerValKey] = data
 	s.resultErr = err
 }
 
@@ -95,7 +96,20 @@ func (s *baseResult) Error() error {
 }
 
 func (s *baseResult) Get() (ret interface{}, err error) {
-	ret = s.resultData
+	ret = s.resultData[innerValKey]
 	err = s.resultErr
 	return
+}
+
+func (s *baseResult) SetVal(key string, val interface{}) {
+	s.resultData[key] = val
+}
+
+func (s *baseResult) GetVal(key string) interface{} {
+	val, ok := s.resultData[key]
+	if ok {
+		return val
+	}
+
+	return nil
 }
