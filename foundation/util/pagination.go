@@ -30,8 +30,8 @@ func DefaultPagination() *Pagination {
 
 // Decode 从request里解析PageFilter
 func (s *Pagination) Decode(request *http.Request) bool {
-	pageSize := request.URL.Query().Get("pageSize")
-	pageNum := request.URL.Query().Get("pageNum")
+	pageSize := request.URL.Query().Get("_pageSize")
+	pageNum := request.URL.Query().Get("_pageNum")
 	if pageSize == "" && pageNum == "" {
 		return false
 	}
@@ -53,8 +53,8 @@ func (s *Pagination) Decode(request *http.Request) bool {
 
 // Encode encode url.Values
 func (s *Pagination) Encode(vals url.Values) url.Values {
-	vals.Set("pageSize", fmt.Sprintf("%d", s.PageSize))
-	vals.Set("pageNum", fmt.Sprintf("%d", s.PageNum))
+	vals.Set("_pageSize", fmt.Sprintf("%d", s.PageSize))
+	vals.Set("_pageNum", fmt.Sprintf("%d", s.PageNum))
 
 	return vals
 }

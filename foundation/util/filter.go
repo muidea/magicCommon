@@ -26,18 +26,16 @@ func NewFilter(name, pkgPath string) *ContentFilter {
 }
 
 // Decode 内容过滤器
-func (s *ContentFilter) Decode(request *http.Request) bool {
-	pageFilter := &Pagination{}
-	if pageFilter.Decode(request) {
-		s.PaginationPtr = pageFilter
+func (s *ContentFilter) Decode(request *http.Request) {
+	pagePtr := &Pagination{}
+	if pagePtr.Decode(request) {
+		s.PaginationPtr = pagePtr
 	}
 
-	contentFilter := &ParamItems{}
-	if contentFilter.Decode(request) {
-		s.ParamItems = contentFilter
+	paramPtr := &ParamItems{}
+	if paramPtr.Decode(request) {
+		s.ParamItems = paramPtr
 	}
-
-	return s.PaginationPtr != nil || s.ParamItems != nil
 }
 
 // Encode encode filter
@@ -94,7 +92,7 @@ func (s *ContentFilter) Set(key string, value interface{}) {
 
 func (s *ContentFilter) Equal(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|=", MarshalString(value))
+		s.ParamItems.Equal(key, value)
 	}
 }
 
@@ -108,7 +106,7 @@ func (s *ContentFilter) GetEqual(key string) interface{} {
 
 func (s *ContentFilter) NotEqual(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|!=", MarshalString(value))
+		s.ParamItems.NotEqual(key, value)
 	}
 }
 
@@ -122,7 +120,7 @@ func (s *ContentFilter) GetNotEqual(key string) interface{} {
 
 func (s *ContentFilter) Below(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|<", MarshalString(value))
+		s.ParamItems.Below(key, value)
 	}
 }
 
@@ -136,7 +134,7 @@ func (s *ContentFilter) GetBelow(key string) interface{} {
 
 func (s *ContentFilter) Above(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|>", MarshalString(value))
+		s.ParamItems.Above(key, value)
 	}
 }
 
@@ -150,7 +148,7 @@ func (s *ContentFilter) GetAbove(key string) interface{} {
 
 func (s *ContentFilter) In(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|in", MarshalString(value))
+		s.ParamItems.In(key, value)
 	}
 }
 
@@ -164,7 +162,7 @@ func (s *ContentFilter) GetIn(key string) interface{} {
 
 func (s *ContentFilter) NotIn(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|!in", MarshalString(value))
+		s.ParamItems.NotIn(key, value)
 	}
 }
 
@@ -178,7 +176,7 @@ func (s *ContentFilter) GetNotIn(key string) interface{} {
 
 func (s *ContentFilter) Like(key string, value interface{}) {
 	if s.ParamItems != nil {
-		s.ParamItems.Items[key] = fmt.Sprintf("%v|like", value)
+		s.ParamItems.Like(key, value)
 	}
 }
 
@@ -233,21 +231,23 @@ type ParamItems struct {
 	ValueMask  json.RawMessage   `json:"valueMask"`
 }
 
+const sortKey = "_sort"
+
 // Decode 解析内容过滤值
 func (s *ParamItems) Decode(request *http.Request) bool {
 	s.Items = map[string]string{}
 	vals := request.URL.Query()
 	for k, v := range vals {
-		s.Items[k] = v[0]
-	}
-
-	sortVal := vals.Get("sort")
-	if sortVal != "" {
-		ptr := &SortFilter{}
-		err := json.Unmarshal([]byte(sortVal), ptr)
-		if err == nil {
-			s.SortFilter = ptr
+		if k == sortKey {
+			ptr := &SortFilter{}
+			err := json.Unmarshal([]byte(vals.Get(sortKey)), ptr)
+			if err == nil {
+				s.SortFilter = ptr
+			}
+			continue
 		}
+
+		s.Items[k] = v[0]
 	}
 
 	return true
@@ -261,7 +261,18 @@ func (s *ParamItems) Encode(vals url.Values) url.Values {
 		}
 	}
 
+	if s.SortFilter != nil {
+		byteVal, byteErr := json.Marshal(s.SortFilter)
+		if byteErr == nil {
+			vals.Set(sortKey, string(byteVal))
+		}
+	}
+
 	return vals
+}
+
+func (s *ParamItems) Equal(key string, value interface{}) {
+	s.Items[key] = fmt.Sprintf("%v|=", MarshalString(value))
 }
 
 func (s *ParamItems) IsEqual(key string) bool {
@@ -286,6 +297,10 @@ func (s *ParamItems) GetEqual(key string) interface{} {
 	return GetEqual(val)
 }
 
+func (s *ParamItems) NotEqual(key string, value interface{}) {
+	s.Items[key] = fmt.Sprintf("%v|!=", MarshalString(value))
+}
+
 func (s *ParamItems) IsNotEqual(key string) bool {
 	val, ok := s.Items[key]
 	if !ok {
@@ -306,6 +321,10 @@ func (s *ParamItems) GetNotEqual(key string) interface{} {
 	}
 
 	return GetNotEqual(val)
+}
+
+func (s *ParamItems) Below(key string, value interface{}) {
+	s.Items[key] = fmt.Sprintf("%v|<", MarshalString(value))
 }
 
 func (s *ParamItems) IsBelow(key string) bool {
@@ -330,6 +349,10 @@ func (s *ParamItems) GetBelow(key string) interface{} {
 	return GetBelow(val)
 }
 
+func (s *ParamItems) Above(key string, value interface{}) {
+	s.Items[key] = fmt.Sprintf("%v|>", MarshalString(value))
+}
+
 func (s *ParamItems) IsAbove(key string) bool {
 	val, ok := s.Items[key]
 	if !ok {
@@ -350,6 +373,10 @@ func (s *ParamItems) GetAbove(key string) interface{} {
 	}
 
 	return GetAbove(val)
+}
+
+func (s *ParamItems) In(key string, value interface{}) {
+	s.Items[key] = fmt.Sprintf("%v|in", MarshalString(value))
 }
 
 func (s *ParamItems) IsIn(key string) bool {
@@ -374,6 +401,10 @@ func (s *ParamItems) GetIn(key string) interface{} {
 	return GetIn(val)
 }
 
+func (s *ParamItems) NotIn(key string, value interface{}) {
+	s.Items[key] = fmt.Sprintf("%v|!in", MarshalString(value))
+}
+
 func (s *ParamItems) IsNotIn(key string) bool {
 	val, ok := s.Items[key]
 	if !ok {
@@ -394,6 +425,10 @@ func (s *ParamItems) GetNotIn(key string) interface{} {
 	}
 
 	return GetNotIn(val)
+}
+
+func (s *ParamItems) Like(key string, value interface{}) {
+	s.Items[key] = fmt.Sprintf("%v|like", value)
 }
 
 func (s *ParamItems) IsLike(key string) bool {
