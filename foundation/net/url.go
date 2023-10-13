@@ -44,7 +44,19 @@ func JoinPrefix(urlVal, prefix string) string {
 	return valURL.String()
 }
 
-// SplitRESTURL 分割出RestAPI的路径和ID
+/*
+SplitRESTPath split rest path
+/abc/cde/efg -> /abc/cde,efg
+*/
+func SplitRESTPath(urlPath string) (string, string) {
+	sPath, sKey := path.Split(urlPath)
+	return strings.TrimRight(sPath, "/"), sKey
+}
+
+/*
+SplitRESTURL split rest url
+/abc/cde/efg -> /abc/cde/,efg
+*/
 func SplitRESTURL(url string) (string, string) {
 	return path.Split(url)
 }
