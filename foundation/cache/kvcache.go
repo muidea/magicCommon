@@ -69,7 +69,7 @@ type cacheKVData struct {
 type MemoryKVCache chan commandData
 
 // Put 投放数据，返回数据的唯一标示
-func (right *MemoryKVCache) Put(key string, data interface{}, maxAge float64) string {
+func (s *MemoryKVCache) Put(key string, data interface{}, maxAge float64) string {
 	reply := make(chan interface{})
 
 	putInData := &putInKVData{}
@@ -77,26 +77,26 @@ func (right *MemoryKVCache) Put(key string, data interface{}, maxAge float64) st
 	putInData.data = data
 	putInData.maxAge = maxAge
 
-	*right <- commandData{action: putIn, value: putInData, result: reply}
+	*s <- commandData{action: putIn, value: putInData, result: reply}
 
 	result := (<-reply).(*putInKVResult).value
 	return result
 }
 
 // Fetch 获取数据
-func (right *MemoryKVCache) Fetch(key string) interface{} {
+func (s *MemoryKVCache) Fetch(key string) interface{} {
 	reply := make(chan interface{})
 
 	fetchOutData := &fetchOutKVData{}
 	fetchOutData.key = key
 
-	*right <- commandData{action: fetchOut, value: fetchOutData, result: reply}
+	*s <- commandData{action: fetchOut, value: fetchOutData, result: reply}
 
 	result := (<-reply).(*fetchOutKVResult)
 	return result.value
 }
 
-func (right *MemoryKVCache) Search(opr SearchOpr) interface{} {
+func (s *MemoryKVCache) Search(opr SearchOpr) interface{} {
 	if opr == nil {
 		return nil
 	}
@@ -106,25 +106,25 @@ func (right *MemoryKVCache) Search(opr SearchOpr) interface{} {
 	searchData := &searchKVData{}
 	searchData.opr = opr
 
-	*right <- commandData{action: search, value: searchData, result: reply}
+	*s <- commandData{action: search, value: searchData, result: reply}
 
 	result := (<-reply).(*searchKVResult)
 	return result.value
 }
 
 // Remove 清除数据
-func (right *MemoryKVCache) Remove(key string) {
+func (s *MemoryKVCache) Remove(key string) {
 	removeKVData := &removeKVData{}
 	removeKVData.key = key
 
-	*right <- commandData{action: remove, value: removeKVData}
+	*s <- commandData{action: remove, value: removeKVData}
 }
 
 // GetAll 获取所有的数据
-func (right *MemoryKVCache) GetAll() (ret []interface{}) {
+func (s *MemoryKVCache) GetAll() (ret []interface{}) {
 	reply := make(chan interface{})
 
-	*right <- commandData{action: getAll, value: nil, result: reply}
+	*s <- commandData{action: getAll, value: nil, result: reply}
 
 	result := (<-reply).(*getAllKVResult)
 
@@ -134,22 +134,22 @@ func (right *MemoryKVCache) GetAll() (ret []interface{}) {
 }
 
 // ClearAll 清除所有数据
-func (right *MemoryKVCache) ClearAll() {
+func (s *MemoryKVCache) ClearAll() {
 
-	*right <- commandData{action: clearAll}
+	*s <- commandData{action: clearAll}
 }
 
 // Release 释放Cache
-func (right *MemoryKVCache) Release() {
-	*right <- commandData{action: end}
+func (s *MemoryKVCache) Release() {
+	*s <- commandData{action: end}
 
-	close(*right)
+	close(*s)
 }
 
-func (right *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
+func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 	localCacheData := make(map[string]cacheKVData)
 
-	for command := range *right {
+	for command := range *s {
 		switch command.action {
 		case putIn:
 			cacheKVData := cacheKVData{}
@@ -202,31 +202,38 @@ func (right *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 		case clearAll:
 			localCacheData = make(map[string]cacheKVData)
 		case checkTimeOut:
+			keys := []string{}
 			// 检查每项数据是否超时，超时数据需要主动清除掉
 			for k, v := range localCacheData {
 				if v.maxAge != MaxAgeValue {
 					current := time.Now()
 					elapse := current.Sub(v.cacheTime).Minutes()
 					if elapse > v.maxAge {
-						delete(localCacheData, k)
-						if cleanCallBack != nil {
-							cleanCallBack(k)
-						}
+						keys = append(keys, k)
 					}
 				}
 			}
+
+			go func() {
+				for _, v := range keys {
+					if cleanCallBack != nil {
+						cleanCallBack(v)
+					}
+					s.Remove(v)
+				}
+			}()
 		case end:
 			localCacheData = nil
 		}
 	}
 }
 
-func (right *MemoryKVCache) checkTimeOut() {
+func (s *MemoryKVCache) checkTimeOut() {
 	timeOutTimer := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case <-timeOutTimer.C:
-			*right <- commandData{action: checkTimeOut}
+			*s <- commandData{action: checkTimeOut}
 		}
 	}
 }
