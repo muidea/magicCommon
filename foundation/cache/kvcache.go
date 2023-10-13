@@ -4,9 +4,11 @@ import (
 	"time"
 )
 
+type CleanCallBackFunc func(string)
+
 // KVCache 缓存对象
 type KVCache interface {
-	// maxAge单位minute
+	// Put maxAge单位minute
 	Put(key string, data interface{}, maxAge float64) string
 	Fetch(key string) interface{}
 	Search(opr SearchOpr) interface{}
@@ -17,10 +19,10 @@ type KVCache interface {
 }
 
 // NewKVCache 创建Cache对象
-func NewKVCache() KVCache {
+func NewKVCache(cleanCallBack CleanCallBackFunc) KVCache {
 	cache := make(MemoryKVCache)
 
-	go cache.run()
+	go cache.run(cleanCallBack)
 	go cache.checkTimeOut()
 
 	return &cache
@@ -144,7 +146,7 @@ func (right *MemoryKVCache) Release() {
 	close(*right)
 }
 
-func (right *MemoryKVCache) run() {
+func (right *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 	localCacheData := make(map[string]cacheKVData)
 
 	for command := range *right {
@@ -207,6 +209,9 @@ func (right *MemoryKVCache) run() {
 					elapse := current.Sub(v.cacheTime).Minutes()
 					if elapse > v.maxAge {
 						delete(localCacheData, k)
+						if cleanCallBack != nil {
+							cleanCallBack(k)
+						}
 					}
 				}
 			}
