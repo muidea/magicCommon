@@ -61,9 +61,9 @@ func SplitRESTURL(url string) (string, string) {
 	return path.Split(url)
 }
 
-func SplitRESTID(url string) (ret int, err error) {
+func SplitRESTID(url string) (ret int64, err error) {
 	_, strID := SplitRESTURL(url)
-	ret, err = strconv.Atoi(strID)
+	ret, err = strconv.ParseInt(strID, 10, 64)
 	return
 }
 
