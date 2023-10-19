@@ -10,8 +10,11 @@ import (
 
 var moduleList []interface{}
 
+const defaultWeight = 100
+
 const (
 	idTag           = "ID"
+	weightTag       = "Weight"
 	setupTag        = "Setup"
 	teardownTag     = "Teardown"
 	runTag          = "Run"
@@ -22,7 +25,31 @@ const (
 func Register(module interface{}) {
 	validModule(module)
 
-	moduleList = append(moduleList, module)
+	curWeight := weight(module)
+	newList := []interface{}{}
+	if len(moduleList) == 0 {
+		newList = append(newList, module)
+	} else {
+		ok := false
+		for idx, val := range moduleList {
+			preWeight := weight(val)
+			if preWeight <= curWeight {
+				newList = append(newList, val)
+				continue
+			}
+
+			ok = true
+			newList = append(newList, module)
+			newList = append(newList, moduleList[idx:]...)
+			break
+		}
+
+		if !ok {
+			newList = append(newList, module)
+		}
+	}
+
+	moduleList = newList
 }
 
 func GetModules() []interface{} {
@@ -40,6 +67,33 @@ func validModule(ptr interface{}) {
 	if !idOK || !setupOK {
 		panic("invalid module")
 	}
+}
+
+func weight(module interface{}) int {
+	vVal := reflect.ValueOf(module)
+	funcVal := vVal.MethodByName(weightTag)
+	if !funcVal.IsValid() {
+		return defaultWeight
+	}
+
+	defer func() {
+		if info := recover(); info != nil {
+			err := fmt.Errorf("invoke %s unexpect, %v", weightTag, info)
+			panic(err)
+		}
+	}()
+
+	param := make([]reflect.Value, 0)
+	values := funcVal.Call(param)
+	if len(values) == 0 {
+		return defaultWeight
+	}
+
+	if funcVal.Type().Out(0).String() != "int" {
+		return defaultWeight
+	}
+
+	return int(values[0].Int())
 }
 
 func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {

@@ -11,12 +11,16 @@ type Abc interface {
 	Hello() bool
 }
 
-type abc struct {
+type abcInfo struct {
 }
 
-func (s *abc) Hello() bool {
+func (s *abcInfo) Hello() bool {
 	fmt.Printf("Abc.Hello")
 	return true
+}
+
+func (s *abcInfo) Weight() int {
+	return 123
 }
 
 type Demo struct {
@@ -24,7 +28,11 @@ type Demo struct {
 
 func (s *Demo) ID() string {
 	fmt.Printf("ID")
-	return "abc"
+	return "abcInfo"
+}
+
+func (s *Demo) Weight() int64 {
+	return 123
 }
 
 func (s *Demo) Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
@@ -39,6 +47,25 @@ func (s *Demo) BindRegistry(abc Abc) {
 	abc.Hello()
 }
 
+func TestWeight(t *testing.T) {
+	var demo interface{}
+	demo = &Demo{}
+
+	val := weight(demo)
+	if val != defaultWeight {
+		t.Errorf("check weight faield")
+	}
+
+	var abc interface{}
+	abc = &abcInfo{}
+
+	val = weight(abc)
+	if val != 123 {
+		t.Errorf("check weight faield")
+	}
+
+}
+
 func TestRegister(t *testing.T) {
 	var demo interface{}
 	demo = &Demo{}
@@ -50,7 +77,7 @@ func TestSetup(t *testing.T) {
 	var demo interface{}
 	demo = &Demo{}
 
-	Setup(demo, "abc", nil, nil)
+	Setup(demo, "abcInfo", nil, nil)
 }
 
 func TestTeardown(t *testing.T) {
@@ -65,9 +92,38 @@ func TestBindRegistry(t *testing.T) {
 	demo = &Demo{}
 
 	var a interface{}
-	a = &abc{}
+	a = &abcInfo{}
 
 	BindRegistry(demo, a)
 
 	BindClient(demo, 100)
+}
+
+func TestAppendSlice(t *testing.T) {
+	valList := []int{1, 2, 3, 3, 4, 5, 6, 7}
+	nv := 10
+
+	nList := []int{}
+	if len(valList) == 0 {
+		nList = append(nList, nv)
+	} else {
+		ok := false
+		for idx, val := range valList {
+			if val <= nv {
+				nList = append(nList, val)
+				continue
+			}
+
+			ok = true
+			nList = append(nList, nv)
+			nList = append(nList, valList[idx:]...)
+			break
+		}
+
+		if !ok {
+			nList = append(nList, nv)
+		}
+	}
+
+	t.Log(nList)
 }
