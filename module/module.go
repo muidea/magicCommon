@@ -10,6 +10,15 @@ import (
 
 var moduleList []interface{}
 
+const (
+	idTag           = "ID"
+	setupTag        = "Setup"
+	teardownTag     = "Teardown"
+	runTag          = "Run"
+	bindClient      = "BindClient"
+	bindRegistryTag = "BindRegistry"
+)
+
 func Register(module interface{}) {
 	validModule(module)
 
@@ -26,41 +35,40 @@ func validModule(ptr interface{}) {
 		panic("must be a pointer")
 	}
 
-	_, idOK := vType.MethodByName("ID")
-	_, setupOK := vType.MethodByName("Setup")
-	_, teardownOK := vType.MethodByName("Teardown")
-	if !idOK || !setupOK || !teardownOK {
+	_, idOK := vType.MethodByName(idTag)
+	_, setupOK := vType.MethodByName(setupTag)
+	if !idOK || !setupOK {
 		panic("invalid module")
 	}
 }
 
 func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
-	invokeFunc(module, "Setup", endpointName, eventHub, backgroundRoutine)
+	invokeFunc(module, setupTag, endpointName, eventHub, backgroundRoutine)
 	return
 }
 
 func Run(module interface{}) {
-	invokeFunc(module, "Run")
+	invokeFunc(module, runTag)
 	return
 }
 
 func Teardown(module interface{}) {
-	invokeFunc(module, "Teardown")
+	invokeFunc(module, teardownTag)
 	return
 }
 
-func BindPlatformClient(module interface{}, clnt interface{}) {
+func BindClient(module interface{}, clnt interface{}) {
 	if clnt == nil {
-		panic("illegal platform client")
+		panic("illegal client value")
 		return
 	}
 
-	invokeFunc(module, "BindPlatformClient", clnt)
+	invokeFunc(module, bindClient, clnt)
 	return
 }
 
 func BindRegistry(module interface{}, registry ...interface{}) {
-	invokeFunc(module, "BindRegistry", registry...)
+	invokeFunc(module, bindRegistryTag, registry...)
 	return
 }
 
