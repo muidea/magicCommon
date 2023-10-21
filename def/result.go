@@ -1,6 +1,9 @@
 package def
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type ErrorCode int
 
@@ -27,6 +30,17 @@ const (
 type Result struct {
 	ErrorCode ErrorCode `json:"errorCode"`
 	Reason    string    `json:"reason"`
+}
+
+type CommonResult struct {
+	Result
+	Value json.RawMessage `json:"value"`
+}
+
+type CommonSliceResult struct {
+	Result
+	Total int64           `json:"total"`
+	Value json.RawMessage `json:"values"`
 }
 
 // Success 成功
