@@ -23,13 +23,28 @@ func TestNewWithVal(t *testing.T) {
 		return
 	}
 
-	generator, generatorErr = NewWithVal("prefix-{YYYYMMDDHHmmSS}-{fixed(5):123}", "")
+	patternVal = "A{YYYYMMDDHHmmSS}-abcde{num}"
+	initVal = fmt.Sprintf("A%s-abcde%04d", datTime, 1)
+	generator, generatorErr = NewWithVal(patternVal, initVal)
 	if generatorErr != nil {
 		t.Errorf("illgel gengerator")
 		return
 	}
+	expect = fmt.Sprintf("A%s-abcde%04d", datTime, 2)
+	result = generator.GenCode()
+	if expect != result {
+		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
+		return
+	}
 
-	expect = fmt.Sprintf("prefix-%s-%05d", datTime, 124)
+	patternVal = "A-abcde{num}"
+	initVal = fmt.Sprintf("A-abcde%04d", 1)
+	generator, generatorErr = NewWithVal(patternVal, initVal)
+	if generatorErr != nil {
+		t.Errorf("illgel gengerator")
+		return
+	}
+	expect = fmt.Sprintf("A-abcde%04d", 2)
 	result = generator.GenCode()
 	if expect != result {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
@@ -49,13 +64,26 @@ func TestNewWithVal(t *testing.T) {
 		return
 	}
 
-	generator, generatorErr = NewWithVal("{fixed(6):100000}", "100020")
+	generator, generatorErr = NewWithVal("prefix-{YYYYMMDDHHmmSS}-{fixed(5):123}", "")
 	if generatorErr != nil {
 		t.Errorf("illgel gengerator")
 		return
 	}
 
-	expect = fmt.Sprintf("100021")
+	expect = fmt.Sprintf("prefix-%s-%05d", datTime, 124)
+	result = generator.GenCode()
+	if expect != result {
+		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
+		return
+	}
+
+	generator, generatorErr = NewWithVal("Abcd{fixed(6):100000}", "100020")
+	if generatorErr != nil {
+		t.Errorf("illgel gengerator")
+		return
+	}
+
+	expect = fmt.Sprintf("Abcd100021")
 	result = generator.GenCode()
 	if expect != result {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
