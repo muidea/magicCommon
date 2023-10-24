@@ -10,24 +10,29 @@ import (
 )
 
 // JoinSuffix 合并Url路径后缀
-func JoinSuffix(urlVal, suffix string) string {
+func JoinSuffix(urlVal string, suffix ...string) string {
 	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
-		log.Fatalf("illegal urlVal,preErr:%s", preErr.Error())
+		log.Fatalf("illegal urlVal, preErr:%s", preErr.Error())
 	}
 
 	urlVal = valURL.Path
-	if len(suffix) > 0 && suffix[len(suffix)-1] != '/' {
-		urlVal = path.Join(urlVal, suffix)
-	} else {
-		urlVal = path.Join(urlVal, suffix) + "/"
+	urlVal = path.Join(urlVal, path.Join(suffix...))
+
+	suffixLen := len(suffix)
+	if suffixLen > 0 {
+		lastSuffix := suffix[suffixLen-1]
+		if len(lastSuffix) > 0 && lastSuffix[len(lastSuffix)-1] == '/' {
+			urlVal += "/"
+		}
 	}
+
 	valURL.Path = urlVal
 	return valURL.String()
 }
 
 // JoinPrefix 合并Url路径前缀
-func JoinPrefix(urlVal, prefix string) string {
+func JoinPrefix(urlVal string, prefix string) string {
 	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
 		log.Fatalf("illegal urlVal,preErr:%s", preErr.Error())
