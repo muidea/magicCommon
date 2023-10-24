@@ -238,12 +238,15 @@ func (s *ParamItems) Decode(request *http.Request) bool {
 	s.Items = map[string]string{}
 	vals := request.URL.Query()
 	for k, v := range vals {
-		if k == sortKey {
-			ptr := &SortFilter{}
-			err := json.Unmarshal([]byte(vals.Get(sortKey)), ptr)
-			if err == nil {
-				s.SortFilter = ptr
+		if strings.HasPrefix(k, "_") {
+			if k == sortKey {
+				ptr := &SortFilter{}
+				err := json.Unmarshal([]byte(vals.Get(sortKey)), ptr)
+				if err == nil {
+					s.SortFilter = ptr
+				}
 			}
+
 			continue
 		}
 
