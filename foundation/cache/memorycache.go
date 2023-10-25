@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"math"
 	"strings"
 	"time"
 
@@ -182,7 +183,7 @@ func (right *MemoryCache) run() {
 		case checkTimeOut:
 			// 检查每项数据是否超时，超时数据需要主动清除掉
 			for k, v := range localCacheData {
-				if v.maxAge != MaxAgeValue {
+				if math.Abs(v.maxAge-MaxAgeValue) > 0.001 {
 					current := time.Now()
 					elapse := current.Sub(v.cacheTime).Minutes()
 					if elapse > v.maxAge {
