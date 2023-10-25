@@ -71,7 +71,7 @@ func (s *Result) Error() string {
 	return fmt.Sprintf("errorCode:%v", s.ErrorCode)
 }
 
-func GetError(errCode ErrorCode, reason string) *Result {
+func NewError(errCode ErrorCode, reason string) *Result {
 	if errCode < Failed {
 		errCode = Failed
 	}
