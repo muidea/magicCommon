@@ -59,16 +59,16 @@ func (s *Result) Fail() bool {
 	return s.ErrorCode >= Failed
 }
 
-func (s *Result) Error() error {
+func (s *Result) Error() string {
 	if s.ErrorCode == Succeeded {
-		return nil
+		return ""
 	}
 
 	if s.Reason != "" {
-		return fmt.Errorf("errorCode:%v, reason:%v", s.ErrorCode, s.Reason)
+		return fmt.Sprintf("errorCode:%v, reason:%v", s.ErrorCode, s.Reason)
 	}
 
-	return fmt.Errorf("errorCode:%v", s.ErrorCode)
+	return fmt.Sprintf("errorCode:%v", s.ErrorCode)
 }
 
 func GetError(errCode ErrorCode, reason string) *Result {
