@@ -1,8 +1,8 @@
 package event
 
 import (
-	"errors"
 	"fmt"
+	cd "github.com/muidea/magicCommon/def"
 )
 
 const innerDataKey = "_innerDataKey_"
@@ -19,7 +19,7 @@ type baseEvent struct {
 
 type baseResult struct {
 	resultData map[string]interface{}
-	resultErr  error
+	resultErr  *cd.Result
 }
 
 func NewValues() Values {
@@ -38,7 +38,7 @@ func NewEvent(id, source, destination string, header Values, data interface{}) E
 
 func NewResult(id, source, destination string) Result {
 	msg := fmt.Sprintf("illegal event, id:%s, source:%s, destination:%s", id, source, destination)
-	return &baseResult{resultErr: errors.New(msg), resultData: map[string]interface{}{}}
+	return &baseResult{resultErr: cd.NewError(cd.Failed, msg), resultData: map[string]interface{}{}}
 }
 
 func (s *baseEvent) ID() string {
@@ -86,16 +86,16 @@ func (s *baseEvent) Match(pattern string) bool {
 	return matchID(pattern, s.eventID)
 }
 
-func (s *baseResult) Set(data interface{}, err error) {
+func (s *baseResult) Set(data interface{}, err *cd.Result) {
 	s.resultData[innerValKey] = data
 	s.resultErr = err
 }
 
-func (s *baseResult) Error() error {
+func (s *baseResult) Error() *cd.Result {
 	return s.resultErr
 }
 
-func (s *baseResult) Get() (ret interface{}, err error) {
+func (s *baseResult) Get() (ret interface{}, err *cd.Result) {
 	ret = s.resultData[innerValKey]
 	err = s.resultErr
 	return

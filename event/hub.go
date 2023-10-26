@@ -2,6 +2,7 @@ package event
 
 import (
 	"fmt"
+	cd "github.com/muidea/magicCommon/def"
 	"strings"
 	"sync"
 
@@ -77,9 +78,9 @@ type Event interface {
 }
 
 type Result interface {
-	Error() error
-	Set(data interface{}, err error)
-	Get() (interface{}, error)
+	Error() *cd.Result
+	Set(data interface{}, err *cd.Result)
+	Get() (interface{}, *cd.Result)
 	SetVal(key string, val interface{})
 	GetVal(key string) interface{}
 }
@@ -465,7 +466,7 @@ func (s *hImpl) sendInternal(event Event, result Result) {
 	}
 
 	if !finalFlag && result != nil {
-		result.Set(nil, fmt.Errorf("missing observer, event id:%s", event.ID()))
+		result.Set(nil, cd.NewWarn(cd.Warned, fmt.Sprintf("missing observer, event id:%s", event.ID())))
 	}
 }
 
