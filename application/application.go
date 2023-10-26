@@ -5,13 +5,14 @@ import (
 
 	_ "github.com/muidea/magicCommon/foundation/log"
 
+	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/service"
 	"github.com/muidea/magicCommon/task"
 )
 
 type Application interface {
-	Startup(service service.Service) error
+	Startup(service service.Service) *cd.Result
 	Run()
 	Shutdown()
 	EventHub() event.Hub
@@ -21,7 +22,7 @@ type Application interface {
 var application Application
 var applicationOnce sync.Once
 
-func Startup(service service.Service) error {
+func Startup(service service.Service) *cd.Result {
 	app := Get()
 	return app.Startup(service)
 }
@@ -53,7 +54,7 @@ type appImpl struct {
 	service           service.Service
 }
 
-func (s *appImpl) Startup(service service.Service) error {
+func (s *appImpl) Startup(service service.Service) *cd.Result {
 	s.service = service
 	return s.service.Startup(s.eventHub, s.backgroundRoutine)
 }
