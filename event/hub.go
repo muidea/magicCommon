@@ -120,14 +120,14 @@ func NewSimpleObserver(id string, hub Hub) SimpleObserver {
 	return &simpleObserver{id: id, eventHub: hub, id2ObserverFunc: ID2ObserverFuncMap{}}
 }
 
-func matchID(pattern, id string) bool {
+func MatchValue(pattern, val string) bool {
 	pIdx := 0
 	pOffset := 0
 	pItems := strings.Split(pattern, "/")
 
 	iIdx := 0
 	iOffset := 0
-	iItems := strings.Split(id, "/")
+	iItems := strings.Split(val, "/")
 	for iIdx < len(iItems) {
 		iv := iItems[iIdx]
 		if pIdx >= len(pItems) {
@@ -439,9 +439,9 @@ func (s *hImpl) postInternal(event Event) {
 	defer s.event2Lock.RUnlock()
 
 	for key, value := range s.event2Observer {
-		if matchID(key, event.ID()) {
+		if MatchValue(key, event.ID()) {
 			for _, sv := range value {
-				if matchID(event.Destination(), sv.ID()) {
+				if MatchValue(event.Destination(), sv.ID()) {
 					sv.Notify(event, nil)
 				}
 			}
@@ -455,9 +455,9 @@ func (s *hImpl) sendInternal(event Event, result Result) {
 
 	finalFlag := false
 	for key, value := range s.event2Observer {
-		if matchID(key, event.ID()) {
+		if MatchValue(key, event.ID()) {
 			for _, sv := range value {
-				if matchID(event.Destination(), sv.ID()) {
+				if MatchValue(event.Destination(), sv.ID()) {
 					sv.Notify(event, result)
 					finalFlag = true
 				}

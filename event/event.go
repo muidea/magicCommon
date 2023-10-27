@@ -83,7 +83,7 @@ func (s *baseEvent) Result(result interface{}) {
 }
 
 func (s *baseEvent) Match(pattern string) bool {
-	return matchID(pattern, s.eventID)
+	return MatchValue(pattern, s.eventID)
 }
 
 func (s *baseResult) Set(data interface{}, err *cd.Result) {
