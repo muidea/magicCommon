@@ -1,6 +1,9 @@
 package event
 
-import "testing"
+import (
+	"github.com/muidea/magicCommon/foundation/log"
+	"testing"
+)
 
 func TestMatchID(t *testing.T) {
 	pattern := "/123"
@@ -339,5 +342,45 @@ func TestMatchID(t *testing.T) {
 	id = "/bill/notify/123"
 	if !MatchValue(pattern, id) {
 		t.Errorf("MatchValue failed, pattern:%s, id:%s", pattern, id)
+	}
+}
+
+type eventHandler struct {
+	handlerID string
+}
+
+func (s *eventHandler) ID() string {
+	return s.handlerID
+}
+
+func (s *eventHandler) Notify(ev Event, re Result) {
+	log.Infof("eventHandler:%v", s.handlerID)
+	if re != nil {
+		re.Set(ev.Data(), nil)
+	}
+}
+
+func TestEventHub(t *testing.T) {
+	hub := NewHub()
+
+	eventID := "/e001"
+	handler001 := &eventHandler{handlerID: "/h001"}
+	hub.Subscribe(eventID, handler001)
+
+	handler002 := &eventHandler{handlerID: "/h002"}
+	hub.Subscribe(eventID, handler002)
+
+	val := "e001"
+	ev := NewEvent(eventID, "/", handler001.ID(), nil, val)
+	re := hub.Send(ev)
+	dVal, dErr := re.Get()
+	if dErr != nil {
+		t.Errorf("send event to hub failed, error:%s", dErr.Error())
+		return
+	}
+
+	if dVal.(string) != val {
+		t.Errorf("send event to hub failed")
+		return
 	}
 }

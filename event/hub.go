@@ -2,10 +2,10 @@ package event
 
 import (
 	"fmt"
-	cd "github.com/muidea/magicCommon/def"
 	"strings"
 	"sync"
 
+	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/foundation/log"
 )
 
@@ -33,6 +33,8 @@ func (s Values) GetString(key string) string {
 	switch val.(type) {
 	case string:
 		return val.(string)
+	default:
+		log.Warnf("illegal value, not string, value:%v", val)
 	}
 
 	return ""
@@ -47,6 +49,8 @@ func (s Values) GetInt(key string) int {
 	switch val.(type) {
 	case int:
 		return val.(int)
+	default:
+		log.Warnf("illegal value, not int, value:%v", val)
 	}
 
 	return 0
@@ -61,6 +65,8 @@ func (s Values) GetBool(key string) bool {
 	switch val.(type) {
 	case bool:
 		return val.(bool)
+	default:
+		log.Warnf("illegal value, not bool, value:%v", val)
 	}
 
 	return false
@@ -109,9 +115,11 @@ type ObserverList []Observer
 type ID2ObserverMap map[string]ObserverList
 type ObserverFunc func(Event, Result)
 type ID2ObserverFuncMap map[string]ObserverFunc
+type actionChannel chan action
+type ID2ActionChanelMap map[string]actionChannel
 
 func NewHub() Hub {
-	hub := &hImpl{event2Observer: ID2ObserverMap{}, actionChannel: make(chan action)}
+	hub := &hubImpl{event2Observer: ID2ObserverMap{}, actionChannel: make(chan action), event2ActionChannel: ID2ActionChanelMap{}, terminateFlag: false}
 	go hub.run()
 	return hub
 }
@@ -252,6 +260,7 @@ func (s *sendData) Code() int {
 }
 
 type terminateData struct {
+	wg     sync.WaitGroup
 	result chan bool
 }
 
@@ -259,77 +268,150 @@ func (s *terminateData) Code() int {
 	return terminate
 }
 
-type hImpl struct {
+func (s actionChannel) run(hubPtr *hubImpl) {
+	terminateFlag := false
+	for actionData := range s {
+		switch actionData.Code() {
+		case subscribe:
+			data := actionData.(*subscribeData)
+			hubPtr.subscribeInternal(data.eventID, data.observer)
+			data.result <- true
+		case unsubscribe:
+			data := actionData.(*unsubscribeData)
+			hubPtr.unsubscribeInternal(data.eventID, data.observer)
+			data.result <- true
+		case post:
+			data := actionData.(*postData)
+			hubPtr.postInternal(data.event)
+		case send:
+			data := actionData.(*sendData)
+			result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
+			hubPtr.sendInternal(data.event, result)
+			data.result <- result
+		case terminate:
+			data := actionData.(*terminateData)
+			data.result <- true
+			data.wg.Done()
+			terminateFlag = true
+		default:
+		}
+
+		if terminateFlag {
+			break
+		}
+	}
+}
+
+type hubImpl struct {
 	event2Lock     sync.RWMutex
 	event2Observer ID2ObserverMap
 
-	actionChannel chan action
+	actionChannel       actionChannel
+	event2ActionChannel ID2ActionChanelMap
+
 	terminateFlag bool
 }
 
-func (s *hImpl) Subscribe(eventID string, observer Observer) {
+func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 	if s.terminateFlag {
 		return
 	}
 
 	replay := make(chan bool)
 	go func() {
-		action := &subscribeData{eventID: eventID, observer: observer, result: replay}
+		actionData := &subscribeData{eventID: eventID, observer: observer, result: replay}
 
-		s.actionChannel <- action
+		s.actionChannel <- actionData
 	}()
 	<-replay
 
 	return
 }
 
-func (s *hImpl) Unsubscribe(eventID string, observer Observer) {
+func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 	if s.terminateFlag {
 		return
 	}
 
 	replay := make(chan bool)
 	go func() {
-		action := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
+		actionData := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
 
-		s.actionChannel <- action
+		s.actionChannel <- actionData
 	}()
 	<-replay
 
 	return
 }
 
-func (s *hImpl) Post(event Event) {
+func (s *hubImpl) Post(event Event) {
 	if s.terminateFlag {
 		return
 	}
 
-	go func() {
-		action := &postData{event: event}
+	actionData := &postData{event: event}
+	var eventChannel actionChannel
+	func() {
+		s.event2Lock.Lock()
+		defer s.event2Lock.Unlock()
+		channelVal, channelOK := s.event2ActionChannel[event.Destination()]
+		if !channelOK {
+			channelVal = make(actionChannel)
+			go channelVal.run(s)
 
-		s.actionChannel <- action
+			s.event2ActionChannel[event.Destination()] = channelVal
+		}
+
+		eventChannel = channelVal
 	}()
+
+	if event.Source() == event.Destination() {
+		go func() {
+			eventChannel <- actionData
+		}()
+	} else {
+		eventChannel <- actionData
+	}
+
 	return
 }
 
-func (s *hImpl) Send(event Event) (ret Result) {
+func (s *hubImpl) Send(event Event) (ret Result) {
 	if s.terminateFlag {
 		return
 	}
 
 	replay := make(chan Result)
+	actionData := &sendData{event: event, result: replay}
 
-	go func() {
-		action := &sendData{event: event, result: replay}
+	var eventChannel actionChannel
+	func() {
+		s.event2Lock.Lock()
+		defer s.event2Lock.Unlock()
+		channelVal, channelOK := s.event2ActionChannel[event.Destination()]
+		if !channelOK {
+			channelVal = make(actionChannel)
+			go channelVal.run(s)
 
-		s.actionChannel <- action
+			s.event2ActionChannel[event.Destination()] = channelVal
+		}
+
+		eventChannel = channelVal
 	}()
+
+	if event.Source() == event.Destination() {
+		go func() {
+			eventChannel <- actionData
+		}()
+	} else {
+		eventChannel <- actionData
+	}
 
 	ret = <-replay
 	return
 }
 
-func (s *hImpl) Call(event Event) Result {
+func (s *hubImpl) Call(event Event) Result {
 	if s.terminateFlag {
 		return nil
 	}
@@ -339,56 +421,49 @@ func (s *hImpl) Call(event Event) Result {
 	return result
 }
 
-func (s *hImpl) Terminate() {
+func (s *hubImpl) Terminate() {
 	if s.terminateFlag {
 		return
 	}
 
+	s.terminateFlag = true
+	var wg sync.WaitGroup
 	replay := make(chan bool)
+	actionData := &terminateData{result: replay, wg: wg}
 	go func() {
-		action := &terminateData{result: replay}
+		s.event2Lock.Lock()
+		defer s.event2Lock.Unlock()
 
-		s.actionChannel <- action
+		for _, val := range s.event2ActionChannel {
+			wg.Add(1)
+			val <- actionData
+		}
+
 	}()
+	wg.Add(1)
+	s.actionChannel <- actionData
 
 	<-replay
 
-	s.event2Observer = nil
+	wg.Wait()
+
+	s.event2Lock.Lock()
+	defer s.event2Lock.Unlock()
+	for _, val := range s.event2ActionChannel {
+		close(val)
+	}
+	s.event2Observer = ID2ObserverMap{}
+	s.event2ActionChannel = ID2ActionChanelMap{}
 	return
 }
 
-func (s *hImpl) run() {
-	s.terminateFlag = false
-	for action := range s.actionChannel {
-		switch action.Code() {
-		case subscribe:
-			data := action.(*subscribeData)
-			s.subscribeInternal(data.eventID, data.observer)
-			data.result <- true
-		case unsubscribe:
-			data := action.(*unsubscribeData)
-			s.unsubscribeInternal(data.eventID, data.observer)
-			data.result <- true
-		case post:
-			data := action.(*postData)
-			s.postInternal(data.event)
-		case send:
-			data := action.(*sendData)
-			result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
-			s.sendInternal(data.event, result)
-			data.result <- result
-		case terminate:
-			data := action.(*terminateData)
-			data.result <- true
-		default:
-		}
-	}
+func (s *hubImpl) run() {
+	s.actionChannel.run(s)
 
-	s.terminateFlag = true
 	close(s.actionChannel)
 }
 
-func (s *hImpl) subscribeInternal(eventID string, observer Observer) {
+func (s *hubImpl) subscribeInternal(eventID string, observer Observer) {
 	s.event2Lock.Lock()
 	defer s.event2Lock.Unlock()
 
@@ -409,7 +484,7 @@ func (s *hImpl) subscribeInternal(eventID string, observer Observer) {
 	s.event2Observer[eventID] = observerList
 }
 
-func (s *hImpl) unsubscribeInternal(eventID string, observer Observer) {
+func (s *hubImpl) unsubscribeInternal(eventID string, observer Observer) {
 	s.event2Lock.Lock()
 	defer s.event2Lock.Unlock()
 
@@ -434,7 +509,7 @@ func (s *hImpl) unsubscribeInternal(eventID string, observer Observer) {
 	delete(s.event2Observer, eventID)
 }
 
-func (s *hImpl) postInternal(event Event) {
+func (s *hubImpl) postInternal(event Event) {
 	s.event2Lock.RLock()
 	defer s.event2Lock.RUnlock()
 
@@ -449,7 +524,7 @@ func (s *hImpl) postInternal(event Event) {
 	}
 }
 
-func (s *hImpl) sendInternal(event Event, result Result) {
+func (s *hubImpl) sendInternal(event Event, result Result) {
 	s.event2Lock.RLock()
 	defer s.event2Lock.RUnlock()
 
