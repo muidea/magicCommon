@@ -8,6 +8,7 @@ import (
 )
 
 type Generator interface {
+	Pattern() string
 	GenCode() string
 }
 
@@ -175,6 +176,10 @@ type genImpl struct {
 	patternMask string
 	fixedWidth  string
 	currentNum  int
+}
+
+func (s *genImpl) Pattern() string {
+	return s.patternMask
 }
 
 func (s *genImpl) GenCode() string {
