@@ -11,6 +11,9 @@ import (
 	"github.com/muidea/magicCommon/task"
 )
 
+const defaultBackTaskQueueSize = 10
+const defaultEventHubQueueSize = 100
+
 type Application interface {
 	Startup(service service.Service) *cd.Result
 	Run()
@@ -40,8 +43,8 @@ func Shutdown() {
 func Get() Application {
 	applicationOnce.Do(func() {
 		application = &appImpl{
-			backgroundRoutine: task.NewBackgroundRoutine(),
-			eventHub:          event.NewHub(),
+			backgroundRoutine: task.NewBackgroundRoutine(defaultBackTaskQueueSize),
+			eventHub:          event.NewHub(defaultEventHubQueueSize),
 		}
 	})
 

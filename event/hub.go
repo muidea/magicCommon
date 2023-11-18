@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	cd "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/execute"
 	"github.com/muidea/magicCommon/foundation/log"
 )
 
@@ -119,15 +120,11 @@ type actionChannel chan action
 type ID2ActionChanelMap map[string]actionChannel
 
 func NewHub(capacitySize int) Hub {
-	if capacitySize <= 0 {
-		capacitySize = 10
-	}
-
 	hub := &hubImpl{
+		Execute:             execute.NewExecute(capacitySize),
 		event2Observer:      ID2ObserverMap{},
 		actionChannel:       make(chan action),
 		event2ActionChannel: ID2ActionChanelMap{},
-		capacityQueue:       make(chan bool, capacitySize),
 		terminateFlag:       false,
 	}
 	go hub.run()
@@ -281,7 +278,7 @@ func (s *terminateData) Code() int {
 func (s actionChannel) run(hubPtr *hubImpl) {
 	terminateFlag := false
 	for actionData := range s {
-		hubPtr.execute(func() {
+		hubPtr.Execute.Run(func() {
 			switch actionData.Code() {
 			case subscribe:
 				data := actionData.(*subscribeData)
@@ -315,21 +312,14 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 }
 
 type hubImpl struct {
+	execute.Execute
 	event2Lock     sync.RWMutex
 	event2Observer ID2ObserverMap
 
 	actionChannel       actionChannel
 	event2ActionChannel ID2ActionChanelMap
 
-	capacityQueue chan bool
 	terminateFlag bool
-}
-
-func (s *hubImpl) execute(funcPtr func()) {
-	// 这里只是为了主动限制并发执行的数量
-	s.capacityQueue <- true
-	go funcPtr()
-	<-s.capacityQueue
 }
 
 func (s *hubImpl) Subscribe(eventID string, observer Observer) {
@@ -338,7 +328,7 @@ func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 	}
 
 	replay := make(chan bool)
-	s.execute(func() {
+	s.Execute.Run(func() {
 		actionData := &subscribeData{eventID: eventID, observer: observer, result: replay}
 
 		s.actionChannel <- actionData
@@ -354,7 +344,7 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 	}
 
 	replay := make(chan bool)
-	s.execute(func() {
+	s.Execute.Run(func() {
 		actionData := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
 
 		s.actionChannel <- actionData
@@ -386,7 +376,7 @@ func (s *hubImpl) Post(event Event) {
 	}()
 
 	if event.Source() == event.Destination() {
-		s.execute(func() {
+		s.Execute.Run(func() {
 			eventChannel <- actionData
 		})
 	} else {
@@ -420,7 +410,7 @@ func (s *hubImpl) Send(event Event) (ret Result) {
 	}()
 
 	if event.Source() == event.Destination() {
-		s.execute(func() {
+		s.Execute.Run(func() {
 			eventChannel <- actionData
 		})
 	} else {

@@ -2,6 +2,8 @@ package task
 
 import (
 	"time"
+
+	"github.com/muidea/magicCommon/execute"
 )
 
 // Task 任务对象
@@ -36,19 +38,25 @@ type taskChannel chan Task
 
 // backgroundRoutine backGround routine
 type backgroundRoutine struct {
+	execute.Execute
+
 	taskChannel taskChannel
 }
 
 // NewBackgroundRoutine new Background routine
-func NewBackgroundRoutine() BackgroundRoutine {
-	bg := &backgroundRoutine{taskChannel: make(taskChannel)}
+func NewBackgroundRoutine(capacitySize int) BackgroundRoutine {
+	bg := &backgroundRoutine{
+		Execute:     execute.NewExecute(capacitySize),
+		taskChannel: make(taskChannel),
+	}
+
 	bg.run()
 
 	return bg
 }
 
 func (s *backgroundRoutine) run() {
-	go s.loop()
+	s.Execute.Run(s.loop)
 }
 
 func (s *backgroundRoutine) loop() {
@@ -60,18 +68,18 @@ func (s *backgroundRoutine) loop() {
 
 // Post exec task
 func (s *backgroundRoutine) Post(task Task) {
-	go func() {
+	s.Execute.Run(func() {
 		s.taskChannel <- task
-	}()
+	})
 }
 
 func (s *backgroundRoutine) Invoke(task Task) {
-	syncTask := &syncTask{rawTask: task, resultChannel: make(chan bool)}
-	go func() {
-		s.taskChannel <- syncTask
-	}()
+	st := &syncTask{rawTask: task, resultChannel: make(chan bool)}
+	s.Execute.Run(func() {
+		s.taskChannel <- st
+	})
 
-	syncTask.Wait()
+	st.Wait()
 }
 
 const onDayDuration = 24 * time.Hour
