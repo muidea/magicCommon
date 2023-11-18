@@ -326,6 +326,7 @@ type hubImpl struct {
 }
 
 func (s *hubImpl) execute(funcPtr func()) {
+	// 这里只是为了主动限制并发执行的数量
 	s.capacityQueue <- true
 	go funcPtr()
 	<-s.capacityQueue
