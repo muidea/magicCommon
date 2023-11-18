@@ -361,7 +361,7 @@ func (s *eventHandler) Notify(ev Event, re Result) {
 }
 
 func TestEventHub(t *testing.T) {
-	hub := NewHub()
+	hub := NewHub(10)
 
 	eventID := "/e001"
 	handler001 := &eventHandler{handlerID: "/h001"}

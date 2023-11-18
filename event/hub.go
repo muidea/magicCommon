@@ -118,8 +118,18 @@ type ID2ObserverFuncMap map[string]ObserverFunc
 type actionChannel chan action
 type ID2ActionChanelMap map[string]actionChannel
 
-func NewHub() Hub {
-	hub := &hubImpl{event2Observer: ID2ObserverMap{}, actionChannel: make(chan action), event2ActionChannel: ID2ActionChanelMap{}, terminateFlag: false}
+func NewHub(capacitySize int) Hub {
+	if capacitySize <= 0 {
+		capacitySize = 10
+	}
+
+	hub := &hubImpl{
+		event2Observer:      ID2ObserverMap{},
+		actionChannel:       make(chan action),
+		event2ActionChannel: ID2ActionChanelMap{},
+		capacityQueue:       make(chan bool, capacitySize),
+		terminateFlag:       false,
+	}
 	go hub.run()
 	return hub
 }
@@ -271,30 +281,32 @@ func (s *terminateData) Code() int {
 func (s actionChannel) run(hubPtr *hubImpl) {
 	terminateFlag := false
 	for actionData := range s {
-		switch actionData.Code() {
-		case subscribe:
-			data := actionData.(*subscribeData)
-			hubPtr.subscribeInternal(data.eventID, data.observer)
-			data.result <- true
-		case unsubscribe:
-			data := actionData.(*unsubscribeData)
-			hubPtr.unsubscribeInternal(data.eventID, data.observer)
-			data.result <- true
-		case post:
-			data := actionData.(*postData)
-			hubPtr.postInternal(data.event)
-		case send:
-			data := actionData.(*sendData)
-			result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
-			hubPtr.sendInternal(data.event, result)
-			data.result <- result
-		case terminate:
-			data := actionData.(*terminateData)
-			data.result <- true
-			data.waitGroup.Done()
-			terminateFlag = true
-		default:
-		}
+		hubPtr.execute(func() {
+			switch actionData.Code() {
+			case subscribe:
+				data := actionData.(*subscribeData)
+				hubPtr.subscribeInternal(data.eventID, data.observer)
+				data.result <- true
+			case unsubscribe:
+				data := actionData.(*unsubscribeData)
+				hubPtr.unsubscribeInternal(data.eventID, data.observer)
+				data.result <- true
+			case post:
+				data := actionData.(*postData)
+				hubPtr.postInternal(data.event)
+			case send:
+				data := actionData.(*sendData)
+				result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
+				hubPtr.sendInternal(data.event, result)
+				data.result <- result
+			case terminate:
+				data := actionData.(*terminateData)
+				data.result <- true
+				data.waitGroup.Done()
+				terminateFlag = true
+			default:
+			}
+		})
 
 		if terminateFlag {
 			break
@@ -309,7 +321,14 @@ type hubImpl struct {
 	actionChannel       actionChannel
 	event2ActionChannel ID2ActionChanelMap
 
+	capacityQueue chan bool
 	terminateFlag bool
+}
+
+func (s *hubImpl) execute(funcPtr func()) {
+	s.capacityQueue <- true
+	go funcPtr()
+	<-s.capacityQueue
 }
 
 func (s *hubImpl) Subscribe(eventID string, observer Observer) {
@@ -318,11 +337,11 @@ func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 	}
 
 	replay := make(chan bool)
-	go func() {
+	s.execute(func() {
 		actionData := &subscribeData{eventID: eventID, observer: observer, result: replay}
 
 		s.actionChannel <- actionData
-	}()
+	})
 	<-replay
 
 	return
@@ -334,11 +353,11 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 	}
 
 	replay := make(chan bool)
-	go func() {
+	s.execute(func() {
 		actionData := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
 
 		s.actionChannel <- actionData
-	}()
+	})
 	<-replay
 
 	return
@@ -366,9 +385,9 @@ func (s *hubImpl) Post(event Event) {
 	}()
 
 	if event.Source() == event.Destination() {
-		go func() {
+		s.execute(func() {
 			eventChannel <- actionData
-		}()
+		})
 	} else {
 		eventChannel <- actionData
 	}
@@ -400,9 +419,9 @@ func (s *hubImpl) Send(event Event) (ret Result) {
 	}()
 
 	if event.Source() == event.Destination() {
-		go func() {
+		s.execute(func() {
 			eventChannel <- actionData
-		}()
+		})
 	} else {
 		eventChannel <- actionData
 	}
@@ -438,7 +457,6 @@ func (s *hubImpl) Terminate() {
 			waitGroup.Add(1)
 			val <- actionData
 		}
-
 	}()
 	waitGroup.Add(1)
 	s.actionChannel <- actionData
