@@ -536,7 +536,6 @@ func (s *hubImpl) postInternal(event Event) {
 	}()
 
 	for _, sv := range matchList {
-		log.Infof("notify, eventID:%s, source:%s, destination:%s, observerID:%s", event.ID(), event.Source(), event.Destination(), sv.ID())
 		sv.Notify(event, nil)
 	}
 }
@@ -552,7 +551,6 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 			if MatchValue(key, event.ID()) {
 				for _, sv := range value {
 					if MatchValue(event.Destination(), sv.ID()) {
-						log.Infof("key:%s, eventID:%s, eventDestination:%s, observer:%s", key, event.ID(), event.Destination(), sv.ID())
 						matchList = append(matchList, sv)
 						finalFlag = true
 					}
@@ -562,7 +560,6 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 	}()
 
 	for _, sv := range matchList {
-		log.Infof("notify, eventID:%s, source:%s, destination:%s, observerID:%s", event.ID(), event.Source(), event.Destination(), sv.ID())
 		sv.Notify(event, result)
 	}
 
@@ -609,7 +606,7 @@ func (s *simpleObserver) Subscribe(eventID string, observerFunc ObserverFunc) {
 
 		_, ok := s.id2ObserverFunc[eventID]
 		if ok {
-			log.Errorf("duplicate eventID:%v", eventID)
+			log.Warnf("duplicate eventID:%v", eventID)
 			return
 		}
 
@@ -630,7 +627,7 @@ func (s *simpleObserver) Unsubscribe(eventID string) {
 
 		_, ok := s.id2ObserverFunc[eventID]
 		if !ok {
-			log.Errorf("not exist eventID:%v", eventID)
+			log.Warnf("not exist eventID:%v", eventID)
 			return
 		}
 
