@@ -16,6 +16,8 @@ func NewExecute(capacitySize int) Execute {
 
 func (s *Execute) Run(funcPtr func()) {
 	s.capacityQueue <- true
-	go funcPtr()
-	<-s.capacityQueue
+	go func() {
+		funcPtr()
+		<-s.capacityQueue
+	}()
 }
