@@ -536,6 +536,7 @@ func (s *hubImpl) postInternal(event Event) {
 	}()
 
 	for _, sv := range matchList {
+		log.Infof("notify, eventID:%s, source:%s, destination:%s, observerID:%s", event.ID(), event.Source(), event.Destination(), sv.ID())
 		sv.Notify(event, nil)
 	}
 }
@@ -560,6 +561,7 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 	}()
 
 	for _, sv := range matchList {
+		log.Infof("notify, eventID:%s, source:%s, destination:%s, observerID:%s", event.ID(), event.Source(), event.Destination(), sv.ID())
 		sv.Notify(event, result)
 	}
 
