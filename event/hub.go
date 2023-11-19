@@ -552,6 +552,7 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 			if MatchValue(key, event.ID()) {
 				for _, sv := range value {
 					if MatchValue(event.Destination(), sv.ID()) {
+						log.Infof("key:%s, eventID:%s, eventDestination:%s, observer:%s", key, event.ID(), event.Destination(), sv.ID())
 						matchList = append(matchList, sv)
 						finalFlag = true
 					}
