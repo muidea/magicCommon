@@ -94,7 +94,7 @@ func (s *backgroundRoutine) Timer(task Task, intervalValue time.Duration, offset
 				return (nowOffset/intervalValue+1)*intervalValue - nowOffset
 			}
 
-			return (offsetValue + intervalValue - nowOffset + 24*time.Hour) % (24 * time.Hour)
+			return (offsetValue + intervalValue - nowOffset + onDayDuration) % onDayDuration
 		}()
 
 		//expire := offsetValue + time.Duration(23-now.Hour())*time.Hour + time.Duration(59-now.Minute())*time.Minute + time.Duration(60-now.Second())*time.Second

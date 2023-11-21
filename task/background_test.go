@@ -6,13 +6,8 @@ import (
 	"time"
 )
 
-func TestBackgroundRoutine_Timer(t *testing.T) {
-	//intervalValue := 10 * time.Minute
-	intervalValue := 24 * time.Hour
-	//offsetValue := time.Duration(0)
-	offsetValue := 1 * time.Hour
-
-	curOffset := func() time.Duration {
+func calcOffset(intervalValue, offsetValue time.Duration) time.Duration {
+	return func() time.Duration {
 		now := time.Now()
 		log.Printf("%v", now)
 		nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
@@ -22,6 +17,19 @@ func TestBackgroundRoutine_Timer(t *testing.T) {
 
 		return (offsetValue + intervalValue - nowOffset + 24*time.Hour) % (24 * time.Hour)
 	}()
+}
 
+func TestBackgroundRoutine_Timer(t *testing.T) {
+	//intervalValue := 10 * time.Minute
+	intervalValue := 24 * time.Hour
+	//offsetValue := time.Duration(0)
+	offsetValue := 1 * time.Hour
+
+	curOffset := calcOffset(intervalValue, offsetValue)
+	log.Printf("%v", curOffset)
+
+	intervalValue = 10 * time.Minute
+	offsetValue = 0
+	curOffset = calcOffset(intervalValue, offsetValue)
 	log.Printf("%v", curOffset)
 }
