@@ -65,7 +65,7 @@ func Warnf(format string, params ...interface{}) {
 		return
 	}
 
-	log.Warn(params)
+	log.Warn(format)
 }
 
 func Errorf(format string, params ...interface{}) {
