@@ -8,6 +8,13 @@ import (
 const innerDataKey = "_innerDataKey_"
 const innerValKey = "_innerValKey_"
 
+const (
+	Action = "_action_"
+	Add    = "add"
+	Del    = "del"
+	Mod    = "mod"
+)
+
 type baseEvent struct {
 	eventID          string
 	eventSource      string

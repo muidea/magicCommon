@@ -12,8 +12,8 @@ type Task interface {
 }
 
 type BackgroundRoutine interface {
-	Post(task Task)
-	Invoke(task Task)
+	AsyncTask(task Task)
+	SyncTask(task Task)
 	Timer(task Task, intervalValue time.Duration, offsetValue time.Duration)
 }
 
@@ -66,14 +66,13 @@ func (s *backgroundRoutine) loop() {
 	}
 }
 
-// Post exec task
-func (s *backgroundRoutine) Post(task Task) {
+func (s *backgroundRoutine) AsyncTask(task Task) {
 	s.Execute.Run(func() {
 		s.taskChannel <- task
 	})
 }
 
-func (s *backgroundRoutine) Invoke(task Task) {
+func (s *backgroundRoutine) SyncTask(task Task) {
 	st := &syncTask{rawTask: task, resultChannel: make(chan bool)}
 	s.Execute.Run(func() {
 		s.taskChannel <- st
