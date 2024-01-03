@@ -594,7 +594,14 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 	}()
 
 	if funcVal != nil {
-		funcVal(event, result)
+		func() {
+			if err := recover(); err != nil && result != nil {
+				result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
+				return
+			}
+
+			funcVal(event, result)
+		}()
 	}
 }
 
