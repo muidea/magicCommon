@@ -536,7 +536,14 @@ func (s *hubImpl) postInternal(event Event) {
 	}()
 
 	for _, sv := range matchList {
-		sv.Notify(event, nil)
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Warnf("notify event failed, event:%v", event.ID())
+				}
+			}()
+			sv.Notify(event, nil)
+		}()
 	}
 }
 
@@ -560,7 +567,18 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 	}()
 
 	for _, sv := range matchList {
-		sv.Notify(event, result)
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Warnf("notify event failed, event:%v", event.ID())
+					if result != nil {
+						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
+					}
+				}
+			}()
+
+			sv.Notify(event, result)
+		}()
 	}
 
 	if !finalFlag && result != nil {
@@ -595,10 +613,14 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 
 	if funcVal != nil {
 		func() {
-			if err := recover(); err != nil && result != nil {
-				result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
-				return
-			}
+			defer func() {
+				if err := recover(); err != nil {
+					log.Warnf("notify event failed, event:%v", event.ID())
+					if result != nil {
+						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
+					}
+				}
+			}()
 
 			funcVal(event, result)
 		}()
