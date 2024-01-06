@@ -541,7 +541,7 @@ func (s *hubImpl) postInternal(event Event) {
 			defer func() {
 				if err := recover(); err != nil {
 					stackInfo := util.GetStack(3)
-					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%v", event.ID(), err, stackInfo)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
 				}
 			}()
 			sv.Notify(event, nil)
@@ -573,7 +573,7 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 			defer func() {
 				if err := recover(); err != nil {
 					stackInfo := util.GetStack(3)
-					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%v", event.ID(), err, stackInfo)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
 
 					if result != nil {
 						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
@@ -620,7 +620,7 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 			defer func() {
 				if err := recover(); err != nil {
 					stackInfo := util.GetStack(3)
-					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%v", event.ID(), err, stackInfo)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
 
 					if result != nil {
 						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
