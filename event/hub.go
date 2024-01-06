@@ -8,6 +8,7 @@ import (
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/execute"
 	"github.com/muidea/magicCommon/foundation/log"
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 type Values map[string]interface{}
@@ -539,7 +540,8 @@ func (s *hubImpl) postInternal(event Event) {
 		func() {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Warnf("notify event failed, event:%v", event.ID())
+					stackInfo := util.GetStack(3)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%v", event.ID(), err, stackInfo)
 				}
 			}()
 			sv.Notify(event, nil)
@@ -570,7 +572,9 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 		func() {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Warnf("notify event failed, event:%v", event.ID())
+					stackInfo := util.GetStack(3)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%v", event.ID(), err, stackInfo)
+
 					if result != nil {
 						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
 					}
@@ -615,7 +619,9 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 		func() {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Warnf("notify event failed, event:%v", event.ID())
+					stackInfo := util.GetStack(3)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%v", event.ID(), err, stackInfo)
+
 					if result != nil {
 						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
 					}
