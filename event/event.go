@@ -44,7 +44,7 @@ func NewEvent(id, source, destination string, header Values, data interface{}) E
 }
 
 func NewResult(id, source, destination string) Result {
-	msg := fmt.Sprintf("illegal event, id:%s, source:%s, destination:%s", id, source, destination)
+	msg := fmt.Sprintf("illegal event, no result returned, id:%s, source:%s, destination:%s", id, source, destination)
 	return &baseResult{resultErr: cd.NewError(cd.Failed, msg), resultData: map[string]interface{}{}}
 }
 
