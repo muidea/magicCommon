@@ -13,6 +13,7 @@ const (
 	Add    = "add"
 	Del    = "del"
 	Mod    = "mod"
+	Notify = "notify"
 )
 
 type baseEvent struct {

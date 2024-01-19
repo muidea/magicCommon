@@ -1,14 +1,52 @@
 package log
 
 import (
+	"os"
+	"strconv"
+
 	log "github.com/cihub/seelog"
+)
+
+const (
+	levelAll      = -1
+	levelTrace    = 0
+	levelDebug    = 1
+	levelInfo     = 2
+	levelWarn     = 3
+	levelError    = 4
+	levelCritical = 5
+	levelNone     = 6
 )
 
 func init() {
 	logger, _ := log.LoggerFromConfigAsBytes([]byte(logConfig))
 	logger.SetAdditionalStackDepth(1)
 	log.ReplaceLogger(logger)
+
+	levelVal, ok := os.LookupEnv("LOG_LEVEL")
+	if !ok {
+		logLevel = levelAll
+		return
+	}
+
+	iVal, iErr := strconv.Atoi(levelVal)
+	if iErr != nil {
+		logLevel = levelTrace
+		return
+	}
+	if iVal < levelTrace {
+		logLevel = levelAll
+		return
+	}
+	if iVal > levelCritical {
+		logLevel = levelNone
+		return
+	}
+
+	logLevel = iVal
 }
+
+var logLevel int
 
 var logConfig = `<?xml version="1.0" encoding="utf-8"?>
 <seelog levels="trace,debug,info,warn,error,critical" type="sync"> 
@@ -33,6 +71,10 @@ var logConfig = `<?xml version="1.0" encoding="utf-8"?>
 </seelog>`
 
 func Tracef(format string, params ...interface{}) {
+	if logLevel > levelTrace {
+		return
+	}
+
 	if len(params) > 0 {
 		log.Tracef(format, params...)
 		return
@@ -42,6 +84,10 @@ func Tracef(format string, params ...interface{}) {
 }
 
 func Debugf(format string, params ...interface{}) {
+	if logLevel > levelDebug {
+		return
+	}
+
 	if len(params) > 0 {
 		log.Debugf(format, params...)
 		return
@@ -51,6 +97,10 @@ func Debugf(format string, params ...interface{}) {
 }
 
 func Infof(format string, params ...interface{}) {
+	if logLevel > levelInfo {
+		return
+	}
+
 	if len(params) > 0 {
 		log.Infof(format, params...)
 		return
@@ -60,6 +110,10 @@ func Infof(format string, params ...interface{}) {
 }
 
 func Warnf(format string, params ...interface{}) {
+	if logLevel > levelWarn {
+		return
+	}
+
 	if len(params) > 0 {
 		log.Warnf(format, params...)
 		return
@@ -69,6 +123,10 @@ func Warnf(format string, params ...interface{}) {
 }
 
 func Errorf(format string, params ...interface{}) {
+	if logLevel > levelError {
+		return
+	}
+
 	if len(params) > 0 {
 		log.Errorf(format, params...)
 		return
@@ -78,6 +136,10 @@ func Errorf(format string, params ...interface{}) {
 }
 
 func Criticalf(format string, params ...interface{}) {
+	if logLevel > levelCritical {
+		return
+	}
+
 	if len(params) > 0 {
 		log.Criticalf(format, params...)
 		return
