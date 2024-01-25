@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -169,7 +169,7 @@ func HTTPGet(httpClient *http.Client, url string, result interface{}, ctx ...url
 	request, requestErr := http.NewRequest("GET", url, nil)
 	if requestErr != nil {
 		err = requestErr
-		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
 		return
 	}
 
@@ -182,7 +182,7 @@ func HTTPGet(httpClient *http.Client, url string, result interface{}, ctx ...url
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
-		log.Printf("get request failed, err:%s", err.Error())
+		log.Errorf("get request failed, err:%s", err.Error())
 		return
 	}
 	defer response.Body.Close()
@@ -195,14 +195,14 @@ func HTTPGet(httpClient *http.Client, url string, result interface{}, ctx ...url
 	content, contentErr := io.ReadAll(response.Body)
 	if contentErr != nil {
 		err = contentErr
-		log.Printf("read respose data failed, err:%s", err.Error())
+		log.Errorf("read respose data failed, err:%s", err.Error())
 		return
 	}
 
 	if result != nil {
 		err = json.Unmarshal(content, result)
 		if err != nil {
-			log.Printf("unmarshal data failed, err:%s", err.Error())
+			log.Errorf("unmarshal data failed, err:%s", err.Error())
 			return
 		}
 	}
@@ -218,7 +218,7 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 		data, dataErr := json.Marshal(param)
 		if dataErr != nil {
 			err = dataErr
-			log.Printf("marshal param failed, err:%s", err.Error())
+			log.Errorf("marshal param failed, err:%s", err.Error())
 			return
 		}
 
@@ -228,7 +228,7 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 	request, requestErr := http.NewRequest("POST", url, byteBuff)
 	if requestErr != nil {
 		err = requestErr
-		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
 		return
 	}
 
@@ -242,7 +242,7 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
-		log.Printf("post request failed, err:%s", err.Error())
+		log.Errorf("post request failed, err:%s", err.Error())
 		return
 	}
 	defer response.Body.Close()
@@ -255,14 +255,14 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 	content, contentErr := io.ReadAll(response.Body)
 	if contentErr != nil {
 		err = contentErr
-		log.Printf("read respose data failed, err:%s", err.Error())
+		log.Errorf("read respose data failed, err:%s", err.Error())
 		return
 	}
 
 	if result != nil {
 		err = json.Unmarshal(content, result)
 		if err != nil {
-			log.Printf("unmarshal data failed, err:%s", err.Error())
+			log.Errorf("unmarshal data failed, err:%s", err.Error())
 			return
 		}
 	}
@@ -278,7 +278,7 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 		data, dataErr := json.Marshal(param)
 		if dataErr != nil {
 			err = dataErr
-			log.Printf("marshal param failed, err:%s", err.Error())
+			log.Errorf("marshal param failed, err:%s", err.Error())
 			return
 		}
 
@@ -288,7 +288,7 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 	request, requestErr := http.NewRequest("PUT", url, byteBuff)
 	if requestErr != nil {
 		err = requestErr
-		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
 		return
 	}
 
@@ -301,7 +301,7 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
-		log.Printf("post request failed, err:%s", err.Error())
+		log.Errorf("post request failed, err:%s", err.Error())
 		return
 	}
 	defer response.Body.Close()
@@ -314,14 +314,14 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 	content, contentErr := io.ReadAll(response.Body)
 	if contentErr != nil {
 		err = contentErr
-		log.Printf("read respose data failed, err:%s", err.Error())
+		log.Errorf("read respose data failed, err:%s", err.Error())
 		return
 	}
 
 	if result != nil {
 		err = json.Unmarshal(content, result)
 		if err != nil {
-			log.Printf("unmarshal data failed, err:%s", err.Error())
+			log.Errorf("unmarshal data failed, err:%s", err.Error())
 			return
 		}
 	}
@@ -335,7 +335,7 @@ func HTTPDelete(httpClient *http.Client, url string, result interface{}, ctx ...
 	request, requestErr := http.NewRequest("DELETE", url, nil)
 	if requestErr != nil {
 		err = requestErr
-		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
 		return
 	}
 	for _, val := range ctx {
@@ -347,7 +347,7 @@ func HTTPDelete(httpClient *http.Client, url string, result interface{}, ctx ...
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
-		log.Printf("delete request failed, err:%s", err.Error())
+		log.Errorf("delete request failed, err:%s", err.Error())
 		return
 	}
 	defer response.Body.Close()
@@ -360,14 +360,14 @@ func HTTPDelete(httpClient *http.Client, url string, result interface{}, ctx ...
 	content, contentErr := io.ReadAll(response.Body)
 	if contentErr != nil {
 		err = contentErr
-		log.Printf("read respose data failed, err:%s", err.Error())
+		log.Errorf("read respose data failed, err:%s", err.Error())
 		return
 	}
 
 	if result != nil {
 		err = json.Unmarshal(content, result)
 		if err != nil {
-			log.Printf("unmarshal data failed, err:%s", err.Error())
+			log.Errorf("unmarshal data failed, err:%s", err.Error())
 			return
 		}
 	}
@@ -380,7 +380,7 @@ func HTTPDelete(httpClient *http.Client, url string, result interface{}, ctx ...
 func HTTPDownload(httpClient *http.Client, url string, filePath string, ctx ...url.Values) (string, error) {
 	request, requestErr := http.NewRequest("GET", url, nil)
 	if requestErr != nil {
-		log.Printf("construct request failed, url:%s, err:%s", url, requestErr.Error())
+		log.Errorf("construct request failed, url:%s, err:%s", url, requestErr.Error())
 		return "", requestErr
 	}
 
@@ -392,7 +392,7 @@ func HTTPDownload(httpClient *http.Client, url string, filePath string, ctx ...u
 
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
-		log.Printf("get request failed, err:%s", responseErr.Error())
+		log.Errorf("get request failed, err:%s", responseErr.Error())
 		return "", responseErr
 	}
 	defer response.Body.Close()
@@ -404,14 +404,14 @@ func HTTPDownload(httpClient *http.Client, url string, filePath string, ctx ...u
 
 	f, err := os.OpenFile(filePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		log.Printf("open destination file failed, err:%s", err.Error())
+		log.Errorf("open destination file failed, err:%s", err.Error())
 		return "", err
 	}
 	defer f.Close()
 
 	_, err = io.Copy(f, response.Body)
 	if err != nil {
-		log.Printf("write destination file content exception, err:%s", err.Error())
+		log.Errorf("write destination file content exception, err:%s", err.Error())
 		return "", err
 	}
 
@@ -426,14 +426,14 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	//关键的一步操作
 	fileWriter, err := bodyWriter.CreateFormFile(fileItem, filePath)
 	if err != nil {
-		fmt.Println("error writing to buffer")
+		log.Errorf("error writing to buffer")
 		return err
 	}
 
 	//打开文件句柄操作
 	fh, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("error opening file")
+		log.Errorf("error opening file")
 		return err
 	}
 	defer fh.Close()
@@ -450,7 +450,7 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	request, requestErr := http.NewRequest("POST", url, bodyBuf)
 	if requestErr != nil {
 		err = requestErr
-		log.Printf("construct request failed, url:%s, err:%s", url, err.Error())
+		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
 		return err
 	}
 
@@ -463,7 +463,7 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
-		log.Printf("post request failed, err:%s", responseErr.Error())
+		log.Errorf("post request failed, err:%s", responseErr.Error())
 		return responseErr
 	}
 	defer response.Body.Close()
@@ -476,13 +476,13 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	if result != nil {
 		content, err := io.ReadAll(response.Body)
 		if err != nil {
-			log.Printf("read respose data failed, err:%s", err.Error())
+			log.Errorf("read respose data failed, err:%s", err.Error())
 			return err
 		}
 
 		err = json.Unmarshal(content, result)
 		if err != nil {
-			log.Printf("unmarshal data failed, err:%s", err.Error())
+			log.Errorf("unmarshal data failed, err:%s", err.Error())
 			return err
 		}
 	}
