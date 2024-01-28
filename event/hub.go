@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -79,6 +80,7 @@ type Event interface {
 	Source() string
 	Destination() string
 	Header() Values
+	Context() context.Context
 	Data() interface{}
 	SetData(key string, val interface{})
 	GetData(key string) interface{}
