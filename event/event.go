@@ -82,6 +82,10 @@ func (s *baseEvent) Context() context.Context {
 	return s.eventContext
 }
 
+func (s *baseEvent) BindContext(ctx context.Context) {
+	s.eventContext = ctx
+}
+
 func (s *baseEvent) Data() interface{} {
 	val, ok := s.eventData[innerDataKey]
 	if ok {

@@ -81,6 +81,7 @@ type Event interface {
 	Destination() string
 	Header() Values
 	Context() context.Context
+	BindContext(ctx context.Context)
 	Data() interface{}
 	SetData(key string, val interface{})
 	GetData(key string) interface{}
