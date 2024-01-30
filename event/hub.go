@@ -281,8 +281,14 @@ func (s *terminateData) Code() int {
 
 func (s actionChannel) run(hubPtr *hubImpl) {
 	terminateFlag := false
-	for actionData := range s {
-		hubPtr.Execute.Run(func() {
+	for {
+		actionData, actionOK := <-s
+		if !actionOK {
+			log.Criticalf("eventHub actionChannel unexpect!")
+			break
+		}
+
+		actionFunc := func() {
 			switch actionData.Code() {
 			case subscribe:
 				data := actionData.(*subscribeData)
@@ -307,7 +313,9 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 				terminateFlag = true
 			default:
 			}
-		})
+		}
+
+		hubPtr.Execute.Run(actionFunc)
 
 		if terminateFlag {
 			break
