@@ -11,8 +11,8 @@ import (
 	"github.com/muidea/magicCommon/task"
 )
 
-const defaultBackTaskQueueSize = 10
-const defaultEventHubQueueSize = 100
+const defaultBackTaskQueueSize = 100
+const defaultEventHubQueueSize = 1000
 
 type Application interface {
 	Startup(service service.Service) *cd.Result
