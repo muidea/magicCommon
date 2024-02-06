@@ -1,6 +1,8 @@
 package application
 
 import (
+	"os"
+	"strconv"
 	"sync"
 
 	_ "github.com/muidea/magicCommon/foundation/log"
@@ -11,8 +13,26 @@ import (
 	"github.com/muidea/magicCommon/task"
 )
 
-const defaultBackTaskQueueSize = 100
-const defaultEventHubQueueSize = 1000
+var defaultBackTaskQueueSize = 500
+var defaultEventHubQueueSize = 1000
+
+func init() {
+	taskQueueSize, taskQueueOK := os.LookupEnv("BG_TASK_QUEUE_SIZE")
+	if taskQueueOK {
+		iVal, iErr := strconv.Atoi(taskQueueSize)
+		if iErr == nil && iVal > 0 {
+			defaultBackTaskQueueSize = iVal
+		}
+	}
+
+	eventQueueSize, eventQueueOK := os.LookupEnv("HUB_EVENT_QUEUE_SIZE")
+	if eventQueueOK {
+		iVal, iErr := strconv.Atoi(eventQueueSize)
+		if iErr == nil && iVal > 0 {
+			defaultEventHubQueueSize = iVal
+		}
+	}
+}
 
 type Application interface {
 	Startup(service service.Service) *cd.Result

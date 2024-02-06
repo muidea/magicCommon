@@ -66,7 +66,7 @@ func (s *ContentFilter) GetPkgPath() string {
 	return ""
 }
 
-func (s *ContentFilter) GetPkeKey() string {
+func (s *ContentFilter) GetPkgKey() string {
 	if s.ParamItems != nil {
 		return path.Join(s.ParamItems.PkgPath, s.ParamItems.Name)
 	}
