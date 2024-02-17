@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 )
 
@@ -61,14 +60,6 @@ func (s *ContentFilter) GetName() string {
 func (s *ContentFilter) GetPkgPath() string {
 	if s.ParamItems != nil {
 		return s.ParamItems.PkgPath
-	}
-
-	return ""
-}
-
-func (s *ContentFilter) GetPkgKey() string {
-	if s.ParamItems != nil {
-		return path.Join(s.ParamItems.PkgPath, s.ParamItems.Name)
 	}
 
 	return ""
