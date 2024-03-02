@@ -4,6 +4,8 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path"
+	"strings"
 )
 
 // Exist 路径是否存在
@@ -28,4 +30,9 @@ func IsDirEmpty(dirPath string) (bool, error) {
 	}
 
 	return len(nameSlice) == 0, nil
+}
+
+func SplitParentDir(dirPath string) string {
+	parentPath, _ := path.Split(dirPath)
+	return strings.TrimRight(parentPath, "/")
 }

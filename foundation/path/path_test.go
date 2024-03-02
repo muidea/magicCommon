@@ -35,3 +35,29 @@ func TestIsDirEmpty(t *testing.T) {
 		t.Errorf("check is dir empty failed")
 	}
 }
+
+func TestSplitParentDir(t *testing.T) {
+	dirPath := "/var/test/abc.jpg"
+	parentPath := SplitParentDir(dirPath)
+	if parentPath != "/var/test" {
+		t.Errorf("SplitParentDir failed, parentPath:%s,expect:%s", parentPath, "/var/test")
+		return
+	}
+	parentPath = SplitParentDir(parentPath)
+	if parentPath != "/var" {
+		t.Errorf("SplitParentDir failed, parentPath:%s,expect:%s", parentPath, "/var")
+		return
+	}
+	parentPath = SplitParentDir(parentPath)
+	if parentPath != "" {
+		t.Errorf("SplitParentDir failed, parentPath:%s,expect:%s", parentPath, "")
+		return
+	}
+
+	dirPath = "/var/test/"
+	parentPath = SplitParentDir(dirPath)
+	if parentPath != "/var/test" {
+		t.Errorf("SplitParentDir failed, parentPath:%s,expect:%s", parentPath, "/var/test")
+		return
+	}
+}
