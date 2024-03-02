@@ -1,6 +1,10 @@
 package path
 
-import "os"
+import (
+	"errors"
+	"io"
+	"os"
+)
 
 // Exist 路径是否存在
 func Exist(path string) bool {
@@ -18,14 +22,10 @@ func IsDirEmpty(dirPath string) (bool, error) {
 	defer dir.Close()
 
 	// 读取目录中的文件和子目录
-	_, err = dir.Readdirnames(1)
-	if err == nil {
-		// 目录为空
-		return true, nil
-	} else if len(err.Error()) > 0 {
-		// 目录不为空
-		return false, nil
+	nameSlice, nameErr := dir.Readdirnames(1)
+	if nameErr != nil && !errors.Is(nameErr, io.EOF) {
+		return false, nameErr
 	}
 
-	return false, err
+	return len(nameSlice) == 0, nil
 }
