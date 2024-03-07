@@ -10,37 +10,57 @@ const (
 	Text = "text"
 )
 
-// SendMail 发送邮件
-// user : example@example.com login smtp server user
-// password: xxxxx login smtp server password
 // emailServer: smtp.example.com   smtp.163.com
 // emailPort: 25
+// skipTls: 是否忽略Tls
+type ServerInfo struct {
+	Server  string
+	Port    int
+	SkipTls bool
+}
+
+// user : example@example.com login smtp server user
+// password: xxxxx login smtp server password
+type SenderInfo struct {
+	User     string
+	Password string
+}
+
 // sendTo, ccTo: example@example.com;example1@163.com;example2@sina.com.cn;...
 // subject:The subject of mail
 // content: The content of mail
 // attachment: 附件
 // mimeType: mail type html or text
-// skipTls: 是否忽略Tls
-func SendMail(user, password, emailServer string, emailPort int, sendTo, ccTo []string, subject, content string, attachment []string, mimeType string, skipTls bool) error {
+type MailInfo struct {
+	SendTo     []string
+	CCTo       []string
+	Subject    string
+	Content    string
+	Attachment []string
+	MimeType   string
+}
+
+// SendMail 发送邮件
+func SendMail(mailServer *ServerInfo, mailSender *SenderInfo, mailInfo *MailInfo) error {
 	goMailMsg := gomail.NewMessage()
-	goMailMsg.SetHeader("From", user)
-	goMailMsg.SetHeader("To", sendTo...)
-	if len(ccTo) > 0 {
-		goMailMsg.SetHeader("Cc", ccTo...)
+	goMailMsg.SetHeader("From", mailSender.User)
+	goMailMsg.SetHeader("To", mailInfo.SendTo...)
+	if len(mailInfo.CCTo) > 0 {
+		goMailMsg.SetHeader("Cc", mailInfo.CCTo...)
 	}
-	goMailMsg.SetHeader("Subject", subject)
-	if mimeType == Html {
-		goMailMsg.SetBody("text/html", content)
+	goMailMsg.SetHeader("Subject", mailInfo.Subject)
+	if mailInfo.MimeType == Html {
+		goMailMsg.SetBody("text/html", mailInfo.Content)
 	} else {
-		goMailMsg.SetBody("text/plain", content)
+		goMailMsg.SetBody("text/plain", mailInfo.Content)
 	}
 
-	for _, val := range attachment {
+	for _, val := range mailInfo.Attachment {
 		goMailMsg.Attach(val)
 	}
 
-	goMailDialer := gomail.NewDialer(emailServer, emailPort, user, password)
-	if skipTls {
+	goMailDialer := gomail.NewDialer(mailServer.Server, mailServer.Port, mailSender.User, mailSender.Password)
+	if mailServer.SkipTls {
 		goMailDialer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
