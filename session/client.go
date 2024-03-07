@@ -19,15 +19,15 @@ type Client interface {
 	BindToken(token Token)
 	UnBindToken()
 
-	BindEndpoint(endpoint, authToken string)
-	UnBindEndpoint()
+	BindAuthSecret(endpoint, authToken string)
+	UnBindAuthSecret()
 
 	Release()
 }
 
-type endpointInfo struct {
-	endpoint  string
-	authToken string
+type AuthSecret struct {
+	Endpoint  string `json:"endpoint"`
+	AuthToken string `json:"authToken"`
 }
 
 func NewBaseClient(serverUrl string) BaseClient {
@@ -40,7 +40,7 @@ type BaseClient struct {
 
 	sessionAuthorization string
 	sessionToken         Token
-	sessionEndpoint      *endpointInfo
+	sessionAuthSecret    *AuthSecret
 	contextInfo          Context
 }
 
@@ -69,8 +69,8 @@ func (s *BaseClient) GetContextValues() url.Values {
 	if s.sessionToken != "" {
 		ret.Set(Authorization, fmt.Sprintf("%s %s", jwtToken, s.sessionToken))
 	}
-	if s.sessionEndpoint != nil {
-		tokenVal, _ := SignatureEndpoint(s.sessionEndpoint.endpoint, s.sessionEndpoint.authToken)
+	if s.sessionAuthSecret != nil {
+		tokenVal, _ := SignatureEndpoint(s.sessionAuthSecret.Endpoint, s.sessionAuthSecret.AuthToken)
 		ret.Set(Authorization, fmt.Sprintf("%s %s", endpointToken, tokenVal))
 	}
 	if s.sessionAuthorization != "" {
@@ -96,12 +96,12 @@ func (s *BaseClient) UnBindToken() {
 	s.sessionToken = ""
 }
 
-func (s *BaseClient) BindEndpoint(endpoint, authToken string) {
-	s.sessionEndpoint = &endpointInfo{endpoint: endpoint, authToken: authToken}
+func (s *BaseClient) BindAuthSecret(endpoint, authToken string) {
+	s.sessionAuthSecret = &AuthSecret{Endpoint: endpoint, AuthToken: authToken}
 }
 
-func (s *BaseClient) UnBindEndpoint() {
-	s.sessionEndpoint = nil
+func (s *BaseClient) UnBindAuthSecret() {
+	s.sessionAuthSecret = nil
 }
 
 func (s *BaseClient) Release() {
