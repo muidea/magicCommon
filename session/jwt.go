@@ -31,7 +31,7 @@ func decodeJWT(sigVal string) *sessionImpl {
 		return []byte(getSecret()), nil
 	})
 	if err != nil {
-		log.Infof("illegal jwt value:%s, err:%s", sigVal[1], err.Error())
+		//log.Infof("illegal jwt value:%s, err:%s", sigVal[1], err.Error())
 		return nil
 	}
 
@@ -46,7 +46,7 @@ func decodeJWT(sigVal string) *sessionImpl {
 
 			if k == expiryTime {
 				if v.(float64) < float64(currentTime.Unix()) {
-					log.Infof("illegal jwt,expiry time")
+					//log.Infof("illegal jwt,expiry time")
 					return nil
 				}
 
