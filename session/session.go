@@ -57,13 +57,15 @@ type Session interface {
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
+	SubmitOptions()
 }
 
 type sessionImpl struct {
-	id       string // session id
-	context  map[string]interface{}
-	observer map[string]Observer
-	registry *sessionRegistryImpl
+	id            string // session id
+	context       map[string]interface{}
+	observer      map[string]Observer
+	registry      *sessionRegistryImpl
+	optionsChange bool
 }
 
 func (s *sessionImpl) ID() string {
@@ -108,6 +110,7 @@ func (s *sessionImpl) Reset() {
 
 		s.context = map[string]interface{}{expiryTime: expiryValue}
 		s.observer = map[string]Observer{}
+		s.optionsChange = true
 	}()
 
 	s.save()
@@ -255,10 +258,7 @@ func (s *sessionImpl) SetOption(key string, value interface{}) {
 		defer s.registry.sessionLock.Unlock()
 
 		s.context[key] = value
-
-		for _, val := range s.observer {
-			go val.OnStatusChange(s, StatusUpdate)
-		}
+		s.optionsChange = true
 	}()
 
 	s.save()
@@ -270,13 +270,22 @@ func (s *sessionImpl) RemoveOption(key string) {
 		defer s.registry.sessionLock.Unlock()
 
 		delete(s.context, key)
+		s.optionsChange = true
 
-		for _, val := range s.observer {
-			go val.OnStatusChange(s, StatusUpdate)
-		}
 	}()
 
 	s.save()
+}
+
+func (s *sessionImpl) SubmitOptions() {
+	if !s.optionsChange {
+		return
+	}
+
+	s.optionsChange = false
+	for _, val := range s.observer {
+		go val.OnStatusChange(s, StatusUpdate)
+	}
 }
 
 func (s *sessionImpl) refresh() {
