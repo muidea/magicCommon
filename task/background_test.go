@@ -1,7 +1,10 @@
 package task
 
 import (
+	"fmt"
 	"log"
+	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
@@ -32,4 +35,39 @@ func TestBackgroundRoutine_Timer(t *testing.T) {
 	offsetValue = 0
 	curOffset = calcOffset(intervalValue, offsetValue)
 	log.Printf("%v", curOffset)
+}
+
+type asyncTask struct {
+	wg    *sync.WaitGroup
+	index int
+}
+
+func (s *asyncTask) Run() {
+	time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond * 10)
+	fmt.Printf("task index:%d\n", s.index)
+	s.wg.Done()
+}
+
+func TestNewBackgroundRoutine(t *testing.T) {
+	wg := &sync.WaitGroup{}
+	taskRoutine := NewBackgroundRoutine(300)
+
+	idx := 0
+	for ; idx < 10; idx++ {
+		wg.Add(1)
+		taskRoutine.SyncTask(&asyncTask{
+			wg:    wg,
+			index: idx,
+		})
+	}
+
+	for ; idx < 1000; idx++ {
+		wg.Add(1)
+		taskRoutine.AsyncTask(&asyncTask{
+			wg:    wg,
+			index: idx,
+		})
+	}
+
+	wg.Wait()
 }

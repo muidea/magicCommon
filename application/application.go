@@ -13,8 +13,8 @@ import (
 	"github.com/muidea/magicCommon/task"
 )
 
-var defaultBackTaskQueueSize = 500
-var defaultEventHubQueueSize = 1000
+var defaultBackTaskQueueSize = 10000
+var defaultEventHubQueueSize = 500000
 
 func init() {
 	taskQueueSize, taskQueueOK := os.LookupEnv("BG_TASK_QUEUE_SIZE")
