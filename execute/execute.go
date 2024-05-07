@@ -33,8 +33,6 @@ func (s *Execute) Run(funcPtr func()) {
 		log.Warnf("execute queue is full, length:%d, capacity:%d", s.queueLength, s.capacitySize)
 	} else if s.queueLength >= int(math.Floor(float64(s.capacitySize)*0.8)) {
 		log.Warnf("queue lengths are at warning levels, length:%d, capacity:%d", s.queueLength, s.capacitySize)
-	} else {
-		log.Infof("run func, length:%d, capacity:%d", s.queueLength, s.capacitySize)
 	}
 
 	s.capacityQueue <- true

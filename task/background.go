@@ -5,7 +5,6 @@ import (
 
 	"github.com/muidea/magicCommon/execute"
 	"github.com/muidea/magicCommon/foundation/log"
-	"github.com/muidea/magicCommon/foundation/util"
 )
 
 // Task 任务对象
@@ -67,21 +66,10 @@ func (s *backgroundRoutine) loop() {
 		task, ok := <-s.taskChannel
 		if ok {
 			log.Infof("backgroundRoutine running task")
-			s.runTask(task)
+			s.Execute.Run(func() {
+				task.Run()
+			})
 		}
-	}
-}
-
-func (s *backgroundRoutine) runTask(task Task) {
-	defer func() {
-		if err := recover(); err != nil {
-			stackInfo := util.GetStack(3)
-			log.Warnf("runTask exception, PANIC:%v \nstack:%s", err, stackInfo)
-		}
-	}()
-
-	if task != nil {
-		task.Run()
 	}
 }
 
