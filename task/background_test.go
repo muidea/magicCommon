@@ -38,13 +38,30 @@ func TestBackgroundRoutine_Timer(t *testing.T) {
 }
 
 type asyncTask struct {
-	wg    *sync.WaitGroup
-	index int
+	wg          *sync.WaitGroup
+	taskRoutine BackgroundRoutine
+	index       int
 }
 
 func (s *asyncTask) Run() {
 	time.Sleep(time.Duration(rand.Intn(10)) * time.Millisecond * 10)
 	fmt.Printf("task index:%d\n", s.index)
+	if s.taskRoutine != nil {
+		s.wg.Add(1)
+		s.taskRoutine.AsyncTask(&subTask{
+			wg: s.wg,
+		})
+	}
+
+	s.wg.Done()
+}
+
+type subTask struct {
+	wg *sync.WaitGroup
+}
+
+func (s *subTask) Run() {
+	fmt.Printf("subTask running!\n")
 	s.wg.Done()
 }
 
@@ -56,8 +73,9 @@ func TestNewBackgroundRoutine(t *testing.T) {
 	for ; idx < 10; idx++ {
 		wg.Add(1)
 		taskRoutine.SyncTask(&asyncTask{
-			wg:    wg,
-			index: idx,
+			wg:          wg,
+			index:       idx,
+			taskRoutine: taskRoutine,
 		})
 	}
 
