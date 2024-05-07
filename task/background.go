@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/muidea/magicCommon/execute"
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 // Task 任务对象
@@ -67,8 +68,11 @@ func (s *backgroundRoutine) loop() {
 }
 
 func (s *backgroundRoutine) AsyncTask(task Task) {
+	log.Infof("AsyncTask post")
 	s.Execute.Run(func() {
+		log.Infof("AsyncTask running!")
 		s.taskChannel <- task
+		log.Infof("AsyncTask running ok!")
 	})
 }
 
