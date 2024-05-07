@@ -63,8 +63,12 @@ func (s *backgroundRoutine) run() {
 
 func (s *backgroundRoutine) loop() {
 	for {
-		task := <-s.taskChannel
-		s.runTask(task)
+		log.Infof("backgroundRoutine fetch task from channel")
+		task, ok := <-s.taskChannel
+		if ok {
+			log.Infof("backgroundRoutine running task")
+			s.runTask(task)
+		}
 	}
 }
 
