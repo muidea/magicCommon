@@ -301,7 +301,7 @@ func HTTPPut(httpClient *http.Client, url string, param interface{}, result inte
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
 		err = responseErr
-		log.Errorf("post request failed, err:%s", err.Error())
+		log.Errorf("put request failed, err:%s", err.Error())
 		return
 	}
 	defer response.Body.Close()
