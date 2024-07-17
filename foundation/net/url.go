@@ -22,7 +22,7 @@ func JoinSuffix(urlVal string, suffix ...string) string {
 	suffixLen := len(suffix)
 	if suffixLen > 0 {
 		lastSuffix := suffix[suffixLen-1]
-		if len(lastSuffix) > 0 && lastSuffix[len(lastSuffix)-1] == '/' {
+		if len(lastSuffix) > 0 && lastSuffix[len(lastSuffix)-1] == '/' || lastSuffix == "" {
 			urlVal += "/"
 		}
 	}

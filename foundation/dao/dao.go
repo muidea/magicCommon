@@ -3,32 +3,36 @@ package dao
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"github.com/muidea/magicCommon/foundation/log"
 
 	_ "github.com/go-sql-driver/mysql" //引入Mysql驱动
 )
 
 // Dao 数据库访问对象
 type Dao interface {
+	String() string
 	Release()
-	BeginTransaction()
-	CommitTransaction()
-	RollbackTransaction()
-	Query(sql string)
+	BeginTransaction() error
+	CommitTransaction() error
+	RollbackTransaction() error
+	Query(sql string, args ...any) error
 	Next() bool
 	Finish()
-	GetField(value ...interface{})
-	Insert(sql string) int64
-	Update(sql string) int64
-	Delete(sql string) int64
-	Execute(sql string) int64
-	CheckTableExist(tableName string) (ret bool)
+	GetField(value ...interface{}) error
+	Insert(sql string, args ...any) (int64, error)
+	Update(sql string, args ...any) (int64, error)
+	Delete(sql string, args ...any) (int64, error)
+	Execute(sql string, args ...any) (int64, error)
+	CheckTableExist(tableName string) (bool, error)
 }
 
 type impl struct {
 	dbHandle   *sql.DB
 	dbTx       *sql.Tx
 	rowsHandle *sql.Rows
+	user       string
+	password   string
+	address    string
 	dbName     string
 }
 
@@ -36,129 +40,134 @@ type impl struct {
 func Fetch(user, password, address, dbName string) (Dao, error) {
 	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8", user, password, address, dbName)
 
-	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil, dbName: dbName}
+	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil, user: user, password: password, address: address, dbName: dbName}
 	db, err := sql.Open("mysql", connectStr)
 	if err != nil {
-		log.Printf("open database exception, err:%s", err.Error())
+		log.Errorf("open database exception, err:%s", err.Error())
 		return nil, err
 	}
 
-	//log.Print("open database connection...")
 	i.dbHandle = db
 
 	err = db.Ping()
 	if err != nil {
-		log.Printf("ping database failed, err:%s", err.Error())
+		log.Errorf("ping database failed, err:%s", err.Error())
 		return nil, err
 	}
 
 	return &i, err
 }
 
-// Release Release
+func (s *impl) String() string {
+	return fmt.Sprintf("%s/%s", s.address, s.dbName)
+}
+
 func (s *impl) Release() {
 	if s.dbTx != nil {
 		panic("dbTx isn't nil")
 	}
 
 	if s.rowsHandle != nil {
-		s.rowsHandle.Close()
+		_ = s.rowsHandle.Close()
 	}
 	s.rowsHandle = nil
 
 	if s.dbHandle != nil {
-		//log.Print("close database connection...")
-
-		s.dbHandle.Close()
+		_ = s.dbHandle.Close()
 	}
 	s.dbHandle = nil
-
 }
 
-// BeginTransaction Begin Transaction
-func (s *impl) BeginTransaction() {
+func (s *impl) BeginTransaction() error {
+	if s.dbHandle == nil {
+		panic("dbHandle is nil")
+	}
+
 	if s.dbTx == nil {
 		if s.rowsHandle != nil {
-			s.rowsHandle.Close()
+			_ = s.rowsHandle.Close()
 		}
 		s.rowsHandle = nil
 
 		tx, err := s.dbHandle.Begin()
 		if err != nil {
-			panic("begin transaction exception, err:" + err.Error())
+			return err
 		}
 
 		s.dbTx = tx
 	}
 
-	//log.Print("BeginTransaction")
+	return nil
 }
 
-// CommitTransaction Commit Transaction
-func (s *impl) CommitTransaction() {
+func (s *impl) CommitTransaction() error {
+	if s.dbHandle == nil {
+		panic("dbHandle is nil")
+	}
+
 	if s.dbTx != nil {
 		err := s.dbTx.Commit()
 		if err != nil {
 			s.dbTx = nil
-
-			panic("commit transaction exception, err:" + err.Error())
+			return err
 		}
 
 		s.dbTx = nil
 	}
 
-	//log.Print("Commit")
+	return nil
 }
 
-// RollbackTransaction Rollback Transaction
-func (s *impl) RollbackTransaction() {
-	if s.dbTx != nil {
+func (s *impl) RollbackTransaction() error {
+	if s.dbHandle == nil {
+		panic("dbHandle is nil")
+	}
 
+	if s.dbTx != nil {
 		err := s.dbTx.Rollback()
 		if err != nil {
 			s.dbTx = nil
-
-			panic("rollback transaction exception, err:" + err.Error())
+			return err
 		}
 
 		s.dbTx = nil
 	}
 
-	//log.Print("Rollback")
+	return nil
 }
 
-// Query Query
-func (s *impl) Query(sql string) {
-	//log.Printf("Query, sql:%s", sql)
+func (s *impl) Query(sql string, args ...any) error {
+	if s.dbHandle == nil {
+		panic("dbHanlde is nil")
+	}
+
 	if s.dbTx == nil {
-		if s.dbHandle == nil {
-			panic("dbHanlde is nil")
-		}
 		if s.rowsHandle != nil {
-			s.rowsHandle.Close()
+			_ = s.rowsHandle.Close()
 			s.rowsHandle = nil
 		}
 
-		rows, err := s.dbHandle.Query(sql)
+		rows, err := s.dbHandle.Query(sql, args...)
 		if err != nil {
-			panic("query exception, err:" + err.Error() + ", sql:" + sql)
+			return err
 		}
 		s.rowsHandle = rows
 	} else {
 		if s.rowsHandle != nil {
-			s.rowsHandle.Close()
+			_ = s.rowsHandle.Close()
 			s.rowsHandle = nil
 		}
 
-		rows, err := s.dbTx.Query(sql)
+		rows, err := s.dbTx.Query(sql, args...)
 		if err != nil {
-			panic("query exception, err:" + err.Error() + ", sql:" + sql)
+			return err
 		}
 		s.rowsHandle = rows
 	}
+
+	return nil
 }
 
-// Next Next
 func (s *impl) Next() bool {
 	if s.rowsHandle == nil {
 		panic("rowsHandle is nil")
@@ -166,197 +175,125 @@ func (s *impl) Next() bool {
 
 	ret := s.rowsHandle.Next()
 	if !ret {
-		//log.Print("Next, close rows")
-		s.rowsHandle.Close()
+		_ = s.rowsHandle.Close()
 		s.rowsHandle = nil
 	}
 
 	return ret
 }
 
-// Finish Finish
 func (s *impl) Finish() {
 	if s.rowsHandle != nil {
-		s.rowsHandle.Close()
+		_ = s.rowsHandle.Close()
 		s.rowsHandle = nil
 	}
 }
 
-// GetField GetField
-func (s *impl) GetField(value ...interface{}) {
+func (s *impl) GetField(value ...interface{}) error {
 	if s.rowsHandle == nil {
 		panic("rowsHandle is nil")
 	}
 
 	err := s.rowsHandle.Scan(value...)
-	if err != nil {
-		panic("scan exception, err:" + err.Error())
-	}
+	return err
 }
 
-// Insert Insert
-func (s *impl) Insert(sql string) int64 {
+func (s *impl) Insert(sql string, args ...any) (int64, error) {
+	if s.dbHandle == nil {
+		panic("dbHandle is nil")
+	}
+
 	if s.rowsHandle != nil {
 		s.rowsHandle.Close()
 	}
 	s.rowsHandle = nil
 
 	if s.dbTx == nil {
-		if s.dbHandle == nil {
-			panic("dbHandle is nil")
+		execVal, execErr := s.dbHandle.Exec(sql, args...)
+		if execErr != nil {
+			return 0, execErr
 		}
 
-		result, err := s.dbHandle.Exec(sql)
-		if err != nil {
-			panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+		idVal, idErr := execVal.LastInsertId()
+		if idErr != nil {
+			return 0, idErr
 		}
 
-		idNum, err := result.LastInsertId()
-		if err != nil {
-			panic("insert failed exception, err:" + err.Error())
-		}
-
-		return idNum
+		return idVal, nil
 	}
 
-	result, err := s.dbTx.Exec(sql)
-	if err != nil {
-		panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+	execVal, execErr := s.dbTx.Exec(sql, args...)
+	if execErr != nil {
+		return 0, execErr
 	}
 
-	idNum, err := result.LastInsertId()
-	if err != nil {
-		panic("insert failed exception, err:" + err.Error())
+	idVal, idErr := execVal.LastInsertId()
+	if idErr != nil {
+		return 0, idErr
 	}
 
-	return idNum
+	return idVal, nil
 }
 
-// Update Update
-func (s *impl) Update(sql string) int64 {
+func (s *impl) Update(sql string, args ...any) (int64, error) {
+	return s.Execute(sql, args...)
+}
+
+func (s *impl) Delete(sql string, args ...any) (int64, error) {
+	return s.Execute(sql, args...)
+}
+
+func (s *impl) Execute(sql string, args ...any) (int64, error) {
+	if s.dbHandle == nil {
+		panic("dbHandle is nil")
+	}
+
 	if s.rowsHandle != nil {
 		s.rowsHandle.Close()
 	}
 	s.rowsHandle = nil
 
 	if s.dbTx == nil {
-		if s.dbHandle == nil {
-			panic("dbHandle is nil")
+		execVal, execErr := s.dbHandle.Exec(sql, args...)
+		if execErr != nil {
+			return 0, execErr
 		}
 
-		result, err := s.dbHandle.Exec(sql)
-		if err != nil {
-			panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+		rowNum, rowErr := execVal.RowsAffected()
+		if rowErr != nil {
+			return 0, rowErr
 		}
 
-		num, err := result.RowsAffected()
-		if err != nil {
-			panic("rows affected exception, err:" + err.Error())
-		}
-
-		return num
+		return rowNum, nil
 	}
 
-	result, err := s.dbTx.Exec(sql)
-	if err != nil {
-		panic("exec exception, err:" + err.Error() + ", sql:" + sql)
+	execVal, execErr := s.dbTx.Exec(sql, args...)
+	if execErr != nil {
+		return 0, execErr
 	}
 
-	num, err := result.RowsAffected()
-	if err != nil {
-		panic("rows affected exception, err:" + err.Error())
+	rowNum, rowErr := execVal.RowsAffected()
+	if rowErr != nil {
+		return 0, rowErr
 	}
 
-	return num
+	return rowNum, nil
 }
 
-// Delete Delete
-func (s *impl) Delete(sql string) int64 {
-	if s.rowsHandle != nil {
-		s.rowsHandle.Close()
-	}
-	s.rowsHandle = nil
-
-	if s.dbTx == nil {
-		if s.dbHandle == nil {
-			panic("dbHandle is nil")
-		}
-
-		result, err := s.dbHandle.Exec(sql)
-		if err != nil {
-			panic("exec exception, err:" + err.Error() + ", sql:" + sql)
-		}
-
-		num, err := result.RowsAffected()
-		if err != nil {
-			panic("rows affected exception, err:" + err.Error())
-		}
-
-		return num
-	}
-
-	result, err := s.dbTx.Exec(sql)
-	if err != nil {
-		panic("exec exception, err:" + err.Error() + ", sql:" + sql)
-	}
-
-	num, err := result.RowsAffected()
-	if err != nil {
-		panic("rows affected exception, err:" + err.Error())
-	}
-
-	return num
-}
-
-// Execute Execute
-func (s *impl) Execute(sql string) int64 {
-	if s.rowsHandle != nil {
-		s.rowsHandle.Close()
-	}
-	s.rowsHandle = nil
-
-	if s.dbTx == nil {
-		if s.dbHandle == nil {
-			panic("dbHandle is nil")
-		}
-
-		result, err := s.dbHandle.Exec(sql)
-		if err != nil {
-			panic("exec exception, err:" + err.Error() + ", sql:" + sql)
-		}
-
-		num, err := result.RowsAffected()
-		if err != nil {
-			panic("rows affected exception, err:" + err.Error())
-		}
-
-		return num
-	}
-
-	result, err := s.dbTx.Exec(sql)
-	if err != nil {
-		panic("exec exception, err:" + err.Error() + ", sql:" + sql)
-	}
-
-	num, err := result.RowsAffected()
-	if err != nil {
-		panic("rows affected exception, err:" + err.Error())
-	}
-
-	return num
-}
-
-// CheckTableExist CheckTableExist
-func (s *impl) CheckTableExist(tableName string) (ret bool) {
+func (s *impl) CheckTableExist(tableName string) (bool, error) {
 	sql := fmt.Sprintf("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME ='%s' and TABLE_SCHEMA ='%s'", tableName, s.dbName)
 
-	s.Query(sql)
-	if s.Next() {
-		ret = true
-	} else {
-		ret = false
+	err := s.Query(sql)
+	if err != nil {
+		return false, err
 	}
-	s.Finish()
 
-	return
+	defer s.Finish()
+	if s.Next() {
+		return true, nil
+	} else {
+		return false, nil
+	}
+
+	return false, nil
 }

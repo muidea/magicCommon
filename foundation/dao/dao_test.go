@@ -30,7 +30,7 @@ func TestDatabase(t *testing.T) {
 	}()
 
 	createDbSql := fmt.Sprintf("create database if not exists %s", dbName)
-	num := dao.Execute(createDbSql)
+	num, _ := dao.Execute(createDbSql)
 	if num != 1 {
 		t.Errorf("create database failed")
 	}
@@ -64,7 +64,7 @@ func TestInsert(t *testing.T) {
 	initFunc(dao)
 
 	insertSql := fmt.Sprintf("%s", "insert into user (address) values(\"abc\")")
-	num := dao.Execute(insertSql)
+	num, _ := dao.Execute(insertSql)
 	if num != 1 {
 		t.Errorf("Insert data failed")
 	}
