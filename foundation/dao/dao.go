@@ -10,6 +10,7 @@ import (
 
 // Dao 数据库访问对象
 type Dao interface {
+	DBName() string
 	String() string
 	Release()
 	BeginTransaction() error
@@ -56,6 +57,10 @@ func Fetch(user, password, address, dbName string) (Dao, error) {
 	}
 
 	return &i, err
+}
+
+func (s *impl) DBName() string {
+	return s.dbName
 }
 
 func (s *impl) String() string {
