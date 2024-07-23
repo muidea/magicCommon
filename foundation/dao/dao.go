@@ -3,6 +3,8 @@ package dao
 import (
 	"database/sql"
 	"fmt"
+	"sync/atomic"
+
 	"github.com/muidea/magicCommon/foundation/log"
 
 	_ "github.com/go-sql-driver/mysql" //引入Mysql驱动
@@ -13,9 +15,12 @@ type Dao interface {
 	DBName() string
 	String() string
 	Release()
+	Ping() error
 	BeginTransaction() error
 	CommitTransaction() error
 	RollbackTransaction() error
+	CreateDatabase(dbName string) error
+	DropDatabase(dbName string) error
 	UseDatabase(dbName string) error
 	Query(sql string, args ...any) error
 	Next() bool
@@ -30,6 +35,7 @@ type Dao interface {
 
 type impl struct {
 	dbHandle   *sql.DB
+	dbTxCount  int32
 	dbTx       *sql.Tx
 	rowsHandle *sql.Rows
 	user       string
@@ -39,8 +45,11 @@ type impl struct {
 }
 
 // Fetch 获取一个数据访问对象
-func Fetch(user, password, address, dbName string) (Dao, error) {
-	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8", user, password, address, dbName)
+func Fetch(user, password, address, dbName, charSet string) (Dao, error) {
+	if charSet == "" {
+		charSet = "utf8"
+	}
+	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s", user, password, address, dbName, charSet)
 
 	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil, user: user, password: password, address: address, dbName: dbName}
 	db, err := sql.Open("mysql", connectStr)
@@ -84,12 +93,21 @@ func (s *impl) Release() {
 	s.dbHandle = nil
 }
 
+func (s *impl) Ping() error {
+	if s.dbHandle == nil {
+		panic("dbHandle is nil")
+	}
+
+	return s.dbHandle.Ping()
+}
+
 func (s *impl) BeginTransaction() error {
 	if s.dbHandle == nil {
 		panic("dbHandle is nil")
 	}
 
-	if s.dbTx == nil {
+	atomic.AddInt32(&s.dbTxCount, 1)
+	if s.dbTx == nil && s.dbTxCount == 1 {
 		if s.rowsHandle != nil {
 			_ = s.rowsHandle.Close()
 		}
@@ -111,7 +129,8 @@ func (s *impl) CommitTransaction() error {
 		panic("dbHandle is nil")
 	}
 
-	if s.dbTx != nil {
+	atomic.AddInt32(&s.dbTxCount, -1)
+	if s.dbTx != nil && s.dbTxCount == 0 {
 		err := s.dbTx.Commit()
 		if err != nil {
 			s.dbTx = nil
@@ -129,7 +148,8 @@ func (s *impl) RollbackTransaction() error {
 		panic("dbHandle is nil")
 	}
 
-	if s.dbTx != nil {
+	atomic.AddInt32(&s.dbTxCount, -1)
+	if s.dbTx != nil && s.dbTxCount == 0 {
 		err := s.dbTx.Rollback()
 		if err != nil {
 			s.dbTx = nil
@@ -140,6 +160,16 @@ func (s *impl) RollbackTransaction() error {
 	}
 
 	return nil
+}
+
+func (s *impl) CreateDatabase(dbName string) error {
+	_, err := s.Execute(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+	return err
+}
+
+func (s *impl) DropDatabase(dbName string) error {
+	_, err := s.Execute(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName))
+	return err
 }
 
 func (s *impl) UseDatabase(dbName string) error {
