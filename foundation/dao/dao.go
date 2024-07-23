@@ -16,6 +16,7 @@ type Dao interface {
 	BeginTransaction() error
 	CommitTransaction() error
 	RollbackTransaction() error
+	UseDatabase(dbName string) error
 	Query(sql string, args ...any) error
 	Next() bool
 	Finish()
@@ -139,6 +140,12 @@ func (s *impl) RollbackTransaction() error {
 	}
 
 	return nil
+}
+
+func (s *impl) UseDatabase(dbName string) error {
+	s.dbName = dbName
+	_, err := s.Execute(fmt.Sprintf("USE %s", dbName))
+	return err
 }
 
 func (s *impl) Query(sql string, args ...any) error {
