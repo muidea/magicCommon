@@ -323,7 +323,7 @@ func (s *impl) Execute(sql string, args ...any) (int64, error) {
 }
 
 func (s *impl) CheckTableExist(tableName string) (bool, error) {
-	sql := fmt.Sprintf("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME =`%s` and TABLE_SCHEMA =`%s`", tableName, s.dbName)
+	sql := fmt.Sprintf("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME ='%s' and TABLE_SCHEMA ='%s'", tableName, s.dbName)
 
 	err := s.Query(sql)
 	if err != nil {
