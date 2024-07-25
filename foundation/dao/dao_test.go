@@ -18,7 +18,7 @@ const svrAddress = "localhost:3306"
 const dbName = "testDB"
 
 func TestDatabase(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "")
+	dao, err := dao.Fetch(user, password, svrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS user (
 }
 
 func TestInsert(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "")
+	dao, err := dao.Fetch(user, password, svrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
@@ -74,7 +74,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "")
+	dao, err := dao.Fetch(user, password, svrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}

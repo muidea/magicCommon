@@ -10,6 +10,11 @@ import (
 	_ "github.com/go-sql-driver/mysql" //引入Mysql驱动
 )
 
+const (
+	BaseTable = "BASE TABLE"
+	View      = "VIEW"
+)
+
 // Dao 数据库访问对象
 type Dao interface {
 	DBName() string
@@ -30,7 +35,7 @@ type Dao interface {
 	Update(sql string, args ...any) (int64, error)
 	Delete(sql string, args ...any) (int64, error)
 	Execute(sql string, args ...any) (int64, error)
-	CheckTableExist(tableName string) (bool, error)
+	CheckTableExist(tableName string) (bool, string, error)
 }
 
 type impl struct {
@@ -322,20 +327,25 @@ func (s *impl) Execute(sql string, args ...any) (int64, error) {
 	return rowNum, nil
 }
 
-func (s *impl) CheckTableExist(tableName string) (bool, error) {
-	sql := fmt.Sprintf("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME ='%s' and TABLE_SCHEMA ='%s'", tableName, s.dbName)
+func (s *impl) CheckTableExist(tableName string) (bool, string, error) {
+	sqlStr := fmt.Sprintf("SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_NAME ='%s' and TABLE_SCHEMA ='%s'", tableName, s.dbName)
 
-	err := s.Query(sql)
+	err := s.Query(sqlStr)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	defer s.Finish()
+
+	var tableNameVal, tableTypeVal sql.NullString
 	if s.Next() {
-		return true, nil
-	} else {
-		return false, nil
+		err = s.GetField(&tableNameVal, &tableTypeVal)
+		if err != nil {
+			return false, "", err
+		}
+
+		return true, tableTypeVal.String, nil
 	}
 
-	return false, nil
+	return false, "", nil
 }
