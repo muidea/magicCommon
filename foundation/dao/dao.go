@@ -174,7 +174,7 @@ func (s *impl) DropDatabase(dbName string) error {
 
 func (s *impl) UseDatabase(dbName string) error {
 	s.dbName = dbName
-	_, err := s.Execute(fmt.Sprintf("USE %s", dbName))
+	_, err := s.Execute(fmt.Sprintf("USE `%s`", dbName))
 	return err
 }
 
