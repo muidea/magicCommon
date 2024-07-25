@@ -163,18 +163,18 @@ func (s *impl) RollbackTransaction() error {
 }
 
 func (s *impl) CreateDatabase(dbName string) error {
-	_, err := s.Execute(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", dbName))
+	_, err := s.Execute(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS '%s'", dbName))
 	return err
 }
 
 func (s *impl) DropDatabase(dbName string) error {
-	_, err := s.Execute(fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName))
+	_, err := s.Execute(fmt.Sprintf("DROP DATABASE IF EXISTS '%s'", dbName))
 	return err
 }
 
 func (s *impl) UseDatabase(dbName string) error {
 	s.dbName = dbName
-	_, err := s.Execute(fmt.Sprintf("USE `%s`", dbName))
+	_, err := s.Execute(fmt.Sprintf("USE '%s'", dbName))
 	return err
 }
 
@@ -323,7 +323,7 @@ func (s *impl) Execute(sql string, args ...any) (int64, error) {
 }
 
 func (s *impl) CheckTableExist(tableName string) (bool, error) {
-	sql := fmt.Sprintf("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME =%s and TABLE_SCHEMA =`%s`", tableName, s.dbName)
+	sql := fmt.Sprintf("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME ='%s' and TABLE_SCHEMA ='%s'", tableName, s.dbName)
 
 	err := s.Query(sql)
 	if err != nil {
