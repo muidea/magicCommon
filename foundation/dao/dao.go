@@ -163,12 +163,12 @@ func (s *impl) RollbackTransaction() error {
 }
 
 func (s *impl) CreateDatabase(dbName string) error {
-	_, err := s.Execute(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+	_, err := s.Execute(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", dbName))
 	return err
 }
 
 func (s *impl) DropDatabase(dbName string) error {
-	_, err := s.Execute(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName))
+	_, err := s.Execute(fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName))
 	return err
 }
 
