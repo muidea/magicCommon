@@ -330,6 +330,7 @@ func (s *impl) Execute(sql string, args ...any) (int64, error) {
 func (s *impl) CheckTableExist(tableName string) (bool, string, error) {
 	sqlStr := fmt.Sprintf("SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_NAME ='%s' and TABLE_SCHEMA ='%s'", tableName, s.dbName)
 
+	log.Infof(sqlStr)
 	err := s.Query(sqlStr)
 	if err != nil {
 		return false, "", err
