@@ -36,6 +36,7 @@ type Dao interface {
 	Delete(sql string, args ...any) (int64, error)
 	Execute(sql string, args ...any) (int64, error)
 	CheckTableExist(tableName string) (bool, string, error)
+	Duplicate() (Dao, error)
 }
 
 type impl struct {
@@ -47,6 +48,7 @@ type impl struct {
 	password   string
 	address    string
 	dbName     string
+	charSet    string
 }
 
 // Fetch 获取一个数据访问对象
@@ -56,7 +58,7 @@ func Fetch(user, password, address, dbName, charSet string) (Dao, error) {
 	}
 	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s", user, password, address, dbName, charSet)
 
-	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil, user: user, password: password, address: address, dbName: dbName}
+	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil, user: user, password: password, address: address, dbName: dbName, charSet: charSet}
 	db, err := sql.Open("mysql", connectStr)
 	if err != nil {
 		log.Errorf("open database exception, err:%s", err.Error())
@@ -348,4 +350,8 @@ func (s *impl) CheckTableExist(tableName string) (bool, string, error) {
 	}
 
 	return false, "", nil
+}
+
+func (s *impl) Duplicate() (Dao, error) {
+	return Fetch(s.user, s.password, s.address, s.dbName, s.charSet)
 }
