@@ -24,6 +24,29 @@ func TestDatabase(t *testing.T) {
 	}
 	defer dao.Release()
 
+	err = dao.CreateDatabase("supetl")
+	if err != nil {
+		t.Errorf("create database error:%s", err.Error())
+		return
+	}
+
+	err = dao.UseDatabase("supetl")
+	if err != nil {
+		t.Errorf("use database error:%s", err.Error())
+		return
+	}
+
+	nDao, nErr := dao.Duplicate()
+	if nErr != nil {
+		t.Errorf("duplicate database error:%s", err.Error())
+		return
+	}
+	err = nDao.CreateDatabase("A1000")
+	if err != nil {
+		t.Errorf("create database error:%s", err.Error())
+		return
+	}
+
 	defer func() {
 		dropDbSql := fmt.Sprintf("drop database if exists %s", dbName)
 		dao.Execute(dropDbSql)

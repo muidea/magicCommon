@@ -171,17 +171,29 @@ func (s *impl) RollbackTransaction() error {
 
 func (s *impl) CreateDatabase(dbName string) error {
 	_, err := s.Execute(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", dbName))
+	if err != nil {
+		return err
+	}
+	_, err = s.Execute("FLUSH TABLES")
 	return err
 }
 
 func (s *impl) DropDatabase(dbName string) error {
 	_, err := s.Execute(fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName))
+	if err != nil {
+		return err
+	}
+	_, err = s.Execute("FLUSH TABLES")
 	return err
 }
 
 func (s *impl) UseDatabase(dbName string) error {
 	s.dbName = dbName
 	_, err := s.Execute(fmt.Sprintf("USE `%s`", dbName))
+	if err != nil {
+		return err
+	}
+	_, err = s.Execute("FLUSH TABLES")
 	return err
 }
 
