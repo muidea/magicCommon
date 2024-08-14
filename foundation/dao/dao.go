@@ -67,11 +67,11 @@ func Fetch(user, password, address, dbName, charSet string) (Dao, error) {
 
 	i.dbHandle = db
 
-	//err = db.Ping()
-	//if err != nil {
-	//	log.Errorf("ping database failed, err:%s", err.Error())
-	//	return nil, err
-	//}
+	err = db.Ping()
+	if err != nil {
+		log.Errorf("ping database failed, err:%s", err.Error())
+		return nil, err
+	}
 
 	return &i, err
 }
