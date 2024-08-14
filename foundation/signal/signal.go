@@ -26,6 +26,16 @@ func (s *Gard) PutSignal(id int) (err error) {
 	return
 }
 
+func (s *Gard) CleanSignal(id int) {
+	signalChan, signalOK := s.signalChanMap.Load(id)
+	if !signalOK {
+		return
+	}
+
+	s.signalChanMap.Delete(id)
+	close(signalChan.(chan bool))
+}
+
 func (s *Gard) WaitSignal(id, timeOut int) (err error) {
 	signalChan, signalOK := s.signalChanMap.Load(id)
 	if !signalOK {
