@@ -24,6 +24,8 @@ const (
 	Redirect = 500003
 	// UnExpected 意外错误
 	UnExpected = 500004
+	// Duplicated 重复
+	Duplicated = 500005
 )
 
 // Result 处理结果
