@@ -1,7 +1,10 @@
 package cache
 
-// MaxAgeValue 最大存放期限，无限期
-const MaxAgeValue = -1
+// ForeverAgeValue 最大存放期限，无限期
+const ForeverAgeValue = -1
+const OneMinuteAgeValue = 1
+const TenMinutesAgeValue = 10
+const HalfHourAgeValue = 30
 
 type commandAction int
 

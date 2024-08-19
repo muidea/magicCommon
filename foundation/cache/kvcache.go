@@ -62,7 +62,7 @@ type removeKVData struct {
 }
 
 type cacheKVData struct {
-	putInKVData
+	cacheData *putInKVData
 	cacheTime time.Time
 }
 
@@ -73,12 +73,12 @@ type MemoryKVCache chan commandData
 func (s *MemoryKVCache) Put(key string, data interface{}, maxAge float64) string {
 	reply := make(chan interface{})
 
-	putInData := &putInKVData{}
-	putInData.key = key
-	putInData.data = data
-	putInData.maxAge = maxAge
+	dataPtr := &putInKVData{}
+	dataPtr.key = key
+	dataPtr.data = data
+	dataPtr.maxAge = maxAge
 
-	*s <- commandData{action: putIn, value: putInData, result: reply}
+	*s <- commandData{action: putIn, value: dataPtr, result: reply}
 
 	result := (<-reply).(*putInKVResult).value
 	return result
@@ -88,10 +88,10 @@ func (s *MemoryKVCache) Put(key string, data interface{}, maxAge float64) string
 func (s *MemoryKVCache) Fetch(key string) interface{} {
 	reply := make(chan interface{})
 
-	fetchOutData := &fetchOutKVData{}
-	fetchOutData.key = key
+	dataPtr := &fetchOutKVData{}
+	dataPtr.key = key
 
-	*s <- commandData{action: fetchOut, value: fetchOutData, result: reply}
+	*s <- commandData{action: fetchOut, value: dataPtr, result: reply}
 
 	result := (<-reply).(*fetchOutKVResult)
 	return result.value
@@ -104,10 +104,10 @@ func (s *MemoryKVCache) Search(opr SearchOpr) interface{} {
 
 	reply := make(chan interface{})
 
-	searchData := &searchKVData{}
-	searchData.opr = opr
+	dataPtr := &searchKVData{}
+	dataPtr.opr = opr
 
-	*s <- commandData{action: search, value: searchData, result: reply}
+	*s <- commandData{action: search, value: dataPtr, result: reply}
 
 	result := (<-reply).(*searchKVResult)
 	return result.value
@@ -115,10 +115,10 @@ func (s *MemoryKVCache) Search(opr SearchOpr) interface{} {
 
 // Remove 清除数据
 func (s *MemoryKVCache) Remove(key string) {
-	removeKVData := &removeKVData{}
-	removeKVData.key = key
+	dataPtr := &removeKVData{}
+	dataPtr.key = key
 
-	*s <- commandData{action: remove, value: removeKVData}
+	*s <- commandData{action: remove, value: dataPtr}
 }
 
 // GetAll 获取所有的数据
@@ -148,32 +148,31 @@ func (s *MemoryKVCache) Release() {
 }
 
 func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
-	localCacheData := make(map[string]cacheKVData)
+	localCacheData := make(map[string]*cacheKVData)
 
 	for command := range *s {
 		switch command.action {
 		case putIn:
-			cacheKVData := cacheKVData{}
-			cacheKVData.putInKVData = *(command.value.(*putInKVData))
-			cacheKVData.cacheTime = time.Now()
+			dataPtr := &cacheKVData{}
+			dataPtr.cacheData = command.value.(*putInKVData)
+			dataPtr.cacheTime = time.Now()
 
-			localCacheData[cacheKVData.key] = cacheKVData
+			localCacheData[dataPtr.cacheData.key] = dataPtr
 
 			result := &putInKVResult{}
-			result.value = cacheKVData.key
+			result.value = dataPtr.cacheData.key
 
 			command.result <- result
 		case fetchOut:
 			key := command.value.(*fetchOutKVData).key
-
-			cacheKVData, found := localCacheData[key]
+			dataPtr, found := localCacheData[key]
 
 			result := &fetchOutKVResult{}
 			if found {
-				cacheKVData.cacheTime = time.Now()
-				localCacheData[key] = cacheKVData
+				dataPtr.cacheTime = time.Now()
+				localCacheData[key] = dataPtr
 
-				result.value = cacheKVData.data
+				result.value = dataPtr.cacheData.data
 			}
 
 			command.result <- result
@@ -182,8 +181,9 @@ func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 
 			result := &searchKVResult{}
 			for _, v := range localCacheData {
-				if opr(v.data) {
-					result.value = v.data
+				if opr(v.cacheData.data) {
+					v.cacheTime = time.Now()
+					result.value = v.cacheData.data
 					break
 				}
 			}
@@ -196,20 +196,21 @@ func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 		case getAll:
 			result := &getAllKVResult{value: []interface{}{}}
 			for _, v := range localCacheData {
-				result.value = append(result.value, v.data)
+				v.cacheTime = time.Now()
+				result.value = append(result.value, v.cacheData.data)
 			}
 
 			command.result <- result
 		case clearAll:
-			localCacheData = make(map[string]cacheKVData)
+			localCacheData = make(map[string]*cacheKVData)
 		case checkTimeOut:
 			keys := []string{}
 			// 检查每项数据是否超时，超时数据需要主动清除掉
 			for k, v := range localCacheData {
-				if math.Abs(v.maxAge-MaxAgeValue) > 0.001 {
+				if math.Abs(v.cacheData.maxAge-ForeverAgeValue) > 0.001 {
 					current := time.Now()
 					elapse := current.Sub(v.cacheTime).Minutes()
-					if elapse > v.maxAge {
+					if elapse > v.cacheData.maxAge {
 						keys = append(keys, k)
 					}
 				}

@@ -6,7 +6,7 @@ import (
 )
 
 func TestMemoryCache(t *testing.T) {
-	cache := NewCache()
+	cache := NewCache(nil)
 	if nil == cache {
 		t.Error("create new memorycache failed")
 		return
