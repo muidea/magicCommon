@@ -302,8 +302,8 @@ func (s *sessionImpl) timeout() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryTime, _ := s.context[expiryTime]
-	return expiryTime.(int64) < nowTime
+	expiryTimeVal, _ := s.context[expiryTime]
+	return expiryTimeVal.(int64) < nowTime
 }
 
 func (s *sessionImpl) terminate() {
