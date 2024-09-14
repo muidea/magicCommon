@@ -86,9 +86,9 @@ func TestInsert(t *testing.T) {
 
 	initFunc(dao)
 
-	insertSql := fmt.Sprintf("%s", "insert into user (address) values(\"abc\")")
-	num, _ := dao.Execute(insertSql)
-	if num != 1 {
+	insertSql := fmt.Sprintf("%s", "insert into user (address) values(?),(?),(?),(?)")
+	num, _ := dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
 		t.Errorf("Insert data failed")
 	}
 
