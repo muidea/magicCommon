@@ -93,7 +93,24 @@ func TestInsert(t *testing.T) {
 	}
 
 	querySql := "select * from user where id=1"
-	dao.Query(querySql)
+	err = dao.Query(querySql)
+	if err != nil {
+		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
+		return
+	}
+	defer dao.Finish()
+	if dao.Next() {
+		u1 := User{}
+		err = dao.GetField(&u1.id, &u1.address)
+		if err != nil {
+			t.Errorf("dao.GetField(&u1.id, &u1.address) failed, error:%s", err.Error())
+			return
+		}
+		if u1.id != 1 {
+			t.Errorf("dao.Query failed")
+			return
+		}
+	}
 }
 
 func TestQuery(t *testing.T) {
