@@ -91,9 +91,34 @@ func TestInsert(t *testing.T) {
 	if num != 4 {
 		t.Errorf("Insert data failed")
 	}
+	num, _ = dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
+		t.Errorf("Insert data failed")
+	}
+	num, _ = dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
+		t.Errorf("Insert data failed")
+	}
+	num, _ = dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
+		t.Errorf("Insert data failed")
+	}
+	num, _ = dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
+		t.Errorf("Insert data failed")
+	}
 
-	querySql := "select * from user where id=1"
-	err = dao.Query(querySql)
+	querySql := "select * from user where address like ?"
+	param := "%a%"
+	err = dao.Query(querySql, param)
+	if err != nil {
+		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
+		return
+	}
+
+	querySql = "select * from user where id in (?,?,?,?)"
+	ids := []any{1, 2, 3, 4}
+	err = dao.Query(querySql, ids...)
 	if err != nil {
 		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
 		return

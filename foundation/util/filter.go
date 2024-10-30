@@ -30,6 +30,8 @@ func (s *ContentFilter) Decode(request *http.Request) {
 	pagePtr := &Pagination{}
 	if pagePtr.Decode(request) {
 		s.PaginationPtr = pagePtr
+	} else {
+		s.PaginationPtr = DefaultPagination()
 	}
 
 	paramPtr := &ParamItems{}
