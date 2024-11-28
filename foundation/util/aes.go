@@ -4,72 +4,82 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 )
 
-//加密过程：
-//  1、处理数据，对数据进行填充，采用PKCS7（当密钥长度不够时，缺几位补几个几）的方式。
-//  2、对数据进行加密，采用AES加密方法中CBC加密模式
-//  3、对得到的加密数据，进行base64加密，得到字符串
-// 解密过程相反
+// Encryption process:
+//  1. Process the data, pad the data using PKCS7 (when the key length is insufficient, pad with the number of missing bytes).
+//  2. Encrypt the data using AES encryption in CBC mode.
+//  3. Encode the encrypted data using base64 to get a string.
+// Decryption process is the reverse.
 
-// pkcs7Padding 填充
+// pkcs7Padding Padding
 func pkcs7Padding(data []byte, blockSize int) []byte {
-	//判断缺少几位长度。最少1，最多 blockSize
 	padding := blockSize - len(data)%blockSize
-	//补足位数。把切片[]byte{byte(padding)}复制padding个
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(data, padText...)
 }
 
-// pkcs7UnPadding 填充的反向操作
+// pkcs7UnPadding Unpad the padding
 func pkcs7UnPadding(data []byte) ([]byte, error) {
 	length := len(data)
 	if length == 0 {
-		return nil, errors.New("加密字符串错误！")
+		return nil, errors.New("encryption string error: empty data")
 	}
-	//获取填充的个数
 	unPadding := int(data[length-1])
+	if unPadding < 1 || unPadding > length {
+		return nil, errors.New("encryption string error: invalid padding")
+	}
 	return data[:(length - unPadding)], nil
 }
 
-// AesEncrypt 加密
+// generateRandomIV Generates a random IV
+func generateRandomIV(blockSize int) ([]byte, error) {
+	iv := make([]byte, blockSize)
+	_, err := rand.Read(iv)
+	if err != nil {
+		return nil, err
+	}
+	return iv, nil
+}
+
+// AesEncrypt Encrypt
 func AesEncrypt(data []byte, key []byte) ([]byte, error) {
-	//创建加密实例
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	//判断加密快的大小
 	blockSize := block.BlockSize()
-	//填充
+	iv, err := generateRandomIV(blockSize)
+	if err != nil {
+		return nil, err
+	}
 	encryptBytes := pkcs7Padding(data, blockSize)
-	//初始化加密数据接收切片
-	crypted := make([]byte, len(encryptBytes))
-	//使用cbc加密模式
-	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
-	//执行加密
-	blockMode.CryptBlocks(crypted, encryptBytes)
+	crypted := make([]byte, len(encryptBytes)+blockSize)
+	copy(crypted, iv)
+	blockMode := cipher.NewCBCEncrypter(block, iv)
+	blockMode.CryptBlocks(crypted[blockSize:], encryptBytes)
 	return crypted, nil
 }
 
-// AesDecrypt 解密
+// AesDecrypt Decrypt
 func AesDecrypt(data []byte, key []byte) ([]byte, error) {
-	//创建实例
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	//获取块的大小
 	blockSize := block.BlockSize()
-	//使用cbc
-	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
-	//初始化解密数据接收切片
+	if len(data) < blockSize {
+		return nil, errors.New("data too short")
+	}
+	iv := data[:blockSize]
+	data = data[blockSize:]
+	blockMode := cipher.NewCBCDecrypter(block, iv)
 	crypted := make([]byte, len(data))
-	//执行解密
 	blockMode.CryptBlocks(crypted, data)
-	//去除填充
 	crypted, err = pkcs7UnPadding(crypted)
 	if err != nil {
 		return nil, err
@@ -77,25 +87,32 @@ func AesDecrypt(data []byte, key []byte) ([]byte, error) {
 	return crypted, nil
 }
 
-// EncryptByAes Aes加密 后 base64 再加
+// GenerateKey Generates a secure key using SHA-256
+func GenerateKey(pwdKey []byte) []byte {
+	hash := sha256.Sum256(pwdKey)
+	return hash[:]
+}
+
+// EncryptByAes Encrypt using AES and then base64 encode
 func EncryptByAes(data, pwdKey string) (string, error) {
-	res, err := AesEncrypt([]byte(data), CryptoByMd5([]byte(pwdKey), nil))
+	key := GenerateKey([]byte(pwdKey))
+	res, err := AesEncrypt([]byte(data), key)
 	if err != nil {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(res), nil
 }
 
-// DecryptByAes Aes 解密
+// DecryptByAes Decrypt using AES
 func DecryptByAes(data, pwdKey string) (string, error) {
+	key := GenerateKey([]byte(pwdKey))
 	dataByte, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return "", err
 	}
-	byteVal, byteErr := AesDecrypt(dataByte, CryptoByMd5([]byte(pwdKey), nil))
+	byteVal, byteErr := AesDecrypt(dataByte, key)
 	if byteErr != nil {
 		return "", byteErr
 	}
-
 	return string(byteVal), nil
 }
