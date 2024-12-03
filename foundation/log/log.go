@@ -23,40 +23,40 @@ func init() {
 	var err error
 	logger, err := log.LoggerFromConfigAsBytes([]byte(logConfig))
 	if err != nil {
-		log.Criticalf("Failed to initialize logger: %v", err)
+		logger.Criticalf("Failed to initialize logger: %v", err)
 		os.Exit(1)
 	}
-	logger.SetAdditionalStackDepth(1)
-	log.ReplaceLogger(logger)
 
 	if err := validateLogConfig(logConfig); err != nil {
-		log.Criticalf("Invalid log configuration: %v", err)
+		logger.Criticalf("Invalid log configuration: %v", err)
 		os.Exit(1)
 	}
 
 	levelVal, ok := os.LookupEnv("LOG_LEVEL")
 	if !ok {
 		logLevel = levelAll
-		log.Warn("LOG_LEVEL environment variable not set, defaulting to all levels")
+		logger.Warn("LOG_LEVEL environment variable not set, defaulting to all levels")
 		return
 	}
 
 	iVal, iErr := strconv.Atoi(levelVal)
 	if iErr != nil {
 		logLevel = levelTrace
-		log.Warnf("Invalid LOG_LEVEL value '%s', defaulting to trace level", levelVal)
+		logger.Warnf("Invalid LOG_LEVEL value '%s', defaulting to trace level", levelVal)
 		return
 	}
 	if iVal < levelTrace {
 		logLevel = levelAll
-		log.Warnf("LOG_LEVEL value '%d' is too low, defaulting to all levels", iVal)
+		logger.Warnf("LOG_LEVEL value '%d' is too low, defaulting to all levels", iVal)
 		return
 	}
 	if iVal > levelCritical {
 		logLevel = levelNone
-		log.Warnf("LOG_LEVEL value '%d' is too high, defaulting to none level", iVal)
+		logger.Warnf("LOG_LEVEL value '%d' is too high, defaulting to none level", iVal)
 		return
 	}
+	//logger.SetAdditionalStackDepth(1)
+	log.ReplaceLogger(logger)
 
 	logLevel = iVal
 }
