@@ -2,13 +2,6 @@
 ## explicit; go 1.20
 filippo.io/edwards25519
 filippo.io/edwards25519/field
-# github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
-## explicit
-github.com/cihub/seelog
-github.com/cihub/seelog/archive
-github.com/cihub/seelog/archive/gzip
-github.com/cihub/seelog/archive/tar
-github.com/cihub/seelog/archive/zip
 # github.com/gabriel-vasile/mimetype v1.4.6
 ## explicit; go 1.20
 github.com/gabriel-vasile/mimetype
@@ -38,6 +31,9 @@ github.com/google/uuid
 ## explicit; go 1.18
 github.com/leodido/go-urn
 github.com/leodido/go-urn/scim/schema
+# github.com/muidea/seelog v1.0.0
+## explicit
+github.com/muidea/seelog
 # golang.org/x/crypto v0.28.0
 ## explicit; go 1.20
 golang.org/x/crypto/sha3

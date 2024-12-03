@@ -3,11 +3,11 @@ module github.com/muidea/magicCommon
 go 1.22
 
 require (
-	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.6.0
+	github.com/muidea/seelog v1.0.0
 	golang.org/x/sync v0.8.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )

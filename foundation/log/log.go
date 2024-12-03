@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	log "github.com/cihub/seelog"
+	log "github.com/muidea/seelog"
 )
 
 const (
@@ -40,7 +40,6 @@ func init() {
 	levelVal, ok := os.LookupEnv("LOG_LEVEL")
 	if !ok {
 		logLevel = levelAll
-		logger.Warn("LOG_LEVEL environment variable not set, defaulting to all levels")
 		return
 	}
 
