@@ -58,7 +58,7 @@ func (s *Result) Warn() bool {
 
 // Fail 失败
 func (s *Result) Fail() bool {
-	return s.ErrorCode >= Failed
+	return s.ErrorCode != Succeeded
 }
 
 func (s *Result) Error() string {
