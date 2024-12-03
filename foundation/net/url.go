@@ -2,18 +2,19 @@ package net
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 // JoinSuffix 合并Url路径后缀
 func JoinSuffix(urlVal string, suffix ...string) string {
 	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
-		log.Fatalf("illegal urlVal, preErr:%s", preErr.Error())
+		log.Errorf("illegal urlVal, preErr:%s", preErr.Error())
 	}
 
 	urlVal = valURL.Path
@@ -35,7 +36,7 @@ func JoinSuffix(urlVal string, suffix ...string) string {
 func JoinPrefix(urlVal string, prefix string) string {
 	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
-		log.Fatalf("illegal urlVal,preErr:%s", preErr.Error())
+		log.Errorf("illegal urlVal,preErr:%s", preErr.Error())
 	}
 
 	urlVal = valURL.Path

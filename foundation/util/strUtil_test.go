@@ -2,8 +2,9 @@ package util
 
 import (
 	"fmt"
-	"log"
 	"testing"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 type Car struct {
@@ -142,7 +143,7 @@ func TestMarshalString(t *testing.T) {
 	if marshalVal == "" {
 		t.Errorf("marshal user failed")
 	}
-	log.Print(marshalVal)
+	log.Infof(marshalVal)
 
 	obj2 := &User{
 		ID:   110,
@@ -155,7 +156,7 @@ func TestMarshalString(t *testing.T) {
 	if marshalVal == "" {
 		t.Errorf("marshal user failed")
 	}
-	log.Print(marshalVal)
+	log.Infof(marshalVal)
 }
 
 func TestUnMarshalString(t *testing.T) {
@@ -322,7 +323,7 @@ func TestUnMarshalString(t *testing.T) {
 func TestArrayMarshalString(t *testing.T) {
 	iVal := []int{1234}
 	sVal := fmt.Sprintf("%v", iVal)
-	log.Print(sVal)
+	log.Infof(sVal)
 	marshalVal := MarshalString(iVal)
 	if marshalVal != "[1234]" {
 		t.Errorf("marshal int failed")

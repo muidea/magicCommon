@@ -2,10 +2,11 @@ package util
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 func TestContentFilter_Encode(t *testing.T) {
@@ -39,7 +40,7 @@ func TestContentFilter_Encode(t *testing.T) {
 	val := url.Values{}
 	val = filter.Encode(val)
 
-	log.Print(val.Encode())
+	log.Infof(val.Encode())
 
 	req := &http.Request{URL: &url.URL{RawQuery: val.Encode()}}
 

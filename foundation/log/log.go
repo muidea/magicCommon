@@ -32,6 +32,11 @@ func init() {
 		os.Exit(1)
 	}
 
+	defer func() {
+		logger.SetAdditionalStackDepth(1)
+		log.ReplaceLogger(logger)
+	}()
+
 	levelVal, ok := os.LookupEnv("LOG_LEVEL")
 	if !ok {
 		logLevel = levelAll
@@ -55,8 +60,6 @@ func init() {
 		logger.Warnf("LOG_LEVEL value '%d' is too high, defaulting to none level", iVal)
 		return
 	}
-	//logger.SetAdditionalStackDepth(1)
-	log.ReplaceLogger(logger)
 
 	logLevel = iVal
 }

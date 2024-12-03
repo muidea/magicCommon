@@ -2,9 +2,10 @@ package util
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"testing"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 type testItem struct {
@@ -74,6 +75,6 @@ func TestSort(t *testing.T) {
 	sort.Sort(helper2)
 
 	for _, val := range objList {
-		log.Printf("id:%s, val:%v", val.id, val.obj)
+		log.Infof("id:%s, val:%v", val.id, val.obj)
 	}
 }

@@ -2,17 +2,18 @@ package task
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 func calcOffset(intervalValue, offsetValue time.Duration) time.Duration {
 	return func() time.Duration {
 		now := time.Now()
-		log.Printf("%v", now)
+		log.Infof("%v", now)
 		nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
 		if intervalValue < 24*time.Hour {
 			return (nowOffset/intervalValue+1)*intervalValue - nowOffset
@@ -29,12 +30,12 @@ func TestBackgroundRoutine_Timer(t *testing.T) {
 	offsetValue := 1 * time.Hour
 
 	curOffset := calcOffset(intervalValue, offsetValue)
-	log.Printf("%v", curOffset)
+	log.Infof("%v", curOffset)
 
 	intervalValue = 10 * time.Minute
 	offsetValue = 0
 	curOffset = calcOffset(intervalValue, offsetValue)
-	log.Printf("%v", curOffset)
+	log.Infof("%v", curOffset)
 }
 
 type asyncTask struct {

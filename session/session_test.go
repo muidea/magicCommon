@@ -1,8 +1,9 @@
 package session
 
 import (
-	"log"
 	"testing"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 func TestUUID(t *testing.T) {
@@ -20,5 +21,5 @@ func TestUUID(t *testing.T) {
 		ids[id] = id
 	}
 
-	log.Printf("total size:%d", len(ids))
+	log.Infof("total size:%d", len(ids))
 }

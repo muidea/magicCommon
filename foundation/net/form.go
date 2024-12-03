@@ -2,10 +2,11 @@ package net
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 // MultipartFormFile 接受文件参数
@@ -15,7 +16,7 @@ func MultipartFormFile(r *http.Request, field, dstPath string) (ret string, err 
 	fileContent, fileHead, fileErr := r.FormFile(field)
 	if fileErr != nil {
 		err = fileErr
-		log.Printf("get file field failed, field:%s, err:%s", field, err.Error())
+		log.Infof("get file field failed, field:%s, err:%s", field, err.Error())
 		return
 	}
 	defer fileContent.Close()
@@ -28,7 +29,7 @@ func MultipartFormFile(r *http.Request, field, dstPath string) (ret string, err 
 	}
 	if fileErr != nil {
 		err = fileErr
-		log.Printf("destination path is invalid, err:%s", err.Error())
+		log.Infof("destination path is invalid, err:%s", err.Error())
 		return
 	}
 
@@ -36,14 +37,14 @@ func MultipartFormFile(r *http.Request, field, dstPath string) (ret string, err 
 	dstFile, dstErr := os.Create(dstFilePath)
 	if dstErr != nil {
 		err = dstErr
-		log.Printf("create destination file failed, err:%s", err.Error())
+		log.Infof("create destination file failed, err:%s", err.Error())
 		return
 	}
 
 	defer dstFile.Close()
 	_, err = io.Copy(dstFile, fileContent)
 	if err != nil {
-		log.Printf("copy destination file failed, err%s", err.Error())
+		log.Infof("copy destination file failed, err%s", err.Error())
 		return
 	}
 	ret = dstFilePath

@@ -1,8 +1,13 @@
 package net
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/muidea/magicCommon/foundation/log"
+)
 
 func TestJoinSuffix(t *testing.T) {
+	log.Infof("JoinSuffix test")
 	valURL := "aa"
 	suffix := "bb"
 	ret := JoinSuffix(valURL, suffix)
