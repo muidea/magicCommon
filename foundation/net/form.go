@@ -1,52 +1,87 @@
 package net
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/muidea/magicCommon/foundation/log"
 )
 
-// MultipartFormFile 接受文件参数
-// string 文件名
-// error 错误码
-func MultipartFormFile(r *http.Request, field, dstPath string) (ret string, err error) {
-	fileContent, fileHead, fileErr := r.FormFile(field)
+// MultipartFormFile 从 HTTP 请求中提取指定的文件，并将其保存到指定的路径。
+// req 是 HTTP 请求。
+// fieldName 是表单中文件字段的名称。
+// dstFilePath 是文件将被保存的目录路径。
+// 返回值 fileName 是上传文件的名称，err 是错误信息（如果有）。
+func MultipartFormFile(req *http.Request, fieldName, dstFilePath string) (fileName string, err error) {
+	// 从请求中获取文件内容和文件头信息。
+	fileContent, fileHead, fileErr := req.FormFile(fieldName)
 	if fileErr != nil {
 		err = fileErr
-		log.Infof("get file field failed, field:%s, err:%s", field, err.Error())
+		log.Errorf("get file field failed, field: %s, err: %s", fieldName, err.Error())
 		return
 	}
 	defer fileContent.Close()
 
-	_, fileErr = os.Stat(dstPath)
-	if fileErr != nil {
-		if os.IsNotExist(fileErr) {
-			fileErr = os.MkdirAll(dstPath, os.ModePerm)
-		}
-	}
-	if fileErr != nil {
-		err = fileErr
-		log.Infof("destination path is invalid, err:%s", err.Error())
+	// 验证 dstFilePath 是否为合法的目录路径
+	if !isValidDirectory(dstFilePath) {
+		err = fmt.Errorf("invalid destination directory: %s", dstFilePath)
+		log.Errorf("invalid destination directory, err: %s", err.Error())
 		return
 	}
 
-	dstFilePath := path.Join(dstPath, fileHead.Filename)
-	dstFile, dstErr := os.Create(dstFilePath)
-	if dstErr != nil {
-		err = dstErr
-		log.Infof("create destination file failed, err:%s", err.Error())
+	// 验证文件名是否合法
+	if !isValidFileName(fileHead.Filename) {
+		err = fmt.Errorf("invalid file name: %s", fileHead.Filename)
+		log.Errorf("invalid file name, err: %s", err.Error())
 		return
 	}
 
-	defer dstFile.Close()
-	_, err = io.Copy(dstFile, fileContent)
+	// 构建目标文件的完整路径
+	dstFullFilePath := filepath.Join(dstFilePath, fileHead.Filename)
+	// 创建目标文件
+	dstFileHandle, dstFileErr := os.Create(dstFullFilePath)
+	if dstFileErr != nil {
+		err = dstFileErr
+		log.Errorf("create destination file failed, err: %s", err.Error())
+		return
+	}
+	defer dstFileHandle.Close()
+
+	// 将文件内容从请求复制到目标文件中
+	_, err = io.Copy(dstFileHandle, fileContent)
 	if err != nil {
-		log.Infof("copy destination file failed, err%s", err.Error())
+		log.Errorf("copy destination file failed, err: %s", err.Error())
 		return
 	}
-	ret = dstFilePath
+
+	// 设置返回值为文件名
+	fileName = fileHead.Filename
 	return
+}
+
+// isValidDirectory 验证路径是否为合法的目录
+func isValidDirectory(path string) bool {
+	cleanPath := filepath.Clean(path)
+	if cleanPath != path {
+		return false
+	}
+
+	info, err := os.Stat(cleanPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.MkdirAll(cleanPath, 0755)
+			return err == nil
+		}
+		return false
+	}
+	return info.IsDir()
+}
+
+// isValidFileName 验证文件名是否合法
+func isValidFileName(name string) bool {
+	return len(name) > 0 && !strings.ContainsAny(name, `\/:*?"<>|`)
 }
