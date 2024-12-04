@@ -12,13 +12,13 @@ type User struct {
 	address string
 }
 
-const user = "root"
-const password = "rootkit"
-const svrAddress = "localhost:3306"
-const dbName = "testDB"
+const gUser = "root"
+const gPassword = "rootkit"
+const gSvrAddress = "localhost:3306"
+const gDBName = "testDB"
 
 func TestDatabase(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "", "")
+	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
@@ -41,25 +41,27 @@ func TestDatabase(t *testing.T) {
 		t.Errorf("duplicate database error:%s", err.Error())
 		return
 	}
+	defer nDao.Release()
 	err = nDao.CreateDatabase("A1000")
 	if err != nil {
 		t.Errorf("create database error:%s", err.Error())
 		return
 	}
+	defer nDao.DropDatabase("A1000")
 
 	defer func() {
-		dropDbSql := fmt.Sprintf("drop database if exists %s", dbName)
+		dropDbSql := fmt.Sprintf("drop database if exists %s", gDBName)
 		dao.Execute(dropDbSql)
 	}()
 
-	createDbSql := fmt.Sprintf("create database if not exists %s", dbName)
+	createDbSql := fmt.Sprintf("create database if not exists %s", gDBName)
 	num, _ := dao.Execute(createDbSql)
 	if num != 1 {
 		t.Errorf("create database failed")
 	}
 }
 
-func initFunc(dao dao.Dao) {
+func initFunc(dao dao.Dao, dbName string) {
 	dbSql := fmt.Sprintf("create database if not exists %s", dbName)
 	dao.Execute(dbSql)
 
@@ -78,15 +80,16 @@ CREATE TABLE IF NOT EXISTS user (
 }
 
 func TestInsert(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "", "")
+	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
 	defer dao.Release()
 
-	initFunc(dao)
+	initFunc(dao, gDBName)
+	defer dao.DropDatabase(gDBName)
 
-	insertSql := fmt.Sprintf("%s", "insert into user (address) values(?),(?),(?),(?)")
+	insertSql := "insert into user (address) values(?),(?),(?),(?)"
 	num, _ := dao.Execute(insertSql, "abc", "bcd", "cde", "def")
 	if num != 4 {
 		t.Errorf("Insert data failed")
@@ -139,15 +142,16 @@ func TestInsert(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "", "")
+	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
 	defer dao.Release()
 
-	initFunc(dao)
+	initFunc(dao, gDBName)
+	defer dao.DropDatabase(gDBName)
 
-	selectSql := fmt.Sprint("select id,address from user")
+	selectSql := "select id,address from user"
 
 	dao.Query(selectSql)
 
