@@ -597,7 +597,7 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 	}
 
 	if !finalFlag && result != nil {
-		result.Set(nil, cd.NewWarn(cd.Warned, fmt.Sprintf("missing observer, event id:%s", event.ID())))
+		result.Set(nil, cd.NewError(cd.Warned, fmt.Sprintf("missing observer, event id:%s", event.ID())))
 	}
 }
 

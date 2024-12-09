@@ -5,8 +5,12 @@ import (
 	"reflect"
 
 	"github.com/muidea/magicCommon/event"
+	"github.com/muidea/magicCommon/foundation/system"
 	"github.com/muidea/magicCommon/task"
 )
+
+type Module struct {
+}
 
 var moduleList []interface{}
 
@@ -97,17 +101,17 @@ func weight(module interface{}) int {
 }
 
 func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
-	invokeFunc(module, setupTag, endpointName, eventHub, backgroundRoutine)
+	system.InvokeEntityFunc(module, setupTag, endpointName, eventHub, backgroundRoutine)
 	return
 }
 
 func Run(module interface{}) {
-	invokeFunc(module, runTag)
+	system.InvokeEntityFunc(module, runTag)
 	return
 }
 
 func Teardown(module interface{}) {
-	invokeFunc(module, teardownTag)
+	system.InvokeEntityFunc(module, teardownTag)
 	return
 }
 
@@ -117,48 +121,11 @@ func BindClient(module interface{}, clnt interface{}) {
 		return
 	}
 
-	invokeFunc(module, bindClient, clnt)
+	system.InvokeEntityFunc(module, bindClient, clnt)
 	return
 }
 
 func BindRegistry(module interface{}, registry ...interface{}) {
-	invokeFunc(module, bindRegistryTag, registry...)
-	return
-}
-
-func invokeFunc(module interface{}, funcName string, params ...interface{}) {
-	vVal := reflect.ValueOf(module)
-	funcVal := vVal.MethodByName(funcName)
-	if !funcVal.IsValid() {
-		return
-	}
-
-	defer func() {
-		if info := recover(); info != nil {
-			err := fmt.Errorf("invoke %s unexpect, %v", funcName, info)
-			panic(err)
-		}
-	}()
-
-	param := make([]reflect.Value, len(params))
-	for idx, val := range params {
-		fType := funcVal.Type().In(idx)
-		if val != nil {
-			rVal := reflect.ValueOf(val)
-			if rVal.Kind() == reflect.Interface {
-				rVal = rVal.Elem()
-			}
-
-			if rVal.Type().String() != fType.String() && !rVal.Type().Implements(fType) {
-				panic(fmt.Sprintf("[mismatch param, expect type:%s, value type:%s]", fType.String(), rVal.Type().String()))
-			}
-
-			param[idx] = rVal
-		} else {
-			param[idx] = reflect.New(fType).Elem()
-		}
-	}
-
-	funcVal.Call(param)
+	system.InvokeEntityFunc(module, bindRegistryTag, registry...)
 	return
 }

@@ -46,18 +46,15 @@ var application Application
 var applicationOnce sync.Once
 
 func Startup(service service.Service) *cd.Result {
-	app := Get()
-	return app.Startup(service)
+	return Get().Startup(service)
 }
 
 func Run() {
-	app := Get()
-	app.Run()
+	Get().Run()
 }
 
 func Shutdown() {
-	app := Get()
-	app.Shutdown()
+	Get().Shutdown()
 }
 
 func Get() Application {

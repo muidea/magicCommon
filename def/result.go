@@ -74,17 +74,5 @@ func (s *Result) Error() string {
 }
 
 func NewError(errCode ErrorCode, reason string) *Result {
-	if errCode < Failed {
-		errCode = Failed
-	}
-
-	return &Result{ErrorCode: errCode, Reason: reason}
-}
-
-func NewWarn(errCode ErrorCode, reason string) *Result {
-	if errCode < Warned || errCode >= Failed {
-		errCode = Warned
-	}
-
 	return &Result{ErrorCode: errCode, Reason: reason}
 }

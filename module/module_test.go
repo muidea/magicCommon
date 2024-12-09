@@ -2,9 +2,10 @@ package module
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
-	"testing"
 )
 
 type Abc interface {
