@@ -73,6 +73,10 @@ func (s *Result) Error() string {
 	return fmt.Sprintf("errorCode:%v", s.ErrorCode)
 }
 
+func (s *Result) String() string {
+	return fmt.Sprintf("errorCode:%v, reason:%v", s.ErrorCode, s.Reason)
+}
+
 func NewError(errCode ErrorCode, reason string) *Result {
 	return &Result{ErrorCode: errCode, Reason: reason}
 }

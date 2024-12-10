@@ -11,8 +11,12 @@ import (
 type MockEntity struct {
 }
 
-func (m *MockEntity) TestMethod(iVal int, strVal string) {
+func (s *MockEntity) TestMethod(iVal int, strVal string) {
 	fmt.Printf("%d,%s", iVal, strVal)
+}
+
+func (s *MockEntity) TestDemo() {
+	fmt.Println("test demo")
 }
 
 // TestInvokeEntityFuncNoMethod tests the scenario where the method does not exist on the entityVal
@@ -30,6 +34,20 @@ func TestInvokeEntityFuncWithMethod(t *testing.T) {
 	entityVal := &MockEntity{}
 
 	funcName := "TestMethod"
+	params := []interface{}{1, "test", 13, "Abc"}
+
+	result := InvokeEntityFunc(entityVal, funcName, params...)
+	assert.Nil(t, result)
+
+	params = []interface{}{"test"}
+	result = InvokeEntityFunc(entityVal, funcName, params...)
+	assert.NotNil(t, result)
+}
+
+func TestInvokeEntityFuncWithDemo(t *testing.T) {
+	entityVal := &MockEntity{}
+
+	funcName := "TestDemo"
 	params := []interface{}{1, "test"}
 
 	result := InvokeEntityFunc(entityVal, funcName, params...)

@@ -9,8 +9,9 @@ import (
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
-	"github.com/muidea/magicCommon/service"
 	"github.com/muidea/magicCommon/task"
+
+	"github.com/muidea/magicCommon/framework/service"
 )
 
 var defaultBackTaskQueueSize = 10000

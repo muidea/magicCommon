@@ -8,9 +8,15 @@ import (
 )
 
 func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interface{}) (err *cd.Result) {
+	if entityVal == nil {
+		errMsg := "entityVal is nil"
+		err = cd.NewError(cd.IllegalParam, errMsg)
+		return
+	}
+
 	vVal := reflect.ValueOf(entityVal)
 	funcVal := vVal.MethodByName(funcName)
-	if !funcVal.IsValid() || funcVal.IsZero() {
+	if !isValidMethod(funcVal) || funcVal.IsZero() {
 		errMsg := fmt.Sprintf("no such method:%s", funcName)
 		err = cd.NewError(cd.NoExist, errMsg)
 		return
@@ -18,30 +24,67 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 
 	defer func() {
 		if info := recover(); info != nil {
-			err := fmt.Errorf("invoke %s unexpect, %v", funcName, info)
-			panic(err)
+			err = cd.NewError(cd.UnExpected, fmt.Sprintf("invoke %s unexpected, %v", funcName, info))
 		}
 	}()
 
-	param := make([]reflect.Value, len(params))
-	for idx, val := range params {
-		fType := funcVal.Type().In(idx)
-		if val != nil {
-			rVal := reflect.ValueOf(val)
-			if rVal.Kind() == reflect.Interface {
-				rVal = rVal.Elem()
-			}
-
-			if rVal.Type().String() != fType.String() && !rVal.Type().Implements(fType) {
-				panic(fmt.Sprintf("[mismatch param, expect type:%s, value type:%s]", fType.String(), rVal.Type().String()))
-			}
-
-			param[idx] = rVal
-		} else {
-			param[idx] = reflect.New(fType).Elem()
-		}
+	param, err := prepareParams(funcVal, params)
+	if err != nil {
+		return err
 	}
 
 	funcVal.Call(param)
 	return
+}
+
+func isValidMethod(funcVal reflect.Value) bool {
+	return funcVal.IsValid() && !funcVal.IsZero()
+}
+
+func prepareParams(funcVal reflect.Value, params []interface{}) ([]reflect.Value, *cd.Result) {
+	inNum := funcVal.Type().NumIn()
+	if inNum == 0 {
+		return nil, nil
+	}
+
+	paramTypes := make([]reflect.Type, inNum)
+	for idx := range params {
+		if idx >= inNum {
+			break
+		}
+		paramTypes[idx] = funcVal.Type().In(idx)
+	}
+
+	param := make([]reflect.Value, inNum)
+	for idx, val := range params {
+		if idx >= inNum {
+			break
+		}
+
+		var err *cd.Result
+		param[idx], err = convertParam(val, paramTypes[idx])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return param, nil
+}
+
+func convertParam(val interface{}, expectedType reflect.Type) (reflect.Value, *cd.Result) {
+	if val == nil {
+		return reflect.New(expectedType).Elem(), nil
+	}
+
+	rVal := reflect.ValueOf(val)
+	if rVal.Kind() == reflect.Interface {
+		rVal = rVal.Elem()
+	}
+
+	if !rVal.Type().ConvertibleTo(expectedType) {
+		errMsg := fmt.Sprintf("[mismatch param, expect type:%s, value type:%s]", expectedType.String(), rVal.Type().String())
+		return reflect.Value{}, cd.NewError(cd.IllegalParam, errMsg)
+	}
+
+	return rVal, nil
 }

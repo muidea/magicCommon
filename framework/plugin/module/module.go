@@ -5,26 +5,14 @@ import (
 	"reflect"
 
 	"github.com/muidea/magicCommon/event"
+	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/system"
 	"github.com/muidea/magicCommon/task"
-)
 
-type Module struct {
-}
+	"github.com/muidea/magicCommon/framework/plugin/common"
+)
 
 var moduleList []interface{}
-
-const defaultWeight = 100
-
-const (
-	idTag           = "ID"
-	weightTag       = "Weight"
-	setupTag        = "Setup"
-	teardownTag     = "Teardown"
-	runTag          = "Run"
-	bindClient      = "BindClient"
-	bindRegistryTag = "BindRegistry"
-)
 
 func Register(module interface{}) {
 	validModule(module)
@@ -66,8 +54,8 @@ func validModule(ptr interface{}) {
 		panic("must be a pointer")
 	}
 
-	_, idOK := vType.MethodByName(idTag)
-	_, setupOK := vType.MethodByName(setupTag)
+	_, idOK := vType.MethodByName(common.IdTag)
+	_, setupOK := vType.MethodByName(common.SetupTag)
 	if !idOK || !setupOK {
 		panic("invalid module")
 	}
@@ -75,14 +63,14 @@ func validModule(ptr interface{}) {
 
 func weight(module interface{}) int {
 	vVal := reflect.ValueOf(module)
-	funcVal := vVal.MethodByName(weightTag)
+	funcVal := vVal.MethodByName(common.WeightTag)
 	if !funcVal.IsValid() {
-		return defaultWeight
+		return common.DefaultWeight
 	}
 
 	defer func() {
 		if info := recover(); info != nil {
-			err := fmt.Errorf("invoke %s unexpect, %v", weightTag, info)
+			err := fmt.Errorf("invoke %s unexpect, %v", common.WeightTag, info)
 			panic(err)
 		}
 	}()
@@ -90,42 +78,33 @@ func weight(module interface{}) int {
 	param := make([]reflect.Value, 0)
 	values := funcVal.Call(param)
 	if len(values) == 0 {
-		return defaultWeight
+		return common.DefaultWeight
 	}
 
 	if funcVal.Type().Out(0).String() != "int" {
-		return defaultWeight
+		return common.DefaultWeight
 	}
 
 	return int(values[0].Int())
 }
 
 func Setup(module interface{}, endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
-	system.InvokeEntityFunc(module, setupTag, endpointName, eventHub, backgroundRoutine)
-	return
+	err := system.InvokeEntityFunc(module, common.SetupTag, endpointName, eventHub, backgroundRoutine)
+	if err != nil {
+		log.Errorf("Setup failed:%s", err)
+	}
 }
 
 func Run(module interface{}) {
-	system.InvokeEntityFunc(module, runTag)
-	return
+	err := system.InvokeEntityFunc(module, common.RunTag)
+	if err != nil {
+		log.Errorf("Run failed:%s", err)
+	}
 }
 
 func Teardown(module interface{}) {
-	system.InvokeEntityFunc(module, teardownTag)
-	return
-}
-
-func BindClient(module interface{}, clnt interface{}) {
-	if clnt == nil {
-		panic("illegal client value")
-		return
+	err := system.InvokeEntityFunc(module, common.TeardownTag)
+	if err != nil {
+		log.Errorf("Teardown failed:%s", err)
 	}
-
-	system.InvokeEntityFunc(module, bindClient, clnt)
-	return
-}
-
-func BindRegistry(module interface{}, registry ...interface{}) {
-	system.InvokeEntityFunc(module, bindRegistryTag, registry...)
-	return
 }

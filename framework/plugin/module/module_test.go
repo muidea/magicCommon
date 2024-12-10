@@ -6,6 +6,8 @@ import (
 
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
+
+	"github.com/muidea/magicCommon/framework/plugin/common"
 )
 
 type Abc interface {
@@ -53,7 +55,7 @@ func TestWeight(t *testing.T) {
 	demo = &Demo{}
 
 	val := weight(demo)
-	if val != defaultWeight {
+	if val != common.DefaultWeight {
 		t.Errorf("check weight faield")
 	}
 
@@ -86,18 +88,6 @@ func TestTeardown(t *testing.T) {
 	demo = &Demo{}
 
 	Teardown(demo)
-}
-
-func TestBindRegistry(t *testing.T) {
-	var demo interface{}
-	demo = &Demo{}
-
-	var a interface{}
-	a = &abcInfo{}
-
-	BindRegistry(demo, a)
-
-	BindClient(demo, 100)
 }
 
 func TestAppendSlice(t *testing.T) {
