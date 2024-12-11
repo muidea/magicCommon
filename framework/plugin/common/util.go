@@ -134,9 +134,9 @@ func (s *PluginMgr) GetEntity(id string) (ret interface{}, err *cd.Result) {
 	return
 }
 
-func (s *PluginMgr) Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
 	for _, val := range s.entityList {
-		err := system.InvokeEntityFunc(val, setupTag, endpointName, eventHub, backgroundRoutine)
+		err := system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
 		if err != nil && err.ErrorCode != cd.NoExist {
 			log.Errorf("invoke %s %s setup failed, %v", s.typeName, s.getID(val), err)
 		}

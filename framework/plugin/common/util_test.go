@@ -36,8 +36,8 @@ func (s *Demo) Weight() int64 {
 	return 123
 }
 
-func (s *Demo) Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
-	fmt.Printf("Setup, endpointName:%s", endpointName)
+func (s *Demo) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+	fmt.Printf("Setup")
 }
 
 func (s *Demo) Teardown() {

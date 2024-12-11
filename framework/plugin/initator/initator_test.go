@@ -69,7 +69,7 @@ func Test_Initator(t *testing.T) {
 	Register(d100)
 	Register(d123)
 
-	Setup("test", nil, nil)
+	Setup(nil, nil)
 	Run()
 
 	var demoPtr Demo

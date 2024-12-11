@@ -31,8 +31,8 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Result) {
 	return
 }
 
-func Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
-	initatorMgr.Setup(endpointName, eventHub, backgroundRoutine)
+func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+	initatorMgr.Setup(eventHub, backgroundRoutine)
 }
 
 func Run() {

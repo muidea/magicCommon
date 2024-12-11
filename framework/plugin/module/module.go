@@ -13,8 +13,8 @@ func Register(module interface{}) {
 	moduleMgr.Register(module)
 }
 
-func Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
-	moduleMgr.Setup(endpointName, eventHub, backgroundRoutine)
+func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+	moduleMgr.Setup(eventHub, backgroundRoutine)
 }
 
 func Run() {
