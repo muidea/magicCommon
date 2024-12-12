@@ -85,7 +85,7 @@ func (s *appImpl) Run() {
 		return
 	}
 
-	s.service.Run()
+	s.service.Run(true)
 }
 
 func (s *appImpl) Shutdown() {

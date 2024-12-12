@@ -1,7 +1,10 @@
 package service
 
 import (
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
@@ -13,7 +16,7 @@ import (
 
 type Service interface {
 	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Result
-	Run()
+	Run(block bool)
 	Shutdown()
 }
 
@@ -25,6 +28,7 @@ func DefaultService(name string) Service {
 
 type defaultService struct {
 	serviceName string
+	waitGroup   sync.WaitGroup
 }
 
 func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Result) {
@@ -33,22 +37,30 @@ func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.Back
 		ret = cd.NewError(cd.UnExpected, "service startup failed")
 	}
 
-	wg := sync.WaitGroup{}
 	initator.Setup(eventHub, backgroundRoutine, nil)
-	module.Setup(eventHub, backgroundRoutine, &wg)
+	module.Setup(eventHub, backgroundRoutine, &s.waitGroup)
 	log.Infof("%s startup success", s.serviceName)
+	s.waitGroup.Wait()
 	return
 }
 
-func (s *defaultService) Run() {
+func (s *defaultService) Run(block bool) {
 	if errInfo := recover(); errInfo != nil {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, errInfo)
 	}
 
-	wg := sync.WaitGroup{}
 	initator.Run(nil)
-	module.Run(&wg)
-	log.Infof("%s run success", s.serviceName)
+	module.Run(&s.waitGroup)
+	log.Infof("%s running!", s.serviceName)
+	s.waitGroup.Wait()
+
+	if block {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+		sig := <-sigChan
+		log.Warnf("%s shutdowning signal:%+v", s.serviceName, sig)
+	}
 }
 
 func (s *defaultService) Shutdown() {
@@ -56,8 +68,8 @@ func (s *defaultService) Shutdown() {
 		log.Errorf("%s shutdown failed, err:%+v", s.serviceName, errInfo)
 	}
 
-	wg := sync.WaitGroup{}
-	module.Teardown(&wg)
+	module.Teardown(&s.waitGroup)
 	initator.Teardown(nil)
 	log.Infof("%s shutdown success", s.serviceName)
+	s.waitGroup.Wait()
 }
