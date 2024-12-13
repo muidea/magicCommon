@@ -77,23 +77,23 @@ func (s *PluginMgr) getID(ptr interface{}) string {
 	return values[0].String()
 }
 
-func (s *PluginMgr) validEntity(ptr interface{}) {
+func (s *PluginMgr) validPlugin(ptr interface{}) {
 	vType := reflect.TypeOf(ptr)
 	if vType.Kind() != reflect.Ptr {
 		panic("must be a pointer")
 	}
 
 	_, idOK := vType.MethodByName(idTag)
-	//_, setupOK := vType.MethodByName(common.SetupTag)
-	//_, runOK := vType.MethodByName(common.RunTag)
-	//_, teardownOK := vType.MethodByName(common.TeardownTag)
-	if !idOK {
-		panic("invalid entity ptr")
+	//_, setupOK := vType.MethodByName(setupTag)
+	_, runOK := vType.MethodByName(runTag)
+	//_, teardownOK := vType.MethodByName(teardownTag)
+	if !idOK || !runOK {
+		panic("invalid plugin value")
 	}
 }
 
 func (s *PluginMgr) Register(ptr interface{}) {
-	s.validEntity(ptr)
+	s.validPlugin(ptr)
 
 	curWeight := s.getWeight(ptr)
 	newList := []interface{}{}
