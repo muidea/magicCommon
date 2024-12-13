@@ -33,7 +33,17 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 		return err
 	}
 
-	funcVal.Call(param)
+	rVals := funcVal.Call(param)
+	if funcVal.Type().NumOut() == 0 {
+		return
+	}
+	errVal, errOK := rVals[0].Interface().(*cd.Result)
+	if !errOK {
+		err = cd.NewError(cd.UnExpected, "invoke method return illegal result")
+		return
+	}
+
+	err = errVal
 	return
 }
 

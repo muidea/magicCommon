@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	cd "github.com/muidea/magicCommon/def"
 	"github.com/stretchr/testify/assert" // Assuming you use testify for assertions
 	// Assuming you use testify for mocking
 )
@@ -17,6 +18,10 @@ func (s *MockEntity) TestMethod(iVal int, strVal string) {
 
 func (s *MockEntity) TestDemo() {
 	fmt.Println("test demo")
+}
+
+func (s *MockEntity) TestReuslt() *cd.Result {
+	return cd.NewError(cd.InvalidAuthority, "test result")
 }
 
 // TestInvokeEntityFuncNoMethod tests the scenario where the method does not exist on the entityVal
@@ -52,4 +57,13 @@ func TestInvokeEntityFuncWithDemo(t *testing.T) {
 
 	result := InvokeEntityFunc(entityVal, funcName, params...)
 	assert.Nil(t, result)
+}
+
+func TestInvokeEntityFuncWithResult(t *testing.T) {
+	entityVal := &MockEntity{}
+	funcName := "TestReuslt"
+	params := []interface{}{}
+	result := InvokeEntityFunc(entityVal, funcName, params...)
+	assert.NotNil(t, result)
+	assert.Equal(t, result.ErrorCode, cd.ErrorCode(cd.InvalidAuthority))
 }

@@ -3,6 +3,7 @@ package module
 import (
 	"sync"
 
+	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
 
@@ -15,12 +16,12 @@ func Register(module interface{}) {
 	moduleMgr.Register(module)
 }
 
-func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, wg *sync.WaitGroup) {
-	moduleMgr.Setup(eventHub, backgroundRoutine, wg)
+func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, wg *sync.WaitGroup) *cd.Result {
+	return moduleMgr.Setup(eventHub, backgroundRoutine, wg)
 }
 
-func Run(wg *sync.WaitGroup) {
-	moduleMgr.Run(wg)
+func Run(wg *sync.WaitGroup) *cd.Result {
+	return moduleMgr.Run(wg)
 }
 
 func Teardown(wg *sync.WaitGroup) {

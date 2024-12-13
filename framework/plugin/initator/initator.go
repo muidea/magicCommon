@@ -33,12 +33,12 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Result) {
 	return
 }
 
-func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, wg *sync.WaitGroup) {
-	initatorMgr.Setup(eventHub, backgroundRoutine, wg)
+func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, wg *sync.WaitGroup) *cd.Result {
+	return initatorMgr.Setup(eventHub, backgroundRoutine, wg)
 }
 
-func Run(wg *sync.WaitGroup) {
-	initatorMgr.Run(wg)
+func Run(wg *sync.WaitGroup) *cd.Result {
+	return initatorMgr.Run(wg)
 }
 
 func Teardown(wg *sync.WaitGroup) {

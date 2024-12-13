@@ -16,7 +16,7 @@ import (
 
 type Service interface {
 	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Result
-	Run(block bool)
+	Run(block bool) *cd.Result
 	Shutdown()
 }
 
@@ -32,28 +32,41 @@ type defaultService struct {
 }
 
 func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Result) {
-	if errInfo := recover(); errInfo != nil {
-		log.Errorf("%s startup failed, err:%+v", s.serviceName, errInfo)
-		ret = cd.NewError(cd.UnExpected, "service startup failed")
+	ret = initator.Setup(eventHub, backgroundRoutine, nil)
+	if ret != nil {
+		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
+		return
 	}
 
-	initator.Setup(eventHub, backgroundRoutine, nil)
-	module.Setup(eventHub, backgroundRoutine, &s.waitGroup)
-	log.Infof("%s startup success", s.serviceName)
+	ret = module.Setup(eventHub, backgroundRoutine, &s.waitGroup)
 	s.waitGroup.Wait()
+	if ret != nil {
+		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
+		return
+	}
+
+	log.Infof("%s startup success", s.serviceName)
 	return
 }
 
-func (s *defaultService) Run(block bool) {
+func (s *defaultService) Run(block bool) (ret *cd.Result) {
 	if errInfo := recover(); errInfo != nil {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, errInfo)
 	}
 
-	initator.Run(nil)
-	module.Run(&s.waitGroup)
-	log.Infof("%s running!", s.serviceName)
+	ret = initator.Run(nil)
+	if ret != nil {
+		log.Errorf("%s run failed, err:%+v", s.serviceName, ret)
+		return
+	}
+	ret = module.Run(&s.waitGroup)
 	s.waitGroup.Wait()
+	if ret != nil {
+		log.Errorf("%s run failed, err:%+v", s.serviceName, ret)
+		return
+	}
 
+	log.Infof("%s running!", s.serviceName)
 	if block {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -61,6 +74,8 @@ func (s *defaultService) Run(block bool) {
 		sig := <-sigChan
 		log.Warnf("%s shutdowning signal:%+v", s.serviceName, sig)
 	}
+
+	return
 }
 
 func (s *defaultService) Shutdown() {
@@ -70,6 +85,6 @@ func (s *defaultService) Shutdown() {
 
 	module.Teardown(&s.waitGroup)
 	initator.Teardown(nil)
-	log.Infof("%s shutdown success", s.serviceName)
 	s.waitGroup.Wait()
+	log.Infof("%s shutdown success", s.serviceName)
 }

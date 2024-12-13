@@ -29,6 +29,7 @@ func TestDatabase(t *testing.T) {
 		t.Errorf("create database error:%s", err.Error())
 		return
 	}
+	defer dao.DropDatabase("supetl")
 
 	err = dao.UseDatabase("supetl")
 	if err != nil {
