@@ -158,7 +158,7 @@ func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundR
 				return
 			}
 
-			log.Infof("invoke %s %s setup success", s.typeName, s.getID(val))
+			//log.Infof("invoke %s %s setup success", s.typeName, s.getID(val))
 		}
 
 		s.invoke(wg, setUp)
@@ -174,7 +174,7 @@ func (s *PluginMgr) Run(wg *sync.WaitGroup) {
 				return
 			}
 
-			log.Infof("invoke %s %s run success", s.typeName, s.getID(val))
+			//log.Infof("invoke %s %s run success", s.typeName, s.getID(val))
 		}
 
 		s.invoke(wg, run)
@@ -192,7 +192,7 @@ func (s *PluginMgr) Teardown(wg *sync.WaitGroup) {
 				return
 			}
 
-			log.Infof("invoke %s %s teardown success", s.typeName, s.getID(val))
+			//log.Infof("invoke %s %s teardown success", s.typeName, s.getID(val))
 		}
 
 		s.invoke(wg, teardown)
