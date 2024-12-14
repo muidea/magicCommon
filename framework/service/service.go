@@ -1,10 +1,7 @@
 package service
 
 import (
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
@@ -16,7 +13,7 @@ import (
 
 type Service interface {
 	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Result
-	Run(block bool) *cd.Result
+	Run() *cd.Result
 	Shutdown()
 }
 
@@ -49,7 +46,7 @@ func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.Back
 	return
 }
 
-func (s *defaultService) Run(block bool) (ret *cd.Result) {
+func (s *defaultService) Run() (ret *cd.Result) {
 	if errInfo := recover(); errInfo != nil {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, errInfo)
 	}
@@ -67,14 +64,6 @@ func (s *defaultService) Run(block bool) (ret *cd.Result) {
 	}
 
 	log.Infof("%s running!", s.serviceName)
-	if block {
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-		sig := <-sigChan
-		log.Warnf("%s shutdowning signal:%+v", s.serviceName, sig)
-	}
-
 	return
 }
 

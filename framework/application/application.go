@@ -37,7 +37,7 @@ func init() {
 
 type Application interface {
 	Startup(service service.Service) *cd.Result
-	Run()
+	Run() *cd.Result
 	Shutdown()
 	EventHub() event.Hub
 	BackgroundRoutine() task.BackgroundRoutine
@@ -50,8 +50,8 @@ func Startup(service service.Service) *cd.Result {
 	return Get().Startup(service)
 }
 
-func Run() {
-	Get().Run()
+func Run() *cd.Result {
+	return Get().Run()
 }
 
 func Shutdown() {
@@ -80,12 +80,12 @@ func (s *appImpl) Startup(service service.Service) *cd.Result {
 	return s.service.Startup(s.eventHub, s.backgroundRoutine)
 }
 
-func (s *appImpl) Run() {
+func (s *appImpl) Run() *cd.Result {
 	if s.service == nil {
-		return
+		return cd.NewError(cd.IllegalParam, "service is nil")
 	}
 
-	s.service.Run(true)
+	return s.service.Run()
 }
 
 func (s *appImpl) Shutdown() {
