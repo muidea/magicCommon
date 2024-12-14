@@ -69,8 +69,8 @@ func Test_Initator(t *testing.T) {
 	Register(d100)
 	Register(d123)
 
-	Setup(nil, nil, nil)
-	Run(nil)
+	_ = Setup(nil, nil)
+	_ = Run()
 
 	var demoPtr Demo
 	var demo2Ptr Demo2
@@ -85,5 +85,5 @@ func Test_Initator(t *testing.T) {
 
 	demoPtr.HelloWorkd()
 
-	Teardown(nil)
+	Teardown()
 }

@@ -1,8 +1,6 @@
 package initator
 
 import (
-	"sync"
-
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
@@ -33,14 +31,14 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Result) {
 	return
 }
 
-func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, wg *sync.WaitGroup) *cd.Result {
-	return initatorMgr.Setup(eventHub, backgroundRoutine, wg)
+func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Result {
+	return initatorMgr.Setup(eventHub, backgroundRoutine)
 }
 
-func Run(wg *sync.WaitGroup) *cd.Result {
-	return initatorMgr.Run(wg)
+func Run() *cd.Result {
+	return initatorMgr.Run()
 }
 
-func Teardown(wg *sync.WaitGroup) {
-	initatorMgr.Teardown(wg)
+func Teardown() {
+	initatorMgr.Teardown()
 }

@@ -3,7 +3,6 @@ package common
 import (
 	"fmt"
 	"reflect"
-	"sync"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
@@ -136,80 +135,42 @@ func (s *PluginMgr) GetEntity(id string) (ret interface{}, err *cd.Result) {
 	return
 }
 
-func (s *PluginMgr) invoke(wg *sync.WaitGroup, funcPtr InvokeFunc) (err *cd.Result) {
-	if wg != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			funcPtr()
-		}()
+func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err *cd.Result) {
+	for _, val := range s.entityList {
+		err = system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
+		if err != nil && err.ErrorCode != cd.NoExist {
+			log.Errorf("invoke %s %s setup failed, %v", s.typeName, s.getID(val), err)
+			return
+		}
+	}
 
+	return
+}
+
+func (s *PluginMgr) Run() (err *cd.Result) {
+	for _, val := range s.entityList {
+		err = system.InvokeEntityFunc(val, runTag)
+		if err != nil && err.ErrorCode != cd.NoExist {
+			log.Errorf("invoke %s %s run failed, %v", s.typeName, s.getID(val), err)
+			return
+		}
+
+		//log.Infof("invoke %s %s run success", s.typeName, s.getID(val))
 		return
 	}
 
-	err = funcPtr()
 	return
 }
 
-func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine, wg *sync.WaitGroup) (err *cd.Result) {
-	for _, val := range s.entityList {
-		setUp := func() (err *cd.Result) {
-			err = system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
-			if err != nil && err.ErrorCode != cd.NoExist {
-				log.Errorf("invoke %s %s setup failed, %v", s.typeName, s.getID(val), err)
-				return
-			}
-
-			//log.Infof("invoke %s %s setup success", s.typeName, s.getID(val))
-			return
-		}
-
-		err = s.invoke(wg, setUp)
-		if err != nil {
-			return
-		}
-	}
-
-	return
-}
-
-func (s *PluginMgr) Run(wg *sync.WaitGroup) (err *cd.Result) {
-	for _, val := range s.entityList {
-		run := func() (err *cd.Result) {
-			err = system.InvokeEntityFunc(val, runTag)
-			if err != nil && err.ErrorCode != cd.NoExist {
-				log.Errorf("invoke %s %s run failed, %v", s.typeName, s.getID(val), err)
-				return
-			}
-
-			//log.Infof("invoke %s %s run success", s.typeName, s.getID(val))
-			return
-		}
-
-		err = s.invoke(wg, run)
-		if err != nil {
-			return
-		}
-	}
-
-	return
-}
-
-func (s *PluginMgr) Teardown(wg *sync.WaitGroup) {
+func (s *PluginMgr) Teardown() {
 	totalSize := len(s.entityList)
 	for idx := range s.entityList {
 		val := s.entityList[totalSize-idx-1]
-		teardown := func() (err *cd.Result) {
-			err = system.InvokeEntityFunc(val, teardownTag)
-			if err != nil && err.ErrorCode != cd.NoExist {
-				log.Errorf("invoke %s %s teardown failed, %v", s.typeName, s.getID(val), err)
-				return
-			}
-
-			//log.Infof("invoke %s %s teardown success", s.typeName, s.getID(val))
-			return
+		err := system.InvokeEntityFunc(val, teardownTag)
+		if err != nil && err.ErrorCode != cd.NoExist {
+			log.Errorf("invoke %s %s teardown failed, %v", s.typeName, s.getID(val), err)
 		}
 
-		_ = s.invoke(wg, teardown)
+		//log.Infof("invoke %s %s teardown success", s.typeName, s.getID(val))
 	}
 }

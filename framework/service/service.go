@@ -1,8 +1,6 @@
 package service
 
 import (
-	"sync"
-
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/foundation/log"
@@ -25,18 +23,16 @@ func DefaultService(name string) Service {
 
 type defaultService struct {
 	serviceName string
-	waitGroup   sync.WaitGroup
 }
 
 func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Result) {
-	ret = initator.Setup(eventHub, backgroundRoutine, nil)
+	ret = initator.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
 		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
 		return
 	}
 
-	ret = module.Setup(eventHub, backgroundRoutine, &s.waitGroup)
-	s.waitGroup.Wait()
+	ret = module.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
 		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
 		return
@@ -51,13 +47,12 @@ func (s *defaultService) Run() (ret *cd.Result) {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, errInfo)
 	}
 
-	ret = initator.Run(nil)
+	ret = initator.Run()
 	if ret != nil {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, ret)
 		return
 	}
-	ret = module.Run(&s.waitGroup)
-	s.waitGroup.Wait()
+	ret = module.Run()
 	if ret != nil {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, ret)
 		return
@@ -72,8 +67,7 @@ func (s *defaultService) Shutdown() {
 		log.Errorf("%s shutdown failed, err:%+v", s.serviceName, errInfo)
 	}
 
-	module.Teardown(&s.waitGroup)
-	initator.Teardown(nil)
-	s.waitGroup.Wait()
+	module.Teardown()
+	initator.Teardown()
 	log.Infof("%s shutdown success", s.serviceName)
 }
