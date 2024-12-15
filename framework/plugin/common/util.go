@@ -156,7 +156,6 @@ func (s *PluginMgr) Run() (err *cd.Result) {
 		}
 
 		//log.Infof("invoke %s %s run success", s.typeName, s.getID(val))
-		return
 	}
 
 	return
