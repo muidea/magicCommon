@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -35,4 +36,23 @@ func IsDirEmpty(dirPath string) (bool, error) {
 func SplitParentDir(dirPath string) string {
 	parentPath, _ := path.Split(dirPath)
 	return strings.TrimRight(parentPath, "/")
+}
+
+func CleanPathContent(dirPath string) {
+	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// 跳过根目录
+		if path == dirPath {
+			return nil
+		}
+
+		if info.IsDir() {
+			return os.RemoveAll(path)
+		} else {
+			return os.Remove(path)
+		}
+	})
 }
