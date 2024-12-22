@@ -100,7 +100,6 @@ func TestInitator(t *testing.T) {
 		break
 	}
 	assert.True(t, ok)
-
 }
 
 func TestModule(t *testing.T) {
@@ -131,8 +130,9 @@ func TestModule(t *testing.T) {
 			continue
 		}
 		ok = false
+		break
 	}
-	assert.True(t, !ok)
+	assert.True(t, ok)
 
 	ok = true
 	sVal = 0
@@ -142,8 +142,9 @@ func TestModule(t *testing.T) {
 			continue
 		}
 		ok = false
+		break
 	}
-	assert.True(t, !ok)
+	assert.True(t, ok)
 
 	ok = true
 	sVal = 10
@@ -153,7 +154,7 @@ func TestModule(t *testing.T) {
 			continue
 		}
 		ok = false
+		break
 	}
-	assert.True(t, !ok)
-
+	assert.True(t, ok)
 }
