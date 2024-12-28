@@ -41,26 +41,22 @@ func SplitParentDir(dirPath string) string {
 }
 
 func CleanPathContent(dirPath string) {
-	log.Infof("clean path content, dirPath:%s", dirPath)
-	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		log.Errorf("clean path content failed, dirPath:%s, error:%s", dirPath, err.Error())
+		return
+	}
 
-		// 跳过根目录
-		if path == dirPath {
-			return nil
-		}
-
-		if info.IsDir() {
-			err = os.RemoveAll(path)
+	for _, entry := range entries {
+		entryPath := filepath.Join(dirPath, entry.Name())
+		if entry.IsDir() {
+			if err := os.RemoveAll(entryPath); err != nil {
+				log.Errorf("clean path content failed, dirPath:%s, error:%s", entryPath, err.Error())
+			}
 		} else {
-			err = os.Remove(path)
+			if err := os.Remove(entryPath); err != nil {
+				log.Errorf("clean path content failed, dirPath:%s, error:%s", entryPath, err.Error())
+			}
 		}
-		if err != nil {
-			log.Errorf("clean path content failed, path:%s, error:%s", path, err.Error())
-		}
-
-		return err
-	})
+	}
 }
