@@ -7,6 +7,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 // Exist 路径是否存在
@@ -50,9 +52,14 @@ func CleanPathContent(dirPath string) {
 		}
 
 		if info.IsDir() {
-			return os.RemoveAll(path)
+			err = os.RemoveAll(path)
 		} else {
-			return os.Remove(path)
+			err = os.Remove(path)
 		}
+		if err != nil {
+			log.Errorf("clean path content failed, path:%s, error:%s", path, err.Error())
+		}
+
+		return err
 	})
 }
