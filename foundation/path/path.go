@@ -41,6 +41,7 @@ func SplitParentDir(dirPath string) string {
 }
 
 func CleanPathContent(dirPath string) {
+	log.Infof("clean path content, dirPath:%s", dirPath)
 	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
