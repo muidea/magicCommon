@@ -25,6 +25,13 @@ func NewFilter(name, pkgPath string) *ContentFilter {
 	return &ContentFilter{PaginationPtr: nil, ParamItems: &ParamItems{Name: name, PkgPath: pkgPath, Items: map[string]string{}}}
 }
 
+func (s *ContentFilter) String() string {
+	ss := strings.Builder{}
+	ss.WriteString("Pagination:" + s.PaginationPtr.String() + "\n")
+	ss.WriteString("ParamItems:" + s.ParamItems.String())
+	return ss.String()
+}
+
 // Decode 内容过滤器
 func (s *ContentFilter) Decode(request *http.Request) {
 	pagePtr := &Pagination{}
@@ -234,6 +241,22 @@ type ParamItems struct {
 }
 
 const sortKey = "_sort"
+
+func (s *ParamItems) String() string {
+	ss := strings.Builder{}
+	ss.WriteString("Name:" + s.Name + "\n")
+	ss.WriteString("PkgPath:" + s.PkgPath + "\n")
+	for k, v := range s.Items {
+		ss.WriteString(fmt.Sprintf("[%s:%s]\n", k, v))
+	}
+	if s.SortFilter != nil {
+		ss.WriteString(fmt.Sprintf("SortFilter:%s\n", s.SortFilter.String()))
+	}
+	if s.ValueMask != nil {
+		ss.WriteString(fmt.Sprintf("ValueMask:%s\n", string(s.ValueMask)))
+	}
+	return ss.String()
+}
 
 // Decode 解析内容过滤值
 func (s *ParamItems) Decode(request *http.Request) bool {

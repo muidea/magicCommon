@@ -1,5 +1,10 @@
 package util
 
+import (
+	"fmt"
+	"strings"
+)
+
 // SortFilter 页面过滤器
 type SortFilter struct {
 	// true:升序,false:降序
@@ -10,6 +15,12 @@ type SortFilter struct {
 
 func NewSortFilter(name string, ascFlag bool) *SortFilter {
 	return &SortFilter{AscFlag: ascFlag, FieldName: name}
+}
+
+func (s *SortFilter) String() string {
+	ss := strings.Builder{}
+	ss.WriteString(fmt.Sprintf("[%s:%t]", s.FieldName, s.AscFlag))
+	return ss.String()
 }
 
 // Name return name

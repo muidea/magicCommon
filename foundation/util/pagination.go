@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -26,6 +27,12 @@ func NewPagination(defaultSize, defaultNum int) *Pagination {
 
 func DefaultPagination() *Pagination {
 	return &Pagination{PageSize: defaultPageSize, PageNum: defaultPageNum}
+}
+
+func (s *Pagination) String() string {
+	ss := strings.Builder{}
+	ss.WriteString(fmt.Sprintf("[%d:%d]", s.PageSize, s.PageNum))
+	return ss.String()
 }
 
 // Decode 从request里解析PageFilter
