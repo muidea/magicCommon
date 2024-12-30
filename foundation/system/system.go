@@ -23,8 +23,8 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 	}
 
 	defer func() {
-		if info := recover(); info != nil {
-			err = cd.NewError(cd.UnExpected, fmt.Sprintf("invoke %s unexpected, %v", funcName, info))
+		if errInfo := recover(); errInfo != nil {
+			err = cd.NewError(cd.UnExpected, fmt.Sprintf("recover! invoke %s unexpected, %v", funcName, errInfo))
 		}
 	}()
 
