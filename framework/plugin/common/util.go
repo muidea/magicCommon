@@ -139,7 +139,7 @@ func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundR
 	for _, val := range s.entityList {
 		err = system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
 		if err != nil && err.ErrorCode != cd.NoExist {
-			log.Errorf("invoke %s %s setup failed, %v", s.typeName, s.getID(val), err)
+			log.Errorf("invoke [%s-%s] setup failed, %v", s.typeName, s.getID(val), err)
 			return
 		}
 	}
@@ -151,7 +151,7 @@ func (s *PluginMgr) Run() (err *cd.Result) {
 	for _, val := range s.entityList {
 		err = system.InvokeEntityFunc(val, runTag)
 		if err != nil && err.ErrorCode != cd.NoExist {
-			log.Errorf("invoke %s %s run failed, %v", s.typeName, s.getID(val), err)
+			log.Errorf("invoke [%s-%s] run failed, %v", s.typeName, s.getID(val), err)
 			return
 		}
 
@@ -167,7 +167,7 @@ func (s *PluginMgr) Teardown() {
 		val := s.entityList[totalSize-idx-1]
 		err := system.InvokeEntityFunc(val, teardownTag)
 		if err != nil && err.ErrorCode != cd.NoExist {
-			log.Errorf("invoke %s %s teardown failed, %v", s.typeName, s.getID(val), err)
+			log.Errorf("invoke [%s-%s] teardown failed, %v", s.typeName, s.getID(val), err)
 		}
 
 		//log.Infof("invoke %s %s teardown success", s.typeName, s.getID(val))
