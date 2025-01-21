@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	cd "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interface{}) (err *cd.Result) {
@@ -24,7 +25,7 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
-			err = cd.NewError(cd.UnExpected, fmt.Sprintf("recover! invoke %s unexpected, %v", funcName, errInfo))
+			err = cd.NewError(cd.UnExpected, fmt.Sprintf("recover! invoke %s unexpected, err:%v\nstack:\n%s", funcName, errInfo, util.GetStack(3)))
 		}
 	}()
 
