@@ -24,21 +24,11 @@ func RandomIdentifyCode() string {
 	return vcode
 }
 
-// RandomSpec0 Creates a random string based on a variety of options, using
-// supplied source of randomness.
-//
-// If start and end are both 0, start and end are set
-// to ' ' and 'z', the ASCII printable
-// characters, will be used, unless letters and numbers are both
-// false, in which case, start and end are set to 0 and math.MaxInt32.
-//
-// If set is not nil, characters between start and end are chosen.
-//
-// This method accepts a user-supplied rand.Rand
-// instance to use as a source of randomness. By seeding a single
-// rand.Rand instance with a fixed seed and using it for each call,
-// the same random sequence of strings can be generated repeatedly
-// and predictably.
+// RandomSpec0 根据各种选项创建随机字符串，使用提供的随机源。
+// 如果 start 和 end 都为0，则 start 和 end 被设置为 ' ' 和 'z'，即 ASCII 可打印字符。
+// 如果 letters 和 numbers 都为 false，则 start 和 end 被设置为 0 和 math.MaxInt32。
+// 如果 set 不为 nil，则从 start 和 end 之间的字符中选择。
+// 该方法接受一个用户提供的 rand.Rand 实例作为随机源。
 func RandomSpec0(count uint, start, end int, letters, numbers bool,
 	chars []rune, rand *rand.Rand) string {
 	if count == 0 {
@@ -77,13 +67,13 @@ func RandomSpec0(count uint, start, end int, letters, numbers bool,
 				if count == 0 {
 					count++
 				} else {
-					// high surrogate, insert low surrogate before putting it in
+					// 高代理项，在插入之前插入低代理项
 					buffer[count] = rune(56320 + rand.Intn(128))
 					count--
 					buffer[count] = ch
 				}
 			} else if ch >= rune(56192) && ch <= rune(56319) {
-				// private high surrogate, no effing clue, so skip it
+				// 私有高代理项，没有线索，所以跳过
 				count++
 			} else {
 				buffer[count] = ch
@@ -95,73 +85,53 @@ func RandomSpec0(count uint, start, end int, letters, numbers bool,
 	return string(buffer)
 }
 
-// RandomSpec1 Creates a random string whose length is the number of characters specified.
-//
-// Characters will be chosen from the set of alpha-numeric
-// characters as indicated by the arguments.
-//
-// Param count - the length of random string to create
-// Param start - the position in set of chars to start at
-// Param end   - the position in set of chars to end before
-// Param letters - if true, generated string will include
-//                 alphabetic characters
-// Param numbers - if true, generated string will include
-//                 numeric characters
+// RandomSpec1 创建一个指定长度的随机字符串。
+// 字符将从参数指示的字母数字字符集中选择。
 func RandomSpec1(count uint, start, end int, letters, numbers bool) string {
 	return RandomSpec0(count, start, end, letters, numbers, nil, defaultRand)
 }
 
-// RandomAlphaOrNumeric Creates a random string whose length is the number of characters specified.
-//
-// Characters will be chosen from the set of alpha-numeric
-// characters as indicated by the arguments.
-//
-// Param count - the length of random string to create
-// Param letters - if true, generated string will include
-//                 alphabetic characters
-// Param numbers - if true, generated string will include
-//                 numeric characters
+// RandomAlphaOrNumeric 创建一个指定长度的随机字符串。
+// 字符将从参数指示的字母数字字符集中选择。
 func RandomAlphaOrNumeric(count uint, letters, numbers bool) string {
 	return RandomSpec1(count, 0, 0, letters, numbers)
 }
 
-// RandomString RandomString
+// RandomString 创建一个指定长度的随机字符串。
 func RandomString(count uint) string {
 	return RandomAlphaOrNumeric(count, false, false)
 }
 
-// RandomStringSpec0 RandomStringSpec0
+// RandomStringSpec0 创建一个指定长度的随机字符串。
 func RandomStringSpec0(count uint, set []rune) string {
 	return RandomSpec0(count, 0, len(set)-1, false, false, set, defaultRand)
 }
 
-// RandomStringSpec1 RandomStringSpec1
+// RandomStringSpec1 创建一个指定长度的随机字符串。
 func RandomStringSpec1(count uint, set string) string {
 	return RandomStringSpec0(count, []rune(set))
 }
 
-// RandomAscII Creates a random string whose length is the number of characters
-// specified.
-// Characters will be chosen from the set of characters whose
-// ASCII value is between 32 and 126 (inclusive).
+// RandomAscII 创建一个指定长度的随机字符串。
+// 字符将从 ASCII 值在 32 到 126（包括）之间的字符集中选择。
 func RandomAscII(count uint) string {
 	return RandomSpec1(count, 32, 127, false, false)
 }
 
-// RandomAlphabetic Creates a random string whose length is the number of characters specified.
-// Characters will be chosen from the set of alphabetic characters.
+// RandomAlphabetic 创建一个指定长度的随机字符串。
+// 字符将从字母字符集中选择。
 func RandomAlphabetic(count uint) string {
 	return RandomAlphaOrNumeric(count, true, false)
 }
 
-// RandomAlphanumeric Creates a random string whose length is the number of characters specified.
-// Characters will be chosen from the set of alpha-numeric characters.
+// RandomAlphanumeric 创建一个指定长度的随机字符串。
+// 字符将从字母数字字符集中选择。
 func RandomAlphanumeric(count uint) string {
 	return RandomAlphaOrNumeric(count, true, true)
 }
 
-// RandomNumeric Creates a random string whose length is the number of characters specified.
-// Characters will be chosen from the set of numeric characters.
+// RandomNumeric 创建一个指定长度的随机字符串。
+// 字符将从数字字符集中选择。
 func RandomNumeric(count uint) string {
 	return RandomAlphaOrNumeric(count, false, true)
 }
