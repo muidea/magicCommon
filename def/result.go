@@ -77,6 +77,6 @@ func (s *Result) String() string {
 	return fmt.Sprintf("errorCode:%v, reason:%v", s.ErrorCode, s.Reason)
 }
 
-func NewError(errCode ErrorCode, reason string) *Result {
+func NewResult(errCode ErrorCode, reason string) *Result {
 	return &Result{ErrorCode: errCode, Reason: reason}
 }

@@ -82,7 +82,7 @@ func (s *appImpl) Startup(service service.Service) *cd.Result {
 
 func (s *appImpl) Run() *cd.Result {
 	if s.service == nil {
-		return cd.NewError(cd.IllegalParam, "service is nil")
+		return cd.NewResult(cd.IllegalParam, "service is nil")
 	}
 
 	return s.service.Run()

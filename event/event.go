@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"fmt"
+
 	cd "github.com/muidea/magicCommon/def"
 )
 
@@ -59,7 +60,7 @@ func NewEventWitchContext(id, source, destination string, header Values, context
 
 func NewResult(id, source, destination string) Result {
 	msg := fmt.Sprintf("illegal event, no result returned, id:%s, source:%s, destination:%s", id, source, destination)
-	return &baseResult{resultErr: cd.NewError(cd.Failed, msg), resultData: map[string]interface{}{}}
+	return &baseResult{resultErr: cd.NewResult(cd.Failed, msg), resultData: map[string]interface{}{}}
 }
 
 func (s *baseEvent) ID() string {

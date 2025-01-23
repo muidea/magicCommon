@@ -21,7 +21,7 @@ func (s *MockEntity) TestDemo() {
 }
 
 func (s *MockEntity) TestReuslt() *cd.Result {
-	return cd.NewError(cd.InvalidAuthority, "test result")
+	return cd.NewResult(cd.InvalidAuthority, "test result")
 }
 
 // TestInvokeEntityFuncNoMethod tests the scenario where the method does not exist on the entityVal

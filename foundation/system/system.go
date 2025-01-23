@@ -11,7 +11,7 @@ import (
 func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interface{}) (err *cd.Result) {
 	if entityVal == nil {
 		errMsg := "entityVal is nil"
-		err = cd.NewError(cd.IllegalParam, errMsg)
+		err = cd.NewResult(cd.IllegalParam, errMsg)
 		return
 	}
 
@@ -19,13 +19,13 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 	funcVal := vVal.MethodByName(funcName)
 	if !isValidMethod(funcVal) || funcVal.IsZero() {
 		errMsg := fmt.Sprintf("no such method:%s", funcName)
-		err = cd.NewError(cd.NoExist, errMsg)
+		err = cd.NewResult(cd.NoExist, errMsg)
 		return
 	}
 
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
-			err = cd.NewError(cd.UnExpected, fmt.Sprintf("recover! invoke %s unexpected, err:%v\nstack:\n%s", funcName, errInfo, util.GetStack(3)))
+			err = cd.NewResult(cd.UnExpected, fmt.Sprintf("recover! invoke %s unexpected, err:%v\nstack:\n%s", funcName, errInfo, util.GetStack(3)))
 		}
 	}()
 
@@ -40,7 +40,7 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 	}
 	errVal, errOK := rVals[0].Interface().(*cd.Result)
 	if !errOK {
-		err = cd.NewError(cd.UnExpected, "invoke method return illegal result")
+		err = cd.NewResult(cd.UnExpected, "invoke method return illegal result")
 		return
 	}
 
@@ -94,7 +94,7 @@ func convertParam(val interface{}, expectedType reflect.Type) (reflect.Value, *c
 
 	if !rVal.Type().ConvertibleTo(expectedType) {
 		errMsg := fmt.Sprintf("[mismatch param, expect type:%s, value type:%s]", expectedType.String(), rVal.Type().String())
-		return reflect.Value{}, cd.NewError(cd.IllegalParam, errMsg)
+		return reflect.Value{}, cd.NewResult(cd.IllegalParam, errMsg)
 	}
 
 	return rVal, nil
