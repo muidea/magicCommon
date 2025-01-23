@@ -2,98 +2,69 @@ package util
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
+// MarshalString 将任意类型的值转换为 JSON 字符串
 func MarshalString(val interface{}) string {
-	switch val.(type) {
+	switch v := val.(type) {
 	case string:
-		return val.(string)
+		return v
 	default:
+		byteVal, err := json.Marshal(val)
+		if err != nil {
+			return ""
+		}
+		return string(byteVal)
 	}
-
-	byteVal, err := json.Marshal(val)
-	if err != nil {
-		return ""
-	}
-
-	return string(byteVal)
 }
 
+// UnmarshalString 将 JSON 字符串解析为相应的 Go 类型
 func UnmarshalString(val string) interface{} {
-	//val = strings.Trim(val,"\"")
+	val = strings.TrimSpace(val)
 	if val == "" {
 		return nil
 	}
 
-	var ret interface{}
-	for {
-		nLen := len(val)
-		if val[0] == '{' {
-			mVal := map[string]interface{}{}
-			err := json.Unmarshal([]byte(val), &mVal)
-			if err == nil {
-				ret = mVal
-				return ret
-			}
-		}
-		if val[0] != '[' {
-			if unicode.IsNumber(rune(val[0])) || val[0] == '-' {
-				fVal := 0.00
-				err := json.Unmarshal([]byte(val), &fVal)
-				if err == nil {
-					ret = fVal
-					break
-				}
-			}
-
-			// true or false
-			if nLen == 4 || nLen == 5 {
-				bVal := false
-				err := json.Unmarshal([]byte(val), &bVal)
-				if err == nil {
-					ret = bVal
-					break
-				}
-			}
-		}
-
-		if nLen < 2 {
-			ret = val
-			break
-		}
-
-		if unicode.IsNumber(rune(val[1])) || val[1] == '-' {
-			fVal := []float64{}
-			err := json.Unmarshal([]byte(val), &fVal)
-			if err == nil {
-				ret = fVal
-				break
-			}
-		}
-
-		bVal := []bool{}
-		err := json.Unmarshal([]byte(val), &bVal)
-		if err == nil {
-			ret = bVal
-			break
-		}
-
-		strVal := []string{}
-		err = json.Unmarshal([]byte(val), &strVal)
-		if err == nil {
-			ret = strVal
-			break
-		}
-
-		ret = val
-		break
+	// 尝试解析为 map
+	var mVal map[string]interface{}
+	if err := json.Unmarshal([]byte(val), &mVal); err == nil {
+		return mVal
 	}
 
-	return ret
+	// 尝试解析为 float64
+	var fVal float64
+	if err := json.Unmarshal([]byte(val), &fVal); err == nil {
+		return fVal
+	}
+
+	// 尝试解析为 bool
+	var bVal bool
+	if err := json.Unmarshal([]byte(val), &bVal); err == nil {
+		return bVal
+	}
+
+	// 尝试解析为 []float64
+	var fArr []float64
+	if err := json.Unmarshal([]byte(val), &fArr); err == nil {
+		return fArr
+	}
+
+	// 尝试解析为 []bool
+	var bArr []bool
+	if err := json.Unmarshal([]byte(val), &bArr); err == nil {
+		return bArr
+	}
+
+	// 尝试解析为 []string
+	var sArr []string
+	if err := json.Unmarshal([]byte(val), &sArr); err == nil {
+		return sArr
+	}
+
+	// 如果以上都不成功，返回原始字符串
+	return val
 }
 
 // ExtractSummary 抽取摘要
@@ -103,58 +74,58 @@ func ExtractSummary(content string) string {
 	if offset > 0 {
 		return content[:offset]
 	}
-
 	return content
 }
 
+// cleanStr 清理字符串中的逗号和空格
 func cleanStr(str string) string {
-	size := len(str)
-	if size == 0 {
+	str = strings.TrimSpace(str)
+	if len(str) == 0 {
 		return ""
 	}
-
-	val := str
 	if str[0] == ',' {
-		val = str[1:]
+		str = str[1:]
 	}
-
-	if str[size-1] == ',' {
-		val = str[:size-1]
+	if len(str) > 0 && str[len(str)-1] == ',' {
+		str = str[:len(str)-1]
 	}
-
-	return strings.TrimSpace(val)
+	return strings.TrimSpace(str)
 }
 
-// Str2IntArray 字符串转换成数字数组
+// Str2IntArray 将逗号分隔的字符串转换为整数数组
 func Str2IntArray(str string) ([]int, bool) {
-	ids := []int{}
-	vals := strings.Split(cleanStr(str), ",")
+	str = cleanStr(str)
+	if str == "" {
+		return []int{}, true
+	}
 
+	vals := strings.Split(str, ",")
+	ids := make([]int, 0, len(vals))
 	for _, val := range vals {
-		if len(val) == 0 {
+		if val == "" {
 			continue
 		}
-
 		id, err := strconv.Atoi(val)
 		if err != nil {
-			return ids, false
+			return nil, false
 		}
 		ids = append(ids, id)
 	}
-
 	return ids, true
 }
 
-// IntArray2Str 数字数组转字符串
+// IntArray2Str 将整数数组转换为逗号分隔的字符串
 func IntArray2Str(ids []int) string {
 	if len(ids) == 0 {
 		return ""
 	}
 
-	val := ""
-	for _, v := range ids {
-		val = fmt.Sprintf("%s,%d", val, v)
+	var sb strings.Builder
+	for i, id := range ids {
+		if i > 0 {
+			sb.WriteString(",")
+		}
+		sb.WriteString(strconv.Itoa(id))
 	}
-
-	return val[1:]
+	return sb.String()
 }

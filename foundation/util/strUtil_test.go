@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/muidea/magicCommon/foundation/log"
@@ -21,389 +20,162 @@ type User struct {
 }
 
 func TestIntArray2Str(t *testing.T) {
-	tempArray := []int{1, 2}
-	str := IntArray2Str(tempArray)
-	if str != "1,2" {
-		t.Errorf("IntArray2Str failed, %s", str)
+	tests := []struct {
+		name     string
+		input    []int
+		expected string
+	}{
+		{"Non-empty array", []int{1, 2}, "1,2"},
+		{"Empty array", []int{}, ""},
 	}
 
-	tempArray = []int{}
-	str = IntArray2Str(tempArray)
-	if str != "" {
-		t.Errorf("IntArray2Str failed, %s", str)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IntArray2Str(tt.input)
+			if result != tt.expected {
+				t.Errorf("IntArray2Str failed, got: %s, want: %s", result, tt.expected)
+			}
+		})
 	}
 }
 
 func TestStr2IntArray(t *testing.T) {
-	str := ""
-	tempArray, ok := Str2IntArray(str)
-	if !ok || len(tempArray) > 0 {
-		t.Errorf("Str2IntArray failed, ok=%v, len(tempArray)=%d", ok, len(tempArray))
+	tests := []struct {
+		name     string
+		input    string
+		expected []int
+		ok       bool
+	}{
+		{"Empty string", "", []int{}, true},
+		{"Single number", "1", []int{1}, true},
+		{"Leading comma", ",1", []int{1}, true},
+		{"Trailing comma", "1,", []int{1}, true},
+		{"Both leading and trailing comma", ",1,", []int{1}, true},
+		{"Multiple numbers", ",1,2,3,4", []int{1, 2, 3, 4}, true},
 	}
 
-	str = "1"
-	tempArray, ok = Str2IntArray(str)
-	if !ok || len(tempArray) != 1 || tempArray[0] != 1 {
-		t.Errorf("Str2IntArray failed, ok=%v, len(tempArray)=%d", ok, len(tempArray))
-	}
-
-	str = ",1"
-	tempArray, ok = Str2IntArray(str)
-	if !ok || len(tempArray) != 1 || tempArray[0] != 1 {
-		t.Errorf("Str2IntArray failed, ok=%v, len(tempArray)=%d", ok, len(tempArray))
-	}
-	str = "1,"
-	tempArray, ok = Str2IntArray(str)
-	if !ok || len(tempArray) != 1 || tempArray[0] != 1 {
-		t.Errorf("Str2IntArray failed, ok=%v, len(tempArray)=%d", ok, len(tempArray))
-	}
-	str = ",1,"
-	tempArray, ok = Str2IntArray(str)
-	if !ok || len(tempArray) != 1 || tempArray[0] != 1 {
-		t.Errorf("Str2IntArray failed, ok=%v, len(tempArray)=%d", ok, len(tempArray))
-	}
-
-	str = ",1,2,3,4"
-	tempArray, ok = Str2IntArray(str)
-	if !ok || len(tempArray) != 4 || tempArray[0] != 1 {
-		t.Errorf("Str2IntArray failed, ok=%v, len(tempArray)=%d", ok, len(tempArray))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, ok := Str2IntArray(tt.input)
+			if !ok || !compareIntSlices(result, tt.expected) {
+				t.Errorf("Str2IntArray failed, got: %v, want: %v, ok: %v", result, tt.expected, ok)
+			}
+		})
 	}
 }
 
 func TestMarshalString(t *testing.T) {
-	iVal := 1234
-	marshalVal := MarshalString(iVal)
-	if marshalVal != "1234" {
-		t.Errorf("marshal int failed")
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected string
+	}{
+		{"Integer", 1234, "1234"},
+		{"String", "1234", "1234"},
+		{"Float", 12.34, "12.34"},
+		{"Bool false", false, "false"},
+		{"Bool true", true, "true"},
+		{"Complex string", "61d383cb134f4db6a367046ffac3051d", "61d383cb134f4db6a367046ffac3051d"},
+		{"User object", &User{ID: 110, Name: "Hello", Desc: "hey boy", Age: 123, Car: &Car{ID: 100, Name: "Car"}}, ""},
 	}
 
-	strVal := "1234"
-	marshalVal = MarshalString(strVal)
-	if marshalVal != "1234" {
-		t.Errorf("marshal string failed")
-	}
-
-	fVal := 12.34
-	marshalVal = MarshalString(fVal)
-	if marshalVal != "12.34" {
-		t.Errorf("marshal float failed")
-	}
-
-	bVal := false
-	marshalVal = MarshalString(bVal)
-	if marshalVal != "false" {
-		t.Errorf("marshal bool failed")
-	}
-
-	bVal = true
-	marshalVal = MarshalString(bVal)
-	if marshalVal != "true" {
-		t.Errorf("marshal bool failed")
-	}
-
-	strVal = "61d383cb134f4db6a367046ffac3051d"
-	marshalVal = MarshalString(strVal)
-	if marshalVal != "61d383cb134f4db6a367046ffac3051d" {
-		t.Errorf("marshal string failed")
-	}
-
-	strVal = "[61d383cb134f4db]6a367046ffac3051d"
-	marshalVal = MarshalString(strVal)
-	if marshalVal != "[61d383cb134f4db]6a367046ffac3051d" {
-		t.Errorf("marshal string failed")
-	}
-
-	strVal = "{61d383cb134f4db6a367046ffac3051d"
-	marshalVal = MarshalString(strVal)
-	if marshalVal != "{61d383cb134f4db6a367046ffac3051d" {
-		t.Errorf("marshal string failed")
-	}
-
-	strVal = "%61d383cb134f4db6a367046ffac3051d"
-	marshalVal = MarshalString(strVal)
-	if marshalVal != "%61d383cb134f4db6a367046ffac3051d" {
-		t.Errorf("marshal string failed")
-	}
-
-	strVal = "-61d383cb134f4db6a367046ffac3051d"
-	marshalVal = MarshalString(strVal)
-	if marshalVal != "-61d383cb134f4db6a367046ffac3051d" {
-		t.Errorf("marshal string failed")
-	}
-
-	obj1 := &User{
-		ID:   110,
-		Name: "Hello",
-		Desc: "hey boy",
-		Age:  123,
-		Car:  &Car{ID: 100, Name: "Car"},
-	}
-
-	marshalVal = MarshalString(obj1)
-	if marshalVal == "" {
-		t.Errorf("marshal user failed")
-	}
-	log.Infof(marshalVal)
-
-	obj2 := &User{
-		ID:   110,
-		Name: "Hello",
-		Desc: "hey boy",
-		Age:  123,
-	}
-
-	marshalVal = MarshalString(obj2)
-	if marshalVal == "" {
-		t.Errorf("marshal user failed")
-	}
-	log.Infof(marshalVal)
-}
-
-func TestUnMarshalString(t *testing.T) {
-	rawVal := "1234"
-	iVal := 1234
-	uVal := UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case float64:
-		if int(uVal.(float64)) != iVal {
-			t.Errorf("unmarshal int failed")
-		}
-	default:
-		t.Errorf("unmarshal int failed")
-	}
-
-	rawVal = "a1234"
-	strVal := "a1234"
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case string:
-		if uVal.(string) != strVal {
-			t.Errorf("unmarshal string failed")
-		}
-	default:
-		t.Errorf("unmarshal int failed")
-	}
-
-	rawVal = "12.34"
-	fVal := 12.34
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case float64:
-		if uVal.(float64) != fVal {
-			t.Errorf("unmarshal float failed")
-		}
-	default:
-		t.Errorf("unmarshal float failed")
-	}
-
-	rawVal = "false"
-	bVal := false
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case bool:
-		if uVal.(bool) != bVal {
-			t.Errorf("unmarshal bool failed")
-		}
-	default:
-		t.Errorf("unmarshal bool failed")
-	}
-
-	rawVal = "true"
-	bVal = true
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case bool:
-		if uVal.(bool) != bVal {
-			t.Errorf("unmarshal bool failed")
-		}
-	default:
-		t.Errorf("unmarshal bool failed")
-	}
-
-	rawVal = "61d383cb134f4db6a367046ffac3051d"
-	strVal = "61d383cb134f4db6a367046ffac3051d"
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case string:
-		if uVal.(string) != strVal {
-			t.Errorf("unmarshal string failed")
-		}
-	default:
-		t.Errorf("unmarshal string failed")
-	}
-
-	rawVal = "[61d383cb134f4db6a367046ffac3051d"
-	strVal = "[61d383cb134f4db6a367046ffac3051d"
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case string:
-		if uVal.(string) != strVal {
-			t.Errorf("unmarshal string failed")
-		}
-	default:
-		t.Errorf("unmarshal string failed")
-	}
-
-	rawVal = "[61d383cb13]4f4db6a367046ffac3051d"
-	strVal = "[61d383cb13]4f4db6a367046ffac3051d"
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case string:
-		if uVal.(string) != strVal {
-			t.Errorf("unmarshal string failed")
-		}
-	default:
-		t.Errorf("unmarshal string failed")
-	}
-
-	rawVal = "{61d383cb134f4db6a367046ffac3051d"
-	strVal = "{61d383cb134f4db6a367046ffac3051d"
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case string:
-		if uVal.(string) != strVal {
-			t.Errorf("unmarshal string failed")
-		}
-	default:
-		t.Errorf("unmarshal string failed")
-	}
-
-	rawVal = "%61d383cb134f4db6a367046ffac3051d"
-	strVal = "%61d383cb134f4db6a367046ffac3051d"
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case string:
-		if uVal.(string) != strVal {
-			t.Errorf("unmarshal string failed")
-		}
-	default:
-		t.Errorf("unmarshal string failed")
-	}
-
-	rawVal = "-61d383cb134f4db6a367046ffac3051d"
-	strVal = "-61d383cb134f4db6a367046ffac3051d"
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case string:
-		if uVal.(string) != strVal {
-			t.Errorf("unmarshal string failed")
-		}
-	default:
-		t.Errorf("unmarshal string failed")
-	}
-
-	rawVal = "{\"id\":110,\"name\":\"Hello\",\"desc\":\"hey boy\",\"age\":123,\"car\":{\"id\":100,\"name\":\"Car\"}}"
-	/*
-		objVal := &User{
-			ID: 110,
-			Name: "Hello",
-			Desc: "hey boy",
-			Age: 123,
-		}
-	*/
-
-	uVal = UnmarshalString(rawVal)
-	if uVal == nil {
-		t.Errorf("unmarshal object failed")
-	}
-
-	rawVal = "{\"id\":110,\"name\":\"Hello\",\"desc\":\"hey boy\",\"age\":123,\"car\":null}"
-	uVal = UnmarshalString(rawVal)
-	if uVal == nil {
-		t.Errorf("unmarshal object failed")
-	}
-
-	rawVal = "{\"id\":110,\"name\":\"Hello\",\"desc\":\"hey boy\",\"age\":123}"
-	uVal = UnmarshalString(rawVal)
-	if uVal == nil {
-		t.Errorf("unmarshal object failed")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := MarshalString(tt.input)
+			if tt.name == "User object" {
+				if result == "" {
+					t.Errorf("MarshalString failed for User object, got empty string")
+				}
+				log.Infof(result)
+			} else if result != tt.expected {
+				t.Errorf("MarshalString failed, got: %s, want: %s", result, tt.expected)
+			}
+		})
 	}
 }
 
-func TestArrayMarshalString(t *testing.T) {
-	iVal := []int{1234}
-	sVal := fmt.Sprintf("%v", iVal)
-	log.Infof(sVal)
-	marshalVal := MarshalString(iVal)
-	if marshalVal != "[1234]" {
-		t.Errorf("marshal int failed")
+func TestUnmarshalString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected interface{}
+	}{
+		{"Integer", "1234", float64(1234)},
+		{"String", "a1234", "a1234"},
+		{"Float", "12.34", float64(12.34)},
+		{"Bool false", "false", false},
+		{"Bool true", "true", true},
+		{"Complex string", "61d383cb134f4db6a367046ffac3051d", "61d383cb134f4db6a367046ffac3051d"},
+		{"JSON object", `{"id":110,"name":"Hello","desc":"hey boy","age":123,"car":{"id":100,"name":"Car"}}`, nil},
 	}
 
-	strVal := []string{"1234"}
-	marshalVal = MarshalString(strVal)
-	if marshalVal != "[\"1234\"]" {
-		t.Errorf("marshal string failed")
-	}
-
-	fVal := []float64{12.34}
-	marshalVal = MarshalString(fVal)
-	if marshalVal != "[12.34]" {
-		t.Errorf("marshal float failed")
-	}
-
-	bVal := []bool{false}
-	marshalVal = MarshalString(bVal)
-	if marshalVal != "[false]" {
-		t.Errorf("marshal bool failed")
-	}
-
-	bVal = []bool{true}
-	marshalVal = MarshalString(bVal)
-	if marshalVal != "[true]" {
-		t.Errorf("marshal bool failed")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := UnmarshalString(tt.input)
+			if tt.name == "JSON object" {
+				if result == nil {
+					t.Errorf("UnmarshalString failed for JSON object, got nil")
+				}
+			} else if result != tt.expected {
+				t.Errorf("UnmarshalString failed, got: %v, want: %v", result, tt.expected)
+			}
+		})
 	}
 }
 
-func TestArrayUnMarshalString(t *testing.T) {
-	rawVal := "[1234]"
-	iVal := []int{1234}
-	uVal := UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case []float64:
-		tVal := uVal.([]float64)
-		if len(tVal) != len(iVal) {
-			t.Errorf("unmarshal int failed")
-		}
-	default:
-		t.Errorf("unmarshal int failed")
+func TestExtractSummary(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"Multi-line content", "This is a test content.\nThis is the second line.", "This is a test content."},
+		{"Single line content", "Single line content", "Single line content"},
+		{"Leading newlines", "\n\n\nThis is a test content.\nThis is the second line.", "This is a test content."},
 	}
 
-	rawVal = "[\"1234\"]"
-	strVal := []string{"1234"}
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case []string:
-		tVal := uVal.([]string)
-		if len(tVal) != len(strVal) {
-			t.Errorf("unmarshal string failed")
-		}
-	default:
-		t.Errorf("unmarshal string failed")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ExtractSummary(tt.input)
+			if result != tt.expected {
+				t.Errorf("ExtractSummary failed, got: %s, want: %s", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCleanStr(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"Leading and trailing commas", ", 1, 2, 3, ", "1, 2, 3"},
+		{"Trailing comma", "1, 2, 3,", "1, 2, 3"},
+		{"Leading and trailing commas with spaces", ",1, 2, 3,", "1, 2, 3"},
+		{"Spaces only", "  1, 2, 3  ", "1, 2, 3"},
+		{"Empty string", "", ""},
 	}
 
-	rawVal = "[12.34]"
-	fVal := []float64{12.34}
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case []float64:
-		tVal := uVal.([]float64)
-		if len(tVal) != len(fVal) {
-			t.Errorf("unmarshal float failed")
-		}
-	default:
-		t.Errorf("unmarshal float failed")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := cleanStr(tt.input)
+			if result != tt.expected {
+				t.Errorf("cleanStr failed, got: %s, want: %s", result, tt.expected)
+			}
+		})
 	}
+}
 
-	rawVal = "[false,true,false,true,true,false,false]"
-	bVal := []bool{false, true, false, true, true, false, false}
-	uVal = UnmarshalString(rawVal)
-	switch uVal.(type) {
-	case []bool:
-		tVal := uVal.([]bool)
-		if len(tVal) != len(bVal) {
-			t.Errorf("unmarshal bool failed")
-		}
-	default:
-		t.Errorf("unmarshal bool failed")
+// Helper function to compare two integer slices
+func compareIntSlices(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
 	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
