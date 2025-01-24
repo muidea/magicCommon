@@ -61,7 +61,7 @@ func Fetch(user, password, address, dbName, charSet string) (Dao, error) {
 	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil, user: user, password: password, address: address, dbName: dbName, charSet: charSet}
 	db, err := sql.Open("mysql", connectStr)
 	if err != nil {
-		log.Errorf("open database exception, err:%s", err.Error())
+		log.Errorf("open database exception, connectStr:%s, err:%s", connectStr, err.Error())
 		return nil, err
 	}
 
@@ -69,7 +69,7 @@ func Fetch(user, password, address, dbName, charSet string) (Dao, error) {
 
 	err = db.Ping()
 	if err != nil {
-		log.Errorf("ping database failed, err:%s", err.Error())
+		log.Errorf("ping database failed, connectStr:%s, err:%s", connectStr, err.Error())
 		return nil, err
 	}
 
