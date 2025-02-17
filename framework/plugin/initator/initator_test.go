@@ -69,7 +69,12 @@ func Test_Initator(t *testing.T) {
 	Register(d100)
 	Register(d123)
 
-	_ = Setup(nil, nil)
+	eventHub := event.NewHub(100)
+	backgroundRoutine := task.NewBackgroundRoutine(100)
+
+	defer eventHub.Terminate()
+
+	_ = Setup(eventHub, backgroundRoutine)
 	_ = Run()
 
 	var demoPtr Demo

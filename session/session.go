@@ -3,10 +3,12 @@ package session
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 type Status int
@@ -29,8 +31,8 @@ const (
 )
 
 const (
-	jwtToken      = "Bearer"
-	endpointToken = "Sig"
+	jwtToken = "Bearer"
+	sigToken = "Sig"
 
 	DefaultSessionTimeOutValue = 10 * time.Minute // 10 minute
 )
@@ -152,95 +154,89 @@ func (s *sessionImpl) GetString(key string) (string, bool) {
 func (s *sessionImpl) GetInt(key string) (int64, bool) {
 	val, ok := s.GetOption(key)
 	if !ok {
-		return 0, ok
+		return 0, false
 	}
 
-	switch val.(type) {
-	case int8:
-		return int64(val.(int8)), true
-	case int16:
-		return int64(val.(int16)), true
-	case int32:
-		return int64(val.(int32)), true
-	case int64:
-		return val.(int64), true
-	case int:
-		return int64(val.(int)), true
-	case float64:
-		return int64(val.(float64)), true
-	case float32:
-		return int64(val.(float32)), true
+	switch v := val.(type) {
+	case int8, int16, int32, int64, int:
+		return reflect.ValueOf(v).Int(), true
+	case float32, float64:
+		return int64(reflect.ValueOf(v).Float()), true
 	case string:
-		val, err := strconv.ParseInt(val.(string), 10, 64)
-		return val, err == nil
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return val, true
+	default:
+		log.Errorf("unsupported type for key %s: %T", key, val)
+		return 0, false
 	}
-
-	return 0, false
 }
 
 func (s *sessionImpl) GetUint(key string) (uint64, bool) {
 	val, ok := s.GetOption(key)
 	if !ok {
-		return 0, ok
+		return 0, false
 	}
 
-	switch val.(type) {
-	case uint8:
-		return uint64(val.(uint8)), true
-	case uint16:
-		return uint64(val.(uint16)), true
-	case uint32:
-		return uint64(val.(uint32)), true
-	case uint64:
-		return val.(uint64), true
-	case uint:
-		return uint64(val.(uint)), true
-	case float64:
-		return uint64(val.(float64)), true
-	case float32:
-		return uint64(val.(float32)), true
+	switch v := val.(type) {
+	case uint8, uint16, uint32, uint64, uint:
+		return reflect.ValueOf(v).Uint(), true
+	case float32, float64:
+		return uint64(reflect.ValueOf(v).Float()), true
 	case string:
-		val, err := strconv.ParseUint(val.(string), 10, 64)
-		return val, err == nil
+		val, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return val, true
+	default:
+		log.Errorf("unsupported type for key %s: %T", key, val)
+		return 0, false
 	}
-
-	return 0, false
 }
 
 func (s *sessionImpl) GetFloat(key string) (float64, bool) {
 	val, ok := s.GetOption(key)
 	if !ok {
-		return 0.00, ok
+		return 0, false
 	}
 
-	switch val.(type) {
-	case float64:
-		return val.(float64), true
-	case float32:
-		return float64(val.(float32)), true
+	switch v := val.(type) {
+	case float32, float64:
+		return reflect.ValueOf(v).Float(), true
 	case string:
-		val, err := strconv.ParseFloat(val.(string), 64)
-		return val, err == nil
+		val, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, false
+		}
+		return val, true
+	default:
+		log.Errorf("unsupported type for key %s: %T", key, val)
+		return 0, false
 	}
-
-	return 0.00, false
 }
 
 func (s *sessionImpl) GetBool(key string) (bool, bool) {
 	val, ok := s.GetOption(key)
 	if !ok {
-		return false, ok
+		return false, false
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case bool:
-		return val.(bool), true
+		return reflect.ValueOf(v).Bool(), true
 	case string:
-		val, err := strconv.ParseBool(val.(string))
-		return val, err == nil
+		val, err := strconv.ParseBool(v)
+		if err != nil {
+			return false, false
+		}
+		return val, true
+	default:
+		log.Errorf("unsupported type for key %s: %T", key, val)
+		return false, false
 	}
-
-	return false, false
 }
 
 func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
@@ -302,8 +298,18 @@ func (s *sessionImpl) timeout() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryTimeVal, _ := s.context[expiryTime]
-	return expiryTimeVal.(int64) < nowTime
+	expiryTimeVal, ok := s.context[expiryTime]
+	if !ok {
+		return true // 如果没有设置过期时间，默认认为已超时
+	}
+
+	expiryTimeInt64, ok := expiryTimeVal.(int64)
+	if !ok {
+		log.Errorf("invalid type for expiryTime: %T", expiryTimeVal)
+		return true // 类型不正确，默认认为已超时
+	}
+
+	return expiryTimeInt64 < nowTime
 }
 
 func (s *sessionImpl) terminate() {

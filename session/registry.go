@@ -1,6 +1,7 @@
 package session
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
@@ -28,6 +29,7 @@ func getSecret() string {
 type Registry interface {
 	GetSession(res http.ResponseWriter, req *http.Request) Session
 	CountSession(filter util.Filter) int
+	Release()
 }
 
 func createUUID() string {
@@ -35,16 +37,19 @@ func createUUID() string {
 }
 
 type sessionRegistryImpl struct {
-	commandChan commandChanImpl
-	sessionLock sync.RWMutex
+	commandChan        commandChanImpl
+	sessionLock        sync.RWMutex
+	registryCancelFunc context.CancelFunc
 }
 
 // CreateRegistry 创建Session仓库
 func CreateRegistry() Registry {
+	registryCtx, registryCancel := context.WithCancel(context.Background())
 	impl := sessionRegistryImpl{}
+	impl.registryCancelFunc = registryCancel
 	impl.commandChan = make(commandChanImpl)
 	go impl.commandChan.run()
-	go impl.checkTimer()
+	go impl.checkTimer(registryCtx)
 
 	return &impl
 }
@@ -57,6 +62,11 @@ func (s *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Requ
 	}
 
 	return s.createSession(createUUID())
+}
+
+func (s *sessionRegistryImpl) Release() {
+	s.registryCancelFunc()
+	s.commandChan.end()
 }
 
 func (s *sessionRegistryImpl) CountSession(filter util.Filter) int {
@@ -88,7 +98,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 			sessionPtr = decodeJWT(authorizationValue[offset+1:])
 		}
 
-		if authorizationValue[:offset] == endpointToken {
+		if authorizationValue[:offset] == sigToken {
 			sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
 		}
 	}()
@@ -131,41 +141,28 @@ func (s *sessionRegistryImpl) updateSession(session *sessionImpl) bool {
 	return s.commandChan.update(session)
 }
 
-func (s *sessionRegistryImpl) checkTimer() {
+func (s *sessionRegistryImpl) checkTimer(ctx context.Context) {
 	timeOutTimer := time.NewTicker(5 * time.Second)
+	defer timeOutTimer.Stop() // 确保在函数退出时停止定时器
+
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case <-timeOutTimer.C:
 			s.commandChan.checkTimeOut()
 		}
 	}
 }
 
-func (s *sessionRegistryImpl) insert(session *sessionImpl) *sessionImpl {
-	return s.commandChan.insert(session)
-}
-
-func (s *sessionRegistryImpl) delete(id string) {
-	s.commandChan.remove(id)
-}
-
-func (s *sessionRegistryImpl) find(id string) *sessionImpl {
-	return s.commandChan.find(id)
-}
-
 func (s *sessionRegistryImpl) count(filter util.Filter) int {
 	return s.commandChan.count(filter)
-}
-
-func (s *sessionRegistryImpl) update(session *sessionImpl) bool {
-	return s.commandChan.update(session)
 }
 
 type commandData struct {
 	action commandAction
 	value  interface{}
 	result chan<- interface{}
-	data   chan<- map[string]interface{}
 }
 
 type commandAction int
@@ -189,10 +186,6 @@ func (right commandChanImpl) insert(session *sessionImpl) *sessionImpl {
 	result := (<-reply).(*sessionImpl)
 
 	return result
-}
-
-func (right commandChanImpl) remove(id string) {
-	right <- commandData{action: remove, value: id}
 }
 
 func (right commandChanImpl) update(session *sessionImpl) bool {
@@ -220,6 +213,13 @@ func (right commandChanImpl) count(filter util.Filter) int {
 
 	result := (<-reply).(int)
 	return result
+}
+
+func (right commandChanImpl) end() {
+	result := make(chan interface{})
+	right <- commandData{action: end, result: result}
+	<-result
+	close(result)
 }
 
 func (right commandChanImpl) run() {
@@ -265,7 +265,7 @@ func (right commandChanImpl) run() {
 				}
 			}
 
-			for k, _ := range removeList {
+			for k := range removeList {
 				delete(sessionContextMap, k)
 			}
 
@@ -288,6 +288,7 @@ func (right commandChanImpl) run() {
 			}
 			command.result <- count
 		case end:
+			command.result <- true
 			close(right)
 		}
 	}
