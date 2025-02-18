@@ -24,5 +24,5 @@ type SearchOpr func(val interface{}) bool
 type commandData struct {
 	action commandAction
 	value  interface{}
-	result chan<- interface{} //单向Channel
+	result chan interface{} //单向Channel
 }

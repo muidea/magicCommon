@@ -15,7 +15,7 @@ type User struct {
 const gUser = "root"
 const gPassword = "rootkit"
 const gSvrAddress = "localhost:3306"
-const gDBName = "testDB"
+const gDBName = "testdb"
 
 func TestDatabase(t *testing.T) {
 	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")

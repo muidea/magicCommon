@@ -1,10 +1,13 @@
 package cache
 
 import (
+	"context"
 	"math"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -21,12 +24,17 @@ type Cache interface {
 
 // NewCache 创建Cache对象
 func NewCache(cleanCallBack CleanCallBackFunc) Cache {
-	cache := make(MemoryCache)
+	cacheCtx, cacheCancel := context.WithCancel(context.Background())
+	cache := &MemoryCache{
+		commandChannel: make(chan commandData, 10),
+		cancelFunc:     cacheCancel,
+	}
 
+	cache.cacheWg.Add(2)
 	go cache.run(cleanCallBack)
-	go cache.checkTimeOut()
+	go cache.checkTimeOut(cacheCtx)
 
-	return &cache
+	return cache
 }
 
 type putInData struct {
@@ -50,7 +58,7 @@ type searchData struct {
 	opr SearchOpr
 }
 
-type searchResult fetchOutKVResult
+type searchResult fetchOutResult
 
 type removeData struct {
 	id string
@@ -62,18 +70,21 @@ type cacheData struct {
 }
 
 // MemoryCache 内存缓存
-type MemoryCache chan commandData
+type MemoryCache struct {
+	commandChannel chan commandData
+	cancelFunc     context.CancelFunc
+	cacheWg        sync.WaitGroup
+}
 
 // Put 投放数据，返回数据的唯一标示
 func (s *MemoryCache) Put(data interface{}, maxAge float64) string {
-
 	reply := make(chan interface{})
 
 	dataPtr := &putInData{}
 	dataPtr.data = data
 	dataPtr.maxAge = maxAge
 
-	*s <- commandData{action: putIn, value: dataPtr, result: reply}
+	s.commandChannel <- commandData{action: putIn, value: dataPtr, result: reply}
 
 	result := (<-reply).(*putInResult).value
 	return result
@@ -81,13 +92,12 @@ func (s *MemoryCache) Put(data interface{}, maxAge float64) string {
 
 // Fetch 获取数据
 func (s *MemoryCache) Fetch(id string) interface{} {
-
 	reply := make(chan interface{})
 
 	dataPtr := &fetchOutData{}
 	dataPtr.id = id
 
-	*s <- commandData{action: fetchOut, value: dataPtr, result: reply}
+	s.commandChannel <- commandData{action: fetchOut, value: dataPtr, result: reply}
 
 	result := (<-reply).(*fetchOutResult)
 	return result.value
@@ -103,7 +113,7 @@ func (s *MemoryCache) Search(opr SearchOpr) interface{} {
 	dataPtr := &searchData{}
 	dataPtr.opr = opr
 
-	*s <- commandData{action: search, value: dataPtr, result: reply}
+	s.commandChannel <- commandData{action: search, value: dataPtr, result: reply}
 
 	result := (<-reply).(*searchResult)
 	return result.value
@@ -111,29 +121,41 @@ func (s *MemoryCache) Search(opr SearchOpr) interface{} {
 
 // Remove 清除数据
 func (s *MemoryCache) Remove(id string) {
+	reply := make(chan interface{})
 	dataPtr := &removeData{}
 	dataPtr.id = id
 
-	*s <- commandData{action: remove, value: dataPtr}
+	s.commandChannel <- commandData{action: remove, value: dataPtr, result: reply}
+	<-reply
 }
 
 // ClearAll 清除所有数据
 func (s *MemoryCache) ClearAll() {
-
-	*s <- commandData{action: clearAll}
+	reply := make(chan interface{})
+	s.commandChannel <- commandData{action: clearAll, result: reply}
+	<-reply
 }
 
 // Release 释放Cache
 func (s *MemoryCache) Release() {
-	*s <- commandData{action: end}
+	s.cancelFunc()
 
-	close(*s)
+	reply := make(chan interface{})
+	s.commandChannel <- commandData{action: end, result: reply}
+	<-reply
+
+	s.cacheWg.Wait()
+	close(s.commandChannel)
 }
 
 func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 	localCacheData := make(map[string]cacheData)
+	defer func() {
+		log.Warnf("run, release cache")
+		s.cacheWg.Done()
+	}()
 
-	for command := range *s {
+	for command := range s.commandChannel {
 		switch command.action {
 		case putIn:
 			id := strings.ToLower(util.RandomAlphanumeric(32))
@@ -162,12 +184,13 @@ func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 
 			command.result <- result
 		case search:
-			opr := command.value.(*searchKVData).opr
+			opr := command.value.(*searchData).opr
 
-			result := &searchKVResult{}
-			for _, v := range localCacheData {
+			result := &searchResult{}
+			for k, v := range localCacheData {
 				if opr(v.cacheData.data) {
 					v.cacheTime = time.Now()
+					localCacheData[k] = v
 					result.value = v.cacheData.data
 					break
 				}
@@ -176,10 +199,11 @@ func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 			command.result <- result
 		case remove:
 			id := command.value.(*removeData).id
-
 			delete(localCacheData, id)
+			command.result <- true
 		case clearAll:
 			localCacheData = make(map[string]cacheData)
+			command.result <- true
 		case checkTimeOut:
 			keys := []string{}
 			// 检查每项数据是否超时，超时数据需要主动清除掉
@@ -203,16 +227,28 @@ func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 			}()
 		case end:
 			localCacheData = nil
+			command.result <- true
+			return
 		}
 	}
 }
 
-func (s *MemoryCache) checkTimeOut() {
+func (s *MemoryCache) checkTimeOut(ctx context.Context) {
+	defer func() {
+		log.Warnf("checkTimeOut, release cache")
+		s.cacheWg.Done()
+	}()
+
 	timeOutTimer := time.NewTicker(5 * time.Second)
+	defer timeOutTimer.Stop()
+
 	for {
 		select {
 		case <-timeOutTimer.C:
-			*s <- commandData{action: checkTimeOut}
+			s.commandChannel <- commandData{action: checkTimeOut}
+		case <-ctx.Done():
+			log.Infof("checkTimeOut exit")
+			return
 		}
 	}
 }
