@@ -81,6 +81,8 @@ type MemoryKVCache struct {
 	commandChannel chan commandData
 	cancelFunc     context.CancelFunc
 	cacheWg        sync.WaitGroup
+	localCacheData sync.Map  // 使用sync.Map替代普通map
+	pool           sync.Pool // 使用sync.Pool来减少chan的创建和销毁开销
 }
 
 // Put 投放数据，返回数据的唯一标示
@@ -147,14 +149,20 @@ func (s *MemoryKVCache) Release() {
 }
 
 func (s *MemoryKVCache) sendCommand(command commandData) interface{} {
-	reply := make(chan interface{})
+	var reply chan interface{}
+	if v := s.pool.Get(); v != nil {
+		reply = v.(chan interface{})
+	} else {
+		reply = make(chan interface{})
+	}
+	defer s.pool.Put(reply)
+
 	command.result = reply
 	s.commandChannel <- command
 	return <-reply
 }
 
 func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
-	localCacheData := make(map[string]*cacheKVData)
 	defer func() {
 		log.Warnf("run, release cache")
 		s.cacheWg.Done()
@@ -167,7 +175,7 @@ func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 			dataPtr.cacheData = command.value.(*putInKVData)
 			dataPtr.cacheTime = time.Now()
 
-			localCacheData[dataPtr.cacheData.key] = dataPtr
+			s.localCacheData.Store(dataPtr.cacheData.key, dataPtr)
 
 			result := &putInKVResult{}
 			result.value = dataPtr.cacheData.key
@@ -175,12 +183,13 @@ func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 			command.result <- result
 		case fetchOut:
 			key := command.value.(*fetchOutKVData).key
-			dataPtr, found := localCacheData[key]
+			v, found := s.localCacheData.Load(key)
 
 			result := &fetchOutKVResult{}
 			if found {
+				dataPtr := v.(*cacheKVData)
 				dataPtr.cacheTime = time.Now()
-				localCacheData[key] = dataPtr
+				s.localCacheData.Store(key, dataPtr)
 
 				result.value = dataPtr.cacheData.data
 			}
@@ -190,31 +199,36 @@ func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 			opr := command.value.(*searchKVData).opr
 
 			result := &searchKVResult{}
-			for _, v := range localCacheData {
-				if opr(v.cacheData.data) {
-					v.cacheTime = time.Now()
-					result.value = v.cacheData.data
-					break
+			s.localCacheData.Range(func(k, v interface{}) bool {
+				dataPtr := v.(*cacheKVData)
+				if opr(dataPtr.cacheData.data) {
+					dataPtr.cacheTime = time.Now()
+					s.localCacheData.Store(k, dataPtr)
+					result.value = dataPtr.cacheData.data
+					return false
 				}
-			}
+				return true
+			})
 
 			command.result <- result
 		case remove:
 			key := command.value.(*removeKVData).key
-			delete(localCacheData, key)
+			s.localCacheData.Delete(key)
 			command.result <- true
 		case getAll:
 			result := &getAllKVResult{value: []interface{}{}}
-			for _, v := range localCacheData {
-				v.cacheTime = time.Now()
-				result.value = append(result.value, v.cacheData.data)
-			}
+			s.localCacheData.Range(func(k, v interface{}) bool {
+				dataPtr := v.(*cacheKVData)
+				dataPtr.cacheTime = time.Now()
+				result.value = append(result.value, dataPtr.cacheData.data)
+				return true
+			})
 			command.result <- result
 		case clearAll:
-			localCacheData = make(map[string]*cacheKVData)
+			s.localCacheData = sync.Map{}
 			command.result <- true
 		case checkTimeOut:
-			keys := s.getExpiredKeys(localCacheData)
+			keys := s.getExpiredKeys()
 			go func() {
 				for _, v := range keys {
 					if cleanCallBack != nil {
@@ -224,25 +238,27 @@ func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 				}
 			}()
 		case end:
-			localCacheData = nil
+			s.localCacheData = sync.Map{}
 			command.result <- true
 			return
 		}
 	}
 }
 
-func (s *MemoryKVCache) getExpiredKeys(localCacheData map[string]*cacheKVData) []string {
+func (s *MemoryKVCache) getExpiredKeys() []string {
 	keys := []string{}
 	// 检查每项数据是否超时，超时数据需要主动清除掉
-	for k, v := range localCacheData {
-		if math.Abs(v.cacheData.maxAge-ForeverAgeValue) > 0.001 {
+	s.localCacheData.Range(func(k, v interface{}) bool {
+		dataPtr := v.(*cacheKVData)
+		if math.Abs(dataPtr.cacheData.maxAge-ForeverAgeValue) > 0.001 {
 			current := time.Now()
-			elapse := current.Sub(v.cacheTime).Minutes()
-			if elapse > v.cacheData.maxAge {
-				keys = append(keys, k)
+			elapse := current.Sub(dataPtr.cacheTime).Minutes()
+			if elapse > dataPtr.cacheData.maxAge {
+				keys = append(keys, k.(string))
 			}
 		}
-	}
+		return true
+	})
 	return keys
 }
 
@@ -265,4 +281,3 @@ func (s *MemoryKVCache) checkTimeOut(ctx context.Context) {
 		}
 	}
 }
-

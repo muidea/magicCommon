@@ -74,6 +74,8 @@ type MemoryCache struct {
 	commandChannel chan commandData
 	cancelFunc     context.CancelFunc
 	cacheWg        sync.WaitGroup
+	localCacheData sync.Map  // 使用sync.Map替代普通map
+	pool           sync.Pool // 使用sync.Pool来减少chan的创建和销毁开销
 }
 
 // Put 投放数据，返回数据的唯一标示
@@ -131,14 +133,24 @@ func (s *MemoryCache) Release() {
 }
 
 func (s *MemoryCache) sendCommand(command commandData) interface{} {
-	reply := make(chan interface{})
+	var reply chan interface{}
+	if v := s.pool.Get(); v != nil {
+		reply = v.(chan interface{})
+	} else {
+		reply = make(chan interface{})
+	}
+	defer s.pool.Put(reply)
+
 	command.result = reply
 	s.commandChannel <- command
-	return <-reply
+	result := <-reply
+	if result == nil {
+		return nil
+	}
+	return result
 }
 
 func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
-	localCacheData := make(map[string]cacheData)
 	defer func() {
 		log.Warnf("run, release cache")
 		s.cacheWg.Done()
@@ -153,20 +165,19 @@ func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 			dataPtr.cacheData = command.value.(*putInData)
 			dataPtr.cacheTime = time.Now()
 
-			localCacheData[id] = dataPtr
+			s.localCacheData.Store(id, dataPtr)
 
 			result := &putInResult{}
 			result.value = id
 
 			command.result <- result
 		case fetchOut:
-			id := command.value.(*fetchOutData).id
-			dataPtr, found := localCacheData[id]
-
 			result := &fetchOutResult{}
-			if found {
+			id := command.value.(*fetchOutData).id
+			if v, found := s.localCacheData.Load(id); found {
+				dataPtr := v.(cacheData)
 				dataPtr.cacheTime = time.Now()
-				localCacheData[id] = dataPtr
+				s.localCacheData.Store(id, dataPtr)
 
 				result.value = dataPtr.cacheData.data
 			}
@@ -176,25 +187,30 @@ func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 			opr := command.value.(*searchData).opr
 
 			result := &searchResult{}
-			for k, v := range localCacheData {
-				if opr(v.cacheData.data) {
-					v.cacheTime = time.Now()
-					localCacheData[k] = v
-					result.value = v.cacheData.data
-					break
+			s.localCacheData.Range(func(k, v interface{}) bool {
+				dataPtr := v.(cacheData)
+				if opr(dataPtr.cacheData.data) {
+					dataPtr.cacheTime = time.Now()
+					s.localCacheData.Store(k, dataPtr)
+					result.value = dataPtr.cacheData.data
+					return false
 				}
-			}
+				return true
+			})
 
 			command.result <- result
 		case remove:
 			id := command.value.(*removeData).id
-			delete(localCacheData, id)
+			s.localCacheData.Delete(id)
 			command.result <- true
 		case clearAll:
-			localCacheData = make(map[string]cacheData)
+			s.localCacheData.Range(func(k, v interface{}) bool {
+				s.localCacheData.Delete(k)
+				return true
+			})
 			command.result <- true
 		case checkTimeOut:
-			keys := s.getExpiredKeys(localCacheData)
+			keys := s.getExpiredKeys()
 			go func() {
 				for _, v := range keys {
 					if cleanCallBack != nil {
@@ -204,25 +220,26 @@ func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 				}
 			}()
 		case end:
-			localCacheData = nil
 			command.result <- true
 			return
 		}
 	}
 }
 
-func (s *MemoryCache) getExpiredKeys(localCacheData map[string]cacheData) []string {
+func (s *MemoryCache) getExpiredKeys() []string {
 	keys := []string{}
 	// 检查每项数据是否超时，超时数据需要主动清除掉
-	for k, v := range localCacheData {
-		if math.Abs(v.cacheData.maxAge-ForeverAgeValue) > 0.001 {
+	s.localCacheData.Range(func(k, v interface{}) bool {
+		dataPtr := v.(cacheData)
+		if math.Abs(dataPtr.cacheData.maxAge-ForeverAgeValue) > 0.001 {
 			current := time.Now()
-			elapse := current.Sub(v.cacheTime).Minutes()
-			if elapse > v.cacheData.maxAge {
-				keys = append(keys, k)
+			elapse := current.Sub(dataPtr.cacheTime).Minutes()
+			if elapse > dataPtr.cacheData.maxAge {
+				keys = append(keys, k.(string))
 			}
 		}
-	}
+		return true
+	})
 	return keys
 }
 
@@ -245,4 +262,3 @@ func (s *MemoryCache) checkTimeOut(ctx context.Context) {
 		}
 	}
 }
-
