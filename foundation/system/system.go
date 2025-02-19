@@ -10,17 +10,13 @@ import (
 
 func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interface{}) (err *cd.Result) {
 	if entityVal == nil {
-		errMsg := "entityVal is nil"
-		err = cd.NewResult(cd.IllegalParam, errMsg)
-		return
+		return cd.NewResult(cd.IllegalParam, "entityVal is nil")
 	}
 
 	vVal := reflect.ValueOf(entityVal)
 	funcVal := vVal.MethodByName(funcName)
-	if !isValidMethod(funcVal) || funcVal.IsZero() {
-		errMsg := fmt.Sprintf("no such method:%s", funcName)
-		err = cd.NewResult(cd.NoExist, errMsg)
-		return
+	if !isValidMethod(funcVal) {
+		return cd.NewResult(cd.NoExist, fmt.Sprintf("no such method:%s", funcName))
 	}
 
 	defer func() {
@@ -35,17 +31,16 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 	}
 
 	rVals := funcVal.Call(param)
-	if funcVal.Type().NumOut() == 0 {
-		return
-	}
-	errVal, errOK := rVals[0].Interface().(*cd.Result)
-	if !errOK {
-		err = cd.NewResult(cd.UnExpected, "invoke method return illegal result")
-		return
+	if len(rVals) == 0 {
+		return nil
 	}
 
-	err = errVal
-	return
+	errVal, ok := rVals[0].Interface().(*cd.Result)
+	if !ok {
+		return cd.NewResult(cd.UnExpected, "invoke method return illegal result")
+	}
+
+	return errVal
 }
 
 func isValidMethod(funcVal reflect.Value) bool {
@@ -53,27 +48,21 @@ func isValidMethod(funcVal reflect.Value) bool {
 }
 
 func prepareParams(funcVal reflect.Value, params []interface{}) ([]reflect.Value, *cd.Result) {
-	inNum := funcVal.Type().NumIn()
+	funcType := funcVal.Type()
+	inNum := funcType.NumIn()
 	if inNum == 0 {
 		return nil, nil
 	}
 
-	paramTypes := make([]reflect.Type, inNum)
-	for idx := range params {
-		if idx >= inNum {
-			break
-		}
-		paramTypes[idx] = funcVal.Type().In(idx)
+	if len(params) != inNum {
+		return nil, cd.NewResult(cd.IllegalParam, 
+			fmt.Sprintf("param count mismatch, expect:%d, actual:%d", inNum, len(params)))
 	}
 
 	param := make([]reflect.Value, inNum)
-	for idx, val := range params {
-		if idx >= inNum {
-			break
-		}
-
+	for idx := 0; idx < inNum; idx++ {
 		var err *cd.Result
-		param[idx], err = convertParam(val, paramTypes[idx])
+		param[idx], err = convertParam(params[idx], funcType.In(idx))
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +73,14 @@ func prepareParams(funcVal reflect.Value, params []interface{}) ([]reflect.Value
 
 func convertParam(val interface{}, expectedType reflect.Type) (reflect.Value, *cd.Result) {
 	if val == nil {
-		return reflect.New(expectedType).Elem(), nil
+		switch expectedType.Kind() {
+		case reflect.Ptr, reflect.Interface, reflect.Slice, 
+			reflect.Map, reflect.Chan, reflect.Func, reflect.UnsafePointer:
+			return reflect.Zero(expectedType), nil
+		default:
+			return reflect.Value{}, cd.NewResult(cd.IllegalParam, 
+				fmt.Sprintf("nil cannot convert to type:%s", expectedType))
+		}
 	}
 
 	rVal := reflect.ValueOf(val)
@@ -92,10 +88,15 @@ func convertParam(val interface{}, expectedType reflect.Type) (reflect.Value, *c
 		rVal = rVal.Elem()
 	}
 
-	if !rVal.Type().ConvertibleTo(expectedType) {
-		errMsg := fmt.Sprintf("[mismatch param, expect type:%s, value type:%s]", expectedType.String(), rVal.Type().String())
-		return reflect.Value{}, cd.NewResult(cd.IllegalParam, errMsg)
+	if rVal.Type().AssignableTo(expectedType) {
+		return rVal, nil
 	}
 
-	return rVal, nil
+	if rVal.Type().ConvertibleTo(expectedType) {
+		return rVal.Convert(expectedType), nil
+	}
+
+	return reflect.Value{}, cd.NewResult(cd.IllegalParam, 
+		fmt.Sprintf("type mismatch, expect:%s, actual:%s", 
+			expectedType.String(), rVal.Type().String()))
 }

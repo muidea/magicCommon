@@ -39,7 +39,7 @@ func TestInvokeEntityFuncWithMethod(t *testing.T) {
 	entityVal := &MockEntity{}
 
 	funcName := "TestMethod"
-	params := []interface{}{1, "test", 13, "Abc"}
+	params := []interface{}{1, "test"}
 
 	result := InvokeEntityFunc(entityVal, funcName, params...)
 	assert.Nil(t, result)
@@ -66,4 +66,25 @@ func TestInvokeEntityFuncWithResult(t *testing.T) {
 	result := InvokeEntityFunc(entityVal, funcName, params...)
 	assert.NotNil(t, result)
 	assert.Equal(t, result.ErrorCode, cd.ErrorCode(cd.InvalidAuthority))
+}
+
+// TestInvokeEntityFuncNilEntity tests the scenario where the entityVal is nil
+func TestInvokeEntityFuncNilEntity(t *testing.T) {
+	funcName := "TestMethod"
+	params := []interface{}{1, "test"}
+
+	result := InvokeEntityFunc(nil, funcName, params...)
+	assert.NotNil(t, result)
+	assert.Equal(t, result.ErrorCode, cd.ErrorCode(cd.IllegalParam))
+}
+
+// TestInvokeEntityFuncInvalidParamType tests the scenario where the parameter type is invalid
+func TestInvokeEntityFuncInvalidParamType(t *testing.T) {
+	entityVal := &MockEntity{}
+	funcName := "TestMethod"
+	params := []interface{}{"invalid", "test"}
+
+	result := InvokeEntityFunc(entityVal, funcName, params...)
+	assert.NotNil(t, result)
+	assert.Equal(t, result.ErrorCode, cd.ErrorCode(cd.IllegalParam))
 }

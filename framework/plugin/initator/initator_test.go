@@ -32,8 +32,8 @@ func (s *demo) Weight() int {
 	return s.weight
 }
 
-func (s *demo) Setup(endpointName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
-	fmt.Printf("Setup:%s, endpointName:%s\n", s.id, endpointName)
+func (s *demo) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+	fmt.Printf("Setup:%s, weight:%v\n", s.id, s.weight)
 }
 
 func (s *demo) Run() {
@@ -74,8 +74,10 @@ func Test_Initator(t *testing.T) {
 
 	defer eventHub.Terminate()
 
-	_ = Setup(eventHub, backgroundRoutine)
-	_ = Run()
+	err := Setup(eventHub, backgroundRoutine)
+	assert.Nil(t, err)
+	err = Run()
+	assert.Nil(t, err)
 
 	var demoPtr Demo
 	var demo2Ptr Demo2
