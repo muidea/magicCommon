@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -152,7 +151,6 @@ func (s *MemoryCache) sendCommand(command commandData) interface{} {
 
 func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 	defer func() {
-		log.Warnf("run, release cache")
 		s.cacheWg.Done()
 	}()
 
@@ -245,7 +243,6 @@ func (s *MemoryCache) getExpiredKeys() []string {
 
 func (s *MemoryCache) checkTimeOut(ctx context.Context) {
 	defer func() {
-		log.Warnf("checkTimeOut, release cache")
 		s.cacheWg.Done()
 	}()
 
@@ -257,7 +254,6 @@ func (s *MemoryCache) checkTimeOut(ctx context.Context) {
 		case <-timeOutTimer.C:
 			s.commandChannel <- commandData{action: checkTimeOut}
 		case <-ctx.Done():
-			log.Infof("checkTimeOut exit")
 			return
 		}
 	}

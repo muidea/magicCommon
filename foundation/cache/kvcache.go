@@ -5,8 +5,6 @@ import (
 	"math"
 	"sync"
 	"time"
-
-	"github.com/muidea/magicCommon/foundation/log"
 )
 
 type CleanCallBackFunc func(string)
@@ -139,7 +137,6 @@ func (s *MemoryKVCache) ClearAll() {
 
 // Release 释放Cache
 func (s *MemoryKVCache) Release() {
-	log.Warnf("release kv cache")
 	s.cancelFunc()
 
 	s.sendCommand(commandData{action: end})
@@ -164,7 +161,6 @@ func (s *MemoryKVCache) sendCommand(command commandData) interface{} {
 
 func (s *MemoryKVCache) run(cleanCallBack CleanCallBackFunc) {
 	defer func() {
-		log.Warnf("run, release cache")
 		s.cacheWg.Done()
 	}()
 
@@ -264,7 +260,6 @@ func (s *MemoryKVCache) getExpiredKeys() []string {
 
 func (s *MemoryKVCache) checkTimeOut(ctx context.Context) {
 	defer func() {
-		log.Warnf("checkTimeOut, release cache")
 		s.cacheWg.Done()
 	}()
 
@@ -276,7 +271,6 @@ func (s *MemoryKVCache) checkTimeOut(ctx context.Context) {
 		case <-timeOutTimer.C:
 			s.commandChannel <- commandData{action: checkTimeOut}
 		case <-ctx.Done():
-			log.Infof("checkTimeOut exit")
 			return
 		}
 	}
