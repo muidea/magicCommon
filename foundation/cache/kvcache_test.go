@@ -118,12 +118,13 @@ func TestKVCache(t *testing.T) {
 	t.Run("Test Timeout Cleanup", func(t *testing.T) {
 		callbackCalled := false
 		cacheWithCallback := NewKVCache(func(key string) {
+			log.Warnf("Timeout cleanup callback called for key %s", key)
 			callbackCalled = true
 		})
 		defer cacheWithCallback.Release()
 
-		cacheWithCallback.Put("testKey", "testValue", 0.001) // 设置0.01分钟超时
-		time.Sleep(20 * time.Second)                         // 等待超时
+		cacheWithCallback.Put("testKey", "testValue", 0.0001) // 设置0.01分钟超时
+		time.Sleep(10 * time.Second)                          // 等待超时
 		if !callbackCalled {
 			t.Error("Timeout cleanup callback not called")
 		}

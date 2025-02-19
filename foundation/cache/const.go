@@ -26,3 +26,5 @@ type commandData struct {
 	value  interface{}
 	result chan interface{} //单向Channel
 }
+
+type ExpiredCleanCallBackFunc func(string)
