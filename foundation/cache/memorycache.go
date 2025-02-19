@@ -78,28 +78,20 @@ type MemoryCache struct {
 
 // Put 投放数据，返回数据的唯一标示
 func (s *MemoryCache) Put(data interface{}, maxAge float64) string {
-	reply := make(chan interface{})
-
 	dataPtr := &putInData{}
 	dataPtr.data = data
 	dataPtr.maxAge = maxAge
 
-	s.commandChannel <- commandData{action: putIn, value: dataPtr, result: reply}
-
-	result := (<-reply).(*putInResult).value
-	return result
+	result := s.sendCommand(commandData{action: putIn, value: dataPtr}).(*putInResult)
+	return result.value
 }
 
 // Fetch 获取数据
 func (s *MemoryCache) Fetch(id string) interface{} {
-	reply := make(chan interface{})
-
 	dataPtr := &fetchOutData{}
 	dataPtr.id = id
 
-	s.commandChannel <- commandData{action: fetchOut, value: dataPtr, result: reply}
-
-	result := (<-reply).(*fetchOutResult)
+	result := s.sendCommand(commandData{action: fetchOut, value: dataPtr}).(*fetchOutResult)
 	return result.value
 }
 
@@ -108,44 +100,41 @@ func (s *MemoryCache) Search(opr SearchOpr) interface{} {
 		return nil
 	}
 
-	reply := make(chan interface{})
-
 	dataPtr := &searchData{}
 	dataPtr.opr = opr
 
-	s.commandChannel <- commandData{action: search, value: dataPtr, result: reply}
-
-	result := (<-reply).(*searchResult)
+	result := s.sendCommand(commandData{action: search, value: dataPtr}).(*searchResult)
 	return result.value
 }
 
 // Remove 清除数据
 func (s *MemoryCache) Remove(id string) {
-	reply := make(chan interface{})
 	dataPtr := &removeData{}
 	dataPtr.id = id
 
-	s.commandChannel <- commandData{action: remove, value: dataPtr, result: reply}
-	<-reply
+	s.sendCommand(commandData{action: remove, value: dataPtr})
 }
 
 // ClearAll 清除所有数据
 func (s *MemoryCache) ClearAll() {
-	reply := make(chan interface{})
-	s.commandChannel <- commandData{action: clearAll, result: reply}
-	<-reply
+	s.sendCommand(commandData{action: clearAll})
 }
 
 // Release 释放Cache
 func (s *MemoryCache) Release() {
 	s.cancelFunc()
 
-	reply := make(chan interface{})
-	s.commandChannel <- commandData{action: end, result: reply}
-	<-reply
+	s.sendCommand(commandData{action: end})
 
 	s.cacheWg.Wait()
 	close(s.commandChannel)
+}
+
+func (s *MemoryCache) sendCommand(command commandData) interface{} {
+	reply := make(chan interface{})
+	command.result = reply
+	s.commandChannel <- command
+	return <-reply
 }
 
 func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
@@ -205,18 +194,7 @@ func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 			localCacheData = make(map[string]cacheData)
 			command.result <- true
 		case checkTimeOut:
-			keys := []string{}
-			// 检查每项数据是否超时，超时数据需要主动清除掉
-			for k, v := range localCacheData {
-				if math.Abs(v.cacheData.maxAge-ForeverAgeValue) > 0.001 {
-					current := time.Now()
-					elapse := current.Sub(v.cacheTime).Minutes()
-					if elapse > v.cacheData.maxAge {
-						keys = append(keys, k)
-						//delete(localCacheData, k)
-					}
-				}
-			}
+			keys := s.getExpiredKeys(localCacheData)
 			go func() {
 				for _, v := range keys {
 					if cleanCallBack != nil {
@@ -231,6 +209,21 @@ func (s *MemoryCache) run(cleanCallBack CleanCallBackFunc) {
 			return
 		}
 	}
+}
+
+func (s *MemoryCache) getExpiredKeys(localCacheData map[string]cacheData) []string {
+	keys := []string{}
+	// 检查每项数据是否超时，超时数据需要主动清除掉
+	for k, v := range localCacheData {
+		if math.Abs(v.cacheData.maxAge-ForeverAgeValue) > 0.001 {
+			current := time.Now()
+			elapse := current.Sub(v.cacheTime).Minutes()
+			if elapse > v.cacheData.maxAge {
+				keys = append(keys, k)
+			}
+		}
+	}
+	return keys
 }
 
 func (s *MemoryCache) checkTimeOut(ctx context.Context) {
@@ -252,3 +245,4 @@ func (s *MemoryCache) checkTimeOut(ctx context.Context) {
 		}
 	}
 }
+
