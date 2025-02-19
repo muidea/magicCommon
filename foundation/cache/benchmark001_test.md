@@ -1,3 +1,5 @@
+# bbenchmark测试记录
+
 第一次测试 2025/2/19 13:57
 goos: linux
 goarch: amd64
@@ -95,4 +97,3 @@ BenchmarkMemoryCache_ConcurrentFetch-8          25848128                49.55 ns
 PASS
 ok      github.com/muidea/magicCommon/foundation/cache  10.598s
 
-分析上面上次测试结果

@@ -2,7 +2,6 @@ package cache
 
 import (
 	"context"
-	"math"
 	"strings"
 	"sync"
 	"time"
@@ -12,8 +11,8 @@ import (
 
 // Cache 缓存对象
 type Cache interface {
-	// maxAge单位minute
-	Put(data interface{}, maxAge float64) string
+	// maxAge单位second
+	Put(data interface{}, maxAge int64) string
 	Fetch(id string) interface{}
 	Search(opr SearchOpr) interface{}
 	Remove(id string)
@@ -32,7 +31,7 @@ func NewCache(cleanCallBack ExpiredCleanCallBackFunc) Cache {
 	}
 
 	// 启动多个worker处理命令
-	for i := 0; i < 4; i++ {
+	for i := 0; i < ConcurrentGoroutines; i++ {
 		cache.cacheWg.Add(1)
 		go cache.run()
 	}
@@ -45,7 +44,7 @@ func NewCache(cleanCallBack ExpiredCleanCallBackFunc) Cache {
 
 type putInData struct {
 	data   interface{}
-	maxAge float64
+	maxAge int64
 }
 
 type putInResult struct {
@@ -87,7 +86,7 @@ type MemoryCache struct {
 }
 
 // Put 投放数据，返回数据的唯一标示
-func (s *MemoryCache) Put(data interface{}, maxAge float64) string {
+func (s *MemoryCache) Put(data interface{}, maxAge int64) string {
 	dataPtr := &putInData{
 		data:   data,
 		maxAge: maxAge,
@@ -146,7 +145,7 @@ func (s *MemoryCache) Release() {
 	s.cancelFunc()
 
 	// 为每个worker发送end命令
-	for i := 0; i < 4; i++ {
+	for i := 0; i < ConcurrentGoroutines; i++ {
 		s.sendCommand(commandData{action: end})
 	}
 
@@ -251,10 +250,9 @@ func (s *MemoryCache) getExpiredKeys() []string {
 	keys := []string{}
 	s.localCacheData.Range(func(k, v interface{}) bool {
 		dataPtr := v.(cacheData)
-		if math.Abs(dataPtr.cacheData.maxAge-ForeverAgeValue) > 0.001 {
-			current := time.Now()
-			elapse := current.Sub(dataPtr.cacheTime).Minutes()
-			if elapse > dataPtr.cacheData.maxAge {
+		if dataPtr.cacheData.maxAge != ForeverAgeValue {
+			elapse := time.Since(dataPtr.cacheTime).Seconds()
+			if int64(elapse) > dataPtr.cacheData.maxAge {
 				keys = append(keys, k.(string))
 			}
 		}
@@ -280,8 +278,8 @@ func (s *MemoryCache) checkTimeOut(ctx context.Context) {
 }
 
 func (s *MemoryCache) isExpired(data cacheData) bool {
-	if math.Abs(data.cacheData.maxAge-ForeverAgeValue) > 0.001 {
-		return time.Since(data.cacheTime).Minutes() > data.cacheData.maxAge
+	if data.cacheData.maxAge != ForeverAgeValue {
+		return int64(time.Since(data.cacheTime).Seconds()) > data.cacheData.maxAge
 	}
 	return false
 }

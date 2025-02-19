@@ -91,7 +91,7 @@ func TestMemoryCache_Timeout(t *testing.T) {
 	defer cache.Release()
 
 	// 插入短期数据
-	cache.Put("test data", 0.001) // 0.01分钟 = 0.6秒
+	cache.Put("test data", 1) // 1秒
 
 	// 等待超时
 	time.Sleep(10 * time.Second)

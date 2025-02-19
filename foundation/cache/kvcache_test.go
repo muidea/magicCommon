@@ -123,8 +123,8 @@ func TestKVCache(t *testing.T) {
 		})
 		defer cacheWithCallback.Release()
 
-		cacheWithCallback.Put("testKey", "testValue", 0.0001) // 设置0.01分钟超时
-		time.Sleep(10 * time.Second)                          // 等待超时
+		cacheWithCallback.Put("testKey", "testValue", 1) // 设置1秒超时
+		time.Sleep(10 * time.Second)                      // 等待超时
 		if !callbackCalled {
 			t.Error("Timeout cleanup callback not called")
 		}
