@@ -70,6 +70,13 @@ func SplitRESTURL(url string) (string, string) {
 func SplitRESTID(url string) (ret int64, err error) {
 	_, strID := SplitRESTURL(url)
 	ret, err = strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		return
+	}
+	if ret <= 0 {
+		err = fmt.Errorf("illegal id:%d", ret)
+	}
+
 	return
 }
 
