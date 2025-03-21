@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	hmacSecret = "rangh@foxmail.com"
+	hmacSecretDefault = "rangh@foxmail.com"
+	HMAC_SECRET_KEY   = "HMAC_SECRET"
 )
 
 func getSecret() string {
@@ -22,7 +23,7 @@ func getSecret() string {
 		return secretVal
 	}
 
-	return hmacSecret
+	return hmacSecretDefault
 }
 
 // Registry 会话仓库

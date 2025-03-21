@@ -6,6 +6,11 @@ import (
 	"net/url"
 )
 
+type AuthSecret struct {
+	Endpoint  string `json:"endpoint"`
+	AuthToken string `json:"authToken"`
+}
+
 type Client interface {
 	GetServerURL() string
 	GetHTTPClient() *http.Client
@@ -19,15 +24,10 @@ type Client interface {
 	BindToken(token Token)
 	UnBindToken()
 
-	BindAuthSecret(endpoint, authToken string)
+	BindAuthSecret(authSecret *AuthSecret)
 	UnBindAuthSecret()
 
 	Release()
-}
-
-type AuthSecret struct {
-	Endpoint  string `json:"endpoint"`
-	AuthToken string `json:"authToken"`
 }
 
 func NewBaseClient(serverUrl string) BaseClient {
@@ -96,8 +96,8 @@ func (s *BaseClient) UnBindToken() {
 	s.sessionToken = ""
 }
 
-func (s *BaseClient) BindAuthSecret(endpoint, authToken string) {
-	s.sessionAuthSecret = &AuthSecret{Endpoint: endpoint, AuthToken: authToken}
+func (s *BaseClient) BindAuthSecret(authSecret *AuthSecret) {
+	s.sessionAuthSecret = authSecret
 }
 
 func (s *BaseClient) UnBindAuthSecret() {
