@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -26,8 +27,6 @@ const (
 	expiryTime = "expiryTime"
 	// Authorization info, from request header
 	Authorization = "Authorization"
-	// RemoteAddress 远端地址
-	RemoteAddress = "$$sessionRemoteAddress"
 )
 
 const (
@@ -76,10 +75,14 @@ func (s *sessionImpl) ID() string {
 
 func (s *sessionImpl) innerKey(key string) bool {
 	switch key {
-	case RemoteAddress, Authorization:
+	case Authorization:
 		return true
 	}
 
+	// 以X-开头的header视为自定义key，不参与签名
+	if strings.HasPrefix(key, "X-") {
+		return true
+	}
 	return false
 }
 
