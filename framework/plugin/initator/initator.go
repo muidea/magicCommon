@@ -1,6 +1,8 @@
 package initator
 
 import (
+	"fmt"
+
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
@@ -23,7 +25,7 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Result) {
 
 	eVal, eOK := entityVal.(T)
 	if !eOK {
-		err = cd.NewResult(cd.UnExpected, "initator type not match")
+		err = cd.NewResult(cd.UnExpected, fmt.Sprintf("initator:%s type not match", id))
 		return
 	}
 
