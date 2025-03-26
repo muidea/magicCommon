@@ -1,5 +1,6 @@
 package common
 
+// Weight 越小越先启动
 const DefaultWeight = 100
 
 const (
