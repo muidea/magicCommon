@@ -251,12 +251,12 @@ func (right commandChanImpl) run() {
 			command.result <- curOK
 		case find:
 			id := command.value.(string)
-			var session sessionImpl
+			var session *sessionImpl
 			cur, found := sessionContextMap[id]
 			if found {
 				cur.refresh()
-				session = *cur
-				command.result <- &session
+				session = cur
+				command.result <- session
 			} else {
 				command.result <- nil
 			}
@@ -269,6 +269,7 @@ func (right commandChanImpl) run() {
 			}
 
 			for k := range removeList {
+				log.Infof("clean timeout session, sessionID:%s", k)
 				delete(sessionContextMap, k)
 			}
 
