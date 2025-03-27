@@ -22,7 +22,6 @@ func SignatureJWT(mc jwt.MapClaims) (Token, error) {
 
 func decodeJWT(sigVal string) *sessionImpl {
 	secretVal := getSecret()
-	log.Infof("decodeJWT, secret:%s", secretVal)
 	token, err := jwt.Parse(sigVal, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
