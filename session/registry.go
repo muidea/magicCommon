@@ -109,12 +109,11 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		if curSession != nil {
 			sessionPtr = curSession
 		} else {
-			log.Warnf("session not found, sessionID:%s", sessionPtr.id)
+			sessionPtr = s.insertSession(sessionPtr)
 		}
 
 		s.sessionLock.Lock()
 		defer s.sessionLock.Unlock()
-		sessionPtr.registry = s
 		sessionPtr.context[Authorization] = authorizationValue
 	}
 
@@ -139,9 +138,14 @@ func (s *sessionRegistryImpl) findSession(sessionID string) *sessionImpl {
 	return nil
 }
 
+func (s *sessionRegistryImpl) insertSession(sessionPtr *sessionImpl) *sessionImpl {
+	sessionPtr.registry = s
+	return s.commandChan.insert(sessionPtr)
+}
+
 // UpdateSession 更新Session
-func (s *sessionRegistryImpl) updateSession(session *sessionImpl) bool {
-	return s.commandChan.update(session)
+func (s *sessionRegistryImpl) updateSession(sessionPtr *sessionImpl) bool {
+	return s.commandChan.update(sessionPtr)
 }
 
 func (s *sessionRegistryImpl) checkTimer(ctx context.Context) {
@@ -269,7 +273,6 @@ func (right commandChanImpl) run() {
 			}
 
 			for k := range removeList {
-				log.Infof("clean timeout session, sessionID:%s", k)
 				delete(sessionContextMap, k)
 			}
 
