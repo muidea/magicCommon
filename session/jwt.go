@@ -32,7 +32,7 @@ func decodeJWT(sigVal string) *sessionImpl {
 		return []byte(secretVal), nil
 	})
 	if err != nil {
-		log.Infof("illegal jwt value:%s, secret:%s, err:%s", sigVal[1], secretVal, err.Error())
+		//log.Infof("illegal jwt value:%s, secret:%s, err:%s", sigVal[1], secretVal, err.Error())
 		return nil
 	}
 
