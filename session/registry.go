@@ -108,6 +108,8 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
 			sessionPtr = curSession
+		} else {
+			log.Warnf("session not found, sessionID:%s", sessionPtr.id)
 		}
 
 		s.sessionLock.Lock()
