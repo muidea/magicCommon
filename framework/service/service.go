@@ -10,8 +10,8 @@ import (
 )
 
 type Service interface {
-	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Result
-	Run() *cd.Result
+	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error
+	Run() *cd.Error
 	Shutdown()
 }
 
@@ -25,7 +25,7 @@ type defaultService struct {
 	serviceName string
 }
 
-func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Result) {
+func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Error) {
 	ret = initator.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
 		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
@@ -42,7 +42,7 @@ func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.Back
 	return
 }
 
-func (s *defaultService) Run() (ret *cd.Result) {
+func (s *defaultService) Run() (ret *cd.Error) {
 	if errInfo := recover(); errInfo != nil {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, errInfo)
 	}

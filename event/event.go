@@ -30,7 +30,7 @@ type baseEvent struct {
 
 type baseResult struct {
 	resultData map[string]interface{}
-	resultErr  *cd.Result
+	resultErr  *cd.Error
 }
 
 func NewValues() Values {
@@ -60,7 +60,7 @@ func NewEventWitchContext(id, source, destination string, header Values, context
 
 func NewResult(id, source, destination string) Result {
 	msg := fmt.Sprintf("illegal event, no result returned, id:%s, source:%s, destination:%s", id, source, destination)
-	return &baseResult{resultErr: cd.NewResult(cd.Failed, msg), resultData: map[string]interface{}{}}
+	return &baseResult{resultErr: cd.NewError(cd.UnKnownError, msg), resultData: map[string]interface{}{}}
 }
 
 func (s *baseEvent) ID() string {
@@ -116,16 +116,16 @@ func (s *baseEvent) Match(pattern string) bool {
 	return MatchValue(pattern, s.eventID)
 }
 
-func (s *baseResult) Set(data interface{}, err *cd.Result) {
+func (s *baseResult) Set(data interface{}, err *cd.Error) {
 	s.resultData[innerValKey] = data
 	s.resultErr = err
 }
 
-func (s *baseResult) Error() *cd.Result {
+func (s *baseResult) Error() *cd.Error {
 	return s.resultErr
 }
 
-func (s *baseResult) Get() (ret interface{}, err *cd.Result) {
+func (s *baseResult) Get() (ret interface{}, err *cd.Error) {
 	ret = s.resultData[innerValKey]
 	err = s.resultErr
 	return

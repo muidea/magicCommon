@@ -33,11 +33,11 @@ func (s Values) GetString(key string) string {
 		return ""
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case string:
-		return val.(string)
+		return v
 	default:
-		log.Warnf("illegal value, not string, value:%v", val)
+		log.Warnf("illegal value, not string, value:%v", v)
 	}
 
 	return ""
@@ -49,11 +49,11 @@ func (s Values) GetInt(key string) int {
 		return 0
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case int:
-		return val.(int)
+		return v
 	default:
-		log.Warnf("illegal value, not int, value:%v", val)
+		log.Warnf("illegal value, not int, value:%v", v)
 	}
 
 	return 0
@@ -65,9 +65,9 @@ func (s Values) GetBool(key string) bool {
 		return false
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case bool:
-		return val.(bool)
+		return v
 	default:
 		log.Warnf("illegal value, not bool, value:%v", val)
 	}
@@ -89,9 +89,9 @@ type Event interface {
 }
 
 type Result interface {
-	Error() *cd.Result
-	Set(data interface{}, err *cd.Result)
-	Get() (interface{}, *cd.Result)
+	Error() *cd.Error
+	Set(data interface{}, err *cd.Error)
+	Get() (interface{}, *cd.Error)
 	SetVal(key string, val interface{})
 	GetVal(key string) interface{}
 }
@@ -346,8 +346,6 @@ func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 		s.actionChannel <- actionData
 	})
 	<-replay
-
-	return
 }
 
 func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
@@ -362,8 +360,6 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 		s.actionChannel <- actionData
 	})
 	<-replay
-
-	return
 }
 
 func (s *hubImpl) Post(event Event) {
@@ -394,8 +390,6 @@ func (s *hubImpl) Post(event Event) {
 	} else {
 		eventChannel <- actionData
 	}
-
-	return
 }
 
 func (s *hubImpl) Send(event Event) (ret Result) {
@@ -475,7 +469,6 @@ func (s *hubImpl) Terminate() {
 	}
 	s.event2Observer = ID2ObserverMap{}
 	s.event2ActionChannel = ID2ActionChanelMap{}
-	return
 }
 
 func (s *hubImpl) run() {
@@ -587,7 +580,7 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
 
 					if result != nil {
-						result.Set(nil, cd.NewResult(cd.UnExpected, fmt.Sprintf("%v", err)))
+						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
 					}
 				}
 			}()
@@ -597,7 +590,7 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 	}
 
 	if !finalFlag && result != nil {
-		result.Set(nil, cd.NewResult(cd.Warned, fmt.Sprintf("missing observer, event id:%s", event.ID())))
+		result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("missing observer, event id:%s", event.ID())))
 	}
 }
 
@@ -634,7 +627,7 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
 
 					if result != nil {
-						result.Set(nil, cd.NewResult(cd.UnExpected, fmt.Sprintf("%v", err)))
+						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
 					}
 				}
 			}()

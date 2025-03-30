@@ -16,7 +16,7 @@ func Register(initator interface{}) {
 	initatorMgr.Register(initator)
 }
 
-func GetEntity[T any](id string, maskType T) (ret T, err *cd.Result) {
+func GetEntity[T any](id string, maskType T) (ret T, err *cd.Error) {
 	entityVal, entityErr := initatorMgr.GetEntity(id)
 	if entityErr != nil {
 		err = entityErr
@@ -25,7 +25,7 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Result) {
 
 	eVal, eOK := entityVal.(T)
 	if !eOK {
-		err = cd.NewResult(cd.UnExpected, fmt.Sprintf("initator:%s type not match", id))
+		err = cd.NewError(cd.UnExpected, fmt.Sprintf("initator:%s type not match", id))
 		return
 	}
 
@@ -33,11 +33,11 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Result) {
 	return
 }
 
-func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Result {
+func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {
 	return initatorMgr.Setup(eventHub, backgroundRoutine)
 }
 
-func Run() *cd.Result {
+func Run() *cd.Error {
 	return initatorMgr.Run()
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/muidea/magicCommon/task"
 )
 
-type InvokeFunc func() *cd.Result
+type InvokeFunc func() *cd.Error
 type PluginMgr struct {
 	typeName   string
 	entityList []interface{}
@@ -122,7 +122,7 @@ func (s *PluginMgr) Register(ptr interface{}) {
 	s.entityList = newList
 }
 
-func (s *PluginMgr) GetEntity(id string) (ret interface{}, err *cd.Result) {
+func (s *PluginMgr) GetEntity(id string) (ret interface{}, err *cd.Error) {
 	for _, val := range s.entityList {
 		idVal := s.getID(val)
 		if idVal == id {
@@ -131,14 +131,14 @@ func (s *PluginMgr) GetEntity(id string) (ret interface{}, err *cd.Result) {
 		}
 	}
 
-	err = cd.NewResult(cd.UnExpected, fmt.Sprintf("%s not found", s.typeName))
+	err = cd.NewError(cd.UnExpected, fmt.Sprintf("%s not found", s.typeName))
 	return
 }
 
-func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err *cd.Result) {
+func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err *cd.Error) {
 	for _, val := range s.entityList {
 		err = system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
-		if err != nil && err.ErrorCode != cd.NoExist {
+		if err != nil && err.ErrorCode != cd.NotFound {
 			log.Errorf("invoke [%s:%s]->setup failed, %v", s.typeName, s.getID(val), err)
 			return
 		}
@@ -147,10 +147,10 @@ func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundR
 	return
 }
 
-func (s *PluginMgr) Run() (err *cd.Result) {
+func (s *PluginMgr) Run() (err *cd.Error) {
 	for _, val := range s.entityList {
 		err = system.InvokeEntityFunc(val, runTag)
-		if err != nil && err.ErrorCode != cd.NoExist {
+		if err != nil && err.ErrorCode != cd.NotFound {
 			log.Errorf("invoke [%s:%s]->run failed, %v", s.typeName, s.getID(val), err)
 			return
 		}
@@ -166,7 +166,7 @@ func (s *PluginMgr) Teardown() {
 	for idx := range s.entityList {
 		val := s.entityList[totalSize-idx-1]
 		err := system.InvokeEntityFunc(val, teardownTag)
-		if err != nil && err.ErrorCode != cd.NoExist {
+		if err != nil && err.ErrorCode != cd.NotFound {
 			log.Errorf("invoke [%s:%s]->teardown failed, %v", s.typeName, s.getID(val), err)
 		}
 

@@ -14,11 +14,11 @@ func Register(module interface{}) {
 	moduleMgr.Register(module)
 }
 
-func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Result {
+func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {
 	return moduleMgr.Setup(eventHub, backgroundRoutine)
 }
 
-func Run() *cd.Result {
+func Run() *cd.Error {
 	return moduleMgr.Run()
 }
 

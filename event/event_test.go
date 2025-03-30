@@ -15,7 +15,7 @@ func TestEventConstants(t *testing.T) {
 	if innerValKey != "_innerValKey_" {
 		t.Errorf("innerValKey = %s, want %s", innerValKey, "_innerValKey_")
 	}
-	
+
 	// Test action constants
 	if Action != "_action_" {
 		t.Errorf("Action = %s, want %s", Action, "_action_")
@@ -51,9 +51,9 @@ func TestNewEventAndBaseEvent(t *testing.T) {
 	header := NewValues()
 	header.Set("headerKey", "headerValue")
 	data := "testData"
-	
+
 	event := NewEvent(id, source, destination, header, data)
-	
+
 	// Test basic properties
 	if event.ID() != id {
 		t.Errorf("event.ID() = %s, want %s", event.ID(), id)
@@ -70,7 +70,7 @@ func TestNewEventAndBaseEvent(t *testing.T) {
 	if event.Data() != data {
 		t.Errorf("event.Data() = %v, want %v", event.Data(), data)
 	}
-	
+
 	// Test binding context
 	ctx := context.Background()
 	if event.Context() != nil {
@@ -80,7 +80,7 @@ func TestNewEventAndBaseEvent(t *testing.T) {
 	if event.Context() != ctx {
 		t.Errorf("event.Context() = %v, want %v", event.Context(), ctx)
 	}
-	
+
 	// Test setting and getting data
 	event.SetData("key1", 123)
 	if val := event.GetData("key1"); val != 123 {
@@ -89,7 +89,7 @@ func TestNewEventAndBaseEvent(t *testing.T) {
 	if val := event.GetData("nonexistent"); val != nil {
 		t.Errorf("event.GetData() for nonexistent key = %v, want nil", val)
 	}
-	
+
 	// Test Match method
 	if !event.Match(id) {
 		t.Errorf("event.Match(%s) = false, want true", id)
@@ -109,9 +109,9 @@ func TestNewEventWitchContext(t *testing.T) {
 	header := NewValues()
 	ctx := context.Background()
 	data := "testData"
-	
+
 	event := NewEventWitchContext(id, source, destination, header, ctx, data)
-	
+
 	if event.Context() != ctx {
 		t.Errorf("event.Context() = %v, want %v", event.Context(), ctx)
 	}
@@ -121,19 +121,19 @@ func TestNewResult(t *testing.T) {
 	id := "test/id"
 	source := "test-source"
 	destination := "test-destination"
-	
+
 	result := NewResult(id, source, destination)
-	
+
 	// A new result should have an error
 	if result.Error() == nil {
 		t.Error("result.Error() = nil, want error")
 	}
-	
+
 	// Test setting and getting data
 	testData := "result data"
-	customErr := cd.NewResult(cd.Failed, "success message")
+	customErr := cd.NewError(cd.UnExpected, "unknown message")
 	result.Set(testData, customErr)
-	
+
 	data, err := result.Get()
 	if data != testData {
 		t.Errorf("result.Get() data = %v, want %v", data, testData)
@@ -141,7 +141,7 @@ func TestNewResult(t *testing.T) {
 	if err != customErr {
 		t.Errorf("result.Get() err = %v, want %v", err, customErr)
 	}
-	
+
 	// Test setting and getting values
 	result.SetVal("key1", 456)
 	if val := result.GetVal("key1"); val != 456 {
@@ -163,7 +163,7 @@ func TestMatchValue(t *testing.T) {
 	if !MatchValue("a/b", "a/b") {
 		t.Error("MatchValue(\"a/b\", \"a/b\") = false, want true")
 	}
-	
+
 	// Plus wildcard
 	if !MatchValue("a/+", "a/b") {
 		t.Error("MatchValue(\"a/+\", \"a/b\") = false, want true")
@@ -174,7 +174,7 @@ func TestMatchValue(t *testing.T) {
 	if !MatchValue("a/+/c", "a/b/c") {
 		t.Error("MatchValue(\"a/+/c\", \"a/b/c\") = false, want true")
 	}
-	
+
 	// ID wildcard
 	if !MatchValue("a/:id", "a/123") {
 		t.Error("MatchValue(\"a/:id\", \"a/123\") = false, want true")
@@ -182,7 +182,7 @@ func TestMatchValue(t *testing.T) {
 	if MatchValue("a/:id", "a") {
 		t.Error("MatchValue(\"a/:id\", \"a\") = true, want false")
 	}
-	
+
 	// Hash wildcard
 	if !MatchValue("a/#", "a/b") {
 		t.Error("MatchValue(\"a/#\", \"a/b\") = false, want true")
@@ -196,7 +196,7 @@ func TestMatchValue(t *testing.T) {
 	if !MatchValue("a/b/#", "a/b/c/d") {
 		t.Error("MatchValue(\"a/b/#\", \"a/b/c/d\") = false, want true")
 	}
-	
+
 	// Complex patterns
 	if !MatchValue("a/+/c/#", "a/b/c/d") {
 		t.Error("MatchValue(\"a/+/c/#\", \"a/b/c/d\") = false, want true")

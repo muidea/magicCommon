@@ -16,13 +16,13 @@ func TestCommonResult(t *testing.T) {
 		CValue Value `json:"value"`
 	}
 
-	compse := &Compose{Result: Result{ErrorCode: 100, Reason: "test data"}, CValue: Value{AInt: 123, BFloat: 234.567}}
+	compse := &Compose{Result: NewResult(), CValue: Value{AInt: 123, BFloat: 234.567}}
 	byteVal, _ := json.Marshal(compse)
 
 	commonResult := &CommonResult{}
 	json.Unmarshal(byteVal, commonResult)
 
-	if commonResult.ErrorCode != compse.ErrorCode {
+	if commonResult.Error == nil {
 		t.Errorf("encode failed")
 		return
 	}

@@ -36,8 +36,8 @@ func init() {
 }
 
 type Application interface {
-	Startup(service service.Service) *cd.Result
-	Run() *cd.Result
+	Startup(service service.Service) *cd.Error
+	Run() *cd.Error
 	Shutdown()
 	EventHub() event.Hub
 	BackgroundRoutine() task.BackgroundRoutine
@@ -46,11 +46,11 @@ type Application interface {
 var application Application
 var applicationOnce sync.Once
 
-func Startup(service service.Service) *cd.Result {
+func Startup(service service.Service) *cd.Error {
 	return Get().Startup(service)
 }
 
-func Run() *cd.Result {
+func Run() *cd.Error {
 	return Get().Run()
 }
 
@@ -75,14 +75,14 @@ type appImpl struct {
 	service           service.Service
 }
 
-func (s *appImpl) Startup(service service.Service) *cd.Result {
+func (s *appImpl) Startup(service service.Service) *cd.Error {
 	s.service = service
 	return s.service.Startup(s.eventHub, s.backgroundRoutine)
 }
 
-func (s *appImpl) Run() *cd.Result {
+func (s *appImpl) Run() *cd.Error {
 	if s.service == nil {
-		return cd.NewResult(cd.IllegalParam, "service is nil")
+		return cd.NewError(cd.IllegalParam, "service is nil")
 	}
 
 	return s.service.Run()

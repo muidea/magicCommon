@@ -21,7 +21,7 @@ type holdService struct {
 	defaultService
 }
 
-func (s *holdService) Run() (err *cd.Result) {
+func (s *holdService) Run() (err *cd.Error) {
 	err = s.defaultService.Run()
 	if err != nil {
 		return

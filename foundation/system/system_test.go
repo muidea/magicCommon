@@ -20,8 +20,8 @@ func (s *MockEntity) TestDemo() {
 	fmt.Println("test demo")
 }
 
-func (s *MockEntity) TestReuslt() *cd.Result {
-	return cd.NewResult(cd.InvalidAuthority, "test result")
+func (s *MockEntity) TestReuslt() *cd.Error {
+	return cd.NewError(cd.InvalidAuthority, "test result")
 }
 
 // TestInvokeEntityFuncNoMethod tests the scenario where the method does not exist on the entityVal
@@ -31,7 +31,6 @@ func TestInvokeEntityFuncNoMethod(t *testing.T) {
 
 	result := InvokeEntityFunc(entityVal, funcName)
 	assert.NotNil(t, result)
-	assert.Equal(t, result.Fail(), true) // Assuming there's a Type field in the cd.Result type to check the error type
 }
 
 // TestInvokeEntityFuncWithMethod tests the successful invocation of an existing method

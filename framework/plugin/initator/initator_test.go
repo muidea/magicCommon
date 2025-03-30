@@ -81,10 +81,9 @@ func Test_Initator(t *testing.T) {
 
 	var demoPtr Demo
 	var demo2Ptr Demo2
-	var result *cd.Result
+	var result *cd.Error
 	demo2Ptr, demo2Err := GetEntity("123", demo2Ptr)
-	assert.NotEqual(t, demo2Err, result)
-	assert.Equal(t, demo2Err.Success(), false)
+	assert.NotNil(t, demo2Err)
 	assert.Equal(t, demo2Ptr, nil)
 
 	demoPtr, demoErr := GetEntity("100", demoPtr)

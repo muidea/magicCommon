@@ -18,7 +18,7 @@ func TestIsDirEmpty(t *testing.T) {
 
 	curWD, curErr := os.Getwd()
 	if curErr != nil {
-		t.Errorf("check is dir empty failed, error:%s", isErr.Error())
+		t.Errorf("check is dir empty failed, error:%s", curErr.Error())
 		return
 	}
 
