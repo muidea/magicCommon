@@ -21,7 +21,7 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
-			err = cd.NewError(cd.UnExpected, fmt.Sprintf("recover! invoke %s unexpected, err:%v\nstack:\n%s", funcName, errInfo, util.GetStack(3)))
+			err = cd.NewError(cd.Unexpected, fmt.Sprintf("recover! invoke %s unexpected, err:%v\nstack:\n%s", funcName, errInfo, util.GetStack(3)))
 		}
 	}()
 
@@ -37,7 +37,7 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 
 	errVal, ok := rVals[0].Interface().(*cd.Error)
 	if !ok {
-		return cd.NewError(cd.UnExpected, "invoke method return illegal result")
+		return cd.NewError(cd.Unexpected, "invoke method return illegal result")
 	}
 
 	return errVal

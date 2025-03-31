@@ -25,7 +25,7 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Error) {
 
 	eVal, eOK := entityVal.(T)
 	if !eOK {
-		err = cd.NewError(cd.UnExpected, fmt.Sprintf("initator:%s type not match", id))
+		err = cd.NewError(cd.Unexpected, fmt.Sprintf("initator:%s type not match", id))
 		return
 	}
 

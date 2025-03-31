@@ -580,7 +580,7 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
 
 					if result != nil {
-						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
+						result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
 					}
 				}
 			}()
@@ -590,7 +590,7 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 	}
 
 	if !finalFlag && result != nil {
-		result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("missing observer, event id:%s", event.ID())))
+		result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("missing observer, event id:%s", event.ID())))
 	}
 }
 
@@ -627,7 +627,7 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
 
 					if result != nil {
-						result.Set(nil, cd.NewError(cd.UnExpected, fmt.Sprintf("%v", err)))
+						result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
 					}
 				}
 			}()

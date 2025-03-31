@@ -131,7 +131,7 @@ func (s *PluginMgr) GetEntity(id string) (ret interface{}, err *cd.Error) {
 		}
 	}
 
-	err = cd.NewError(cd.UnExpected, fmt.Sprintf("%s not found", s.typeName))
+	err = cd.NewError(cd.Unexpected, fmt.Sprintf("%s not found", s.typeName))
 	return
 }
 

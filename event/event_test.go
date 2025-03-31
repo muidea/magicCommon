@@ -131,7 +131,7 @@ func TestNewResult(t *testing.T) {
 
 	// Test setting and getting data
 	testData := "result data"
-	customErr := cd.NewError(cd.UnExpected, "unknown message")
+	customErr := cd.NewError(cd.Unexpected, "unknown message")
 	result.Set(testData, customErr)
 
 	data, err := result.Get()
