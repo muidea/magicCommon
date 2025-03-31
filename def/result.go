@@ -8,8 +8,9 @@ import (
 type Code int
 
 const (
+	Success = iota
 	// UnKnownError 未知错误
-	UnKnownError = iota
+	UnKnownError
 	// NotFound 未找到
 	NotFound
 	// IllegalParam 非法参数
@@ -83,12 +84,12 @@ type CommonSliceResult struct {
 
 // Success 成功
 func (s *Result) Success() bool {
-	return s.Error == nil || s.Error.Code == 0
+	return s.Error == nil || s.Error.Code == Success
 }
 
 // Fail 失败
 func (s *Result) Fail() bool {
-	return s.Error != nil && s.Error.Code != 0
+	return s.Error != nil && s.Error.Code != Success
 }
 
 func NewResult() Result {
