@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-type ErrorCode int
+type Code int
 
 const (
 	// UnKnownError 未知错误
@@ -23,23 +23,23 @@ const (
 )
 
 type Error struct {
-	ErrorCode    ErrorCode `json:"errorCode"`
-	ErrorMessage string    `json:"errorMessage"`
+	Code    Code   `json:"code"`
+	Message string `json:"message"`
 }
 
 func (e Error) Error() string {
-	return fmt.Sprintf("errorCode:%d, errorMessage:%s", e.ErrorCode, e.ErrorMessage)
+	return fmt.Sprintf("code:%d, message:%s", e.Code, e.Message)
 }
 
-func NewError(errorCode ErrorCode, errorMessage string) *Error {
+func NewError(errorCode Code, errorMessage string) *Error {
 	return &Error{
-		ErrorCode:    errorCode,
-		ErrorMessage: errorMessage,
+		Code:    errorCode,
+		Message: errorMessage,
 	}
 }
 
 // Result 处理结果
-// ErrorCode 错误码
+// Code 错误码
 // Reason 错误信息
 type Result struct {
 	Error *Error `json:"error"`
@@ -58,12 +58,12 @@ type CommonSliceResult struct {
 
 // Success 成功
 func (s *Result) Success() bool {
-	return s.Error == nil || s.Error.ErrorCode == 0
+	return s.Error == nil || s.Error.Code == 0
 }
 
 // Fail 失败
 func (s *Result) Fail() bool {
-	return s.Error != nil && s.Error.ErrorCode != 0
+	return s.Error != nil && s.Error.Code != 0
 }
 
 func NewResult() Result {

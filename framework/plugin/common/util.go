@@ -138,7 +138,7 @@ func (s *PluginMgr) GetEntity(id string) (ret interface{}, err *cd.Error) {
 func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err *cd.Error) {
 	for _, val := range s.entityList {
 		err = system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
-		if err != nil && err.ErrorCode != cd.NotFound {
+		if err != nil && err.Code != cd.NotFound {
 			log.Errorf("invoke [%s:%s]->setup failed, %v", s.typeName, s.getID(val), err)
 			return
 		}
@@ -150,7 +150,7 @@ func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundR
 func (s *PluginMgr) Run() (err *cd.Error) {
 	for _, val := range s.entityList {
 		err = system.InvokeEntityFunc(val, runTag)
-		if err != nil && err.ErrorCode != cd.NotFound {
+		if err != nil && err.Code != cd.NotFound {
 			log.Errorf("invoke [%s:%s]->run failed, %v", s.typeName, s.getID(val), err)
 			return
 		}
@@ -166,7 +166,7 @@ func (s *PluginMgr) Teardown() {
 	for idx := range s.entityList {
 		val := s.entityList[totalSize-idx-1]
 		err := system.InvokeEntityFunc(val, teardownTag)
-		if err != nil && err.ErrorCode != cd.NotFound {
+		if err != nil && err.Code != cd.NotFound {
 			log.Errorf("invoke [%s:%s]->teardown failed, %v", s.typeName, s.getID(val), err)
 		}
 

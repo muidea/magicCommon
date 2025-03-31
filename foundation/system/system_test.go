@@ -64,7 +64,7 @@ func TestInvokeEntityFuncWithResult(t *testing.T) {
 	params := []interface{}{}
 	result := InvokeEntityFunc(entityVal, funcName, params...)
 	assert.NotNil(t, result)
-	assert.Equal(t, result.ErrorCode, cd.ErrorCode(cd.InvalidAuthority))
+	assert.Equal(t, result.Code, cd.Code(cd.InvalidAuthority))
 }
 
 // TestInvokeEntityFuncNilEntity tests the scenario where the entityVal is nil
@@ -74,7 +74,7 @@ func TestInvokeEntityFuncNilEntity(t *testing.T) {
 
 	result := InvokeEntityFunc(nil, funcName, params...)
 	assert.NotNil(t, result)
-	assert.Equal(t, result.ErrorCode, cd.ErrorCode(cd.IllegalParam))
+	assert.Equal(t, result.Code, cd.Code(cd.IllegalParam))
 }
 
 // TestInvokeEntityFuncInvalidParamType tests the scenario where the parameter type is invalid
@@ -85,5 +85,5 @@ func TestInvokeEntityFuncInvalidParamType(t *testing.T) {
 
 	result := InvokeEntityFunc(entityVal, funcName, params...)
 	assert.NotNil(t, result)
-	assert.Equal(t, result.ErrorCode, cd.ErrorCode(cd.IllegalParam))
+	assert.Equal(t, result.Code, cd.Code(cd.IllegalParam))
 }
