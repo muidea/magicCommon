@@ -38,7 +38,7 @@ func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.Back
 		return
 	}
 
-	log.Infof("%s startup success", s.serviceName)
+	//log.Infof("%s startup success", s.serviceName)
 	return
 }
 
