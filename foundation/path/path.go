@@ -14,6 +14,14 @@ import (
 	"github.com/muidea/magicCommon/foundation/log"
 )
 
+func IsDir(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
+}
+
 // Exist 路径是否存在
 func Exist(path string) bool {
 	_, err := os.Stat(path)
