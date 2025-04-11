@@ -3,19 +3,25 @@ package util
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"os"
 )
 
 func LoadConfig(filePath string, ptr interface{}) (err error) {
-	fileHandle, fileErr := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
+	if ptr == nil {
+		err = fmt.Errorf("illegal ptr")
+		return
+	}
+
+	filePtr, fileErr := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if fileErr != nil {
 		err = fileErr
 		return
 	}
-	defer fileHandle.Close()
+	defer filePtr.Close()
 
-	byteContent, byteErr := ioutil.ReadAll(fileHandle)
+	byteContent, byteErr := io.ReadAll(filePtr)
 	if byteErr != nil {
 		err = byteErr
 		return

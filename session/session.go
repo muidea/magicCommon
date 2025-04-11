@@ -3,10 +3,13 @@ package session
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 type Status int
@@ -24,13 +27,11 @@ const (
 	expiryTime = "expiryTime"
 	// Authorization info, from request header
 	Authorization = "Authorization"
-	// RemoteAddress 远端地址
-	RemoteAddress = "$$sessionRemoteAddress"
 )
 
 const (
-	jwtToken      = "Bearer"
-	endpointToken = "Sig"
+	jwtToken = "Bearer"
+	sigToken = "Sig"
 
 	DefaultSessionTimeOutValue = 10 * time.Minute // 10 minute
 )
@@ -57,13 +58,15 @@ type Session interface {
 	GetOption(key string) (interface{}, bool)
 	SetOption(key string, value interface{})
 	RemoveOption(key string)
+	SubmitOptions()
 }
 
 type sessionImpl struct {
-	id       string // session id
-	context  map[string]interface{}
-	observer map[string]Observer
-	registry *sessionRegistryImpl
+	id            string // session id
+	context       map[string]interface{}
+	observer      map[string]Observer
+	registry      *sessionRegistryImpl
+	optionsChange bool
 }
 
 func (s *sessionImpl) ID() string {
@@ -72,10 +75,14 @@ func (s *sessionImpl) ID() string {
 
 func (s *sessionImpl) innerKey(key string) bool {
 	switch key {
-	case RemoteAddress, Authorization:
+	case Authorization:
 		return true
 	}
 
+	// 以X-开头的header视为自定义key，不参与签名
+	if strings.HasPrefix(key, "X-") {
+		return true
+	}
 	return false
 }
 
@@ -85,13 +92,17 @@ func (s *sessionImpl) Signature() (Token, error) {
 		mc[sessionID] = s.id
 	}
 
-	for k, v := range s.context {
-		if s.innerKey(k) {
-			continue
-		}
+	func() {
+		s.registry.sessionLock.RLock()
+		defer s.registry.sessionLock.RUnlock()
+		for k, v := range s.context {
+			if s.innerKey(k) {
+				continue
+			}
 
-		mc[k] = v
-	}
+			mc[k] = v
+		}
+	}()
 
 	return SignatureJWT(mc)
 }
@@ -104,6 +115,7 @@ func (s *sessionImpl) Reset() {
 
 		s.context = map[string]interface{}{expiryTime: expiryValue}
 		s.observer = map[string]Observer{}
+		s.optionsChange = true
 	}()
 
 	s.save()
@@ -145,95 +157,89 @@ func (s *sessionImpl) GetString(key string) (string, bool) {
 func (s *sessionImpl) GetInt(key string) (int64, bool) {
 	val, ok := s.GetOption(key)
 	if !ok {
-		return 0, ok
+		return 0, false
 	}
 
-	switch val.(type) {
-	case int8:
-		return int64(val.(int8)), true
-	case int16:
-		return int64(val.(int16)), true
-	case int32:
-		return int64(val.(int32)), true
-	case int64:
-		return val.(int64), true
-	case int:
-		return int64(val.(int)), true
-	case float64:
-		return int64(val.(float64)), true
-	case float32:
-		return int64(val.(float32)), true
+	switch v := val.(type) {
+	case int8, int16, int32, int64, int:
+		return reflect.ValueOf(v).Int(), true
+	case float32, float64:
+		return int64(reflect.ValueOf(v).Float()), true
 	case string:
-		val, err := strconv.ParseInt(val.(string), 10, 64)
-		return val, err == nil
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return val, true
+	default:
+		log.Errorf("unsupported type for key %s: %T", key, val)
+		return 0, false
 	}
-
-	return 0, false
 }
 
 func (s *sessionImpl) GetUint(key string) (uint64, bool) {
 	val, ok := s.GetOption(key)
 	if !ok {
-		return 0, ok
+		return 0, false
 	}
 
-	switch val.(type) {
-	case uint8:
-		return uint64(val.(uint8)), true
-	case uint16:
-		return uint64(val.(uint16)), true
-	case uint32:
-		return uint64(val.(uint32)), true
-	case uint64:
-		return val.(uint64), true
-	case uint:
-		return uint64(val.(uint)), true
-	case float64:
-		return uint64(val.(float64)), true
-	case float32:
-		return uint64(val.(float32)), true
+	switch v := val.(type) {
+	case uint8, uint16, uint32, uint64, uint:
+		return reflect.ValueOf(v).Uint(), true
+	case float32, float64:
+		return uint64(reflect.ValueOf(v).Float()), true
 	case string:
-		val, err := strconv.ParseUint(val.(string), 10, 64)
-		return val, err == nil
+		val, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return val, true
+	default:
+		log.Errorf("unsupported type for key %s: %T", key, val)
+		return 0, false
 	}
-
-	return 0, false
 }
 
 func (s *sessionImpl) GetFloat(key string) (float64, bool) {
 	val, ok := s.GetOption(key)
 	if !ok {
-		return 0.00, ok
+		return 0, false
 	}
 
-	switch val.(type) {
-	case float64:
-		return val.(float64), true
-	case float32:
-		return float64(val.(float32)), true
+	switch v := val.(type) {
+	case float32, float64:
+		return reflect.ValueOf(v).Float(), true
 	case string:
-		val, err := strconv.ParseFloat(val.(string), 64)
-		return val, err == nil
+		val, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return 0, false
+		}
+		return val, true
+	default:
+		log.Errorf("unsupported type for key %s: %T", key, val)
+		return 0, false
 	}
-
-	return 0.00, false
 }
 
 func (s *sessionImpl) GetBool(key string) (bool, bool) {
 	val, ok := s.GetOption(key)
 	if !ok {
-		return false, ok
+		return false, false
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case bool:
-		return val.(bool), true
+		return reflect.ValueOf(v).Bool(), true
 	case string:
-		val, err := strconv.ParseBool(val.(string))
-		return val, err == nil
+		val, err := strconv.ParseBool(v)
+		if err != nil {
+			return false, false
+		}
+		return val, true
+	default:
+		log.Errorf("unsupported type for key %s: %T", key, val)
+		return false, false
 	}
-
-	return false, false
 }
 
 func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
@@ -251,10 +257,7 @@ func (s *sessionImpl) SetOption(key string, value interface{}) {
 		defer s.registry.sessionLock.Unlock()
 
 		s.context[key] = value
-
-		for _, val := range s.observer {
-			go val.OnStatusChange(s, StatusUpdate)
-		}
+		s.optionsChange = true
 	}()
 
 	s.save()
@@ -266,13 +269,22 @@ func (s *sessionImpl) RemoveOption(key string) {
 		defer s.registry.sessionLock.Unlock()
 
 		delete(s.context, key)
+		s.optionsChange = true
 
-		for _, val := range s.observer {
-			go val.OnStatusChange(s, StatusUpdate)
-		}
 	}()
 
 	s.save()
+}
+
+func (s *sessionImpl) SubmitOptions() {
+	if !s.optionsChange {
+		return
+	}
+
+	s.optionsChange = false
+	for _, val := range s.observer {
+		go val.OnStatusChange(s, StatusUpdate)
+	}
 }
 
 func (s *sessionImpl) refresh() {
@@ -289,8 +301,18 @@ func (s *sessionImpl) timeout() bool {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryTime, _ := s.context[expiryTime]
-	return expiryTime.(int64) < nowTime
+	expiryTimeVal, ok := s.context[expiryTime]
+	if !ok {
+		return true // 如果没有设置过期时间，默认认为已超时
+	}
+
+	expiryTimeInt64, ok := expiryTimeVal.(int64)
+	if !ok {
+		log.Errorf("invalid type for expiryTime: %T", expiryTimeVal)
+		return true // 类型不正确，默认认为已超时
+	}
+
+	return expiryTimeInt64 < nowTime
 }
 
 func (s *sessionImpl) terminate() {

@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/cihub/seelog"
 	"github.com/golang-jwt/jwt/v4"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 func SignatureJWT(mc jwt.MapClaims) (Token, error) {
@@ -20,17 +21,18 @@ func SignatureJWT(mc jwt.MapClaims) (Token, error) {
 }
 
 func decodeJWT(sigVal string) *sessionImpl {
+	secretVal := getSecret()
 	token, err := jwt.Parse(sigVal, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v ", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v ", token.Header["alg"])
 		}
 
 		// hmacSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return []byte(getSecret()), nil
+		return []byte(secretVal), nil
 	})
 	if err != nil {
-		log.Infof("illegal jwt value:%s, err:%s", sigVal[1], err.Error())
+		//log.Infof("illegal jwt value:%s, secret:%s, err:%s", sigVal[1], secretVal, err.Error())
 		return nil
 	}
 
@@ -45,7 +47,7 @@ func decodeJWT(sigVal string) *sessionImpl {
 
 			if k == expiryTime {
 				if v.(float64) < float64(currentTime.Unix()) {
-					log.Infof("illegal jwt,expiry time")
+					//log.Infof("illegal jwt,expiry time")
 					return nil
 				}
 

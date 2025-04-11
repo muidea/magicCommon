@@ -12,31 +12,57 @@ type User struct {
 	address string
 }
 
-const user = "root"
-const password = "rootkit"
-const svrAddress = "localhost:3306"
-const dbName = "testDB"
+const gUser = "root"
+const gPassword = "rootkit"
+const gSvrAddress = "localhost:3306"
+const gDBName = "testdb"
 
 func TestDatabase(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "")
+	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
 	defer dao.Release()
 
+	err = dao.CreateDatabase("supetl")
+	if err != nil {
+		t.Errorf("create database error:%s", err.Error())
+		return
+	}
+	defer dao.DropDatabase("supetl")
+
+	err = dao.UseDatabase("supetl")
+	if err != nil {
+		t.Errorf("use database error:%s", err.Error())
+		return
+	}
+
+	nDao, nErr := dao.Duplicate()
+	if nErr != nil {
+		t.Errorf("duplicate database error:%s", err.Error())
+		return
+	}
+	defer nDao.Release()
+	err = nDao.CreateDatabase("A1000")
+	if err != nil {
+		t.Errorf("create database error:%s", err.Error())
+		return
+	}
+	defer nDao.DropDatabase("A1000")
+
 	defer func() {
-		dropDbSql := fmt.Sprintf("drop database if exists %s", dbName)
+		dropDbSql := fmt.Sprintf("drop database if exists %s", gDBName)
 		dao.Execute(dropDbSql)
 	}()
 
-	createDbSql := fmt.Sprintf("create database if not exists %s", dbName)
-	num := dao.Execute(createDbSql)
+	createDbSql := fmt.Sprintf("create database if not exists %s", gDBName)
+	num, _ := dao.Execute(createDbSql)
 	if num != 1 {
 		t.Errorf("create database failed")
 	}
 }
 
-func initFunc(dao dao.Dao) {
+func initFunc(dao dao.Dao, dbName string) {
 	dbSql := fmt.Sprintf("create database if not exists %s", dbName)
 	dao.Execute(dbSql)
 
@@ -55,34 +81,78 @@ CREATE TABLE IF NOT EXISTS user (
 }
 
 func TestInsert(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "")
+	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
 	defer dao.Release()
 
-	initFunc(dao)
+	initFunc(dao, gDBName)
+	defer dao.DropDatabase(gDBName)
 
-	insertSql := fmt.Sprintf("%s", "insert into user (address) values(\"abc\")")
-	num := dao.Execute(insertSql)
-	if num != 1 {
+	insertSql := "insert into user (address) values(?),(?),(?),(?)"
+	num, _ := dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
+		t.Errorf("Insert data failed")
+	}
+	num, _ = dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
+		t.Errorf("Insert data failed")
+	}
+	num, _ = dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
+		t.Errorf("Insert data failed")
+	}
+	num, _ = dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
+		t.Errorf("Insert data failed")
+	}
+	num, _ = dao.Execute(insertSql, "abc", "bcd", "cde", "def")
+	if num != 4 {
 		t.Errorf("Insert data failed")
 	}
 
-	querySql := "select * from user where id=1"
-	dao.Query(querySql)
+	querySql := "select * from user where address like ?"
+	param := "%a%"
+	err = dao.Query(querySql, param)
+	if err != nil {
+		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
+		return
+	}
+
+	querySql = "select * from user where id in (?,?,?,?)"
+	ids := []any{1, 2, 3, 4}
+	err = dao.Query(querySql, ids...)
+	if err != nil {
+		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
+		return
+	}
+	defer dao.Finish()
+	if dao.Next() {
+		u1 := User{}
+		err = dao.GetField(&u1.id, &u1.address)
+		if err != nil {
+			t.Errorf("dao.GetField(&u1.id, &u1.address) failed, error:%s", err.Error())
+			return
+		}
+		if u1.id != 1 {
+			t.Errorf("dao.Query failed")
+			return
+		}
+	}
 }
 
 func TestQuery(t *testing.T) {
-	dao, err := dao.Fetch(user, password, svrAddress, "")
+	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
 	defer dao.Release()
 
-	initFunc(dao)
+	initFunc(dao, gDBName)
+	defer dao.DropDatabase(gDBName)
 
-	selectSql := fmt.Sprint("select id,address from user")
+	selectSql := "select id,address from user"
 
 	dao.Query(selectSql)
 

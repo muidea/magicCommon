@@ -1,30 +1,68 @@
 package net
 
 import (
-	"net/smtp"
-	"strings"
+	"crypto/tls"
+	"gopkg.in/gomail.v2"
 )
 
-// SendMail 发送邮件
+const (
+	Html = "html"
+	Text = "text"
+)
+
+// emailServer: smtp.example.com   smtp.163.com
+// emailPort: 25
+// skipTls: 是否忽略Tls
+type ServerInfo struct {
+	Server  string
+	Port    int
+	SkipTls bool
+}
+
 // user : example@example.com login smtp server user
 // password: xxxxx login smtp server password
-// host: smtp.example.com:port   smtp.163.com:25
-// to: example@example.com;example1@163.com;example2@sina.com.cn;...
+type SenderInfo struct {
+	User     string
+	Password string
+}
+
+// sendTo, ccTo: example@example.com;example1@163.com;example2@sina.com.cn;...
 // subject:The subject of mail
-// body: The content of mail
-// mailtyoe: mail type html or text
-func SendMail(user, password, host string, sendTo []string, subject, content string, attachment []string, mailtype string) error {
-	hp := strings.Split(host, ":")
-	auth := smtp.PlainAuth("", user, password, hp[0])
-	var contentType string
-	if mailtype == "html" {
-		contentType = "Content-Type: text/" + mailtype + "; charset=UTF-8"
+// content: The content of mail
+// attachment: 附件
+// mimeType: mail type html or text
+type MailInfo struct {
+	SendTo     []string
+	CCTo       []string
+	Subject    string
+	Content    string
+	Attachment []string
+	MimeType   string
+}
+
+// SendMail 发送邮件
+func SendMail(mailServer *ServerInfo, mailSender *SenderInfo, mailInfo *MailInfo) error {
+	goMailMsg := gomail.NewMessage()
+	goMailMsg.SetHeader("From", mailSender.User)
+	goMailMsg.SetHeader("To", mailInfo.SendTo...)
+	if len(mailInfo.CCTo) > 0 {
+		goMailMsg.SetHeader("Cc", mailInfo.CCTo...)
+	}
+	goMailMsg.SetHeader("Subject", mailInfo.Subject)
+	if mailInfo.MimeType == Html {
+		goMailMsg.SetBody("text/html", mailInfo.Content)
 	} else {
-		contentType = "Content-Type: text/plain" + "; charset=UTF-8"
+		goMailMsg.SetBody("text/plain", mailInfo.Content)
 	}
 
-	mailList := strings.Join(sendTo, ";")
-	msg := []byte("To: " + mailList + "\r\nFrom: " + user + "<" + user + ">\r\nSubject: " + subject + "\r\n" + contentType + "\r\n\r\n" + content)
-	err := smtp.SendMail(host, auth, user, sendTo, msg)
-	return err
+	for _, val := range mailInfo.Attachment {
+		goMailMsg.Attach(val)
+	}
+
+	goMailDialer := gomail.NewDialer(mailServer.Server, mailServer.Port, mailSender.User, mailSender.Password)
+	if mailServer.SkipTls {
+		goMailDialer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	return goMailDialer.DialAndSend(goMailMsg)
 }

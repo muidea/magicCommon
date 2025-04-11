@@ -2,6 +2,8 @@ package task
 
 import (
 	"time"
+
+	"github.com/muidea/magicCommon/execute"
 )
 
 // Task 任务对象
@@ -10,8 +12,8 @@ type Task interface {
 }
 
 type BackgroundRoutine interface {
-	Post(task Task)
-	Invoke(task Task)
+	AsyncTask(task Task)
+	SyncTask(task Task)
 	Timer(task Task, intervalValue time.Duration, offsetValue time.Duration)
 }
 
@@ -36,42 +38,51 @@ type taskChannel chan Task
 
 // backgroundRoutine backGround routine
 type backgroundRoutine struct {
+	execute.Execute
+
 	taskChannel taskChannel
 }
 
 // NewBackgroundRoutine new Background routine
-func NewBackgroundRoutine() BackgroundRoutine {
-	bg := &backgroundRoutine{taskChannel: make(taskChannel)}
+func NewBackgroundRoutine(capacitySize int) BackgroundRoutine {
+	bg := &backgroundRoutine{
+		Execute:     execute.NewExecute(capacitySize),
+		taskChannel: make(taskChannel),
+	}
+
 	bg.run()
 
 	return bg
 }
 
 func (s *backgroundRoutine) run() {
-	go s.loop()
+	s.Execute.Run(s.loop)
 }
 
 func (s *backgroundRoutine) loop() {
 	for {
-		task := <-s.taskChannel
-		task.Run()
+		task, ok := <-s.taskChannel
+		if ok {
+			s.Execute.Run(func() {
+				task.Run()
+			})
+		}
 	}
 }
 
-// Post exec task
-func (s *backgroundRoutine) Post(task Task) {
-	go func() {
+func (s *backgroundRoutine) AsyncTask(task Task) {
+	s.Execute.Run(func() {
 		s.taskChannel <- task
-	}()
+	})
 }
 
-func (s *backgroundRoutine) Invoke(task Task) {
-	syncTask := &syncTask{rawTask: task, resultChannel: make(chan bool)}
-	go func() {
-		s.taskChannel <- syncTask
-	}()
+func (s *backgroundRoutine) SyncTask(task Task) {
+	st := &syncTask{rawTask: task, resultChannel: make(chan bool)}
+	s.Execute.Run(func() {
+		s.taskChannel <- st
+	})
 
-	syncTask.Wait()
+	st.Wait()
 }
 
 const onDayDuration = 24 * time.Hour
@@ -86,7 +97,7 @@ func (s *backgroundRoutine) Timer(task Task, intervalValue time.Duration, offset
 				return (nowOffset/intervalValue+1)*intervalValue - nowOffset
 			}
 
-			return (offsetValue + intervalValue - nowOffset + 24*time.Hour) % (24 * time.Hour)
+			return (offsetValue + intervalValue - nowOffset + onDayDuration) % onDayDuration
 		}()
 
 		//expire := offsetValue + time.Duration(23-now.Hour())*time.Hour + time.Duration(59-now.Minute())*time.Minute + time.Duration(60-now.Second())*time.Second

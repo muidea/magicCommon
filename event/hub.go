@@ -1,10 +1,15 @@
 package event
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"sync"
 
-	log "github.com/cihub/seelog"
+	cd "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/execute"
+	"github.com/muidea/magicCommon/foundation/log"
+	"github.com/muidea/magicCommon/foundation/util"
 )
 
 type Values map[string]interface{}
@@ -28,9 +33,11 @@ func (s Values) GetString(key string) string {
 		return ""
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case string:
-		return val.(string)
+		return v
+	default:
+		log.Warnf("illegal value, not string, value:%v", v)
 	}
 
 	return ""
@@ -42,9 +49,11 @@ func (s Values) GetInt(key string) int {
 		return 0
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case int:
-		return val.(int)
+		return v
+	default:
+		log.Warnf("illegal value, not int, value:%v", v)
 	}
 
 	return 0
@@ -56,9 +65,11 @@ func (s Values) GetBool(key string) bool {
 		return false
 	}
 
-	switch val.(type) {
+	switch v := val.(type) {
 	case bool:
-		return val.(bool)
+		return v
+	default:
+		log.Warnf("illegal value, not bool, value:%v", val)
 	}
 
 	return false
@@ -69,14 +80,20 @@ type Event interface {
 	Source() string
 	Destination() string
 	Header() Values
+	Context() context.Context
+	BindContext(ctx context.Context)
 	Data() interface{}
+	SetData(key string, val interface{})
+	GetData(key string) interface{}
 	Match(pattern string) bool
 }
 
 type Result interface {
-	Error() error
-	Set(data interface{}, err error)
-	Get() (interface{}, error)
+	Error() *cd.Error
+	Set(data interface{}, err *cd.Error)
+	Get() (interface{}, *cd.Error)
+	SetVal(key string, val interface{})
+	GetVal(key string) interface{}
 }
 
 type Observer interface {
@@ -103,9 +120,17 @@ type ObserverList []Observer
 type ID2ObserverMap map[string]ObserverList
 type ObserverFunc func(Event, Result)
 type ID2ObserverFuncMap map[string]ObserverFunc
+type actionChannel chan action
+type ID2ActionChanelMap map[string]actionChannel
 
-func NewHub() Hub {
-	hub := &hImpl{event2Observer: ID2ObserverMap{}, actionChannel: make(chan action)}
+func NewHub(capacitySize int) Hub {
+	hub := &hubImpl{
+		Execute:             execute.NewExecute(capacitySize),
+		event2Observer:      ID2ObserverMap{},
+		actionChannel:       make(chan action),
+		event2ActionChannel: ID2ActionChanelMap{},
+		terminateFlag:       false,
+	}
 	go hub.run()
 	return hub
 }
@@ -114,14 +139,14 @@ func NewSimpleObserver(id string, hub Hub) SimpleObserver {
 	return &simpleObserver{id: id, eventHub: hub, id2ObserverFunc: ID2ObserverFuncMap{}}
 }
 
-func matchID(pattern, id string) bool {
+func MatchValue(pattern, val string) bool {
 	pIdx := 0
 	pOffset := 0
 	pItems := strings.Split(pattern, "/")
 
 	iIdx := 0
 	iOffset := 0
-	iItems := strings.Split(id, "/")
+	iItems := strings.Split(val, "/")
 	for iIdx < len(iItems) {
 		iv := iItems[iIdx]
 		if pIdx >= len(pItems) {
@@ -246,84 +271,163 @@ func (s *sendData) Code() int {
 }
 
 type terminateData struct {
-	result chan bool
+	waitGroup *sync.WaitGroup
+	result    chan bool
 }
 
 func (s *terminateData) Code() int {
 	return terminate
 }
 
-type hImpl struct {
+func (s actionChannel) run(hubPtr *hubImpl) {
+	terminateFlag := false
+	for {
+		actionData, actionOK := <-s
+		if !actionOK {
+			log.Criticalf("eventHub actionChannel unexpect!")
+			break
+		}
+
+		actionFunc := func() {
+			switch actionData.Code() {
+			case subscribe:
+				data := actionData.(*subscribeData)
+				hubPtr.subscribeInternal(data.eventID, data.observer)
+				data.result <- true
+			case unsubscribe:
+				data := actionData.(*unsubscribeData)
+				hubPtr.unsubscribeInternal(data.eventID, data.observer)
+				data.result <- true
+			case post:
+				data := actionData.(*postData)
+				hubPtr.postInternal(data.event)
+			case send:
+				data := actionData.(*sendData)
+				result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
+				hubPtr.sendInternal(data.event, result)
+				data.result <- result
+			case terminate:
+				data := actionData.(*terminateData)
+				data.result <- true
+				data.waitGroup.Done()
+				terminateFlag = true
+			default:
+			}
+		}
+
+		hubPtr.Execute.Run(actionFunc)
+
+		if terminateFlag {
+			break
+		}
+	}
+}
+
+type hubImpl struct {
+	execute.Execute
 	event2Lock     sync.RWMutex
 	event2Observer ID2ObserverMap
 
-	actionChannel chan action
+	actionChannel       actionChannel
+	event2ActionChannel ID2ActionChanelMap
+
 	terminateFlag bool
 }
 
-func (s *hImpl) Subscribe(eventID string, observer Observer) {
+func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 	if s.terminateFlag {
 		return
 	}
 
 	replay := make(chan bool)
-	go func() {
-		action := &subscribeData{eventID: eventID, observer: observer, result: replay}
+	s.Execute.Run(func() {
+		actionData := &subscribeData{eventID: eventID, observer: observer, result: replay}
 
-		s.actionChannel <- action
-	}()
+		s.actionChannel <- actionData
+	})
 	<-replay
-
-	return
 }
 
-func (s *hImpl) Unsubscribe(eventID string, observer Observer) {
+func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 	if s.terminateFlag {
 		return
 	}
 
 	replay := make(chan bool)
-	go func() {
-		action := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
+	s.Execute.Run(func() {
+		actionData := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
 
-		s.actionChannel <- action
-	}()
+		s.actionChannel <- actionData
+	})
 	<-replay
-
-	return
 }
 
-func (s *hImpl) Post(event Event) {
+func (s *hubImpl) Post(event Event) {
 	if s.terminateFlag {
 		return
 	}
 
-	go func() {
-		action := &postData{event: event}
+	actionData := &postData{event: event}
+	var eventChannel actionChannel
+	func() {
+		s.event2Lock.Lock()
+		defer s.event2Lock.Unlock()
+		channelVal, channelOK := s.event2ActionChannel[event.Destination()]
+		if !channelOK {
+			channelVal = make(actionChannel)
+			go channelVal.run(s)
 
-		s.actionChannel <- action
+			s.event2ActionChannel[event.Destination()] = channelVal
+		}
+
+		eventChannel = channelVal
 	}()
-	return
+
+	if event.Source() == event.Destination() {
+		s.Execute.Run(func() {
+			eventChannel <- actionData
+		})
+	} else {
+		eventChannel <- actionData
+	}
 }
 
-func (s *hImpl) Send(event Event) (ret Result) {
+func (s *hubImpl) Send(event Event) (ret Result) {
 	if s.terminateFlag {
 		return
 	}
 
 	replay := make(chan Result)
+	actionData := &sendData{event: event, result: replay}
 
-	go func() {
-		action := &sendData{event: event, result: replay}
+	var eventChannel actionChannel
+	func() {
+		s.event2Lock.Lock()
+		defer s.event2Lock.Unlock()
+		channelVal, channelOK := s.event2ActionChannel[event.Destination()]
+		if !channelOK {
+			channelVal = make(actionChannel)
+			go channelVal.run(s)
 
-		s.actionChannel <- action
+			s.event2ActionChannel[event.Destination()] = channelVal
+		}
+
+		eventChannel = channelVal
 	}()
+
+	if event.Source() == event.Destination() {
+		s.Execute.Run(func() {
+			eventChannel <- actionData
+		})
+	} else {
+		eventChannel <- actionData
+	}
 
 	ret = <-replay
 	return
 }
 
-func (s *hImpl) Call(event Event) Result {
+func (s *hubImpl) Call(event Event) Result {
 	if s.terminateFlag {
 		return nil
 	}
@@ -333,56 +437,47 @@ func (s *hImpl) Call(event Event) Result {
 	return result
 }
 
-func (s *hImpl) Terminate() {
+func (s *hubImpl) Terminate() {
 	if s.terminateFlag {
 		return
 	}
 
+	s.terminateFlag = true
+	var waitGroup sync.WaitGroup
 	replay := make(chan bool)
+	actionData := &terminateData{result: replay, waitGroup: &waitGroup}
 	go func() {
-		action := &terminateData{result: replay}
+		s.event2Lock.Lock()
+		defer s.event2Lock.Unlock()
 
-		s.actionChannel <- action
+		for _, val := range s.event2ActionChannel {
+			waitGroup.Add(1)
+			val <- actionData
+		}
 	}()
+	waitGroup.Add(1)
+	s.actionChannel <- actionData
 
 	<-replay
 
-	s.event2Observer = nil
-	return
+	waitGroup.Wait()
+
+	s.event2Lock.Lock()
+	defer s.event2Lock.Unlock()
+	for _, val := range s.event2ActionChannel {
+		close(val)
+	}
+	s.event2Observer = ID2ObserverMap{}
+	s.event2ActionChannel = ID2ActionChanelMap{}
 }
 
-func (s *hImpl) run() {
-	s.terminateFlag = false
-	for action := range s.actionChannel {
-		switch action.Code() {
-		case subscribe:
-			data := action.(*subscribeData)
-			s.subscribeInternal(data.eventID, data.observer)
-			data.result <- true
-		case unsubscribe:
-			data := action.(*unsubscribeData)
-			s.unsubscribeInternal(data.eventID, data.observer)
-			data.result <- true
-		case post:
-			data := action.(*postData)
-			s.postInternal(data.event)
-		case send:
-			data := action.(*sendData)
-			result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
-			s.sendInternal(data.event, result)
-			data.result <- result
-		case terminate:
-			data := action.(*terminateData)
-			data.result <- true
-		default:
-		}
-	}
+func (s *hubImpl) run() {
+	s.actionChannel.run(s)
 
-	s.terminateFlag = true
 	close(s.actionChannel)
 }
 
-func (s *hImpl) subscribeInternal(eventID string, observer Observer) {
+func (s *hubImpl) subscribeInternal(eventID string, observer Observer) {
 	s.event2Lock.Lock()
 	defer s.event2Lock.Unlock()
 
@@ -403,7 +498,7 @@ func (s *hImpl) subscribeInternal(eventID string, observer Observer) {
 	s.event2Observer[eventID] = observerList
 }
 
-func (s *hImpl) unsubscribeInternal(eventID string, observer Observer) {
+func (s *hubImpl) unsubscribeInternal(eventID string, observer Observer) {
 	s.event2Lock.Lock()
 	defer s.event2Lock.Unlock()
 
@@ -428,33 +523,74 @@ func (s *hImpl) unsubscribeInternal(eventID string, observer Observer) {
 	delete(s.event2Observer, eventID)
 }
 
-func (s *hImpl) postInternal(event Event) {
-	s.event2Lock.RLock()
-	defer s.event2Lock.RUnlock()
+func (s *hubImpl) postInternal(event Event) {
+	matchList := ObserverList{}
 
-	for key, value := range s.event2Observer {
-		if matchID(key, event.ID()) {
-			for _, sv := range value {
-				if matchID(event.Destination(), sv.ID()) {
-					sv.Notify(event, nil)
+	func() {
+		s.event2Lock.RLock()
+		defer s.event2Lock.RUnlock()
+		for key, value := range s.event2Observer {
+			if MatchValue(key, event.ID()) {
+				for _, sv := range value {
+					if MatchValue(event.Destination(), sv.ID()) {
+						matchList = append(matchList, sv)
+					}
 				}
 			}
 		}
+	}()
+
+	for _, sv := range matchList {
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					stackInfo := util.GetStack(3)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
+				}
+			}()
+			sv.Notify(event, nil)
+		}()
 	}
 }
 
-func (s *hImpl) sendInternal(event Event, result Result) {
-	s.event2Lock.RLock()
-	defer s.event2Lock.RUnlock()
+func (s *hubImpl) sendInternal(event Event, result Result) {
+	matchList := ObserverList{}
+	finalFlag := false
 
-	for key, value := range s.event2Observer {
-		if matchID(key, event.ID()) {
-			for _, sv := range value {
-				if matchID(event.Destination(), sv.ID()) {
-					sv.Notify(event, result)
+	func() {
+		s.event2Lock.RLock()
+		defer s.event2Lock.RUnlock()
+		for key, value := range s.event2Observer {
+			if MatchValue(key, event.ID()) {
+				for _, sv := range value {
+					if MatchValue(event.Destination(), sv.ID()) {
+						matchList = append(matchList, sv)
+						finalFlag = true
+					}
 				}
 			}
 		}
+	}()
+
+	for _, sv := range matchList {
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					stackInfo := util.GetStack(3)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
+
+					if result != nil {
+						result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
+					}
+				}
+			}()
+
+			sv.Notify(event, result)
+		}()
+	}
+
+	if !finalFlag && result != nil {
+		result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("missing observer, event id:%s", event.ID())))
 	}
 }
 
@@ -484,36 +620,61 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 	}()
 
 	if funcVal != nil {
-		funcVal(event, result)
-	}
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					stackInfo := util.GetStack(3)
+					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
 
-	return
+					if result != nil {
+						result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
+					}
+				}
+			}()
+
+			funcVal(event, result)
+		}()
+	}
 }
 
 func (s *simpleObserver) Subscribe(eventID string, observerFunc ObserverFunc) {
-	s.idLock.Lock()
-	defer s.idLock.Unlock()
+	okFlag := false
+	func() {
+		s.idLock.Lock()
+		defer s.idLock.Unlock()
 
-	_, ok := s.id2ObserverFunc[eventID]
-	if ok {
-		log.Errorf("duplicate eventID:%v", eventID)
-		return
+		_, ok := s.id2ObserverFunc[eventID]
+		if ok {
+			log.Warnf("duplicate eventID:%v", eventID)
+			return
+		}
+
+		s.id2ObserverFunc[eventID] = observerFunc
+		okFlag = true
+	}()
+
+	if okFlag {
+		s.eventHub.Subscribe(eventID, s)
 	}
-
-	s.id2ObserverFunc[eventID] = observerFunc
-	s.eventHub.Subscribe(eventID, s)
 }
 
 func (s *simpleObserver) Unsubscribe(eventID string) {
-	s.idLock.Lock()
-	defer s.idLock.Unlock()
+	okFlag := false
+	func() {
+		s.idLock.Lock()
+		defer s.idLock.Unlock()
 
-	_, ok := s.id2ObserverFunc[eventID]
-	if !ok {
-		log.Errorf("not exist eventID:%v", eventID)
-		return
+		_, ok := s.id2ObserverFunc[eventID]
+		if !ok {
+			log.Warnf("not exist eventID:%v", eventID)
+			return
+		}
+
+		delete(s.id2ObserverFunc, eventID)
+		okFlag = true
+	}()
+
+	if okFlag {
+		s.eventHub.Unsubscribe(eventID, s)
 	}
-
-	delete(s.id2ObserverFunc, eventID)
-	s.eventHub.Unsubscribe(eventID, s)
 }

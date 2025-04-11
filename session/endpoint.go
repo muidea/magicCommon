@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -94,8 +95,10 @@ func decodeSignature(val string) (ret *Endpoint, err error) {
 		return
 	}
 
-	strVal, strErr := util.DecryptByAes(val[offset+1:], getSecret())
+	secretVal := getSecret()
+	strVal, strErr := util.DecryptByAes(val[offset+1:], secretVal)
 	if strErr != nil {
+		log.Infof("decodeSignature failed, secret:%s, err:%s", secretVal, strErr.Error())
 		err = strErr
 		return
 	}

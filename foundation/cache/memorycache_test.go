@@ -3,52 +3,99 @@ package cache
 import (
 	"testing"
 	"time"
+
+	"github.com/muidea/magicCommon/foundation/log"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMemoryCache(t *testing.T) {
-	cache := NewCache()
-	if nil == cache {
-		t.Error("create new memorycache failed")
-		return
-	}
+func TestMemoryCache_PutAndFetch(t *testing.T) {
+	cache := NewCache(nil).(*MemoryCache)
+	defer cache.Release()
 
-	time.Sleep(100)
-	data := "memorycache"
-	id := cache.Put(data, 0.000)
-	if len(id) == 0 {
-		t.Error("Put data to memorycache failed")
-	}
+	// 测试正常插入和获取
+	data := "test data"
+	id := cache.Put(data, 10)
+	assert.NotEmpty(t, id)
 
-	timeOutTimer := time.NewTicker(6 * time.Second)
-	select {
-	case <-timeOutTimer.C:
-	}
-	_, found := cache.Fetch(id)
-	if found {
-		t.Error("memorycache maxAge unexpect.")
-	}
+	fetched := cache.Fetch(id)
+	assert.Equal(t, data, fetched)
 
-	id = cache.Put(data, 2)
-	if len(id) == 0 {
-		t.Error("Put data to memorycache failed")
-	}
-	time.Sleep(100)
+	// 测试获取不存在的key
+	notExist := cache.Fetch("not-exist")
+	assert.Nil(t, notExist)
+}
 
-	val, found := cache.Fetch(id)
-	if !found {
-		t.Error("memorycache Fetch unexpect.")
-	}
+func TestMemoryCache_Search(t *testing.T) {
+	cache := NewCache(nil).(*MemoryCache)
+	defer cache.Release()
 
-	if data != val.(string) {
-		t.Error("Fetchout unexpect data")
-	}
+	// 插入测试数据
+	data1 := "data1"
+	data2 := "data2"
+	cache.Put(data1, 10)
+	cache.Put(data2, 10)
 
+	// 测试搜索
+	result := cache.Search(func(v interface{}) bool {
+		return v == data1
+	})
+	assert.Equal(t, data1, result)
+
+	// 测试搜索不存在的条件
+	result = cache.Search(func(v interface{}) bool {
+		return false
+	})
+	assert.Nil(t, result)
+}
+
+func TestMemoryCache_Remove(t *testing.T) {
+	cache := NewCache(nil).(*MemoryCache)
+	defer cache.Release()
+
+	// 插入并删除
+	data := "test data"
+	id := cache.Put(data, 10)
 	cache.Remove(id)
-	_, found = cache.Fetch(id)
-	if found {
-		t.Error("memorycache maxAge unexpect.")
-	}
-	time.Sleep(10000)
 
-	cache.Release()
+	// 验证删除
+	fetched := cache.Fetch(id)
+	assert.Nil(t, fetched)
+}
+
+func TestMemoryCache_ClearAll(t *testing.T) {
+	cache := NewCache(nil).(*MemoryCache)
+	defer cache.Release()
+
+	// 插入多个数据
+	cache.Put("data1", 10)
+	cache.Put("data2", 10)
+
+	// 清空缓存
+	cache.ClearAll()
+
+	// 验证清空
+	result := cache.Search(func(v interface{}) bool {
+		return true
+	})
+	assert.Nil(t, result)
+}
+
+func TestMemoryCache_Timeout(t *testing.T) {
+	cleanCalled := false
+	cleanCallback := func(id string) {
+		log.Warnf("Timeout cleanup callback called for key %s", id)
+		cleanCalled = true
+	}
+
+	cache := NewCache(cleanCallback).(*MemoryCache)
+	defer cache.Release()
+
+	// 插入短期数据
+	cache.Put("test data", 1) // 1秒
+
+	// 等待超时
+	time.Sleep(10 * time.Second)
+
+	// 验证清理回调被调用
+	assert.True(t, cleanCalled)
 }

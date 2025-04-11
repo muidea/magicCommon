@@ -115,7 +115,7 @@ const Status_307_TemporaryRedirect = 307
 const Status_308_PermanentRedirect = 308
 
 // Status_400_BadRequest 4×× Client Error
-//400 Bad Request
+// 400 Bad Request
 // 1、语义有误，当前请求无法被服务器理解。除非进行修改，否则客户端不应该重复提交这个请求。
 // 2、请求参数有误。
 const Status_400_BadRequest = 400
@@ -221,7 +221,7 @@ const Status_428_PreconditionRequired = 428
 // 用户在给定的时间内发送了太多的请求。
 const Status_429_TooManyRequest = 429
 
-// Status_431_RquestHeaderFieldsTooLarge 431 Request Header Fields Too Large
+// Status_431_RquestHeaderFieldsTooLarge 431 Request Headers Fields Too Large
 // 服务器不愿处理请求，因为一个或多个头字段过大
 const Status_431_RquestHeaderFieldsTooLarge = 431
 

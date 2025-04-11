@@ -1,8 +1,13 @@
 package net
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/muidea/magicCommon/foundation/log"
+)
 
 func TestJoinSuffix(t *testing.T) {
+	log.Infof("JoinSuffix test")
 	valURL := "aa"
 	suffix := "bb"
 	ret := JoinSuffix(valURL, suffix)
@@ -197,5 +202,32 @@ func TestSplitRESTID(t *testing.T) {
 	if id != 123 {
 		t.Errorf("SpliteRESTID failed")
 		return
+	}
+}
+
+func TestSplitRESTPath(t *testing.T) {
+	urlPath := "/abc/cde/efg"
+	path, name := SplitRESTPath(urlPath)
+	if path != "/abc/cde" || name != "efg" {
+		t.Errorf("SplitRESTPath failed")
+		return
+	}
+
+	urlPath = "/abc/cde/efg/"
+	path, name = SplitRESTPath(urlPath)
+	if path != "/abc/cde/efg" || name != "" {
+		t.Errorf("SplitRESTPath failed")
+	}
+
+	urlPath = "abc/cde/efg/"
+	path, name = SplitRESTPath(urlPath)
+	if path != "abc/cde/efg" || name != "" {
+		t.Errorf("SplitRESTPath failed")
+	}
+
+	urlPath = "abc/cde/efg"
+	path, name = SplitRESTPath(urlPath)
+	if path != "abc/cde" || name != "efg" {
+		t.Errorf("SplitRESTPath failed")
 	}
 }

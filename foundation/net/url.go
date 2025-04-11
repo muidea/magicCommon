@@ -2,35 +2,41 @@ package net
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/muidea/magicCommon/foundation/log"
 )
 
 // JoinSuffix 合并Url路径后缀
-func JoinSuffix(urlVal, suffix string) string {
+func JoinSuffix(urlVal string, suffix ...string) string {
 	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
-		log.Fatalf("illegal urlVal,preErr:%s", preErr.Error())
+		log.Errorf("illegal urlVal, preErr:%s", preErr.Error())
 	}
 
 	urlVal = valURL.Path
-	if len(suffix) > 0 && suffix[len(suffix)-1] != '/' {
-		urlVal = path.Join(urlVal, suffix)
-	} else {
-		urlVal = path.Join(urlVal, suffix) + "/"
+	urlVal = path.Join(urlVal, path.Join(suffix...))
+
+	suffixLen := len(suffix)
+	if suffixLen > 0 {
+		lastSuffix := suffix[suffixLen-1]
+		if len(lastSuffix) > 0 && lastSuffix[len(lastSuffix)-1] == '/' || lastSuffix == "" {
+			urlVal += "/"
+		}
 	}
+
 	valURL.Path = urlVal
 	return valURL.String()
 }
 
 // JoinPrefix 合并Url路径前缀
-func JoinPrefix(urlVal, prefix string) string {
+func JoinPrefix(urlVal string, prefix string) string {
 	valURL, preErr := url.Parse(urlVal)
 	if preErr != nil {
-		log.Fatalf("illegal urlVal,preErr:%s", preErr.Error())
+		log.Errorf("illegal urlVal,preErr:%s", preErr.Error())
 	}
 
 	urlVal = valURL.Path
@@ -44,14 +50,33 @@ func JoinPrefix(urlVal, prefix string) string {
 	return valURL.String()
 }
 
-// SplitRESTURL 分割出RestAPI的路径和ID
+/*
+SplitRESTPath split rest path
+/abc/cde/efg -> /abc/cde,efg
+*/
+func SplitRESTPath(urlPath string) (string, string) {
+	sPath, sKey := path.Split(urlPath)
+	return strings.TrimRight(sPath, "/"), sKey
+}
+
+/*
+SplitRESTURL split rest url
+/abc/cde/efg -> /abc/cde/,efg
+*/
 func SplitRESTURL(url string) (string, string) {
 	return path.Split(url)
 }
 
-func SplitRESTID(url string) (ret int, err error) {
+func SplitRESTID(url string) (ret int64, err error) {
 	_, strID := SplitRESTURL(url)
-	ret, err = strconv.Atoi(strID)
+	ret, err = strconv.ParseInt(strID, 10, 64)
+	if err != nil {
+		return
+	}
+	if ret <= 0 {
+		err = fmt.Errorf("illegal id:%d", ret)
+	}
+
 	return
 }
 

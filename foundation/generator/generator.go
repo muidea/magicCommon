@@ -8,6 +8,7 @@ import (
 )
 
 type Generator interface {
+	Pattern() string
 	GenCode() string
 }
 
@@ -28,16 +29,13 @@ prefix-{YYYYMMDDHHmmSS}-{fixed(12):123}
 prefix-{YYYYMMDDHHmmSS}-{fixed(12):num}
 */
 // ^(?!-)([a-zA-Z]+[a-zA-Z0-9]*)?(?!--)(-{1})?({YYYYMMDDHHmmSS})?(?!--)(-{1})?{(fixed\([0-9]+\)\:)?(num|[0-9]+)}$
-var maskPatternVal = "^([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?({YYYYMMDDHHmmSS})?(-{1})?{(fixed\\(\\d+\\):)?(num|\\d+)}$"
-var maskInitVal = "^([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?(\\d{14})?(-{1})?(\\d+)$"
-var maskPrefix = "^[a-zA-Z]+[a-zA-Z0-9]*"
+var maskInitVal = "([a-zA-Z]+[a-zA-Z0-9]*)?(-{1})?(\\d{14})?(-{1})?(\\d+)$"
 var maskMiddle = "{YYYYMMDDHHmmSS}|\\d{14}"
 var maskDateTime = "YYYYMMDDHHmmSS|\\d{14}"
 var maskSuffix = "({(fixed\\(\\d+\\):)?(num|\\d+)}|\\d+)$"
 var maskFixed = "fixed\\(\\d+\\)"
 var maskInit = ":\\d+"
 var maskNumber = "(num|\\d+)"
-var prefixReg = regexp.MustCompile(maskPrefix)
 var middleReg = regexp.MustCompile(maskMiddle)
 var suffixReg = regexp.MustCompile(maskSuffix)
 var dateTimeReg = regexp.MustCompile(maskDateTime)
@@ -46,12 +44,6 @@ var initReg = regexp.MustCompile(maskInit)
 var numberReg = regexp.MustCompile(maskNumber)
 
 func New(patternVal string) (ret Generator, err error) {
-	maskFlag, maskErr := regexp.MatchString(maskPatternVal, patternVal)
-	if !maskFlag || maskErr != nil {
-		err = fmt.Errorf("illegal patternVal pattern, expect patternVal pattern:%s", maskPatternVal)
-		return
-	}
-
 	fixedWidth := "4"
 	suffixVal := suffixReg.FindString(patternVal)
 	fixedStr := fixedReg.FindString(suffixVal)
@@ -72,14 +64,7 @@ func New(patternVal string) (ret Generator, err error) {
 	return &genImpl{patternMask: patternVal, fixedWidth: fixedWidth, currentNum: currentNum}, nil
 }
 
-func splitPatternValue(val string) (prefixVal, middleVal, suffixVal string, err error) {
-	validFlag, validErr := regexp.MatchString(maskPatternVal, val)
-	if !validFlag || validErr != nil {
-		err = fmt.Errorf("illegal patternVal, expect :%s", maskPatternVal)
-		return
-	}
-
-	prefixVal = prefixReg.FindString(val)
+func splitPatternValue(val string) (middleVal, suffixVal string, err error) {
 	middleVal = middleReg.FindString(val)
 	suffixVal = suffixReg.FindString(val)
 	return
@@ -113,14 +98,13 @@ func splitPatternSuffix(suffixVal string) (numberWidth string, numberVal int, er
 	return
 }
 
-func splitInitValue(val string) (prefixVal, dateTimeVal, numberVal string, err error) {
+func splitInitValue(val string) (dateTimeVal, numberVal string, err error) {
 	validFlag, validErr := regexp.MatchString(maskInitVal, val)
 	if !validFlag || validErr != nil {
 		err = fmt.Errorf("illegal initVal, expect :%s", maskInitVal)
 		return
 	}
 
-	prefixVal = prefixReg.FindString(val)
 	dateTimeVal = dateTimeReg.FindString(val)
 	numberVal = suffixReg.FindString(val)
 	return
@@ -140,7 +124,7 @@ func splitInitSuffix(suffixVal string) (numberWidth string, numberVal int, err e
 }
 
 func NewWithVal(patternVal, initVal string) (ret Generator, err error) {
-	patternPrefix, patternMiddle, patternSuffix, patternErr := splitPatternValue(patternVal)
+	patternMiddle, patternSuffix, patternErr := splitPatternValue(patternVal)
 	if patternErr != nil {
 		err = patternErr
 		return
@@ -160,7 +144,7 @@ func NewWithVal(patternVal, initVal string) (ret Generator, err error) {
 
 	initNumber := patternNumber
 	if initVal != "" {
-		initPrefix, initMiddle, initSuffix, initErr := splitInitValue(initVal)
+		initMiddle, initSuffix, initErr := splitInitValue(initVal)
 		if initErr != nil {
 			err = initErr
 			return
@@ -179,7 +163,7 @@ func NewWithVal(patternVal, initVal string) (ret Generator, err error) {
 			return
 		}
 
-		if patternPrefix != initPrefix || len(patternDateTime) != len(initDateTime) || patternWidth != initWidth {
+		if len(patternDateTime) != len(initDateTime) || patternWidth != initWidth {
 			err = fmt.Errorf("illegal initval")
 			return
 		}
@@ -192,6 +176,10 @@ type genImpl struct {
 	patternMask string
 	fixedWidth  string
 	currentNum  int
+}
+
+func (s *genImpl) Pattern() string {
+	return s.patternMask
 }
 
 func (s *genImpl) GenCode() string {

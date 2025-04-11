@@ -1,18 +1,20 @@
 package session
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
-	log "github.com/cihub/seelog"
+	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
 const (
-	hmacSecret = "rangh@foxmail.com"
+	hmacSecretDefault = "rangh@foxmail.com"
+	HMAC_SECRET_KEY   = "HMAC_SECRET"
 )
 
 func getSecret() string {
@@ -21,13 +23,14 @@ func getSecret() string {
 		return secretVal
 	}
 
-	return hmacSecret
+	return hmacSecretDefault
 }
 
 // Registry 会话仓库
 type Registry interface {
 	GetSession(res http.ResponseWriter, req *http.Request) Session
 	CountSession(filter util.Filter) int
+	Release()
 }
 
 func createUUID() string {
@@ -35,16 +38,19 @@ func createUUID() string {
 }
 
 type sessionRegistryImpl struct {
-	commandChan commandChanImpl
-	sessionLock sync.RWMutex
+	commandChan        commandChanImpl
+	sessionLock        sync.RWMutex
+	registryCancelFunc context.CancelFunc
 }
 
 // CreateRegistry 创建Session仓库
 func CreateRegistry() Registry {
+	registryCtx, registryCancel := context.WithCancel(context.Background())
 	impl := sessionRegistryImpl{}
+	impl.registryCancelFunc = registryCancel
 	impl.commandChan = make(commandChanImpl)
 	go impl.commandChan.run()
-	go impl.checkTimer()
+	go impl.checkTimer(registryCtx)
 
 	return &impl
 }
@@ -57,6 +63,11 @@ func (s *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Requ
 	}
 
 	return s.createSession(createUUID())
+}
+
+func (s *sessionRegistryImpl) Release() {
+	s.registryCancelFunc()
+	s.commandChan.end()
 }
 
 func (s *sessionRegistryImpl) CountSession(filter util.Filter) int {
@@ -82,11 +93,13 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 			}
 		}()
 
+		s.sessionLock.Lock()
+		defer s.sessionLock.Unlock()
 		if authorizationValue[:offset] == jwtToken {
 			sessionPtr = decodeJWT(authorizationValue[offset+1:])
 		}
 
-		if authorizationValue[:offset] == endpointToken {
+		if authorizationValue[:offset] == sigToken {
 			sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
 		}
 	}()
@@ -95,9 +108,12 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
 			sessionPtr = curSession
+		} else {
+			sessionPtr = s.insertSession(sessionPtr)
 		}
 
-		sessionPtr.registry = s
+		s.sessionLock.Lock()
+		defer s.sessionLock.Unlock()
 		sessionPtr.context[Authorization] = authorizationValue
 	}
 
@@ -122,46 +138,38 @@ func (s *sessionRegistryImpl) findSession(sessionID string) *sessionImpl {
 	return nil
 }
 
-// UpdateSession 更新Session
-func (s *sessionRegistryImpl) updateSession(session *sessionImpl) bool {
-	return s.commandChan.update(session)
+func (s *sessionRegistryImpl) insertSession(sessionPtr *sessionImpl) *sessionImpl {
+	sessionPtr.registry = s
+	return s.commandChan.insert(sessionPtr)
 }
 
-func (s *sessionRegistryImpl) checkTimer() {
+// UpdateSession 更新Session
+func (s *sessionRegistryImpl) updateSession(sessionPtr *sessionImpl) bool {
+	return s.commandChan.update(sessionPtr)
+}
+
+func (s *sessionRegistryImpl) checkTimer(ctx context.Context) {
 	timeOutTimer := time.NewTicker(5 * time.Second)
+	defer timeOutTimer.Stop() // 确保在函数退出时停止定时器
+
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case <-timeOutTimer.C:
 			s.commandChan.checkTimeOut()
 		}
 	}
 }
 
-func (s *sessionRegistryImpl) insert(session *sessionImpl) *sessionImpl {
-	return s.commandChan.insert(session)
-}
-
-func (s *sessionRegistryImpl) delete(id string) {
-	s.commandChan.remove(id)
-}
-
-func (s *sessionRegistryImpl) find(id string) *sessionImpl {
-	return s.commandChan.find(id)
-}
-
 func (s *sessionRegistryImpl) count(filter util.Filter) int {
 	return s.commandChan.count(filter)
-}
-
-func (s *sessionRegistryImpl) update(session *sessionImpl) bool {
-	return s.commandChan.update(session)
 }
 
 type commandData struct {
 	action commandAction
 	value  interface{}
 	result chan<- interface{}
-	data   chan<- map[string]interface{}
 }
 
 type commandAction int
@@ -185,10 +193,6 @@ func (right commandChanImpl) insert(session *sessionImpl) *sessionImpl {
 	result := (<-reply).(*sessionImpl)
 
 	return result
-}
-
-func (right commandChanImpl) remove(id string) {
-	right <- commandData{action: remove, value: id}
 }
 
 func (right commandChanImpl) update(session *sessionImpl) bool {
@@ -218,6 +222,13 @@ func (right commandChanImpl) count(filter util.Filter) int {
 	return result
 }
 
+func (right commandChanImpl) end() {
+	result := make(chan interface{})
+	right <- commandData{action: end, result: result}
+	<-result
+	close(result)
+}
+
 func (right commandChanImpl) run() {
 	sessionContextMap := make(map[string]*sessionImpl)
 	for command := range right {
@@ -244,12 +255,12 @@ func (right commandChanImpl) run() {
 			command.result <- curOK
 		case find:
 			id := command.value.(string)
-			var session sessionImpl
+			var session *sessionImpl
 			cur, found := sessionContextMap[id]
 			if found {
 				cur.refresh()
-				session = *cur
-				command.result <- &session
+				session = cur
+				command.result <- session
 			} else {
 				command.result <- nil
 			}
@@ -261,7 +272,7 @@ func (right commandChanImpl) run() {
 				}
 			}
 
-			for k, _ := range removeList {
+			for k := range removeList {
 				delete(sessionContextMap, k)
 			}
 
@@ -284,6 +295,7 @@ func (right commandChanImpl) run() {
 			}
 			command.result <- count
 		case end:
+			command.result <- true
 			close(right)
 		}
 	}

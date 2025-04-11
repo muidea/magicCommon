@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log"
 	"testing"
 )
 
@@ -15,7 +14,7 @@ func TestEncryptByAes(t *testing.T) {
 		return
 	}
 
-	log.Printf("%s\n", encryVal)
+	t.Logf("%s\n", encryVal)
 	rawVal, rawErr := DecryptByAes(encryVal, key)
 	if rawErr != nil {
 		t.Errorf("DecryptByAes failed, err:%s", rawErr.Error())
