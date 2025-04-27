@@ -107,7 +107,7 @@ func (r *Resolver) update(ctx context.Context, key string, used bool, persistOnF
 	select {
 	case <-ctx.Done():
 		err = ctx.Err()
-		if errors.Is(context.DeadlineExceeded, err) {
+		if errors.Is(err, context.DeadlineExceeded) {
 			lookupGroup.Forget(key)
 		}
 	case res := <-c:

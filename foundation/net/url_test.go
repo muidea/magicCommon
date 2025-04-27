@@ -179,15 +179,16 @@ func TestFormatID(t *testing.T) {
 }
 
 func TestSplitRESTID(t *testing.T) {
+	var id int64
 	url := "/abc/bcd/cde"
-	id, err := SplitRESTID(url)
+	_, err := SplitRESTID(url)
 	if err == nil {
 		t.Errorf("SpliteRESTID failed")
 		return
 	}
 
 	url = "/abc/bcd/cde/"
-	id, err = SplitRESTID(url)
+	_, err = SplitRESTID(url)
 	if err == nil {
 		t.Errorf("SpliteRESTID failed")
 		return
