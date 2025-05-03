@@ -58,7 +58,7 @@ func (s *defaultService) Run() (ret *cd.Error) {
 		return
 	}
 
-	log.Infof("%s running!", s.serviceName)
+	//log.Infof("%s running!", s.serviceName)
 	return
 }
 
@@ -69,5 +69,5 @@ func (s *defaultService) Shutdown() {
 
 	module.Teardown()
 	initator.Teardown()
-	log.Infof("%s shutdown success", s.serviceName)
+	//log.Infof("%s shutdown success", s.serviceName)
 }
