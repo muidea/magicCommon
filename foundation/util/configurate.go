@@ -14,7 +14,7 @@ func LoadConfig(filePath string, ptr interface{}) (err error) {
 		return
 	}
 
-	filePtr, fileErr := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
+	filePtr, fileErr := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if fileErr != nil {
 		err = fileErr
 		return
@@ -42,7 +42,7 @@ func SaveConfig(filePath string, ptr interface{}) (err error) {
 		return
 	}
 
-	fileHandle, fileErr := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	fileHandle, fileErr := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if fileErr != nil {
 		err = fileErr
 		return
