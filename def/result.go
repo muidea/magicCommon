@@ -13,6 +13,8 @@ const (
 	UnKnownError
 	// NotFound 未找到
 	NotFound
+	// InvalidParam 无效参数
+	InvalidParameter
 	// IllegalParam 非法参数
 	IllegalParam
 	// InvalidAuthority 非法授权
