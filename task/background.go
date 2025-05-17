@@ -14,6 +14,7 @@ type Task interface {
 type BackgroundRoutine interface {
 	AsyncTask(task Task)
 	SyncTask(task Task)
+	SyncTaskWithTimeOut(task Task, timeout time.Duration)
 	Timer(task Task, intervalValue time.Duration, offsetValue time.Duration)
 }
 
@@ -28,8 +29,16 @@ func (s *syncTask) Run() {
 	s.resultChannel <- true
 }
 
-func (s *syncTask) Wait() {
-	<-s.resultChannel
+func (s *syncTask) Wait(timeout time.Duration) {
+	switch timeout {
+	case -1:
+		<-s.resultChannel
+	default:
+		select {
+		case <-s.resultChannel:
+		case <-time.After(timeout):
+		}
+	}
 
 	close(s.resultChannel)
 }
@@ -77,12 +86,16 @@ func (s *backgroundRoutine) AsyncTask(task Task) {
 }
 
 func (s *backgroundRoutine) SyncTask(task Task) {
+	s.SyncTaskWithTimeOut(task, -1)
+}
+
+func (s *backgroundRoutine) SyncTaskWithTimeOut(task Task, timeout time.Duration) {
 	st := &syncTask{rawTask: task, resultChannel: make(chan bool)}
 	s.Execute.Run(func() {
 		s.taskChannel <- st
 	})
 
-	st.Wait()
+	st.Wait(timeout)
 }
 
 const onDayDuration = 24 * time.Hour
