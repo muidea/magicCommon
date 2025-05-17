@@ -29,9 +29,17 @@ func UnZipFile(zipFile, destDir string) (ret []string, err error) {
 
 		path := filepath.Join(destDir, f.Name)
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(path, os.ModePerm)
+			err = os.MkdirAll(path, 0755)
+			if err != nil {
+				log.Errorf("getFieldReferenceValue failed,MkdirAll %s error:%s", path, err.Error())
+				return
+			}
 		} else {
-			os.MkdirAll(filepath.Dir(path), os.ModePerm)
+			err = os.MkdirAll(filepath.Dir(path), 0755)
+			if err != nil {
+				log.Errorf("getFieldReferenceValue failed,MkdirAll %s error:%s", filepath.Dir(path), err.Error())
+				return
+			}
 			fHandle, fErr := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if fErr != nil {
 				err = fErr

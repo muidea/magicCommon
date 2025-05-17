@@ -20,7 +20,7 @@ func TestCommonResult(t *testing.T) {
 	byteVal, _ := json.Marshal(compse)
 
 	commonResult := &CommonResult{}
-	json.Unmarshal(byteVal, commonResult)
+	_ = json.Unmarshal(byteVal, commonResult)
 
 	if commonResult.Error == nil {
 		t.Errorf("encode failed")
@@ -28,7 +28,7 @@ func TestCommonResult(t *testing.T) {
 	}
 
 	value := &Value{}
-	json.Unmarshal(commonResult.Value, value)
+	_ = json.Unmarshal(commonResult.Value, value)
 	if value.AInt != compse.CValue.AInt {
 		t.Errorf("unmarshal failed")
 	}

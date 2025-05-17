@@ -83,7 +83,7 @@ func TestNewWithVal(t *testing.T) {
 		return
 	}
 
-	expect = fmt.Sprintf("Abcd100021")
+	expect = "Abcd100021"
 	result = generator.GenCode()
 	if expect != result {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
@@ -96,7 +96,7 @@ func TestNewWithVal(t *testing.T) {
 		return
 	}
 
-	expect = fmt.Sprintf("STORE-1003")
+	expect = "STORE-1003"
 	result = generator.GenCode()
 	if expect != result {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)
@@ -109,7 +109,7 @@ func TestNewWithVal(t *testing.T) {
 		return
 	}
 
-	expect = fmt.Sprintf("STORE-1001")
+	expect = "STORE-1001"
 	result = generator.GenCode()
 	if expect != result {
 		t.Errorf("genCode failed, expect:%s, result:%s", expect, result)

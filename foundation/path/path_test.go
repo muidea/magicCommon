@@ -24,7 +24,7 @@ func TestIsDirEmpty(t *testing.T) {
 
 	emptyDir := path.Join(curWD, "emptydir")
 	t.Logf("emptyDir:%s", emptyDir)
-	os.Mkdir(emptyDir, os.ModePerm)
+	_ = os.Mkdir(emptyDir, os.ModePerm)
 	defer os.Remove(emptyDir)
 	isEmpty, isErr = IsDirEmpty(emptyDir)
 	if isErr != nil {

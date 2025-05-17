@@ -23,18 +23,18 @@ func init() {
 	var err error
 	logger, err := log.LoggerFromConfigAsBytes([]byte(logConfig))
 	if err != nil {
-		logger.Criticalf("Failed to initialize logger: %v", err)
+		_ = logger.Criticalf("Failed to initialize logger: %v", err)
 		os.Exit(1)
 	}
 
 	if err := validateLogConfig(logConfig); err != nil {
-		logger.Criticalf("Invalid log configuration: %v", err)
+		_ = logger.Criticalf("Invalid log configuration: %v", err)
 		os.Exit(1)
 	}
 
 	defer func() {
-		logger.SetAdditionalStackDepth(1)
-		log.ReplaceLogger(logger)
+		_ = logger.SetAdditionalStackDepth(1)
+		_ = log.ReplaceLogger(logger)
 	}()
 
 	levelVal, ok := os.LookupEnv("LOG_LEVEL")
@@ -46,17 +46,17 @@ func init() {
 	iVal, iErr := strconv.Atoi(levelVal)
 	if iErr != nil {
 		logLevel = levelTrace
-		logger.Warnf("Invalid LOG_LEVEL value '%s', defaulting to trace level", levelVal)
+		_ = logger.Warnf("Invalid LOG_LEVEL value '%s', defaulting to trace level", levelVal)
 		return
 	}
 	if iVal < levelTrace {
 		logLevel = levelAll
-		logger.Warnf("LOG_LEVEL value '%d' is too low, defaulting to all levels", iVal)
+		_ = logger.Warnf("LOG_LEVEL value '%d' is too low, defaulting to all levels", iVal)
 		return
 	}
 	if iVal > levelCritical {
 		logLevel = levelNone
-		logger.Warnf("LOG_LEVEL value '%d' is too high, defaulting to none level", iVal)
+		_ = logger.Warnf("LOG_LEVEL value '%d' is too high, defaulting to none level", iVal)
 		return
 	}
 
@@ -140,11 +140,11 @@ func Warnf(format string, params ...interface{}) {
 	}
 
 	if len(params) > 0 {
-		log.Warnf(format, params...)
+		_ = log.Warnf(format, params...)
 		return
 	}
 
-	log.Warn(format)
+	_ = log.Warn(format)
 }
 
 func Errorf(format string, params ...interface{}) {
@@ -153,11 +153,11 @@ func Errorf(format string, params ...interface{}) {
 	}
 
 	if len(params) > 0 {
-		log.Errorf(format, params...)
+		_ = log.Errorf(format, params...)
 		return
 	}
 
-	log.Error(format)
+	_ = log.Error(format)
 }
 
 func Criticalf(format string, params ...interface{}) {
@@ -166,9 +166,9 @@ func Criticalf(format string, params ...interface{}) {
 	}
 
 	if len(params) > 0 {
-		log.Criticalf(format, params...)
+		_ = log.Criticalf(format, params...)
 		return
 	}
 
-	log.Critical(format)
+	_ = log.Critical(format)
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/muidea/magicCommon/foundation/log"
+	"github.com/stretchr/testify/assert"
 )
 
 func calcOffset(intervalValue, offsetValue time.Duration) time.Duration {
@@ -89,4 +90,21 @@ func TestNewBackgroundRoutine(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+type timerTask struct {
+	timerCount int
+}
+
+func (s *timerTask) Run() {
+	s.timerCount++
+}
+
+func TestTimer(t *testing.T) {
+	timerTaskPtr := &timerTask{}
+	taskRoutine := NewBackgroundRoutine(300)
+	taskRoutine.Timer(timerTaskPtr, 1*time.Second, 0)
+
+	time.Sleep(10 * time.Second)
+	assert.True(t, timerTaskPtr.timerCount > 8, "timerTaskPtr.timerCount>8")
 }

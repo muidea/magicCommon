@@ -12,7 +12,7 @@ type Generator interface {
 	GenCode() string
 }
 
-var numReg = regexp.MustCompile("[\\d]+")
+var numReg = regexp.MustCompile(`[\\d]+`)
 
 func SplitNum(code string) (ret string) {
 	return numReg.FindString(code)
@@ -156,7 +156,7 @@ func NewWithVal(patternVal, initVal string) (ret Generator, err error) {
 			return
 		}
 
-		initWidth := patternWidth
+		var initWidth string
 		initWidth, initNumber, initErr = splitInitSuffix(initSuffix)
 		if initErr != nil {
 			err = initErr

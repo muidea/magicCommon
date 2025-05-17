@@ -152,7 +152,7 @@ func PackageHTTPResponse(res http.ResponseWriter, result interface{}) {
 
 	block, err := json.Marshal(result)
 	if err == nil {
-		res.Write(block)
+		_, _ = res.Write(block)
 		return
 	}
 

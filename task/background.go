@@ -120,11 +120,9 @@ func (s *backgroundRoutine) Timer(task Task, intervalValue time.Duration, offset
 		task.Run()
 
 		timeOutTimer := time.NewTicker(intervalValue)
-		for {
-			select {
-			case <-timeOutTimer.C:
-				task.Run()
-			}
+		defer timeOutTimer.Stop()
+		for range timeOutTimer.C {
+			task.Run()
 		}
 	}()
 }

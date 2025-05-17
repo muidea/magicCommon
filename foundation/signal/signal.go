@@ -1,6 +1,7 @@
 package signal
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ func (s *Gard) PutSignal(id int) (err error) {
 	_, ok := s.signalChanMap.Load(id)
 	if ok {
 		msg := fmt.Sprintf("duplicate signal %d", id)
-		err = fmt.Errorf(msg)
+		err = errors.New(msg)
 		log.Errorf(msg)
 		return
 	}
@@ -52,7 +53,7 @@ func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 	signalChan, signalOK := s.signalChanMap.Load(id)
 	if !signalOK {
 		msg := fmt.Sprintf("can't find signal %d", id)
-		err = fmt.Errorf(msg)
+		err = errors.New(msg)
 		log.Errorf(msg)
 		return
 	}
@@ -72,7 +73,7 @@ func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 		}
 	case <-time.After(timeOutVal):
 		msg := fmt.Sprintf("wait signal %d timeout", id)
-		err = fmt.Errorf(msg)
+		err = errors.New(msg)
 		log.Warnf(msg)
 	}
 	return
@@ -88,7 +89,7 @@ func (s *Gard) TriggerSignal(id int, val interface{}) (err error) {
 	signalChan, signalOK := s.signalChanMap.Load(id)
 	if !signalOK {
 		msg := fmt.Sprintf("can't find signal %d", id)
-		err = fmt.Errorf(msg)
+		err = errors.New(msg)
 		log.Errorf(msg)
 		return
 	}
