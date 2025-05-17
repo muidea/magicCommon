@@ -69,3 +69,12 @@ func (s StringSet) Remove(val string) StringSet {
 func (s StringSet) Empty() bool {
 	return len(s) == 0
 }
+
+func (s StringSet) Exist(val string) bool {
+	for _, sv := range s {
+		if sv == val {
+			return true
+		}
+	}
+	return false
+}
