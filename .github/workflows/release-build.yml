@@ -11,6 +11,17 @@ jobs:
   test:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: testdb
+          MYSQL_ROOT_PASSWORD: rootkit
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
