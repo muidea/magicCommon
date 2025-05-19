@@ -21,12 +21,15 @@ type BackgroundRoutine interface {
 type syncTask struct {
 	resultChannel chan bool
 	rawTask       Task
+	syncTimout    bool
 }
 
 func (s *syncTask) Run() {
 	s.rawTask.Run()
 
-	s.resultChannel <- true
+	if !s.syncTimout {
+		s.resultChannel <- true
+	}
 }
 
 func (s *syncTask) Wait(timeout time.Duration) {
@@ -41,6 +44,7 @@ func (s *syncTask) Wait(timeout time.Duration) {
 	}
 
 	close(s.resultChannel)
+	s.syncTimout = true
 }
 
 type taskChannel chan Task
