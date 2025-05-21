@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/muidea/magicCommon/event"
-	"github.com/muidea/magicCommon/framework/plugin/initator"
+	"github.com/muidea/magicCommon/framework/plugin/initiator"
 	"github.com/muidea/magicCommon/framework/plugin/module"
 	"github.com/muidea/magicCommon/task"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +45,7 @@ func (s *MockIndex) Teardown() {
 	*s.TeardownIndexList = append(*s.TeardownIndexList, s.Index)
 }
 
-func TestInitator(t *testing.T) {
+func TestInitiator(t *testing.T) {
 	setupList := make(IndexList, 0)
 	runList := make(IndexList, 0)
 	teardownList := make(IndexList, 0)
@@ -57,7 +57,7 @@ func TestInitator(t *testing.T) {
 			RunIndexList:      &runList,
 			TeardownIndexList: &teardownList,
 		}
-		initator.Register(p)
+		initiator.Register(p)
 	}
 
 	service := DefaultService("test")

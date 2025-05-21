@@ -1,4 +1,4 @@
-package initator
+package initiator
 
 import (
 	"fmt"
@@ -62,7 +62,7 @@ func NewDemo100() *demo {
 	}
 }
 
-func Test_Initator(t *testing.T) {
+func Test_Initiator(t *testing.T) {
 	d100 := NewDemo100()
 	d123 := NewDemo123()
 

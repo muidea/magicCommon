@@ -4,7 +4,7 @@ import (
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/foundation/log"
-	"github.com/muidea/magicCommon/framework/plugin/initator"
+	"github.com/muidea/magicCommon/framework/plugin/initiator"
 	"github.com/muidea/magicCommon/framework/plugin/module"
 	"github.com/muidea/magicCommon/task"
 )
@@ -26,7 +26,7 @@ type defaultService struct {
 }
 
 func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Error) {
-	ret = initator.Setup(eventHub, backgroundRoutine)
+	ret = initiator.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
 		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
 		return
@@ -47,7 +47,7 @@ func (s *defaultService) Run() (ret *cd.Error) {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, errInfo)
 	}
 
-	ret = initator.Run()
+	ret = initiator.Run()
 	if ret != nil {
 		log.Errorf("%s run failed, err:%+v", s.serviceName, ret)
 		return
@@ -68,6 +68,6 @@ func (s *defaultService) Shutdown() {
 	}
 
 	module.Teardown()
-	initator.Teardown()
+	initiator.Teardown()
 	//log.Infof("%s shutdown success", s.serviceName)
 }

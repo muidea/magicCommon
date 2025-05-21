@@ -1,4 +1,4 @@
-package initator
+package initiator
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ import (
 	"github.com/muidea/magicCommon/framework/plugin/common"
 )
 
-var initatorMgr = common.NewPluginMgr("initator")
+var initiatorMgr = common.NewPluginMgr("initiator")
 
-func Register(initator interface{}) {
-	initatorMgr.Register(initator)
+func Register(initiator interface{}) {
+	initiatorMgr.Register(initiator)
 }
 
 func GetEntity[T any](id string, maskType T) (ret T, err *cd.Error) {
-	entityVal, entityErr := initatorMgr.GetEntity(id)
+	entityVal, entityErr := initiatorMgr.GetEntity(id)
 	if entityErr != nil {
 		err = entityErr
 		return
@@ -25,7 +25,7 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Error) {
 
 	eVal, eOK := entityVal.(T)
 	if !eOK {
-		err = cd.NewError(cd.Unexpected, fmt.Sprintf("initator:%s type not match", id))
+		err = cd.NewError(cd.Unexpected, fmt.Sprintf("initiator:%s type not match", id))
 		return
 	}
 
@@ -34,13 +34,13 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Error) {
 }
 
 func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {
-	return initatorMgr.Setup(eventHub, backgroundRoutine)
+	return initiatorMgr.Setup(eventHub, backgroundRoutine)
 }
 
 func Run() *cd.Error {
-	return initatorMgr.Run()
+	return initiatorMgr.Run()
 }
 
 func Teardown() {
-	initatorMgr.Teardown()
+	initiatorMgr.Teardown()
 }
