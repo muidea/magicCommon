@@ -93,6 +93,7 @@ func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 	payload, payloadErr := io.ReadAll(reader)
 	if payloadErr != nil {
 		err = payloadErr
+		log.Errorf("read request body error: %v", err)
 		return
 	}
 
@@ -115,6 +116,7 @@ func ParseJSONBody(req *http.Request, validator util.Validator, param interface{
 
 	contentType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
 	if err != nil {
+		log.Errorf("parse content-type error: %v", err)
 		return err
 	}
 
@@ -122,17 +124,20 @@ func ParseJSONBody(req *http.Request, validator util.Validator, param interface{
 	case contentType == "application/json":
 		payload, payloadErr := GetHTTPRequestBody(req)
 		if payloadErr != nil {
+			log.Errorf("get http request body error: %v", payloadErr)
 			return payloadErr
 		}
 
 		err = json.Unmarshal(payload, param)
 		if err != nil {
+			log.Errorf("unmarshal http request body error: %v", err)
 			return err
 		}
 
 		if validator != nil {
 			err = validator.Validate(param)
 			if err != nil {
+				log.Errorf("validate http request body error: %v", err)
 				return err
 			}
 		}
@@ -152,10 +157,14 @@ func PackageHTTPResponse(res http.ResponseWriter, result interface{}) {
 
 	block, err := json.Marshal(result)
 	if err == nil {
-		_, _ = res.Write(block)
+		_, err := res.Write(block)
+		if err != nil {
+			log.Errorf("write result error: %v", err)
+		}
 		return
 	}
 
+	log.Errorf("marshal result error: %v", err)
 	res.WriteHeader(http.StatusExpectationFailed)
 }
 
