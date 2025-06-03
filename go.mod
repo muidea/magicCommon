@@ -1,6 +1,6 @@
 module github.com/muidea/magicCommon
 
-go 1.23
+go 1.24
 
 require (
 	github.com/go-playground/validator/v10 v10.22.1
