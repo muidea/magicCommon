@@ -11,11 +11,22 @@ type Task interface {
 	Run()
 }
 
+type routineTask struct {
+	funcPtr func()
+}
+
+func (s *routineTask) Run() {
+	s.funcPtr()
+}
+
 type BackgroundRoutine interface {
-	AsyncTask(task Task)
-	SyncTask(task Task)
-	SyncTaskWithTimeOut(task Task, timeout time.Duration)
-	Timer(task Task, intervalValue time.Duration, offsetValue time.Duration)
+	AsyncTask(task Task) error
+	SyncTask(task Task) error
+	SyncTaskWithTimeOut(task Task, timeout time.Duration) error
+	AsyncFunction(function func()) error
+	SyncFunction(function func()) error
+	SyncFunctionWithTimeOut(function func(), timeout time.Duration) error
+	Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) error
 }
 
 type syncTask struct {
@@ -83,29 +94,45 @@ func (s *backgroundRoutine) loop() {
 	}
 }
 
-func (s *backgroundRoutine) AsyncTask(task Task) {
+func (s *backgroundRoutine) AsyncTask(task Task) error {
 	s.Execute.Run(func() {
 		s.taskChannel <- task
 	})
+
+	return nil
 }
 
-func (s *backgroundRoutine) SyncTask(task Task) {
+func (s *backgroundRoutine) SyncTask(task Task) error {
 	s.SyncTaskWithTimeOut(task, -1)
+	return nil
 }
 
-func (s *backgroundRoutine) SyncTaskWithTimeOut(task Task, timeout time.Duration) {
+func (s *backgroundRoutine) SyncTaskWithTimeOut(task Task, timeout time.Duration) error {
 	st := &syncTask{rawTask: task, resultChannel: make(chan bool)}
 	s.Execute.Run(func() {
 		s.taskChannel <- st
 	})
 
 	st.Wait(timeout)
+	return nil
+}
+
+func (s *backgroundRoutine) AsyncFunction(function func()) error {
+	return s.AsyncTask(&routineTask{funcPtr: function})
+}
+
+func (s *backgroundRoutine) SyncFunction(function func()) error {
+	return s.SyncTask(&routineTask{funcPtr: function})
+}
+
+func (s *backgroundRoutine) SyncFunctionWithTimeOut(function func(), timeout time.Duration) error {
+	return s.SyncTaskWithTimeOut(&routineTask{funcPtr: function}, timeout)
 }
 
 const onDayDuration = 24 * time.Hour
 
 // Timer exec timer task
-func (s *backgroundRoutine) Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) {
+func (s *backgroundRoutine) Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) error {
 	go func() {
 		curOffset := func() time.Duration {
 			now := time.Now()
@@ -129,4 +156,6 @@ func (s *backgroundRoutine) Timer(task Task, intervalValue time.Duration, offset
 			task.Run()
 		}
 	}()
+
+	return nil
 }
