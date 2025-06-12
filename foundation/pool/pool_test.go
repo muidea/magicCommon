@@ -78,6 +78,7 @@ func TestPool_Close(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 42, resource)
 
+	pool.Put(resource)
 	pool.Close(releaseFunc)
 
 	// Ensure that pool is closed

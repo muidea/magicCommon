@@ -3,7 +3,6 @@ package pool
 import (
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/muidea/magicCommon/foundation/log"
 )
@@ -104,25 +103,6 @@ func (p *Pool[T]) Close(releaseFunc func(T)) {
 	}
 
 	p.closed = true
-
-	// Wait for a grace period to allow resources to be returned
-	gracePeriod := 5 // seconds
-	timeout := make(chan struct{})
-	go func() {
-		time.Sleep(time.Duration(gracePeriod) * time.Second)
-		close(timeout)
-	}()
-
-	for len(p.queue) < cap(p.queue) {
-		select {
-		case <-timeout:
-			p.cond.Signal()
-			break
-		default:
-			p.cond.Wait()
-		}
-	}
-
 	// Release remaining resources
 	for _, resource := range p.queue {
 		releaseFunc(resource)
