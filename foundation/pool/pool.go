@@ -2,6 +2,7 @@ package pool
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/muidea/magicCommon/foundation/log"
@@ -35,84 +36,125 @@ pool.Close(func(resource int) {
 
 // Pool represents a generic pool of resources.
 type Pool[T any] struct {
-	mu      sync.Mutex
-	cond    *sync.Cond
-	factory func() (T, error) // Factory function to create new resources
-	queue   []T               // Resource queue
-	closed  bool              // Flag to indicate if the pool is closed
+	mu        *sync.Mutex
+	cond      *sync.Cond
+	factory   func() (T, error) // Factory function to create new resources
+	idleQueue []T               // Resource queue
+	totalSize int
+	maxSize   int
+	closed    bool // Flag to indicate if the pool is closed
 }
 
 // New creates a new Pool.
-func New[T any](factory func() (T, error), initialCapacity int) (*Pool[T], error) {
+func New[T any](factory func() (T, error), initialCapacity, maxSize int) (*Pool[T], error) {
 	if factory == nil {
 		return nil, errors.New("factory function cannot be nil")
 	}
 
 	pool := &Pool[T]{
-		factory: factory,
-		queue:   make([]T, initialCapacity),
+		mu:        &sync.Mutex{},
+		factory:   factory,
+		idleQueue: make([]T, initialCapacity),
+		maxSize:   maxSize,
+		totalSize: 0,
 	}
-	for idx := range pool.queue {
-		pool.queue[idx], _ = factory()
+	for idx := range initialCapacity {
+		tVal, tErr := factory()
+		if tErr != nil {
+			return nil, tErr
+		}
+		pool.idleQueue[idx] = tVal
+		pool.totalSize++
 	}
-	pool.cond = sync.NewCond(&pool.mu)
+	pool.cond = sync.NewCond(pool.mu)
 
 	return pool, nil
 }
 
 // Get retrieves a resource from the pool, creating a new one if necessary.
-func (p *Pool[T]) Get() (T, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (s *Pool[T]) Get() (ret T, err error) {
+	getOK := false
+	getFunc := func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
 
-	for len(p.queue) == 0 && !p.closed {
-		p.cond.Wait()
+		// 如果池已关闭，直接返回错误
+		if s.closed {
+			err = fmt.Errorf("pool is closed")
+			return
+		}
+
+		if len(s.idleQueue) > 0 {
+			getOK = true
+			// 从队列中获取资源
+			ret = s.idleQueue[len(s.idleQueue)-1]
+			s.idleQueue = s.idleQueue[:len(s.idleQueue)-1]
+			return
+		}
+
+		if s.totalSize < s.maxSize {
+			tVal, tErr := s.factory()
+			if tErr != nil {
+				err = tErr
+				return
+			}
+
+			getOK = true
+			s.totalSize++
+			ret = tVal
+			return
+		}
+		s.cond.Wait()
 	}
 
-	if p.closed {
-		var zero T
-		return zero, errors.New("pool is closed")
+	for {
+		getFunc()
+		if getOK || err != nil {
+			return
+		}
 	}
-
-	resource := p.queue[len(p.queue)-1]
-	p.queue = p.queue[:len(p.queue)-1]
-	return resource, nil
 }
 
 // Put returns a resource to the pool.
-func (p *Pool[T]) Put(resource T) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (s *Pool[T]) Put(tVal T) (err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	if p.closed {
-		return errors.New("pool is closed")
-	}
-
-	p.queue = append(p.queue, resource)
-	p.cond.Signal()
-	return nil
-}
-
-// Close shuts down the pool and releases all resources.
-func (p *Pool[T]) Close(releaseFunc func(T)) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.closed {
+	if s.closed {
+		err = errors.New("pool is closed")
 		return
 	}
 
-	p.closed = true
-	// Release remaining resources
-	for _, resource := range p.queue {
-		releaseFunc(resource)
-	}
-	p.queue = nil
-
-	// Log warning if not all resources were returned
-	if len(p.queue) < cap(p.queue) {
-		log.Warnf("Warning: %d resources were not returned to the pool before close", cap(p.queue)-len(p.queue))
+	s.idleQueue = append(s.idleQueue, tVal)
+	if err != nil {
+		return
 	}
 
-	p.cond.Broadcast()
+	s.cond.Signal()
+	return
+}
+
+// Close shuts down the pool and releases all resources.
+func (s *Pool[T]) Close(releaseFunc func(T)) {
+	func() {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
+		if s.closed {
+			return
+		}
+
+		s.closed = true
+		// Release remaining resources
+		for _, tVal := range s.idleQueue {
+			releaseFunc(tVal)
+		}
+		// Log warning if not all resources were returned
+		if len(s.idleQueue) < s.totalSize {
+			log.Warnf("Warning: %d resources were not returned to the pool before close", s.totalSize-len(s.idleQueue))
+		}
+		s.idleQueue = nil
+	}()
+
+	s.cond.Broadcast()
 }
