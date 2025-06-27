@@ -1,0 +1,88 @@
+# ========================
+# 跨平台 Git 标准化配置
+# 适用于 Windows/Linux/macOS 协作
+# ========================
+# 核心规则：全局默认行为
+* text=auto
+
+# ------------------------
+# 1. 文本文件声明（标准化为 LF）
+# ------------------------
+*.txt        text
+*.md         text
+*.json       text
+*.yml        text
+*.yaml       text
+*.xml        text
+*.html       text
+*.css        text
+*.js         text
+*.ts         text
+*.jsx        text
+*.tsx        text
+*.py         text
+*.java       text
+*.c          text
+*.cpp        text
+*.h          text
+*.hpp        text
+*.sql        text
+*.ini        text
+*.conf       text
+*.toml       text
+*.sh         text eol=lf
+*.ps1        text eol=crlf
+
+# ------------------------
+# 2. 平台特定文件处理
+# ------------------------
+# Windows 脚本
+*.bat        text eol=crlf
+*.cmd        text eol=crlf
+# Linux/macOS 脚本
+*.zsh        text eol=lf
+
+# ------------------------
+# 3. 二进制文件声明（禁止转换）
+# ------------------------
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.gif        binary
+*.ico        binary
+*.svg        binary
+*.webp       binary
+*.mp3        binary
+*.mp4        binary
+*.zip        binary
+*.gz         binary
+*.tar        binary
+*.7z         binary
+*.pdf        binary
+*.docx       binary
+*.xlsx       binary
+*.pptx       binary
+*.jar        binary
+*.war        binary
+*.class      binary
+*.dll        binary
+*.exe        binary
+*.so         binary
+*.a          binary
+
+# ------------------------
+# 4. 特殊文件类型处理
+# ------------------------
+# 图像矢量文件（文本但需二进制处理）
+*.ttf        binary
+*.otf        binary
+*.woff       binary
+*.woff2      binary
+
+# ------------------------
+# 5. 编码控制
+# ------------------------
+# 强制 UTF-8 无 BOM
+*.txt        working-tree-encoding=UTF-8
+*.java       working-tree-encoding=UTF-8
+*.xml        working-tree-encoding=UTF-8
