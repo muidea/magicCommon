@@ -20,3 +20,12 @@ func GetCurrentWorkDir() string {
 	}
 	return dir
 }
+
+// 获取当前用户家目录
+func GetHomeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return home
+}
