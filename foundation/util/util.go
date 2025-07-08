@@ -53,7 +53,7 @@ func (s StringSet) Add(val string) StringSet {
 	}
 
 	if !exist {
-		return append(s, val)
+		s = append(s, val)
 	}
 	return s
 }
@@ -66,7 +66,8 @@ func (s StringSet) Remove(val string) StringSet {
 		}
 	}
 
-	return newVal
+	s = newVal
+	return s
 }
 
 func (s StringSet) Empty() bool {
