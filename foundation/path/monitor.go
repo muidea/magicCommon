@@ -19,6 +19,18 @@ const (
 	Remove
 )
 
+func (s Op) String() string {
+	switch s {
+	case Create:
+		return "Create"
+	case Modify:
+		return "Modify"
+	case Remove:
+		return "Remove"
+	}
+	return "Unknown"
+}
+
 type Event struct {
 	Path string
 	Op   Op
@@ -120,7 +132,7 @@ func (s *Monitor) RemovePath(path string) error {
 
 func (s *Monitor) handleEvent(event fsnotify.Event) {
 	for _, v := range s.ignores {
-		if strings.HasSuffix(event.Name, v) {
+		if strings.Contains(event.Name, v) {
 			return
 		}
 	}
@@ -151,6 +163,10 @@ func (s *Monitor) handleEvent(event fsnotify.Event) {
 			s.removePath(event.Name)
 		}
 	default:
+		return
+	}
+
+	if IsDir(event.Name) {
 		return
 	}
 
@@ -225,7 +241,7 @@ func (s *Monitor) refresh(path string) {
 	s.addPath(path)
 	filepath.WalkDir(path, func(path string, info os.DirEntry, err error) error {
 		for _, v := range s.ignores {
-			if strings.HasSuffix(path, v) {
+			if strings.Contains(path, v) {
 				return nil
 			}
 		}
