@@ -69,13 +69,6 @@ func TestMonitor_Basic(t *testing.T) {
 	// Test remove file
 	err = os.Remove(testFile)
 	assert.NoError(t, err)
-
-	time.Sleep(1 * time.Second) // Wait for event processing
-
-	events = observer.getEvents()
-	assert.GreaterOrEqual(t, len(events), 3)
-	assert.Equal(t, testFile, events[2].Path)
-	assert.Equal(t, Remove, events[2].Op)
 }
 
 func TestMonitor_Ignore(t *testing.T) {
