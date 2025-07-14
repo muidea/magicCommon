@@ -8,6 +8,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
+	"github.com/muidea/magicCommon/foundation/log"
 	fu "github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -64,6 +65,12 @@ func NewMonitor(ignores fu.StringSet) (*Monitor, error) {
 }
 
 func (s *Monitor) Start() error {
+	eventQueue := make(chan fsnotify.Event, 1000)
+	go func() {
+		for event := range eventQueue {
+			s.handleEvent(event)
+		}
+	}()
 	go func() {
 		for {
 			select {
@@ -71,7 +78,11 @@ func (s *Monitor) Start() error {
 				if !ok {
 					return
 				}
-				s.handleEvent(event)
+				select {
+				case eventQueue <- event:
+				default:
+					log.Warnf("event queue full, dropping event", event)
+				}
 			case err, ok := <-s.fsWatcher.Errors:
 				if !ok {
 					return
@@ -170,6 +181,7 @@ func (s *Monitor) handleEvent(event fsnotify.Event) {
 		return
 	}
 
+	log.Infof("op:%s, path:%s", localEvent.Op, localEvent.Path)
 	for _, observer := range s.observer {
 		observer.OnEvent(localEvent)
 	}
