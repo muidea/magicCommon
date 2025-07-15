@@ -22,6 +22,28 @@ func IsDir(path string) bool {
 	return info.IsDir()
 }
 
+// IsSubPath 判断subPath是否是topPath的子路径
+func IsSubPath(topPath, subPath string) bool {
+	// 转为绝对路径并清理
+	absWorkspace, err := filepath.Abs(filepath.Clean(topPath))
+	if err != nil {
+		return false
+	}
+	absFile, err := filepath.Abs(filepath.Clean(subPath))
+	if err != nil {
+		return false
+	}
+
+	rel, err := filepath.Rel(absWorkspace, absFile)
+	if err != nil {
+		return false
+	}
+
+	// 判断 rel 是否是以 `..` 开头，表示 filePath 不在 workspacePath 之内
+	isSub := !strings.HasPrefix(rel, "..") && rel != ".."
+	return isSub
+}
+
 // Exist 路径是否存在
 func Exist(path string) bool {
 	_, err := os.Stat(path)
