@@ -81,7 +81,7 @@ func (s *Monitor) Start() error {
 				select {
 				case eventQueue <- event:
 				default:
-					log.Warnf("event queue full, dropping event", event)
+					log.Warnf("event queue full, dropping event：%v", event)
 				}
 			case err, ok := <-s.fsWatcher.Errors:
 				if !ok {
@@ -155,7 +155,7 @@ func (s *Monitor) handleEvent(event fsnotify.Event) {
 		return
 	}
 
-	log.Infof("op:%s, path:%s", event.Op, event.Name)
+	//log.Infof("op:%s, path:%s", event.Op, event.Name)
 
 	if s.isDir(event.Name) {
 		s.pathEvent(event)
@@ -249,7 +249,7 @@ func (s *Monitor) addPath(path string) error {
 			return
 		}
 
-		log.Warnf("add path:%s", addPath)
+		//log.Warnf("add path:%s", addPath)
 		if err := s.fsWatcher.Add(addPath); err != nil {
 			return
 		}
@@ -284,7 +284,7 @@ func (s *Monitor) removePath(path string) error {
 	}
 
 	for _, subPath := range toDelete {
-		log.Warnf("remove path: %s", subPath)
+		//log.Warnf("remove path: %s", subPath)
 		s.watchedPaths = s.watchedPaths.Remove(subPath)
 		if err := s.fsWatcher.Remove(subPath); err != nil {
 			return err
