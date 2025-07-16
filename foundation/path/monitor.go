@@ -8,7 +8,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/muidea/magicCommon/foundation/log"
 	fu "github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -81,7 +80,7 @@ func (s *Monitor) Start() error {
 				select {
 				case eventQueue <- event:
 				default:
-					log.Warnf("event queue full, dropping event：%v", event)
+					//log.Warnf("event queue full, dropping event：%v", event)
 				}
 			case err, ok := <-s.fsWatcher.Errors:
 				if !ok {
