@@ -141,7 +141,13 @@ func (s *Monitor) isIgnore(path string) bool {
 }
 
 func (s *Monitor) AddPath(path string) error {
-	go s.refresh(path)
+	waitChannel := make(chan bool)
+	defer close(waitChannel)
+	go func() {
+		s.refresh(path)
+		waitChannel <- true
+	}()
+	<-waitChannel
 	return nil
 }
 

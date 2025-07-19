@@ -120,7 +120,9 @@ func CopyPath(srcPath, dstPath string) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, 1)
+	defer close(errChan)
 	workerSem := make(chan struct{}, 4)
+	defer close(workerSem)
 
 	for _, entry := range entries {
 		select {
@@ -161,7 +163,6 @@ func CopyPath(srcPath, dstPath string) error {
 	}
 
 	wg.Wait()
-	close(errChan)
 
 	if err := <-errChan; err != nil {
 		return err

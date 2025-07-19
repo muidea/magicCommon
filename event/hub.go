@@ -340,6 +340,7 @@ func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 	}
 
 	replay := make(chan bool)
+	defer close(replay)
 	s.Execute.Run(func() {
 		actionData := &subscribeData{eventID: eventID, observer: observer, result: replay}
 
@@ -354,6 +355,8 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 	}
 
 	replay := make(chan bool)
+	defer close(replay)
+
 	s.Execute.Run(func() {
 		actionData := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
 
@@ -398,6 +401,8 @@ func (s *hubImpl) Send(event Event) (ret Result) {
 	}
 
 	replay := make(chan Result)
+	defer close(replay)
+
 	actionData := &sendData{event: event, result: replay}
 
 	var eventChannel actionChannel
@@ -445,6 +450,7 @@ func (s *hubImpl) Terminate() {
 	s.terminateFlag = true
 	var waitGroup sync.WaitGroup
 	replay := make(chan bool)
+	defer close(replay)
 	actionData := &terminateData{result: replay, waitGroup: &waitGroup}
 	go func() {
 		s.event2Lock.Lock()
