@@ -232,7 +232,6 @@ func (right commandChanImpl) end() {
 	defer close(result)
 	right <- commandData{action: end, result: result}
 	<-result
-	close(result)
 }
 
 func (right commandChanImpl) run() {
