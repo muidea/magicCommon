@@ -41,7 +41,7 @@ func TestPool_ConcurrentAccess(t *testing.T) {
 		return 42, nil
 	}
 
-	pool, err := New(factory, 1, 2)
+	pool, err := New(factory, 1, 20)
 	require.NoError(t, err)
 	defer pool.Close(func(res int) {})
 

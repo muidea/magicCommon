@@ -41,6 +41,7 @@ type Pool[T any] struct {
 	factory   func() (T, error) // Factory function to create new resources
 	idleQueue []T               // Resource queue
 	totalSize int
+	busyCount int
 	maxSize   int
 	closed    bool // Flag to indicate if the pool is closed
 }
@@ -89,6 +90,7 @@ func (s *Pool[T]) Get() (ret T, err error) {
 			// 从队列中获取资源
 			ret = s.idleQueue[len(s.idleQueue)-1]
 			s.idleQueue = s.idleQueue[:len(s.idleQueue)-1]
+			s.busyCount++
 			return
 		}
 
@@ -102,6 +104,7 @@ func (s *Pool[T]) Get() (ret T, err error) {
 			getOK = true
 			s.totalSize++
 			ret = tVal
+			s.busyCount++
 			return
 		}
 		s.cond.Wait()
@@ -110,6 +113,7 @@ func (s *Pool[T]) Get() (ret T, err error) {
 	for {
 		getFunc()
 		if getOK || err != nil {
+			log.Infof("get resource from pool, current busy size:%d", s.busyCount)
 			return
 		}
 	}
@@ -125,6 +129,7 @@ func (s *Pool[T]) Put(tVal T) (err error) {
 		return
 	}
 
+	s.busyCount--
 	s.idleQueue = append(s.idleQueue, tVal)
 	if err != nil {
 		return
