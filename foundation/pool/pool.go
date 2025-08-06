@@ -75,7 +75,7 @@ func New[T any](factory func() (T, error), initialCapacity, maxSize int) (*Pool[
 // Get retrieves a resource from the pool, creating a new one if necessary.
 func (s *Pool[T]) Get() (ret T, err error) {
 	getOK := false
-	idleSize := 0
+	//idleSize := 0
 	getFunc := func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
@@ -91,7 +91,7 @@ func (s *Pool[T]) Get() (ret T, err error) {
 			// 从队列中获取资源
 			ret = s.idleQueue[len(s.idleQueue)-1]
 			s.idleQueue = s.idleQueue[:len(s.idleQueue)-1]
-			idleSize = len(s.idleQueue)
+			//idleSize = len(s.idleQueue)
 			s.busyCount++
 			return
 		}
@@ -106,7 +106,7 @@ func (s *Pool[T]) Get() (ret T, err error) {
 			getOK = true
 			s.totalSize++
 			ret = tVal
-			idleSize = len(s.idleQueue)
+			//idleSize = len(s.idleQueue)
 			s.busyCount++
 			return
 		}
