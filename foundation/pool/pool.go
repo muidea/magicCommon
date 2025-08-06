@@ -116,7 +116,7 @@ func (s *Pool[T]) Get() (ret T, err error) {
 	for {
 		getFunc()
 		if getOK || err != nil {
-			log.Infof("get resource from pool, maxSize:%d, totalSize:%d, idleQueueSize:%d busySize:%d", s.maxSize, s.totalSize, idleSize, s.busyCount)
+			//log.Infof("get resource from pool, maxSize:%d, totalSize:%d, idleQueueSize:%d busySize:%d", s.maxSize, s.totalSize, idleSize, s.busyCount)
 			return
 		}
 	}
@@ -138,7 +138,7 @@ func (s *Pool[T]) Put(tVal T) (err error) {
 		return
 	}
 
-	log.Infof("put resource to pool, maxSize:%d, totalSize:%d, idleQueueSize:%d busySize:%d", s.maxSize, s.totalSize, len(s.idleQueue), s.busyCount)
+	//log.Infof("put resource to pool, maxSize:%d, totalSize:%d, idleQueueSize:%d busySize:%d", s.maxSize, s.totalSize, len(s.idleQueue), s.busyCount)
 
 	s.cond.Signal()
 	return
