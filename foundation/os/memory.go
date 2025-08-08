@@ -8,27 +8,6 @@ import (
 	"strings"
 )
 
-// 判断是否在容器内运行
-func IsRunningInContainer() (bool, error) {
-	cgHandle, cgErr := os.Open("/proc/1/cgroup")
-	if cgErr != nil {
-		return false, cgErr
-	}
-	defer cgHandle.Close()
-
-	scanner := bufio.NewScanner(cgHandle)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "docker") ||
-			strings.Contains(line, "kubepods") ||
-			strings.Contains(line, "containerd") ||
-			strings.Contains(line, "cri-containerd") {
-			return true, nil
-		}
-	}
-	return false, scanner.Err()
-}
-
 func readFileToInt64(path string) (int64, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

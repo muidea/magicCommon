@@ -3,8 +3,6 @@ package os
 import (
 	"os"
 	"runtime"
-
-	"github.com/muidea/magicCommon/foundation/log"
 )
 
 func GetOsName() string {
@@ -33,12 +31,7 @@ func GetHomeDir() string {
 }
 
 func GetMemoryUseable() (int64, error) {
-	inContainer, err := IsRunningInContainer()
-	if err != nil {
-		log.Errorf("failed to check container environment: %v", err)
-		return 0, err
-	}
-	if inContainer {
+	if IsRunningInContainer() {
 		return GetContainerMemoryLimit()
 	}
 
@@ -46,12 +39,7 @@ func GetMemoryUseable() (int64, error) {
 }
 
 func GetCPUUseable() (float64, error) {
-	inContainer, err := IsRunningInContainer()
-	if err != nil {
-		log.Errorf("failed to check container environment: %v", err)
-		return 0.0, err
-	}
-	if inContainer {
+	if IsRunningInContainer() {
 		return GetContainerCPULimit()
 	}
 
