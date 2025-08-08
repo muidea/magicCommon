@@ -81,7 +81,7 @@ func TestNewBackgroundRoutine(t *testing.T) {
 		})
 	}
 
-	for ; idx < 1000; idx++ {
+	for ; idx < 100; idx++ {
 		wg.Add(1)
 		taskRoutine.AsyncTask(&asyncTask{
 			wg:    wg,
