@@ -15,8 +15,9 @@ import (
 // req 是 HTTP 请求。
 // fieldName 是表单中文件字段的名称。
 // dstFilePath 是文件将被保存的目录路径。
-// 返回值 fileName 是上传文件的名称，err 是错误信息（如果有）。
-func MultipartFormFile(req *http.Request, fieldName, dstFilePath string) (fileName string, err error) {
+// fileName 是指定保存的文件名，如果值为空，则使用原始文件名。
+// 返回值 ret 是上传文件的名称，err 是错误信息（如果有）。
+func MultipartFormFile(req *http.Request, fieldName, dstFilePath, fileName string) (ret string, err error) {
 	// 从请求中获取文件内容和文件头信息。
 	fileContent, fileHead, fileErr := req.FormFile(fieldName)
 	if fileErr != nil {
@@ -26,6 +27,10 @@ func MultipartFormFile(req *http.Request, fieldName, dstFilePath string) (fileNa
 	}
 	defer fileContent.Close()
 
+	if fileName == "" {
+		fileName = fileHead.Filename
+	}
+
 	// 验证 dstFilePath 是否为合法的目录路径
 	if !isValidDirectory(dstFilePath) {
 		err = fmt.Errorf("invalid destination directory: %s", dstFilePath)
@@ -34,14 +39,14 @@ func MultipartFormFile(req *http.Request, fieldName, dstFilePath string) (fileNa
 	}
 
 	// 验证文件名是否合法
-	if !isValidFileName(fileHead.Filename) {
-		err = fmt.Errorf("invalid file name: %s", fileHead.Filename)
+	if !isValidFileName(fileName) {
+		err = fmt.Errorf("invalid file name: %s", fileName)
 		log.Errorf("invalid file name, err: %s", err.Error())
 		return
 	}
 
 	// 构建目标文件的完整路径
-	dstFullFilePath := filepath.Join(dstFilePath, fileHead.Filename)
+	dstFullFilePath := filepath.Join(dstFilePath, fileName)
 	// 创建目标文件
 	dstFileHandle, dstFileErr := os.Create(dstFullFilePath)
 	if dstFileErr != nil {
@@ -59,7 +64,7 @@ func MultipartFormFile(req *http.Request, fieldName, dstFilePath string) (fileNa
 	}
 
 	// 设置返回值为文件名
-	fileName = fileHead.Filename
+	ret = fileName
 	return
 }
 
