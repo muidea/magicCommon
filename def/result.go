@@ -94,8 +94,8 @@ func (s *Result) Fail() bool {
 	return s.Error != nil && s.Error.Code != Success
 }
 
-func NewResult() Result {
-	return Result{
+func NewResult() *Result {
+	return &Result{
 		Error: NewError(Unexpected, "unexpected error"),
 	}
 }

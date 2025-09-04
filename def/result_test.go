@@ -16,7 +16,7 @@ func TestCommonResult(t *testing.T) {
 		CValue Value `json:"value"`
 	}
 
-	compse := &Compose{Result: NewResult(), CValue: Value{AInt: 123, BFloat: 234.567}}
+	compse := &Compose{Result: *NewResult(), CValue: Value{AInt: 123, BFloat: 234.567}}
 	byteVal, _ := json.Marshal(compse)
 
 	commonResult := &CommonResult{}
