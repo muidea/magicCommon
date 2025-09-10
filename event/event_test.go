@@ -211,3 +211,208 @@ func TestMatchValue(t *testing.T) {
 		t.Error("MatchValue(\"a/#/c\", \"a/b/x/c\") = false, want true")
 	}
 }
+
+func TestGetAs(t *testing.T) {
+	// 创建一个测试用的 Result
+	result := NewResult("test/id", "test-source", "test-destination")
+	
+	// 测试成功转换字符串类型
+	t.Run("successful string conversion", func(t *testing.T) {
+		testData := "hello world"
+		result.Set(testData, nil)
+		
+		val, err := GetAs[string](result)
+		if err != nil {
+			t.Errorf("GetAs[string] returned error: %v", err)
+		}
+		if val != testData {
+			t.Errorf("GetAs[string] = %v, want %v", val, testData)
+		}
+	})
+	
+	// 测试成功转换整数类型
+	t.Run("successful int conversion", func(t *testing.T) {
+		testData := 42
+		result.Set(testData, nil)
+		
+		val, err := GetAs[int](result)
+		if err != nil {
+			t.Errorf("GetAs[int] returned error: %v", err)
+		}
+		if val != testData {
+			t.Errorf("GetAs[int] = %v, want %v", val, testData)
+		}
+	})
+	
+	// 测试成功转换结构体类型
+	t.Run("successful struct conversion", func(t *testing.T) {
+		type TestStruct struct {
+			Name string
+			Age  int
+		}
+		testData := TestStruct{Name: "John", Age: 30}
+		result.Set(testData, nil)
+		
+		val, err := GetAs[TestStruct](result)
+		if err != nil {
+			t.Errorf("GetAs[TestStruct] returned error: %v", err)
+		}
+		if val != testData {
+			t.Errorf("GetAs[TestStruct] = %v, want %v", val, testData)
+		}
+	})
+	
+	// 测试类型不匹配的情况
+	t.Run("type mismatch", func(t *testing.T) {
+		testData := "not an int"
+		result.Set(testData, nil)
+		
+		val, err := GetAs[int](result)
+		if err == nil {
+			t.Error("GetAs[int] should return error for string input")
+		}
+		if val != 0 {
+			t.Errorf("GetAs[int] should return zero value for type mismatch, got %v", val)
+		}
+		if err.Code != cd.Unexpected {
+			t.Errorf("Error code = %v, want %v", err.Code, cd.Unexpected)
+		}
+	})
+	
+	// 测试 nil 值的情况
+	t.Run("nil value", func(t *testing.T) {
+		result.Set(nil, nil)
+		
+		val, err := GetAs[string](result)
+		if err != nil {
+			t.Errorf("GetAs[string] should not return error for nil value, got %v", err)
+		}
+		if val != "" {
+			t.Errorf("GetAs[string] should return empty string for nil value, got %v", val)
+		}
+	})
+	
+	// 测试带有错误的情况
+	t.Run("with error", func(t *testing.T) {
+		testData := "test data"
+		customErr := cd.NewError(cd.Unexpected, "custom error")
+		result.Set(testData, customErr)
+		
+		val, err := GetAs[string](result)
+		if err != customErr {
+			t.Errorf("GetAs should preserve original error, got %v, want %v", err, customErr)
+		}
+		if val != testData {
+			t.Errorf("GetAs should return correct value, got %v, want %v", val, testData)
+		}
+	})
+}
+
+func TestGetValAs(t *testing.T) {
+	// 创建一个测试用的 Result
+	result := NewResult("test/id", "test-source", "test-destination")
+	
+	// 测试成功转换字符串类型
+	t.Run("successful string conversion", func(t *testing.T) {
+		testData := "hello world"
+		result.SetVal("stringKey", testData)
+		
+		val, ok := GetValAs[string](result, "stringKey")
+		if !ok {
+			t.Error("GetValAs[string] should return ok = true")
+		}
+		if val != testData {
+			t.Errorf("GetValAs[string] = %v, want %v", val, testData)
+		}
+	})
+	
+	// 测试成功转换整数类型
+	t.Run("successful int conversion", func(t *testing.T) {
+		testData := 42
+		result.SetVal("intKey", testData)
+		
+		val, ok := GetValAs[int](result, "intKey")
+		if !ok {
+			t.Error("GetValAs[int] should return ok = true")
+		}
+		if val != testData {
+			t.Errorf("GetValAs[int] = %v, want %v", val, testData)
+		}
+	})
+	
+	// 测试成功转换结构体类型
+	t.Run("successful struct conversion", func(t *testing.T) {
+		type TestStruct struct {
+			Name string
+			Age  int
+		}
+		testData := TestStruct{Name: "John", Age: 30}
+		result.SetVal("structKey", testData)
+		
+		val, ok := GetValAs[TestStruct](result, "structKey")
+		if !ok {
+			t.Error("GetValAs[TestStruct] should return ok = true")
+		}
+		if val != testData {
+			t.Errorf("GetValAs[TestStruct] = %v, want %v", val, testData)
+		}
+	})
+	
+	// 测试类型不匹配的情况
+	t.Run("type mismatch", func(t *testing.T) {
+		testData := "not an int"
+		result.SetVal("mismatchKey", testData)
+		
+		val, ok := GetValAs[int](result, "mismatchKey")
+		if ok {
+			t.Error("GetValAs[int] should return ok = false for type mismatch")
+		}
+		if val != 0 {
+			t.Errorf("GetValAs[int] should return zero value for type mismatch, got %v", val)
+		}
+	})
+	
+	// 测试 nil 值的情况
+	t.Run("nil value", func(t *testing.T) {
+		result.SetVal("nilKey", nil)
+		
+		val, ok := GetValAs[string](result, "nilKey")
+		if ok {
+			t.Error("GetValAs should return ok = false for nil value")
+		}
+		if val != "" {
+			t.Errorf("GetValAs should return zero value for nil value, got %v", val)
+		}
+	})
+	
+	// 测试不存在的键
+	t.Run("non-existent key", func(t *testing.T) {
+		val, ok := GetValAs[string](result, "nonexistent")
+		if ok {
+			t.Error("GetValAs should return ok = false for non-existent key")
+		}
+		if val != "" {
+			t.Errorf("GetValAs should return zero value for non-existent key, got %v", val)
+		}
+	})
+	
+	// 测试多个键值对
+	t.Run("multiple key-value pairs", func(t *testing.T) {
+		stringData := "string value"
+		intData := 123
+		result.SetVal("multiString", stringData)
+		result.SetVal("multiInt", intData)
+		
+		// 测试获取字符串值
+		strVal, strOk := GetValAs[string](result, "multiString")
+		if !strOk || strVal != stringData {
+			t.Errorf("GetValAs for multiString failed: ok=%v, val=%v", strOk, strVal)
+		}
+		
+		// 测试获取整数值
+		intVal, intOk := GetValAs[int](result, "multiInt")
+		if !intOk || intVal != intData {
+			t.Errorf("GetValAs for multiInt failed: ok=%v, val=%v", intOk, intVal)
+		}
+	})
+}

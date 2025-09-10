@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	cd "github.com/muidea/magicCommon/def"
 )
@@ -142,4 +143,32 @@ func (s *baseResult) GetVal(key string) interface{} {
 	}
 
 	return nil
+}
+
+// GetAs 尝试把 Result.Get() 的值转换为指定类型
+func GetAs[T any](r Result) (T, *cd.Error) {
+	var zero T
+	val, err := r.Get()
+	if val == nil {
+		return zero, err
+	}
+	v, ok := val.(T)
+	if !ok {
+		return zero, cd.NewError(cd.Unexpected, fmt.Sprintf(
+			"invalid type: expect %v but got %v",
+			reflect.TypeOf(zero), reflect.TypeOf(val),
+		))
+	}
+	return v, err
+}
+
+// GetValAs 尝试把 Result.GetVal() 的值转换为指定类型
+func GetValAs[T any](r Result, key string) (T, bool) {
+	var zero T
+	val := r.GetVal(key)
+	if val == nil {
+		return zero, false
+	}
+	v, ok := val.(T)
+	return v, ok
 }
