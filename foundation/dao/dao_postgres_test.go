@@ -56,7 +56,7 @@ func TestDatabase(t *testing.T) {
 		dao.Execute(dropDbSql)
 	}()
 
-	createDbSql := fmt.Sprintf("CREATE DATABASE \"%s\"", gDBName)
+	createDbSql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS \"%s\"", gDBName)
 	_, err = dao.Execute(createDbSql)
 	if err != nil {
 		t.Errorf("create database failed, err:%v", err)
