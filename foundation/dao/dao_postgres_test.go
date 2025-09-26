@@ -1,10 +1,11 @@
-package dao_test
+//go:build !mysql
+// +build !mysql
+
+package dao
 
 import (
 	"fmt"
 	"testing"
-
-	"github.com/muidea/magicCommon/foundation/dao"
 )
 
 type User struct {
@@ -12,13 +13,13 @@ type User struct {
 	address string
 }
 
-const gUser = "root"
+const gUser = "postgres"
 const gPassword = "rootkit"
-const gSvrAddress = "localhost:3306"
+const gSvrAddress = "localhost:5432"
 const gDBName = "testdb"
 
 func TestDatabase(t *testing.T) {
-	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
+	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
@@ -39,7 +40,7 @@ func TestDatabase(t *testing.T) {
 
 	nDao, nErr := dao.Duplicate()
 	if nErr != nil {
-		t.Errorf("duplicate database error:%s", err.Error())
+		t.Errorf("duplicate database error:%s", nErr.Error())
 		return
 	}
 	defer nDao.Release()
@@ -51,37 +52,35 @@ func TestDatabase(t *testing.T) {
 	defer nDao.DropDatabase("A1000")
 
 	defer func() {
-		dropDbSql := fmt.Sprintf("drop database if exists %s", gDBName)
+		dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS \"%s\"", gDBName)
 		dao.Execute(dropDbSql)
 	}()
 
-	createDbSql := fmt.Sprintf("create database if not exists %s", gDBName)
-	num, _ := dao.Execute(createDbSql)
-	if num != 1 {
-		t.Errorf("create database failed")
+	createDbSql := fmt.Sprintf("CREATE DATABASE \"%s\"", gDBName)
+	_, err = dao.Execute(createDbSql)
+	if err != nil {
+		t.Errorf("create database failed, err:%v", err)
 	}
 }
 
-func initFunc(dao dao.Dao, dbName string) {
-	dbSql := fmt.Sprintf("create database if not exists %s", dbName)
+func initFunc(dao Dao, dbName string) {
+	dbSql := fmt.Sprintf("CREATE DATABASE \"%s\"", dbName)
 	dao.Execute(dbSql)
 
-	useSql := fmt.Sprintf("use %s", dbName)
-	dao.Execute(useSql)
+	// PostgreSQL 不需要 USE 语句，连接时已经指定了数据库
 
 	tableSql :=
 		`
-CREATE TABLE IF NOT EXISTS user (
-  id int(11) NOT NULL AUTO_INCREMENT,
-  address text(125),
-  PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+CREATE TABLE IF NOT EXISTS "user" (
+  id SERIAL PRIMARY KEY,
+  address TEXT
+)
 `
 	dao.Execute(tableSql)
 }
 
 func TestInsert(t *testing.T) {
-	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
+	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
@@ -90,7 +89,7 @@ func TestInsert(t *testing.T) {
 	initFunc(dao, gDBName)
 	defer dao.DropDatabase(gDBName)
 
-	insertSql := "insert into user (address) values(?),(?),(?),(?)"
+	insertSql := "insert into \"user\" (address) values($1),($2),($3),($4)"
 	num, _ := dao.Execute(insertSql, "abc", "bcd", "cde", "def")
 	if num != 4 {
 		t.Errorf("Insert data failed")
@@ -112,7 +111,7 @@ func TestInsert(t *testing.T) {
 		t.Errorf("Insert data failed")
 	}
 
-	querySql := "select * from user where address like ?"
+	querySql := "select * from \"user\" where address like $1"
 	param := "%a%"
 	err = dao.Query(querySql, param)
 	if err != nil {
@@ -120,7 +119,7 @@ func TestInsert(t *testing.T) {
 		return
 	}
 
-	querySql = "select * from user where id in (?,?,?,?)"
+	querySql = "select * from \"user\" where id in ($1,$2,$3,$4)"
 	ids := []any{1, 2, 3, 4}
 	err = dao.Query(querySql, ids...)
 	if err != nil {
@@ -143,7 +142,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	dao, err := dao.Fetch(gUser, gPassword, gSvrAddress, "", "")
+	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
@@ -152,7 +151,7 @@ func TestQuery(t *testing.T) {
 	initFunc(dao, gDBName)
 	defer dao.DropDatabase(gDBName)
 
-	selectSql := "select id,address from user"
+	selectSql := "select id,address from \"user\""
 
 	dao.Query(selectSql)
 

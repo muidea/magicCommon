@@ -8,6 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.6.0
+	github.com/lib/pq v1.10.9
 	github.com/muidea/seelog v1.0.0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sync v0.8.0

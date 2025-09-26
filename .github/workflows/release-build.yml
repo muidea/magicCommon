@@ -31,8 +31,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.23'
+          go-version: '1.24'
 
       - name: Run Tests
         run: |
-          go test ./... -v
+          go test -count 1 -json ./...
