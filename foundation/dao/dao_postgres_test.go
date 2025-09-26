@@ -16,7 +16,7 @@ type User struct {
 const gUser = "postgres"
 const gPassword = "rootkit"
 const gSvrAddress = "localhost:5432"
-const gDBName = "testdb"
+const gDBName = "testdb001"
 
 func TestDatabase(t *testing.T) {
 	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
@@ -50,17 +50,6 @@ func TestDatabase(t *testing.T) {
 		return
 	}
 	defer nDao.DropDatabase("A1000")
-
-	defer func() {
-		dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS \"%s\"", gDBName)
-		dao.Execute(dropDbSql)
-	}()
-
-	createDbSql := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS \"%s\"", gDBName)
-	_, err = dao.Execute(createDbSql)
-	if err != nil {
-		t.Errorf("create database failed, err:%v", err)
-	}
 }
 
 func initFunc(dao Dao, dbName string) {
