@@ -308,8 +308,8 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 				data.result <- result
 			case terminate:
 				data := actionData.(*terminateData)
-				data.result <- true
 				data.waitGroup.Done()
+				data.result <- true
 				terminateFlag = true
 			default:
 			}
