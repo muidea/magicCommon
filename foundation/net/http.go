@@ -168,6 +168,25 @@ func PackageHTTPResponse(res http.ResponseWriter, result interface{}) {
 	res.WriteHeader(http.StatusExpectationFailed)
 }
 
+func PackageHTTPResponseWithStatusCode(res http.ResponseWriter, statusCode int, result interface{}) {
+	res.WriteHeader(statusCode)
+	if result == nil {
+		return
+	}
+
+	block, err := json.Marshal(result)
+	if err == nil {
+		_, err := res.Write(block)
+		if err != nil {
+			log.Errorf("write result error: %v", err)
+		}
+		return
+	}
+
+	log.Errorf("marshal result error: %v", err)
+	res.WriteHeader(http.StatusInternalServerError)
+}
+
 // HTTPGet http get request
 func HTTPGet(httpClient *http.Client, url string, result interface{}, headers ...url.Values) (ret []byte, err error) {
 	request, requestErr := http.NewRequest("GET", url, nil)
