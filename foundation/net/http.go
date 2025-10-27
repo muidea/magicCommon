@@ -9,6 +9,7 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"strings"
@@ -149,7 +150,18 @@ func ParseJSONBody(req *http.Request, validator util.Validator, param interface{
 	return nil
 }
 
+var contentType = textproto.CanonicalMIMEHeaderKey("content-type")
+
+func verifyContentType(res http.ResponseWriter) {
+	contentVal := res.Header().Get(contentType)
+	if contentVal != "" {
+		return
+	}
+	res.Header().Set(contentType, "application/json; charset=utf-8")
+}
 func PackageHTTPResponse(res http.ResponseWriter, result interface{}) {
+	verifyContentType(res)
+
 	if result == nil {
 		res.WriteHeader(http.StatusOK)
 		return
@@ -169,6 +181,8 @@ func PackageHTTPResponse(res http.ResponseWriter, result interface{}) {
 }
 
 func PackageHTTPResponseWithStatusCode(res http.ResponseWriter, statusCode int, result interface{}) {
+	verifyContentType(res)
+
 	res.WriteHeader(statusCode)
 	if result == nil {
 		return
