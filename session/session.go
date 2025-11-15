@@ -22,9 +22,9 @@ const (
 
 const (
 	// sessionID 会话ID
-	sessionID = "sessionID"
+	sessionID = "_sessionID"
 	// expiryTime 会话有效期
-	expiryTime = "expiryTime"
+	expiryTime = "_expiryTime"
 	// Authorization info, from request header
 	Authorization = "Authorization"
 )
