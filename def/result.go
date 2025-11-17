@@ -1,7 +1,6 @@
 package def
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -71,17 +70,6 @@ func NewError(errorCode Code, errorMessage string) *Error {
 
 type Result struct {
 	Error *Error `json:"error"`
-}
-
-type CommonResult struct {
-	Result
-	Value json.RawMessage `json:"value"`
-}
-
-type CommonSliceResult struct {
-	Result
-	Total int64           `json:"total"`
-	Value json.RawMessage `json:"values"`
 }
 
 // Success 成功
