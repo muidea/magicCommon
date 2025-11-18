@@ -1,0 +1,466 @@
+package configuration
+
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+	"sync"
+)
+
+// ConfigManagerImpl 配置管理器实现
+type ConfigManagerImpl struct {
+	options       *ConfigOptions
+	loader        ConfigLoader
+	envMerger     *EnvConfigMerger
+	eventManager  *EventManager
+	fileWatcher   FileWatcher
+	globalConfig  map[string]interface{}
+	moduleConfigs map[string]map[string]interface{}
+	mu            sync.RWMutex
+	closed        bool
+}
+
+// NewConfigManager 创建配置管理器
+func NewConfigManager(options *ConfigOptions) (*ConfigManagerImpl, error) {
+	if options == nil {
+		options = DefaultConfigOptions()
+	}
+
+	// 创建配置加载器
+	loader := NewTOMLConfigLoader(options.ConfigDir)
+
+	// 创建环境变量合并器（使用空前缀，处理所有环境变量）
+	envMerger := NewEnvConfigMerger("")
+
+	// 创建事件管理器
+	eventManager := NewEventManager()
+
+	// 创建文件监听器
+	var fileWatcher FileWatcher
+	var err error
+	if options.EnableHotReload {
+		fileWatcher, err = NewFileWatcher()
+		if err != nil {
+			// 回退到简单文件监听器
+			simpleWatcher := NewSimpleFileWatcher(options.WatchInterval)
+			simpleWatcher.Start()
+			fileWatcher = simpleWatcher
+		}
+	}
+
+	manager := &ConfigManagerImpl{
+		options:       options,
+		loader:        loader,
+		envMerger:     envMerger,
+		eventManager:  eventManager,
+		fileWatcher:   fileWatcher,
+		globalConfig:  make(map[string]interface{}),
+		moduleConfigs: make(map[string]map[string]interface{}),
+		closed:        false,
+	}
+
+	// 初始加载配置
+	if err := manager.loadAllConfigs(); err != nil {
+		return nil, fmt.Errorf("failed to load initial configs: %w", err)
+	}
+
+	// 设置文件监听
+	if options.EnableHotReload && fileWatcher != nil {
+		if err := manager.setupFileWatching(); err != nil {
+			return nil, fmt.Errorf("failed to setup file watching: %w", err)
+		}
+	}
+
+	return manager, nil
+}
+
+// getNestedValue 获取嵌套配置值
+func (m *ConfigManagerImpl) getNestedValue(config map[string]interface{}, key string) (interface{}, error) {
+	parts := strings.Split(key, ".")
+	current := config
+
+	for i, part := range parts {
+		value, exists := current[part]
+		if !exists {
+			return nil, fmt.Errorf("config key not found: %s", key)
+		}
+
+		// 如果是最后一个部分，直接返回值
+		if i == len(parts)-1 {
+			return value, nil
+		}
+
+		// 如果不是最后一个部分，需要继续深入嵌套结构
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			current = nestedMap
+		} else {
+			return nil, fmt.Errorf("config key %s is not a nested structure", strings.Join(parts[:i+1], "."))
+		}
+	}
+
+	return nil, fmt.Errorf("config key not found: %s", key)
+}
+
+// Get 获取全局配置项（支持嵌套配置访问）
+func (m *ConfigManagerImpl) Get(key string) (interface{}, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.closed {
+		return nil, fmt.Errorf("config manager is closed")
+	}
+
+	// 如果key包含点号，尝试解析嵌套配置
+	if strings.Contains(key, ".") {
+		return m.getNestedValue(m.globalConfig, key)
+	}
+
+	// 否则使用原来的简单查找
+	value, exists := m.globalConfig[key]
+	if !exists {
+		return nil, fmt.Errorf("config key not found: %s", key)
+	}
+
+	return value, nil
+}
+
+// GetWithDefault 获取全局配置项，如果不存在则返回默认值
+func (m *ConfigManagerImpl) GetWithDefault(key string, defaultValue interface{}) interface{} {
+	value, err := m.Get(key)
+	if err != nil {
+		return defaultValue
+	}
+	return value
+}
+
+// GetModuleConfig 获取模块隔离配置项（支持嵌套配置访问）
+func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (interface{}, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.closed {
+		return nil, fmt.Errorf("config manager is closed")
+	}
+
+	moduleConfig, exists := m.moduleConfigs[moduleName]
+	if !exists {
+		return nil, fmt.Errorf("module not found: %s", moduleName)
+	}
+
+	// 如果key包含点号，尝试解析嵌套配置
+	if strings.Contains(key, ".") {
+		return m.getNestedValue(moduleConfig, key)
+	}
+
+	// 否则使用原来的简单查找
+	value, exists := moduleConfig[key]
+	if !exists {
+		return nil, fmt.Errorf("config key not found in module %s: %s", moduleName, key)
+	}
+
+	return value, nil
+}
+
+// GetModuleConfigWithDefault 获取模块隔离配置项，如果不存在则返回默认值
+func (m *ConfigManagerImpl) GetModuleConfigWithDefault(moduleName, key string, defaultValue interface{}) interface{} {
+	value, err := m.GetModuleConfig(moduleName, key)
+	if err != nil {
+		return defaultValue
+	}
+	return value
+}
+
+// Watch 监听配置变更
+func (m *ConfigManagerImpl) Watch(key string, handler ConfigChangeHandler) error {
+	if m.closed {
+		return fmt.Errorf("config manager is closed")
+	}
+
+	m.eventManager.RegisterGlobalWatcher(key, handler)
+	return nil
+}
+
+// WatchModule 监听模块配置变更
+func (m *ConfigManagerImpl) WatchModule(moduleName, key string, handler ConfigChangeHandler) error {
+	if m.closed {
+		return fmt.Errorf("config manager is closed")
+	}
+
+	m.eventManager.RegisterModuleWatcher(moduleName, key, handler)
+	return nil
+}
+
+// Unwatch 取消监听
+func (m *ConfigManagerImpl) Unwatch(key string, handler ConfigChangeHandler) error {
+	if m.closed {
+		return fmt.Errorf("config manager is closed")
+	}
+
+	m.eventManager.UnregisterGlobalWatcher(key, handler)
+	return nil
+}
+
+// UnwatchModule 取消模块配置监听
+func (m *ConfigManagerImpl) UnwatchModule(moduleName, key string, handler ConfigChangeHandler) error {
+	if m.closed {
+		return fmt.Errorf("config manager is closed")
+	}
+
+	m.eventManager.UnregisterModuleWatcher(moduleName, key, handler)
+	return nil
+}
+
+// Reload 重新加载所有配置
+func (m *ConfigManagerImpl) Reload() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.closed {
+		return fmt.Errorf("config manager is closed")
+	}
+
+	return m.loadAllConfigs()
+}
+
+// Close 关闭配置管理器
+func (m *ConfigManagerImpl) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.closed {
+		return nil
+	}
+
+	m.closed = true
+
+	if m.fileWatcher != nil {
+		return m.fileWatcher.Close()
+	}
+
+	return nil
+}
+
+// loadAllConfigs 加载所有配置
+func (m *ConfigManagerImpl) loadAllConfigs() error {
+	// 保存旧配置用于比较
+	oldGlobalConfig := m.globalConfig
+	oldModuleConfigs := m.moduleConfigs
+
+	// 加载全局配置
+	globalConfig, err := m.loader.LoadGlobalConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load global config: %w", err)
+	}
+
+	// 合并环境变量配置
+	globalConfig, err = m.envMerger.Merge(globalConfig)
+	if err != nil {
+		return fmt.Errorf("failed to merge env config: %w", err)
+	}
+
+	// 验证全局配置
+	if m.options.Validator != nil {
+		if err := m.options.Validator.ValidateGlobalConfig(globalConfig); err != nil {
+			return fmt.Errorf("global config validation failed: %w", err)
+		}
+	}
+
+	// 加载模块配置
+	moduleConfigs, err := m.loader.LoadAllModuleConfigs()
+	if err != nil {
+		// 模块配置加载失败不影响全局配置
+		fmt.Printf("Warning: failed to load some module configs: %v\n", err)
+	}
+
+	// 验证模块配置
+	if m.options.Validator != nil {
+		for moduleName, config := range moduleConfigs {
+			if err := m.options.Validator.ValidateModuleConfig(moduleName, config); err != nil {
+				fmt.Printf("Warning: module %s config validation failed: %v\n", moduleName, err)
+				// 验证失败的模块配置不加载
+				delete(moduleConfigs, moduleName)
+			}
+		}
+	}
+
+	// 更新配置
+	m.globalConfig = globalConfig
+	m.moduleConfigs = moduleConfigs
+
+	// 触发配置变更事件
+	m.triggerConfigChangeEvents(oldGlobalConfig, oldModuleConfigs)
+
+	return nil
+}
+
+// triggerConfigChangeEvents 触发配置变更事件
+func (m *ConfigManagerImpl) triggerConfigChangeEvents(oldGlobalConfig map[string]interface{}, oldModuleConfigs map[string]map[string]interface{}) {
+	// 检查全局配置变更
+	for key, newValue := range m.globalConfig {
+		oldValue, exists := oldGlobalConfig[key]
+		if !exists || !m.valuesEqual(oldValue, newValue) {
+			m.eventManager.NotifyGlobalChange(key, oldValue, newValue)
+		}
+	}
+
+	// 检查被删除的全局配置项
+	for key, oldValue := range oldGlobalConfig {
+		if _, exists := m.globalConfig[key]; !exists {
+			m.eventManager.NotifyGlobalChange(key, oldValue, nil)
+		}
+	}
+
+	// 检查模块配置变更
+	for moduleName, newModuleConfig := range m.moduleConfigs {
+		oldModuleConfig, exists := oldModuleConfigs[moduleName]
+		if !exists {
+			// 新模块
+			for key, newValue := range newModuleConfig {
+				m.eventManager.NotifyModuleChange(moduleName, key, nil, newValue)
+			}
+			continue
+		}
+
+		// 检查变更的配置项
+		for key, newValue := range newModuleConfig {
+			oldValue, exists := oldModuleConfig[key]
+			if !exists || !m.valuesEqual(oldValue, newValue) {
+				m.eventManager.NotifyModuleChange(moduleName, key, oldValue, newValue)
+			}
+		}
+
+		// 检查被删除的模块配置项
+		for key, oldValue := range oldModuleConfig {
+			if _, exists := newModuleConfig[key]; !exists {
+				m.eventManager.NotifyModuleChange(moduleName, key, oldValue, nil)
+			}
+		}
+	}
+
+	// 检查被删除的模块
+	for moduleName, oldModuleConfig := range oldModuleConfigs {
+		if _, exists := m.moduleConfigs[moduleName]; !exists {
+			for key, oldValue := range oldModuleConfig {
+				m.eventManager.NotifyModuleChange(moduleName, key, oldValue, nil)
+			}
+		}
+	}
+}
+
+// valuesEqual 比较两个值是否相等
+func (m *ConfigManagerImpl) valuesEqual(a, b interface{}) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	// 对于基本类型，使用直接比较
+	switch aVal := a.(type) {
+	case string, int, int64, float64, bool:
+		return a == b
+	case map[string]interface{}:
+		// 对于map类型，进行深度比较
+		if bVal, ok := b.(map[string]interface{}); ok {
+			return m.compareMaps(aVal, bVal)
+		}
+		return false
+	case []interface{}:
+		// 对于slice类型，进行深度比较
+		if bVal, ok := b.([]interface{}); ok {
+			return m.compareSlices(aVal, bVal)
+		}
+		return false
+	default:
+		// 对于其他类型，使用字符串表示进行比较
+		return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
+	}
+}
+
+// compareMaps 比较两个map是否相等
+func (m *ConfigManagerImpl) compareMaps(a, b map[string]interface{}) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for key, aVal := range a {
+		bVal, exists := b[key]
+		if !exists {
+			return false
+		}
+		if !m.valuesEqual(aVal, bVal) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// compareSlices 比较两个slice是否相等
+func (m *ConfigManagerImpl) compareSlices(a, b []interface{}) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := range a {
+		if !m.valuesEqual(a[i], b[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// setupFileWatching 设置文件监听
+func (m *ConfigManagerImpl) setupFileWatching() error {
+	if m.fileWatcher == nil {
+		return nil
+	}
+
+	// 监听全局配置文件
+	globalConfigPath := filepath.Join(m.options.ConfigDir, "application.toml")
+	if err := m.fileWatcher.Watch(globalConfigPath, func() {
+		fmt.Println("Global config file changed, reloading...")
+		m.Reload()
+	}); err != nil {
+		fmt.Printf("Failed to watch global config file: %v\n", err)
+	}
+
+	// 监听模块配置目录
+	moduleConfigDir := filepath.Join(m.options.ConfigDir, "config.d")
+	if err := m.fileWatcher.WatchDirectory(moduleConfigDir, func(filePath string) {
+		if strings.HasSuffix(filePath, ".toml") {
+			fmt.Printf("Module config file changed: %s, reloading...\n", filePath)
+			m.Reload()
+		}
+	}); err != nil {
+		fmt.Printf("Failed to watch module config directory: %v\n", err)
+	}
+
+	return nil
+}
+
+// GetGlobalConfig 获取全局配置（用于调试）
+func (m *ConfigManagerImpl) GetGlobalConfig() map[string]interface{} {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	config := make(map[string]interface{})
+	for k, v := range m.globalConfig {
+		config[k] = v
+	}
+	return config
+}
+
+// GetModuleNames 获取所有模块名称（用于调试）
+func (m *ConfigManagerImpl) GetModuleNames() []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	modules := make([]string, 0, len(m.moduleConfigs))
+	for moduleName := range m.moduleConfigs {
+		modules = append(modules, moduleName)
+	}
+	return modules
+}
