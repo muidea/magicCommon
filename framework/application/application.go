@@ -82,8 +82,13 @@ func (s *appImpl) Startup(service service.Service) *cd.Error {
 		return cd.NewError(cd.Unexpected, err.Error())
 	}
 
+	nameVal, nameErr := configuration.GetString("endpointName")
+	if nameErr != nil {
+		nameVal = "magicPlatform"
+	}
+
 	s.service = service
-	return s.service.Startup(s.eventHub, s.backgroundRoutine)
+	return s.service.Startup(nameVal, s.eventHub, s.backgroundRoutine)
 }
 
 func (s *appImpl) Run() *cd.Error {

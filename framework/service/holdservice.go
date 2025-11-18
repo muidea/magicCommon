@@ -9,11 +9,9 @@ import (
 	"github.com/muidea/magicCommon/foundation/log"
 )
 
-func HoldService(name string) Service {
+func HoldService() Service {
 	return &holdService{
-		defaultService: defaultService{
-			serviceName: name,
-		},
+		defaultService: defaultService{},
 	}
 }
 

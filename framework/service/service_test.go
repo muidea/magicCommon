@@ -60,8 +60,8 @@ func TestInitiator(t *testing.T) {
 		initiator.Register(p)
 	}
 
-	service := DefaultService("test")
-	service.Startup(nil, nil)
+	service := DefaultService()
+	service.Startup("test", nil, nil)
 	service.Run()
 	service.Shutdown()
 
@@ -117,8 +117,8 @@ func TestModule(t *testing.T) {
 		module.Register(p)
 	}
 
-	service := DefaultService("test")
-	service.Startup(nil, nil)
+	service := DefaultService()
+	service.Startup("test", nil, nil)
 	service.Run()
 	service.Shutdown()
 

@@ -10,22 +10,22 @@ import (
 )
 
 type Service interface {
-	Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error
+	Startup(serviceName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error
 	Run() *cd.Error
 	Shutdown()
 }
 
-func DefaultService(name string) Service {
-	return &defaultService{
-		serviceName: name,
-	}
+func DefaultService() Service {
+	return &defaultService{}
 }
 
 type defaultService struct {
 	serviceName string
 }
 
-func (s *defaultService) Startup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Error) {
+func (s *defaultService) Startup(serviceName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Error) {
+	s.serviceName = serviceName
+
 	ret = initiator.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
 		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
