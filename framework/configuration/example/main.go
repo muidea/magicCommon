@@ -182,9 +182,9 @@ func main() {
 
 		// 展示配置结构
 		fmt.Println("\n配置结构概览:")
-		if globalConfig, ok := allConfigs["global"].(map[string]interface{}); ok {
-			fmt.Printf("全局配置项数量: %d\n", len(globalConfig))
-			for key := range globalConfig {
+		if appConfig, ok := allConfigs["application"].(map[string]interface{}); ok {
+			fmt.Printf("应用程序配置项数量: %d\n", len(appConfig))
+			for key := range appConfig {
 				fmt.Printf("  - %s\n", key)
 			}
 		}
@@ -194,10 +194,6 @@ func main() {
 			for moduleName := range modulesConfig {
 				fmt.Printf("  - %s\n", moduleName)
 			}
-		}
-
-		if envConfig, ok := allConfigs["environment"].(map[string]interface{}); ok {
-			fmt.Printf("环境变量配置数量: %d\n", len(envConfig))
 		}
 	}
 

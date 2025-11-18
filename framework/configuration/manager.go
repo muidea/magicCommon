@@ -16,6 +16,7 @@ type ConfigManagerImpl struct {
 	eventManager  *EventManager
 	fileWatcher   FileWatcher
 	globalConfig  map[string]interface{}
+	appConfig     map[string]interface{} // 原始应用程序配置（不包含环境变量）
 	moduleConfigs map[string]map[string]interface{}
 	mu            sync.RWMutex
 	closed        bool
@@ -56,6 +57,7 @@ func NewConfigManager(options *ConfigOptions) (*ConfigManagerImpl, error) {
 		eventManager:  eventManager,
 		fileWatcher:   fileWatcher,
 		globalConfig:  make(map[string]interface{}),
+		appConfig:     make(map[string]interface{}),
 		moduleConfigs: make(map[string]map[string]interface{}),
 		closed:        false,
 	}
@@ -172,6 +174,7 @@ func (m *ConfigManagerImpl) GetModuleConfigWithDefault(moduleName, key string, d
 }
 
 // ExportAllConfigs 导出所有配置项为JSON对象，保留层级结构
+// 只包含应用程序配置，不包含系统环境变量
 func (m *ConfigManagerImpl) ExportAllConfigs() (map[string]interface{}, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -183,12 +186,12 @@ func (m *ConfigManagerImpl) ExportAllConfigs() (map[string]interface{}, error) {
 	// 创建结果map
 	result := make(map[string]interface{})
 
-	// 复制全局配置
-	globalConfig := make(map[string]interface{})
-	for k, v := range m.globalConfig {
-		globalConfig[k] = m.deepCopyValue(v)
+	// 复制应用程序配置（不包含环境变量）
+	appConfig := make(map[string]interface{})
+	for k, v := range m.appConfig {
+		appConfig[k] = m.deepCopyValue(v)
 	}
-	result["global"] = globalConfig
+	result["application"] = appConfig
 
 	// 复制模块配置
 	moduleConfigs := make(map[string]interface{})
@@ -360,13 +363,16 @@ func (m *ConfigManagerImpl) loadAllConfigs() error {
 	oldModuleConfigs := m.moduleConfigs
 
 	// 加载全局配置
-	globalConfig, err := m.loader.LoadGlobalConfig()
+	appConfig, err := m.loader.LoadGlobalConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load global config: %w", err)
 	}
 
+	// 保存原始应用程序配置
+	m.appConfig = appConfig
+
 	// 合并环境变量配置
-	globalConfig, err = m.envMerger.Merge(globalConfig)
+	globalConfig, err := m.envMerger.Merge(appConfig)
 	if err != nil {
 		return fmt.Errorf("failed to merge env config: %w", err)
 	}

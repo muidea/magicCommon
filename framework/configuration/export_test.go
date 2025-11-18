@@ -98,30 +98,30 @@ paypal = false
 			t.Error("Exported configs should not be nil")
 		}
 
-		// 验证全局配置
-		globalConfig, exists := exportedConfigs["global"]
+		// 验证应用程序配置
+		appConfig, exists := exportedConfigs["application"]
 		if !exists {
-			t.Error("Exported configs should contain 'global' section")
+			t.Error("Exported configs should contain 'application' section")
 		}
 
-		globalMap, ok := globalConfig.(map[string]interface{})
+		appMap, ok := appConfig.(map[string]interface{})
 		if !ok {
-			t.Error("Global config should be a map")
+			t.Error("Application config should be a map")
 		}
 
-		// 验证全局配置项
-		if globalMap["app_name"] != "Test Application" {
-			t.Errorf("Expected app_name 'Test Application', got '%v'", globalMap["app_name"])
+		// 验证应用程序配置项
+		if appMap["app_name"] != "Test Application" {
+			t.Errorf("Expected app_name 'Test Application', got '%v'", appMap["app_name"])
 		}
 
-		if globalMap["version"] != "1.0.0" {
-			t.Errorf("Expected version '1.0.0', got '%v'", globalMap["version"])
+		if appMap["version"] != "1.0.0" {
+			t.Errorf("Expected version '1.0.0', got '%v'", appMap["version"])
 		}
 
 		// 验证嵌套配置
-		serverConfig, exists := globalMap["server"]
+		serverConfig, exists := appMap["server"]
 		if !exists {
-			t.Error("Global config should contain 'server' section")
+			t.Error("Application config should contain 'server' section")
 		}
 
 		serverMap, ok := serverConfig.(map[string]interface{})
@@ -190,8 +190,8 @@ paypal = false
 		}
 
 		// 验证JSON结构
-		if _, exists := jsonConfig["global"]; !exists {
-			t.Error("JSON config should contain 'global' section")
+		if _, exists := jsonConfig["application"]; !exists {
+			t.Error("JSON config should contain 'application' section")
 		}
 
 		if _, exists := jsonConfig["modules"]; !exists {
@@ -218,8 +218,8 @@ paypal = false
 		}
 
 		// 验证基本结构
-		if _, exists := exportedConfigs["global"]; !exists {
-			t.Error("Exported configs should contain 'global' section")
+		if _, exists := exportedConfigs["application"]; !exists {
+			t.Error("Exported configs should contain 'application' section")
 		}
 
 		if _, exists := exportedConfigs["modules"]; !exists {

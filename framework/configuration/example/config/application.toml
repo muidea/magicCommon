@@ -1,6 +1,11 @@
 app_name = "My Application"
 version = "1.0.0"
 
+platformService = "http://127.0.0.1:8080"
+casService = "http://127.0.0.1:8081"
+fileService = "http://127.0.0.1:8083"
+superNamespace = "super"
+
 [server]
 host = "0.0.0.0"
 port = 8080
@@ -11,10 +16,6 @@ port = 5432
 
 [debug]
 enabled = false
-platformService = "http://127.0.0.1:8080"
-casService = "http://127.0.0.1:8081"
-fileService = "http://127.0.0.1:8083"
-superNamespace = "super"
 
 [applicationInfo]
 uuid = "128ec90fc5e54340"
