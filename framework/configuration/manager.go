@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -170,6 +171,41 @@ func (m *ConfigManagerImpl) GetModuleConfigWithDefault(moduleName, key string, d
 	return value
 }
 
+// GetSection 获取指定section的配置并反序列化为对象
+func (m *ConfigManagerImpl) GetSection(sectionPath string, target interface{}) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.closed {
+		return fmt.Errorf("config manager is closed")
+	}
+
+	// 获取section的配置值
+	sectionValue, err := m.getNestedValue(m.globalConfig, sectionPath)
+	if err != nil {
+		return fmt.Errorf("failed to get section %s: %w", sectionPath, err)
+	}
+
+	// 将配置值转换为JSON格式
+	sectionMap, ok := sectionValue.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("section %s is not a map structure", sectionPath)
+	}
+
+	// 将map转换为JSON字节
+	jsonBytes, err := json.Marshal(sectionMap)
+	if err != nil {
+		return fmt.Errorf("failed to marshal section %s to JSON: %w", sectionPath, err)
+	}
+
+	// 将JSON反序列化到目标对象
+	if err := json.Unmarshal(jsonBytes, target); err != nil {
+		return fmt.Errorf("failed to unmarshal section %s to target object: %w", sectionPath, err)
+	}
+
+	return nil
+}
+
 // Watch 监听配置变更
 func (m *ConfigManagerImpl) Watch(key string, handler ConfigChangeHandler) error {
 	if m.closed {
@@ -207,6 +243,27 @@ func (m *ConfigManagerImpl) UnwatchModule(moduleName, key string, handler Config
 	}
 
 	m.eventManager.UnregisterModuleWatcher(moduleName, key, handler)
+	return nil
+}
+
+// WatchSection 监听section配置变更
+func (m *ConfigManagerImpl) WatchSection(sectionPath string, handler ConfigChangeHandler) error {
+	if m.closed {
+		return fmt.Errorf("config manager is closed")
+	}
+
+	// 使用全局配置监听器来监听section变更
+	m.eventManager.RegisterGlobalWatcher(sectionPath, handler)
+	return nil
+}
+
+// UnwatchSection 取消section配置监听
+func (m *ConfigManagerImpl) UnwatchSection(sectionPath string, handler ConfigChangeHandler) error {
+	if m.closed {
+		return fmt.Errorf("config manager is closed")
+	}
+
+	m.eventManager.UnregisterGlobalWatcher(sectionPath, handler)
 	return nil
 }
 

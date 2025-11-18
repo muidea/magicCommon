@@ -29,17 +29,26 @@ type ConfigManager interface {
 	// GetModuleConfigWithDefault 获取模块隔离配置项，如果不存在则返回默认值
 	GetModuleConfigWithDefault(moduleName, key string, defaultValue interface{}) interface{}
 
+	// GetSection 获取指定section的配置并反序列化为对象
+	GetSection(sectionPath string, target interface{}) error
+
 	// Watch 监听配置变更
 	Watch(key string, handler ConfigChangeHandler) error
 
 	// WatchModule 监听模块配置变更
 	WatchModule(moduleName, key string, handler ConfigChangeHandler) error
 
+	// WatchSection 监听section配置变更
+	WatchSection(sectionPath string, handler ConfigChangeHandler) error
+
 	// Unwatch 取消监听
 	Unwatch(key string, handler ConfigChangeHandler) error
 
 	// UnwatchModule 取消模块配置监听
 	UnwatchModule(moduleName, key string, handler ConfigChangeHandler) error
+
+	// UnwatchSection 取消section配置监听
+	UnwatchSection(sectionPath string, handler ConfigChangeHandler) error
 
 	// Reload 重新加载所有配置
 	Reload() error

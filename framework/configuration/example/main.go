@@ -3,137 +3,166 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/muidea/magicCommon/framework/configuration"
 )
 
-func main() {
-	// 示例1: 基本使用
-	basicExample()
-
-	// 示例2: 模块配置使用
-	moduleExample()
-
-	// 示例3: 配置监听使用
-	watchExample()
+// DatabaseDeclare 数据库配置结构体
+type DatabaseDeclare struct {
+	ID       int64  `json:"id"`
+	DBServer string `json:"dbServer"`
+	DBName   string `json:"dbName"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-// basicExample 基本使用示例
-func basicExample() {
-	fmt.Println("=== 基本使用示例 ===")
+// ApplicationInfo 应用信息结构体
+type ApplicationInfo struct {
+	UUID        string          `json:"uuid"`
+	Name        string          `json:"name"`
+	ShortName   string          `json:"shortName"`
+	Icon        string          `json:"icon"`
+	Version     string          `json:"version"`
+	Domain      string          `json:"domain"`
+	Email       string          `json:"email"`
+	Author      string          `json:"author"`
+	Description string          `json:"description"`
+	Database    DatabaseDeclare `json:"database"`
+}
 
-	// 初始化配置管理器
-	configDir := getExampleConfigDir()
-	if err := configuration.InitDefaultConfigManager(configDir); err != nil {
+func main() {
+	// 初始化默认配置管理器
+	err := configuration.InitDefaultConfigManager("./config")
+	if err != nil {
 		log.Fatalf("Failed to initialize config manager: %v", err)
 	}
+	defer configuration.CloseConfigManager()
 
-	// 获取全局配置
+	fmt.Println("=== 配置管理框架使用示例 ===")
+
+	// 1. 基本配置获取
+	fmt.Println("\n1. 基本配置获取:")
+	appName, err := configuration.GetString("app_name")
+	if err != nil {
+		log.Printf("Failed to get app_name: %v", err)
+	} else {
+		fmt.Printf("应用名称: %s\n", appName)
+	}
+
 	serverPort, err := configuration.GetInt("server.port")
 	if err != nil {
-		fmt.Printf("Error getting server.port: %v\n", err)
+		log.Printf("Failed to get server.port: %v", err)
 	} else {
-		fmt.Printf("Server port: %d\n", serverPort)
+		fmt.Printf("服务器端口: %d\n", serverPort)
 	}
 
-	// 获取带默认值的配置
-	databaseHost := configuration.GetStringWithDefault("database.host", "localhost")
-	fmt.Printf("Database host: %s\n", databaseHost)
-
-	// 获取布尔配置
-	debugMode := configuration.GetBoolWithDefault("debug.enabled", false)
-	fmt.Printf("Debug mode: %t\n", debugMode)
-
-	fmt.Println()
-}
-
-// moduleExample 模块配置使用示例
-func moduleExample() {
-	fmt.Println("=== 模块配置使用示例 ===")
-
-	// 获取模块配置
-	moduleName := "payment"
-	apiKey, err := configuration.GetModuleString(moduleName, "api_key")
+	debugEnabled, err := configuration.GetBool("debug.enabled")
 	if err != nil {
-		fmt.Printf("Error getting payment.api_key: %v\n", err)
+		log.Printf("Failed to get debug.enabled: %v", err)
 	} else {
-		fmt.Printf("Payment API key: %s\n", apiKey)
+		fmt.Printf("调试模式: %t\n", debugEnabled)
 	}
 
-	// 获取带默认值的模块配置
-	timeout := configuration.GetModuleStringWithDefault(moduleName, "timeout", "30s")
-	fmt.Printf("Payment timeout: %s\n", timeout)
+	// 2. 带默认值的配置获取
+	fmt.Println("\n2. 带默认值的配置获取:")
+	defaultValue := configuration.GetStringWithDefault("nonexistent.key", "default_value")
+	fmt.Printf("不存在的配置项: %s\n", defaultValue)
 
-	fmt.Println()
-}
+	// 3. 模块配置获取
+	fmt.Println("\n3. 模块配置获取:")
+	apiKey, err := configuration.GetModuleString("payment", "api_key")
+	if err != nil {
+		log.Printf("Failed to get payment.api_key: %v", err)
+	} else {
+		fmt.Printf("支付API密钥: %s\n", apiKey)
+	}
 
-// watchExample 配置监听使用示例
-func watchExample() {
-	fmt.Println("=== 配置监听使用示例 ===")
+	// 4. Section配置获取
+	fmt.Println("\n4. Section配置获取:")
+
+	// 获取applicationInfo section
+	var appInfo ApplicationInfo
+	err = configuration.GetSection("applicationInfo", &appInfo)
+	if err != nil {
+		log.Printf("Failed to get applicationInfo section: %v", err)
+	} else {
+		fmt.Printf("应用信息:\n")
+		fmt.Printf("  UUID: %s\n", appInfo.UUID)
+		fmt.Printf("  名称: %s\n", appInfo.Name)
+		fmt.Printf("  简称: %s\n", appInfo.ShortName)
+		fmt.Printf("  版本: %s\n", appInfo.Version)
+		fmt.Printf("  域名: %s\n", appInfo.Domain)
+		fmt.Printf("  邮箱: %s\n", appInfo.Email)
+		fmt.Printf("  作者: %s\n", appInfo.Author)
+		fmt.Printf("  描述: %s\n", appInfo.Description)
+	}
+
+	// 获取嵌套的database section
+	var database DatabaseDeclare
+	err = configuration.GetSection("applicationInfo.database", &database)
+	if err != nil {
+		log.Printf("Failed to get applicationInfo.database section: %v", err)
+	} else {
+		fmt.Printf("数据库配置:\n")
+		fmt.Printf("  服务器: %s\n", database.DBServer)
+		fmt.Printf("  数据库: %s\n", database.DBName)
+		fmt.Printf("  用户名: %s\n", database.Username)
+		fmt.Printf("  密码: %s\n", database.Password)
+	}
+
+	// 5. 配置监听
+	fmt.Println("\n5. 配置监听示例:")
 
 	// 监听全局配置变更
-	err := configuration.WatchConfig("server.port", func(event configuration.ConfigChangeEvent) {
-		fmt.Printf("Config changed: %s, old: %v, new: %v\n",
+	err = configuration.WatchConfig("app_name", func(event configuration.ConfigChangeEvent) {
+		fmt.Printf("配置变更事件 - 键: %s, 旧值: %v, 新值: %v\n",
 			event.Key, event.OldValue, event.NewValue)
 	})
 	if err != nil {
-		fmt.Printf("Error watching config: %v\n", err)
+		log.Printf("Failed to watch config: %v", err)
 	}
 
-	// 监听模块配置变更
-	err = configuration.WatchModuleConfig("payment", "api_key", func(event configuration.ConfigChangeEvent) {
-		fmt.Printf("Module config changed: %s, old: %v, new: %v\n",
+	// 监听section配置变更
+	err = configuration.WatchSection("applicationInfo", func(event configuration.ConfigChangeEvent) {
+		fmt.Printf("Section变更事件 - 键: %s, 旧值: %v, 新值: %v\n",
 			event.Key, event.OldValue, event.NewValue)
 	})
 	if err != nil {
-		fmt.Printf("Error watching module config: %v\n", err)
+		log.Printf("Failed to watch section: %v", err)
 	}
 
-	fmt.Println("Configuration watchers registered. Try modifying config files to see changes.")
-	fmt.Println()
-}
+	// 6. 其他辅助函数
+	fmt.Println("\n6. 其他辅助函数:")
 
-// getExampleConfigDir 获取示例配置目录
-func getExampleConfigDir() string {
-	// 获取当前文件所在目录
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
+	// 检查配置管理器是否已初始化
+	if configuration.IsConfigManagerInitialized() {
+		fmt.Println("配置管理器已初始化")
 	}
 
-	// 返回示例配置目录
-	return filepath.Join(dir, "..", "..", "..", "..", "config")
-}
-
-// advancedExample 高级使用示例
-func advancedExample() {
-	fmt.Println("=== 高级使用示例 ===")
-
-	// 创建自定义配置管理器
-	configDir := getExampleConfigDir()
-	manager, err := configuration.CreateConfigManagerWithDir(configDir, true)
+	// 获取浮点数配置
+	floatValue, err := configuration.GetFloat64("server.port")
 	if err != nil {
-		log.Fatalf("Failed to create config manager: %v", err)
-	}
-	defer manager.Close()
-
-	// 直接使用管理器接口
-	value, err := manager.Get("server.host")
-	if err != nil {
-		fmt.Printf("Error getting server.host: %v\n", err)
+		log.Printf("Failed to get float value: %v", err)
 	} else {
-		fmt.Printf("Server host: %v\n", value)
+		fmt.Printf("服务器端口(浮点数): %.1f\n", floatValue)
 	}
 
-	// 获取模块配置
-	moduleValue, err := manager.GetModuleConfig("auth", "secret")
+	// 获取模块布尔配置
+	creditCardEnabled, err := configuration.GetModuleBool("payment", "methods.credit_card")
 	if err != nil {
-		fmt.Printf("Error getting auth.secret: %v\n", err)
+		log.Printf("Failed to get payment.methods.credit_card: %v", err)
 	} else {
-		fmt.Printf("Auth secret: %v\n", moduleValue)
+		fmt.Printf("信用卡支付启用: %t\n", creditCardEnabled)
 	}
 
-	fmt.Println()
+	// 7. 重新加载配置
+	fmt.Println("\n7. 重新加载配置:")
+	err = configuration.ReloadConfig()
+	if err != nil {
+		log.Printf("Failed to reload config: %v", err)
+	} else {
+		fmt.Println("配置重新加载成功")
+	}
+
+	fmt.Println("\n=== 示例完成 ===")
 }

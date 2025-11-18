@@ -1,0 +1,34 @@
+app_name = "My Application"
+version = "1.0.0"
+
+[server]
+host = "0.0.0.0"
+port = 8080
+
+[database]
+host = "localhost"
+port = 5432
+
+[debug]
+enabled = false
+platformService = "http://127.0.0.1:8080"
+casService = "http://127.0.0.1:8081"
+fileService = "http://127.0.0.1:8083"
+superNamespace = "super"
+
+[applicationInfo]
+uuid = "128ec90fc5e54340"
+name = "magicVMI"
+shortName = "vmi"
+icon = "magicVMI.png"
+version = "1.3.0"
+domain = "mulife.vip"
+email = "rangh@mulife.vip"
+author = "rangh"
+description = "magic vmi"
+
+[applicationInfo.database]
+dbServer = "127.0.0.1:3306"
+dbName = "magicvmi_db"
+username = "magicvmi"
+password = "magicvmi"

@@ -1,0 +1,9 @@
+api_key = "pk_test_1234567890abcdef"
+
+[gateway]
+url = "https://api.payment.com/v1"
+timeout = "30s"
+
+[methods]
+credit_card = true
+paypal = false

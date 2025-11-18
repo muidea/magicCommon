@@ -254,3 +254,180 @@ func WatchModuleConfig(moduleName, key string, handler ConfigChangeHandler) erro
 
 	return DefaultConfigManager.WatchModule(moduleName, key, handler)
 }
+
+// GetSection 获取指定section的配置并反序列化为对象（使用默认配置管理器）
+func GetSection(sectionPath string, target interface{}) error {
+	if DefaultConfigManager == nil {
+		return fmt.Errorf("default config manager not initialized")
+	}
+
+	return DefaultConfigManager.GetSection(sectionPath, target)
+}
+
+// WatchSection 监听section配置变更（使用默认配置管理器）
+func WatchSection(sectionPath string, handler ConfigChangeHandler) error {
+	if DefaultConfigManager == nil {
+		return fmt.Errorf("default config manager not initialized")
+	}
+
+	return DefaultConfigManager.WatchSection(sectionPath, handler)
+}
+
+// UnwatchSection 取消section配置监听（使用默认配置管理器）
+func UnwatchSection(sectionPath string, handler ConfigChangeHandler) error {
+	if DefaultConfigManager == nil {
+		return fmt.Errorf("default config manager not initialized")
+	}
+
+	return DefaultConfigManager.UnwatchSection(sectionPath, handler)
+}
+
+// ReloadConfig 重新加载所有配置（使用默认配置管理器）
+func ReloadConfig() error {
+	if DefaultConfigManager == nil {
+		return fmt.Errorf("default config manager not initialized")
+	}
+
+	return DefaultConfigManager.Reload()
+}
+
+// CloseConfigManager 关闭配置管理器（使用默认配置管理器）
+func CloseConfigManager() error {
+	if DefaultConfigManager == nil {
+		return nil // 如果未初始化，直接返回成功
+	}
+
+	return DefaultConfigManager.Close()
+}
+
+// GetFloat64 获取浮点数配置值
+func GetFloat64(key string) (float64, error) {
+	if DefaultConfigManager == nil {
+		return 0, fmt.Errorf("default config manager not initialized")
+	}
+
+	value, err := DefaultConfigManager.Get(key)
+	if err != nil {
+		return 0, err
+	}
+
+	// 尝试转换为浮点数
+	switch v := value.(type) {
+	case float64:
+		return v, nil
+	case int:
+		return float64(v), nil
+	case int64:
+		return float64(v), nil
+	default:
+		return 0, fmt.Errorf("config value is not a float: %s", key)
+	}
+}
+
+// GetFloat64WithDefault 获取浮点数配置值，如果不存在则返回默认值
+func GetFloat64WithDefault(key string, defaultValue float64) float64 {
+	if DefaultConfigManager == nil {
+		return defaultValue
+	}
+
+	value := DefaultConfigManager.GetWithDefault(key, defaultValue)
+
+	switch v := value.(type) {
+	case float64:
+		return v
+	case int:
+		return float64(v)
+	case int64:
+		return float64(v)
+	default:
+		return defaultValue
+	}
+}
+
+// GetModuleInt 获取模块整数配置值
+func GetModuleInt(moduleName, key string) (int, error) {
+	if DefaultConfigManager == nil {
+		return 0, fmt.Errorf("default config manager not initialized")
+	}
+
+	value, err := DefaultConfigManager.GetModuleConfig(moduleName, key)
+	if err != nil {
+		return 0, err
+	}
+
+	// 尝试转换为整数
+	switch v := value.(type) {
+	case int:
+		return v, nil
+	case int64:
+		return int(v), nil
+	case float64:
+		return int(v), nil
+	default:
+		return 0, fmt.Errorf("module config value is not an integer: %s.%s", moduleName, key)
+	}
+}
+
+// GetModuleIntWithDefault 获取模块整数配置值，如果不存在则返回默认值
+func GetModuleIntWithDefault(moduleName, key string, defaultValue int) int {
+	if DefaultConfigManager == nil {
+		return defaultValue
+	}
+
+	value := DefaultConfigManager.GetModuleConfigWithDefault(moduleName, key, defaultValue)
+
+	switch v := value.(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	default:
+		return defaultValue
+	}
+}
+
+// GetModuleBool 获取模块布尔配置值
+func GetModuleBool(moduleName, key string) (bool, error) {
+	if DefaultConfigManager == nil {
+		return false, fmt.Errorf("default config manager not initialized")
+	}
+
+	value, err := DefaultConfigManager.GetModuleConfig(moduleName, key)
+	if err != nil {
+		return false, err
+	}
+
+	boolVal, ok := value.(bool)
+	if !ok {
+		return false, fmt.Errorf("module config value is not a boolean: %s.%s", moduleName, key)
+	}
+
+	return boolVal, nil
+}
+
+// GetModuleBoolWithDefault 获取模块布尔配置值，如果不存在则返回默认值
+func GetModuleBoolWithDefault(moduleName, key string, defaultValue bool) bool {
+	if DefaultConfigManager == nil {
+		return defaultValue
+	}
+
+	value := DefaultConfigManager.GetModuleConfigWithDefault(moduleName, key, defaultValue)
+	boolVal, ok := value.(bool)
+	if !ok {
+		return defaultValue
+	}
+
+	return boolVal
+}
+
+// IsConfigManagerInitialized 检查配置管理器是否已初始化
+func IsConfigManagerInitialized() bool {
+	return DefaultConfigManager != nil
+}
+
+// GetConfigManager 获取当前默认配置管理器实例
+func GetConfigManager() ConfigManager {
+	return DefaultConfigManager
+}
