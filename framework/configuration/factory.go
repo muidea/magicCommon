@@ -15,7 +15,7 @@ func InitDefaultConfigManager(configDir string) error {
 	// 如果未指定配置目录，使用默认值
 	if configDir == "" {
 		// 尝试从环境变量获取配置目录
-		if envConfigDir := os.Getenv("CONFIG_DIR"); envConfigDir != "" {
+		if envConfigDir := os.Getenv("CONFIG_PATH"); envConfigDir != "" {
 			configDir = envConfigDir
 		} else {
 			// 使用当前工作目录下的config目录
