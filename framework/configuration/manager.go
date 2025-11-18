@@ -171,6 +171,62 @@ func (m *ConfigManagerImpl) GetModuleConfigWithDefault(moduleName, key string, d
 	return value
 }
 
+// ExportAllConfigs 导出所有配置项为JSON对象，保留层级结构
+func (m *ConfigManagerImpl) ExportAllConfigs() (map[string]interface{}, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.closed {
+		return nil, fmt.Errorf("config manager is closed")
+	}
+
+	// 创建结果map
+	result := make(map[string]interface{})
+
+	// 复制全局配置
+	globalConfig := make(map[string]interface{})
+	for k, v := range m.globalConfig {
+		globalConfig[k] = m.deepCopyValue(v)
+	}
+	result["global"] = globalConfig
+
+	// 复制模块配置
+	moduleConfigs := make(map[string]interface{})
+	for moduleName, moduleConfig := range m.moduleConfigs {
+		moduleCopy := make(map[string]interface{})
+		for k, v := range moduleConfig {
+			moduleCopy[k] = m.deepCopyValue(v)
+		}
+		moduleConfigs[moduleName] = moduleCopy
+	}
+	result["modules"] = moduleConfigs
+
+	return result, nil
+}
+
+// deepCopyValue 深度复制配置值，确保返回的是可安全序列化的值
+func (m *ConfigManagerImpl) deepCopyValue(value interface{}) interface{} {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		// 递归复制map
+		copyMap := make(map[string]interface{})
+		for key, val := range v {
+			copyMap[key] = m.deepCopyValue(val)
+		}
+		return copyMap
+	case []interface{}:
+		// 递归复制slice
+		copySlice := make([]interface{}, len(v))
+		for i, val := range v {
+			copySlice[i] = m.deepCopyValue(val)
+		}
+		return copySlice
+	default:
+		// 基本类型直接返回
+		return v
+	}
+}
+
 // GetSection 获取指定section的配置并反序列化为对象
 func (m *ConfigManagerImpl) GetSection(sectionPath string, target interface{}) error {
 	m.mu.RLock()

@@ -431,3 +431,12 @@ func IsConfigManagerInitialized() bool {
 func GetConfigManager() ConfigManager {
 	return DefaultConfigManager
 }
+
+// ExportAllConfigs 导出所有配置项为JSON对象，保留层级结构（使用默认配置管理器）
+func ExportAllConfigs() (map[string]interface{}, error) {
+	if DefaultConfigManager == nil {
+		return nil, fmt.Errorf("default config manager not initialized")
+	}
+
+	return DefaultConfigManager.ExportAllConfigs()
+}

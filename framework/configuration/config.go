@@ -32,6 +32,9 @@ type ConfigManager interface {
 	// GetSection 获取指定section的配置并反序列化为对象
 	GetSection(sectionPath string, target interface{}) error
 
+	// ExportAllConfigs 导出所有配置项为JSON对象，保留层级结构
+	ExportAllConfigs() (map[string]interface{}, error)
+
 	// Watch 监听配置变更
 	Watch(key string, handler ConfigChangeHandler) error
 

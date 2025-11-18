@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -162,6 +163,42 @@ func main() {
 		log.Printf("Failed to reload config: %v", err)
 	} else {
 		fmt.Println("配置重新加载成功")
+	}
+
+	// 8. 导出所有配置
+	fmt.Println("\n8. 导出所有配置:")
+	allConfigs, err := configuration.ExportAllConfigs()
+	if err != nil {
+		log.Printf("Failed to export all configs: %v", err)
+	} else {
+		// 将配置转换为JSON格式输出
+		configJSON, err := json.MarshalIndent(allConfigs, "", "  ")
+		if err != nil {
+			log.Printf("Failed to marshal configs to JSON: %v", err)
+		} else {
+			fmt.Println("所有配置项(JSON格式):")
+			fmt.Println(string(configJSON))
+		}
+
+		// 展示配置结构
+		fmt.Println("\n配置结构概览:")
+		if globalConfig, ok := allConfigs["global"].(map[string]interface{}); ok {
+			fmt.Printf("全局配置项数量: %d\n", len(globalConfig))
+			for key := range globalConfig {
+				fmt.Printf("  - %s\n", key)
+			}
+		}
+
+		if modulesConfig, ok := allConfigs["modules"].(map[string]interface{}); ok {
+			fmt.Printf("模块配置数量: %d\n", len(modulesConfig))
+			for moduleName := range modulesConfig {
+				fmt.Printf("  - %s\n", moduleName)
+			}
+		}
+
+		if envConfig, ok := allConfigs["environment"].(map[string]interface{}); ok {
+			fmt.Printf("环境变量配置数量: %d\n", len(envConfig))
+		}
 	}
 
 	fmt.Println("\n=== 示例完成 ===")
