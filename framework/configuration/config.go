@@ -58,6 +58,12 @@ type ConfigManager interface {
 
 	// Close 关闭配置管理器
 	Close() error
+
+	// IsDebugMode 检查是否启用调试模式
+	IsDebugMode() bool
+
+	// SetDebugMode 设置调试模式
+	SetDebugMode(debug bool)
 }
 
 // ConfigLoader 配置加载器接口

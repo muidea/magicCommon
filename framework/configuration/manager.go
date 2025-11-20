@@ -3,6 +3,7 @@ package configuration
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -20,6 +21,7 @@ type ConfigManagerImpl struct {
 	moduleConfigs map[string]map[string]interface{}
 	mu            sync.RWMutex
 	closed        bool
+	debugMode     bool // 调试模式开关
 }
 
 // NewConfigManager 创建配置管理器
@@ -50,6 +52,9 @@ func NewConfigManager(options *ConfigOptions) (*ConfigManagerImpl, error) {
 		}
 	}
 
+	// 检查是否启用调试模式
+	debugMode := os.Getenv("CONFIG_DEBUG") == "true" || os.Getenv("CONFIG_DEBUG") == "1"
+
 	manager := &ConfigManagerImpl{
 		options:       options,
 		loader:        loader,
@@ -60,6 +65,7 @@ func NewConfigManager(options *ConfigOptions) (*ConfigManagerImpl, error) {
 		appConfig:     make(map[string]interface{}),
 		moduleConfigs: make(map[string]map[string]interface{}),
 		closed:        false,
+		debugMode:     debugMode,
 	}
 
 	// 初始加载配置
@@ -104,6 +110,20 @@ func (m *ConfigManagerImpl) getNestedValue(config map[string]interface{}, key st
 	return nil, fmt.Errorf("config key not found: %s", key)
 }
 
+// IsDebugMode 检查是否启用调试模式
+func (m *ConfigManagerImpl) IsDebugMode() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.debugMode
+}
+
+// SetDebugMode 设置调试模式
+func (m *ConfigManagerImpl) SetDebugMode(debug bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.debugMode = debug
+}
+
 // Get 获取全局配置项（支持嵌套配置访问）
 func (m *ConfigManagerImpl) Get(key string) (interface{}, error) {
 	m.mu.RLock()
@@ -115,12 +135,19 @@ func (m *ConfigManagerImpl) Get(key string) (interface{}, error) {
 
 	// 如果key包含点号，尝试解析嵌套配置
 	if strings.Contains(key, ".") {
-		return m.getNestedValue(m.globalConfig, key)
+		value, err := m.getNestedValue(m.globalConfig, key)
+		if err != nil && m.debugMode {
+			fmt.Printf("[CONFIG DEBUG] Config key not found: %s\n", key)
+		}
+		return value, err
 	}
 
 	// 否则使用原来的简单查找
 	value, exists := m.globalConfig[key]
 	if !exists {
+		if m.debugMode {
+			fmt.Printf("[CONFIG DEBUG] Config key not found: %s\n", key)
+		}
 		return nil, fmt.Errorf("config key not found: %s", key)
 	}
 
@@ -147,17 +174,27 @@ func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (interface{}
 
 	moduleConfig, exists := m.moduleConfigs[moduleName]
 	if !exists {
+		if m.debugMode {
+			fmt.Printf("[CONFIG DEBUG] Module not found: %s\n", moduleName)
+		}
 		return nil, fmt.Errorf("module not found: %s", moduleName)
 	}
 
 	// 如果key包含点号，尝试解析嵌套配置
 	if strings.Contains(key, ".") {
-		return m.getNestedValue(moduleConfig, key)
+		value, err := m.getNestedValue(moduleConfig, key)
+		if err != nil && m.debugMode {
+			fmt.Printf("[CONFIG DEBUG] Config key not found in module %s: %s\n", moduleName, key)
+		}
+		return value, err
 	}
 
 	// 否则使用原来的简单查找
 	value, exists := moduleConfig[key]
 	if !exists {
+		if m.debugMode {
+			fmt.Printf("[CONFIG DEBUG] Config key not found in module %s: %s\n", moduleName, key)
+		}
 		return nil, fmt.Errorf("config key not found in module %s: %s", moduleName, key)
 	}
 
