@@ -53,7 +53,7 @@ func NewConfigManager(options *ConfigOptions) (*ConfigManagerImpl, error) {
 	}
 
 	// 检查是否启用调试模式
-	debugMode := os.Getenv("CONFIG_DEBUG") == "true" || os.Getenv("CONFIG_DEBUG") == "1"
+	debugMode := os.Getenv("DEBUG_MODE") == "true" || os.Getenv("DEBUG_MODE") == "1"
 
 	manager := &ConfigManagerImpl{
 		options:       options,

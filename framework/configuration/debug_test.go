@@ -8,12 +8,12 @@ import (
 // TestDebugMode 测试调试模式功能
 func TestDebugMode(t *testing.T) {
 	// 保存原始环境变量
-	originalDebug := os.Getenv("CONFIG_DEBUG")
-	defer os.Setenv("CONFIG_DEBUG", originalDebug)
+	originalDebug := os.Getenv("DEBUG_MODE")
+	defer os.Setenv("DEBUG_MODE", originalDebug)
 
 	// 测试场景1: 启用调试模式
 	t.Run("EnableDebugMode", func(t *testing.T) {
-		os.Setenv("CONFIG_DEBUG", "true")
+		os.Setenv("DEBUG_MODE", "true")
 
 		// 创建临时配置目录
 		tempDir := t.TempDir()
@@ -30,7 +30,7 @@ func TestDebugMode(t *testing.T) {
 
 		// 检查调试模式是否启用
 		if !manager.IsDebugMode() {
-			t.Error("Debug mode should be enabled when CONFIG_DEBUG=true")
+			t.Error("Debug mode should be enabled when DEBUG_MODE=true")
 		}
 
 		// 测试获取不存在的配置项，应该输出调试信息
@@ -43,7 +43,7 @@ func TestDebugMode(t *testing.T) {
 
 	// 测试场景2: 禁用调试模式
 	t.Run("DisableDebugMode", func(t *testing.T) {
-		os.Setenv("CONFIG_DEBUG", "false")
+		os.Setenv("DEBUG_MODE", "false")
 
 		// 创建临时配置目录
 		tempDir := t.TempDir()
@@ -60,13 +60,13 @@ func TestDebugMode(t *testing.T) {
 
 		// 检查调试模式是否禁用
 		if manager.IsDebugMode() {
-			t.Error("Debug mode should be disabled when CONFIG_DEBUG=false")
+			t.Error("Debug mode should be disabled when DEBUG_MODE=false")
 		}
 	})
 
 	// 测试场景3: 使用数字1启用调试模式
 	t.Run("EnableDebugModeWith1", func(t *testing.T) {
-		os.Setenv("CONFIG_DEBUG", "1")
+		os.Setenv("DEBUG_MODE", "1")
 
 		// 创建临时配置目录
 		tempDir := t.TempDir()
@@ -83,13 +83,13 @@ func TestDebugMode(t *testing.T) {
 
 		// 检查调试模式是否启用
 		if !manager.IsDebugMode() {
-			t.Error("Debug mode should be enabled when CONFIG_DEBUG=1")
+			t.Error("Debug mode should be enabled when DEBUG_MODE=1")
 		}
 	})
 
 	// 测试场景4: 动态设置调试模式
 	t.Run("DynamicDebugMode", func(t *testing.T) {
-		os.Setenv("CONFIG_DEBUG", "false")
+		os.Setenv("DEBUG_MODE", "false")
 
 		// 创建临时配置目录
 		tempDir := t.TempDir()
@@ -126,10 +126,10 @@ func TestDebugMode(t *testing.T) {
 // TestDebugModeModuleConfig 测试模块配置的调试模式
 func TestDebugModeModuleConfig(t *testing.T) {
 	// 保存原始环境变量
-	originalDebug := os.Getenv("CONFIG_DEBUG")
-	defer os.Setenv("CONFIG_DEBUG", originalDebug)
+	originalDebug := os.Getenv("DEBUG_MODE")
+	defer os.Setenv("DEBUG_MODE", originalDebug)
 
-	os.Setenv("CONFIG_DEBUG", "true")
+	os.Setenv("DEBUG_MODE", "true")
 
 	// 创建临时配置目录
 	tempDir := t.TempDir()
