@@ -43,10 +43,42 @@ func (l *EnvConfigLoader) Load() (map[string]interface{}, error) {
 
 		// 将环境变量名转换为配置键名（下划线转点号，大写转小写）
 		configKey := l.normalizeKey(key)
-		config[configKey] = l.parseValue(value)
+		// 将点号分隔的键名展开为嵌套结构
+		l.setNestedValue(config, configKey, l.parseValue(value))
 	}
 
 	return config, nil
+}
+
+// setNestedValue 设置嵌套配置值
+func (l *EnvConfigLoader) setNestedValue(config map[string]interface{}, key string, value interface{}) {
+	parts := strings.Split(key, ".")
+	current := config
+
+	for i, part := range parts {
+		// 如果是最后一个部分，直接设置值
+		if i == len(parts)-1 {
+			current[part] = value
+			return
+		}
+
+		// 如果不是最后一个部分，确保下一级映射存在
+		if next, exists := current[part]; exists {
+			if nextMap, ok := next.(map[string]interface{}); ok {
+				current = nextMap
+			} else {
+				// 如果存在但不是映射，用新的映射替换
+				newMap := make(map[string]interface{})
+				current[part] = newMap
+				current = newMap
+			}
+		} else {
+			// 如果不存在，创建新的映射
+			newMap := make(map[string]interface{})
+			current[part] = newMap
+			current = newMap
+		}
+	}
 }
 
 // normalizeKey 规范化键名
@@ -67,10 +99,12 @@ func (l *EnvConfigLoader) parseValue(value string) interface{} {
 		return false
 	}
 
-	// 尝试解析为数字
+	// 尝试解析为整数（仅当整个字符串都是数字时）
 	if intVal, err := parseInt(value); err == nil {
 		return intVal
 	}
+
+	// 尝试解析为浮点数（仅当整个字符串都是浮点数时）
 	if floatVal, err := parseFloat(value); err == nil {
 		return floatVal
 	}
@@ -82,15 +116,29 @@ func (l *EnvConfigLoader) parseValue(value string) interface{} {
 // parseInt 尝试解析为整数
 func parseInt(s string) (int64, error) {
 	var result int64
-	_, err := fmt.Sscanf(s, "%d", &result)
-	return result, err
+	n, err := fmt.Sscanf(s, "%d", &result)
+	if err != nil || n != 1 {
+		return 0, fmt.Errorf("not an integer")
+	}
+	// 检查是否整个字符串都被解析了
+	if fmt.Sprintf("%d", result) != s {
+		return 0, fmt.Errorf("not a pure integer")
+	}
+	return result, nil
 }
 
 // parseFloat 尝试解析为浮点数
 func parseFloat(s string) (float64, error) {
 	var result float64
-	_, err := fmt.Sscanf(s, "%f", &result)
-	return result, err
+	n, err := fmt.Sscanf(s, "%f", &result)
+	if err != nil || n != 1 {
+		return 0, fmt.Errorf("not a float")
+	}
+	// 检查是否整个字符串都被解析了
+	if fmt.Sprintf("%g", result) != s && fmt.Sprintf("%f", result) != s {
+		return 0, fmt.Errorf("not a pure float")
+	}
+	return result, nil
 }
 
 // EnvConfigMerger 环境变量配置合并器

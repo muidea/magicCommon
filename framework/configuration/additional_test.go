@@ -24,28 +24,40 @@ func TestEnvConfigLoader(t *testing.T) {
 		t.Fatalf("Failed to load env config: %v", err)
 	}
 
-	// 验证环境变量配置
-	if config["app.name"] != "EnvApp" {
-		t.Errorf("Expected app.name 'EnvApp', got '%v'", config["app.name"])
+	// 验证环境变量配置（现在支持嵌套结构）
+	if appConfig, ok := config["app"].(map[string]interface{}); ok {
+		if appConfig["name"] != "EnvApp" {
+			t.Errorf("Expected app.name 'EnvApp', got '%v'", appConfig["name"])
+		}
+	} else {
+		t.Errorf("Expected app to be a map, got %T", config["app"])
 	}
 
 	// 环境变量解析器应该将数字字符串转换为数字类型
-	serverPort := config["server.port"]
-	switch port := serverPort.(type) {
-	case int64:
-		if port != 9090 {
-			t.Errorf("Expected server.port 9090, got '%v'", serverPort)
+	if serverConfig, ok := config["server"].(map[string]interface{}); ok {
+		serverPort := serverConfig["port"]
+		switch port := serverPort.(type) {
+		case int64:
+			if port != 9090 {
+				t.Errorf("Expected server.port 9090, got '%v'", serverPort)
+			}
+		case string:
+			if port != "9090" {
+				t.Errorf("Expected server.port '9090', got '%v'", serverPort)
+			}
+		default:
+			t.Errorf("Unexpected type for server.port: %T, value: %v", serverPort, serverPort)
 		}
-	case string:
-		if port != "9090" {
-			t.Errorf("Expected server.port '9090', got '%v'", serverPort)
-		}
-	default:
-		t.Errorf("Unexpected type for server.port: %T, value: %v", serverPort, serverPort)
+	} else {
+		t.Errorf("Expected server to be a map, got %T", config["server"])
 	}
 
-	if config["debug.enabled"] != true {
-		t.Errorf("Expected debug.enabled true, got '%v'", config["debug.enabled"])
+	if debugConfig, ok := config["debug"].(map[string]interface{}); ok {
+		if debugConfig["enabled"] != true {
+			t.Errorf("Expected debug.enabled true, got '%v'", debugConfig["enabled"])
+		}
+	} else {
+		t.Errorf("Expected debug to be a map, got %T", config["debug"])
 	}
 }
 

@@ -197,5 +197,9 @@ func main() {
 		}
 	}
 
+	// 9. 环境变量配置加载器演示
+	fmt.Println("\n9. 环境变量配置加载器演示:")
+	DemoEnvLoader()
+
 	fmt.Println("\n=== 示例完成 ===")
 }
