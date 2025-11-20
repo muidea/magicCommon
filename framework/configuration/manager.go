@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	fp "github.com/muidea/magicCommon/foundation/path"
 )
 
 // ConfigManagerImpl 配置管理器实现
@@ -585,6 +587,11 @@ func (m *ConfigManagerImpl) setupFileWatching() error {
 
 	// 监听模块配置目录
 	moduleConfigDir := filepath.Join(m.options.ConfigDir, "config.d")
+	if !fp.Exist(moduleConfigDir) {
+		if err := os.MkdirAll(moduleConfigDir, 0755); err != nil {
+			return fmt.Errorf("failed to create module config directory: %w", err)
+		}
+	}
 	if err := m.fileWatcher.WatchDirectory(moduleConfigDir, func(filePath string) {
 		if strings.HasSuffix(filePath, ".toml") {
 			fmt.Printf("Module config file changed: %s, reloading...\n", filePath)
