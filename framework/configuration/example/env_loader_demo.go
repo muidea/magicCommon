@@ -3,9 +3,32 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/muidea/magicCommon/framework/configuration"
 )
+
+// getNestedValue 从嵌套配置中获取值
+func getNestedValue(config map[string]interface{}, key string) interface{} {
+	parts := strings.Split(key, ".")
+	current := config
+
+	for i, part := range parts {
+		if val, ok := current[part]; ok {
+			if i == len(parts)-1 {
+				return val
+			}
+			if nested, ok := val.(map[string]interface{}); ok {
+				current = nested
+			} else {
+				return nil
+			}
+		} else {
+			return nil
+		}
+	}
+	return nil
+}
 
 // DemoEnvLoader 环境变量加载器演示函数
 func DemoEnvLoader() {
@@ -24,6 +47,15 @@ func DemoEnvLoader() {
 		"NUMERIC_INT_VALUE":      "123",
 		"NUMERIC_FLOAT_VALUE":    "3.14",
 		"BOOLEAN_FALSE_VALUE":    "false",
+		// 添加嵌套结构测试环境变量
+		"DATABASE_HOST":                 "localhost",
+		"DATABASE_PORT":                 "3306",
+		"DATABASE_CREDENTIALS_USERNAME": "admin",
+		"DATABASE_CREDENTIALS_PASSWORD": "secret",
+		"SERVER_SETTINGS_HTTP_PORT":     "8080",
+		"SERVER_SETTINGS_HTTPS_PORT":    "8443",
+		"APP_INFO_NAME":                 "TestApp",
+		"APP_INFO_VERSION":              "1.0.0",
 	}
 
 	for key, value := range envVars {
@@ -64,10 +96,20 @@ func DemoEnvLoader() {
 		"NUMERIC_INT_VALUE":     "numeric.int.value",
 		"NUMERIC_FLOAT_VALUE":   "numeric.float.value",
 		"BOOLEAN_FALSE_VALUE":   "boolean.false.value",
+		// 嵌套结构键名映射
+		"DATABASE_HOST":                 "database.host",
+		"DATABASE_PORT":                 "database.port",
+		"DATABASE_CREDENTIALS_USERNAME": "database.credentials.username",
+		"DATABASE_CREDENTIALS_PASSWORD": "database.credentials.password",
+		"SERVER_SETTINGS_HTTP_PORT":     "server.settings.http.port",
+		"SERVER_SETTINGS_HTTPS_PORT":    "server.settings.https.port",
+		"APP_INFO_NAME":                 "app.info.name",
+		"APP_INFO_VERSION":              "app.info.version",
 	}
 
 	for envKey, configKey := range expectedMappings {
-		if val, ok := noPrefixConfig[configKey]; ok {
+		val := getNestedValue(noPrefixConfig, configKey)
+		if val != nil {
 			fmt.Printf("   ✅ %s -> %s = %v\n", envKey, configKey, val)
 		} else {
 			fmt.Printf("   ❌ %s -> %s 未找到\n", envKey, configKey)
@@ -129,7 +171,8 @@ func DemoEnvLoader() {
 	}
 
 	for _, tc := range typeTestCases {
-		if val, ok := mergedConfig[tc.key]; ok {
+		val := getNestedValue(mergedConfig, tc.key)
+		if val != nil {
 			actualType := fmt.Sprintf("%T", val)
 			status := "❌"
 			if actualType == tc.expectedType {
@@ -142,8 +185,59 @@ func DemoEnvLoader() {
 		}
 	}
 
-	// 7. 问题诊断
-	fmt.Println("\n7. 问题诊断:")
+	// 7. 嵌套配置项访问演示
+	fmt.Println("\n7. 嵌套配置项访问演示:")
+	fmt.Println("   环境变量中的下划线会被转换为点号，形成嵌套结构:")
+
+	// 演示如何访问嵌套配置项
+	fmt.Println("\n   访问数据库配置:")
+	if databaseConfig, ok := mergedConfig["database"].(map[string]interface{}); ok {
+		if host, ok := databaseConfig["host"]; ok {
+			fmt.Printf("     database.host = %v\n", host)
+		}
+		if port, ok := databaseConfig["port"]; ok {
+			fmt.Printf("     database.port = %v\n", port)
+		}
+		if credentials, ok := databaseConfig["credentials"].(map[string]interface{}); ok {
+			if username, ok := credentials["username"]; ok {
+				fmt.Printf("     database.credentials.username = %v\n", username)
+			}
+			if password, ok := credentials["password"]; ok {
+				fmt.Printf("     database.credentials.password = %v\n", password)
+			}
+		}
+	}
+
+	fmt.Println("\n   访问服务器设置:")
+	if serverConfig, ok := mergedConfig["server"].(map[string]interface{}); ok {
+		if settings, ok := serverConfig["settings"].(map[string]interface{}); ok {
+			if httpConfig, ok := settings["http"].(map[string]interface{}); ok {
+				if port, ok := httpConfig["port"]; ok {
+					fmt.Printf("     server.settings.http.port = %v\n", port)
+				}
+			}
+			if httpsConfig, ok := settings["https"].(map[string]interface{}); ok {
+				if port, ok := httpsConfig["port"]; ok {
+					fmt.Printf("     server.settings.https.port = %v\n", port)
+				}
+			}
+		}
+	}
+
+	fmt.Println("\n   访问应用信息:")
+	if appConfig, ok := mergedConfig["app"].(map[string]interface{}); ok {
+		if info, ok := appConfig["info"].(map[string]interface{}); ok {
+			if name, ok := info["name"]; ok {
+				fmt.Printf("     app.info.name = %v\n", name)
+			}
+			if version, ok := info["version"]; ok {
+				fmt.Printf("     app.info.version = %v\n", version)
+			}
+		}
+	}
+
+	// 8. 问题诊断
+	fmt.Println("\n8. 问题诊断:")
 	fmt.Println("   如果无法通过 'default.namespace' 读取 'DEFAULT_NAMESPACE' 环境变量，请检查:")
 	fmt.Println("   - 环境变量是否已正确设置")
 	fmt.Println("   - 环境变量名称是否包含特殊字符")

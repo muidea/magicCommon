@@ -160,18 +160,41 @@ func (m *EnvConfigMerger) Merge(existingConfig map[string]interface{}) (map[stri
 		return nil, err
 	}
 
-	// 创建新的配置映射
-	mergedConfig := make(map[string]interface{})
-
-	// 先复制现有配置
-	for k, v := range existingConfig {
-		mergedConfig[k] = v
-	}
-
-	// 然后用环境变量配置覆盖（环境变量优先级更高）
-	for k, v := range envConfig {
-		mergedConfig[k] = v
-	}
-
+	// 深度合并配置
+	mergedConfig := m.deepMerge(existingConfig, envConfig)
 	return mergedConfig, nil
+}
+
+// deepMerge 深度合并两个配置映射
+func (m *EnvConfigMerger) deepMerge(dest, src map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	// 先复制目标配置
+	for k, v := range dest {
+		result[k] = v
+	}
+
+	// 然后合并源配置
+	for k, srcVal := range src {
+		if destVal, exists := result[k]; exists {
+			// 如果目标中已存在该键
+			if destMap, destOk := destVal.(map[string]interface{}); destOk {
+				if srcMap, srcOk := srcVal.(map[string]interface{}); srcOk {
+					// 如果都是映射，递归合并
+					result[k] = m.deepMerge(destMap, srcMap)
+				} else {
+					// 如果源不是映射，直接覆盖（环境变量优先级更高）
+					result[k] = srcVal
+				}
+			} else {
+				// 如果目标不是映射，直接覆盖
+				result[k] = srcVal
+			}
+		} else {
+			// 如果目标中不存在该键，直接添加
+			result[k] = srcVal
+		}
+	}
+
+	return result
 }

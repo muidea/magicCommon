@@ -454,3 +454,246 @@ func compareMaps(a, b map[string]interface{}) bool {
 
 	return true
 }
+
+func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
+	// 设置测试环境变量
+	os.Setenv("APP_NAME", "EnvApp")
+	os.Setenv("APP_DATABASE_HOST", "env-db-host") // 改为 app.database.host
+	os.Setenv("APP_DATABASE_PORT", "5432")        // 改为 app.database.port
+	os.Setenv("SERVER_PORT", "9090")
+	os.Setenv("FEATURE_FLAG_NEWUI", "true") // 改为 feature.flag.newui
+	os.Setenv("LOGGING_LEVEL", "debug")
+	defer func() {
+		os.Unsetenv("APP_NAME")
+		os.Unsetenv("APP_DATABASE_HOST")
+		os.Unsetenv("APP_DATABASE_PORT")
+		os.Unsetenv("SERVER_PORT")
+		os.Unsetenv("FEATURE_FLAG_NEW_UI")
+		os.Unsetenv("LOGGING_LEVEL")
+	}()
+
+	// 模拟复杂的配置文件结构
+	existingConfig := map[string]interface{}{
+		"app": map[string]interface{}{
+			"name":    "FileApp",
+			"version": "1.0.0",
+			"database": map[string]interface{}{
+				"host": "file-db-host",
+				"port": 3306,
+				"credentials": map[string]interface{}{
+					"username": "file-user",
+					"password": "file-pass",
+				},
+			},
+		},
+		"server": map[string]interface{}{
+			"port": 8080,
+			"host": "0.0.0.0",
+		},
+		"feature": map[string]interface{}{
+			"flag": map[string]interface{}{
+				"new_ui": false,
+				"old_ui": true,
+			},
+		},
+		"logging": map[string]interface{}{
+			"level": "info",
+			"file":  "/var/log/app.log",
+		},
+		"config": map[string]interface{}{
+			"only": "file-only-value",
+		},
+	}
+
+	merger := NewEnvConfigMerger("")
+	mergedConfig, err := merger.Merge(existingConfig)
+	if err != nil {
+		t.Fatalf("Merge failed: %v", err)
+	}
+
+	// 调试输出：打印合并后的配置结构
+	t.Logf("Merged config structure: %+v", mergedConfig)
+
+	t.Run("Environment variables override file config", func(t *testing.T) {
+		// 检查应用名称被环境变量覆盖
+		if appConfig, ok := mergedConfig["app"].(map[string]interface{}); ok {
+			if name, ok := appConfig["name"]; !ok || name != "EnvApp" {
+				t.Errorf("Expected app.name to be 'EnvApp' (env override), got %v", name)
+			}
+			// 检查文件配置中未覆盖的部分仍然存在
+			if version, ok := appConfig["version"]; !ok || version != "1.0.0" {
+				t.Errorf("Expected app.version to be '1.0.0' (file preserved), got %v", version)
+			}
+		} else {
+			t.Error("Expected 'app' namespace not found")
+		}
+	})
+
+	t.Run("Nested structure merging", func(t *testing.T) {
+		// 检查数据库配置合并
+		if appConfig, ok := mergedConfig["app"].(map[string]interface{}); ok {
+			if dbConfig, ok := appConfig["database"].(map[string]interface{}); ok {
+				// 环境变量覆盖的字段
+				if host, ok := dbConfig["host"]; !ok || host != "env-db-host" {
+					t.Errorf("Expected database.host to be 'env-db-host' (env override), got %v", host)
+				}
+				if port, ok := dbConfig["port"]; !ok || port != int64(5432) {
+					t.Errorf("Expected database.port to be 5432 (env override), got %v", port)
+				}
+				// 文件配置中保留的字段
+				if credentials, ok := dbConfig["credentials"].(map[string]interface{}); ok {
+					if username, ok := credentials["username"]; !ok || username != "file-user" {
+						t.Errorf("Expected database.credentials.username to be 'file-user' (file preserved), got %v", username)
+					}
+					if password, ok := credentials["password"]; !ok || password != "file-pass" {
+						t.Errorf("Expected database.credentials.password to be 'file-pass' (file preserved), got %v", password)
+					}
+				} else {
+					t.Error("Expected database.credentials to be a map")
+				}
+			} else {
+				t.Error("Expected 'app.database' namespace not found")
+			}
+		}
+	})
+
+	t.Run("Feature flags merging", func(t *testing.T) {
+		// 检查功能标志合并
+		if featureConfig, ok := mergedConfig["feature"].(map[string]interface{}); ok {
+			if flagConfig, ok := featureConfig["flag"].(map[string]interface{}); ok {
+				// 环境变量覆盖的字段
+				if newUI, ok := flagConfig["newui"]; !ok || newUI != true {
+					t.Errorf("Expected feature.flag.newui to be true (env override), got %v", newUI)
+				}
+				// 文件配置中保留的字段
+				if oldUI, ok := flagConfig["old_ui"]; !ok || oldUI != true {
+					t.Errorf("Expected feature.flag.old_ui to be true (file preserved), got %v", oldUI)
+				}
+			} else {
+				t.Error("Expected 'feature.flag' namespace not found")
+			}
+		} else {
+			t.Error("Expected 'feature' namespace not found")
+		}
+	})
+
+	t.Run("Logging configuration merging", func(t *testing.T) {
+		// 检查日志配置合并
+		if loggingConfig, ok := mergedConfig["logging"].(map[string]interface{}); ok {
+			// 环境变量覆盖的字段
+			if level, ok := loggingConfig["level"]; !ok || level != "debug" {
+				t.Errorf("Expected logging.level to be 'debug' (env override), got %v", level)
+			}
+			// 文件配置中保留的字段
+			if file, ok := loggingConfig["file"]; !ok || file != "/var/log/app.log" {
+				t.Errorf("Expected logging.file to be '/var/log/app.log' (file preserved), got %v", file)
+			}
+		} else {
+			t.Error("Expected 'logging' namespace not found")
+		}
+	})
+
+	t.Run("Server configuration merging", func(t *testing.T) {
+		// 检查服务器配置合并
+		if serverConfig, ok := mergedConfig["server"].(map[string]interface{}); ok {
+			// 环境变量覆盖的字段
+			if port, ok := serverConfig["port"]; !ok || port != int64(9090) {
+				t.Errorf("Expected server.port to be 9090 (env override), got %v", port)
+			}
+			// 文件配置中保留的字段
+			if host, ok := serverConfig["host"]; !ok || host != "0.0.0.0" {
+				t.Errorf("Expected server.host to be '0.0.0.0' (file preserved), got %v", host)
+			}
+		} else {
+			t.Error("Expected 'server' namespace not found")
+		}
+	})
+
+	t.Run("File-only configuration preserved", func(t *testing.T) {
+		// 检查仅存在于文件中的配置
+		if configConfig, ok := mergedConfig["config"].(map[string]interface{}); ok {
+			if only, ok := configConfig["only"]; !ok || only != "file-only-value" {
+				t.Errorf("Expected config.only to be 'file-only-value' (file preserved), got %v", only)
+			}
+		} else {
+			t.Error("Expected 'config' namespace not found")
+		}
+	})
+}
+
+func TestEnvConfigMerger_PriorityScenarios(t *testing.T) {
+	// 测试不同优先级场景
+	os.Setenv("HIGH_PRIORITY_KEY", "env-value")
+	os.Setenv("NESTED_CONFIG_DB_HOST", "env-db")
+	defer func() {
+		os.Unsetenv("HIGH_PRIORITY_KEY")
+		os.Unsetenv("NESTED_CONFIG_DB_HOST")
+	}()
+
+	t.Run("Environment variables have highest priority", func(t *testing.T) {
+		existingConfig := map[string]interface{}{
+			"high": map[string]interface{}{
+				"priority": map[string]interface{}{
+					"key": "file-value",
+				},
+			},
+			"nested": map[string]interface{}{
+				"config": map[string]interface{}{
+					"db": map[string]interface{}{
+						"host": "file-db",
+						"port": 3306,
+					},
+				},
+			},
+		}
+
+		merger := NewEnvConfigMerger("")
+		mergedConfig, err := merger.Merge(existingConfig)
+		if err != nil {
+			t.Fatalf("Merge failed: %v", err)
+		}
+
+		// 检查环境变量优先级
+		if highConfig, ok := mergedConfig["high"].(map[string]interface{}); ok {
+			if priorityConfig, ok := highConfig["priority"].(map[string]interface{}); ok {
+				if key, ok := priorityConfig["key"]; !ok || key != "env-value" {
+					t.Errorf("Expected high.priority.key to be 'env-value' (env priority), got %v", key)
+				}
+			}
+		}
+
+		// 检查嵌套配置的环境变量优先级
+		if nestedConfig, ok := mergedConfig["nested"].(map[string]interface{}); ok {
+			if configConfig, ok := nestedConfig["config"].(map[string]interface{}); ok {
+				if dbConfig, ok := configConfig["db"].(map[string]interface{}); ok {
+					if host, ok := dbConfig["host"]; !ok || host != "env-db" {
+						t.Errorf("Expected nested.config.db.host to be 'env-db' (env priority), got %v", host)
+					}
+					// 文件配置中保留的字段
+					if port, ok := dbConfig["port"]; !ok || port != 3306 {
+						t.Errorf("Expected nested.config.db.port to be 3306 (file preserved), got %v", port)
+					}
+				}
+			}
+		}
+	})
+
+	t.Run("Empty existing config", func(t *testing.T) {
+		// 测试空配置文件的合并
+		emptyConfig := make(map[string]interface{})
+		merger := NewEnvConfigMerger("")
+		mergedConfig, err := merger.Merge(emptyConfig)
+		if err != nil {
+			t.Fatalf("Merge failed: %v", err)
+		}
+
+		// 检查环境变量是否正确加载
+		if highConfig, ok := mergedConfig["high"].(map[string]interface{}); ok {
+			if priorityConfig, ok := highConfig["priority"].(map[string]interface{}); ok {
+				if key, ok := priorityConfig["key"]; !ok || key != "env-value" {
+					t.Errorf("Expected high.priority.key to be 'env-value', got %v", key)
+				}
+			}
+		}
+	})
+}
