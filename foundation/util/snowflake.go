@@ -12,8 +12,8 @@ import (
 
 /*
 
-	// Create a new SnowFlakeNode with a SnowFlakeNode number of 1
-	node, err := snowflake.NewSnowFlakeNode(1)
+	// Create a new SnowflakeNode with a SnowflakeNode number of 1
+	node, err := snowflake.NewSnowflakeNode(1)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -29,12 +29,12 @@ var (
 	// You may customize this to set a different epoch for your application.
 	Epoch int64 = 1286676610000
 
-	// NodeBits holds the number of bits to use for SnowFlakeNode
-	// Remember, you have a total 22 bits to share between SnowFlakeNode/Step
+	// NodeBits holds the number of bits to use for SnowflakeNode
+	// Remember, you have a total 22 bits to share between SnowflakeNode/Step
 	NodeBits uint8 = 10
 
 	// StepBits holds the number of bits to use for Step
-	// Remember, you have a total 22 bits to share between SnowFlakeNode/Step
+	// Remember, you have a total 22 bits to share between SnowflakeNode/Step
 	StepBits uint8 = 12
 
 	mu        sync.Mutex
@@ -87,9 +87,9 @@ func init() {
 	}
 }
 
-// A SnowFlakeNode struct holds the basic information needed for a snowflake generator
+// A SnowflakeNode struct holds the basic information needed for a snowflake generator
 // node
-type SnowFlakeNode struct {
+type SnowflakeNode struct {
 	mu    sync.Mutex
 	epoch time.Time
 	time  int64
@@ -107,12 +107,12 @@ type SnowFlakeNode struct {
 // attach methods onto the ID.
 type ID int64
 
-// NewSnowFlakeNode returns a new snowflake node that can be used to generate snowflake
+// NewSnowflakeNode returns a new snowflake node that can be used to generate snowflake
 // IDs
-func NewSnowFlakeNode(node int64) (*SnowFlakeNode, error) {
+func NewSnowflakeNode(node int64) (*SnowflakeNode, error) {
 
 	if NodeBits+StepBits > 22 {
-		return nil, errors.New("remember, you have a total 22 bits to share between SnowFlakeNode/Step")
+		return nil, errors.New("remember, you have a total 22 bits to share between SnowflakeNode/Step")
 	}
 	// re-calc in case custom NodeBits or StepBits were set
 	// DEPRECATED: the below block will be removed in a future release.
@@ -124,7 +124,7 @@ func NewSnowFlakeNode(node int64) (*SnowFlakeNode, error) {
 	nodeShift = StepBits
 	mu.Unlock()
 
-	n := SnowFlakeNode{}
+	n := SnowflakeNode{}
 	n.node = node
 	n.nodeMax = -1 ^ (-1 << NodeBits)
 	n.nodeMask = n.nodeMax << StepBits
@@ -133,7 +133,7 @@ func NewSnowFlakeNode(node int64) (*SnowFlakeNode, error) {
 	n.nodeShift = StepBits
 
 	if n.node < 0 || n.node > n.nodeMax {
-		return nil, errors.New("SnowFlakeNode number must be between 0 and " + strconv.FormatInt(n.nodeMax, 10))
+		return nil, errors.New("SnowflakeNode number must be between 0 and " + strconv.FormatInt(n.nodeMax, 10))
 	}
 
 	var curTime = time.Now()
@@ -147,7 +147,7 @@ func NewSnowFlakeNode(node int64) (*SnowFlakeNode, error) {
 // To help guarantee uniqueness
 // - Make sure your system is keeping accurate system time
 // - Make sure you never have multiple nodes running with the same node ID
-func (n *SnowFlakeNode) Generate() ID {
+func (n *SnowflakeNode) Generate() ID {
 
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -343,7 +343,7 @@ func (f ID) Time() int64 {
 	return (int64(f) >> timeShift) + Epoch
 }
 
-// SnowFlakeNode returns an int64 of the snowflake ID node number
+// SnowflakeNode returns an int64 of the snowflake ID node number
 // DEPRECATED: the below function will be removed in a future release.
 func (f ID) Node() int64 {
 	return int64(f) & nodeMask >> nodeShift
