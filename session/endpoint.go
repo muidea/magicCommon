@@ -25,6 +25,8 @@ func EncryptEndpoint(endpoint *Endpoint) (string, error) {
 		return "", valErr
 	}
 
+	log.Infof("%s, secret:%s", string(valData), getSecret())
+
 	valStr := fmt.Sprintf("%s/%s", endpoint.Endpoint, string(valData))
 	valStr, valErr = util.EncryptByAes(valStr, getSecret())
 	if valErr != nil {
