@@ -172,3 +172,46 @@ func GetValAs[T any](r Result, key string) (T, bool) {
 	v, ok := val.(T)
 	return v, ok
 }
+
+// e.Data()
+func GetAsFromEvent[T any](e Event) (T, *cd.Error) {
+	var zero T
+	val := e.Data()
+	if val == nil {
+		return zero, cd.NewError(cd.Unexpected, "event data is nil")
+	}
+	v, ok := val.(T)
+	if !ok {
+		return zero, cd.NewError(cd.Unexpected, fmt.Sprintf(
+			"invalid type: expect %v but got %v",
+			reflect.TypeOf(zero), reflect.TypeOf(val),
+		))
+	}
+	return v, nil
+}
+
+// e.GetData()
+func GetValAsFromEvent[T any](e Event, key string) (T, bool) {
+	var zero T
+	val := e.GetData(key)
+	if val == nil {
+		return zero, false
+	}
+	v, ok := val.(T)
+	return v, ok
+}
+
+// e.Header()
+func GetHeaderValAsFromEvent[T any](e Event, key string) (T, bool) {
+	var zero T
+	header := e.Header()
+	if header == nil {
+		return zero, false
+	}
+	val, ok := header[key]
+	if !ok {
+		return zero, false
+	}
+	v, ok := val.(T)
+	return v, ok
+}
