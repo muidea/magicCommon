@@ -38,6 +38,10 @@ func NewValues() Values {
 	return map[string]interface{}{}
 }
 
+func NewHeader() Values {
+	return map[string]interface{}{}
+}
+
 func NewEvent(id, source, destination string, header Values, data interface{}) Event {
 	return &baseEvent{
 		eventID:          id,
