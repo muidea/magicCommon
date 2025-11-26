@@ -84,7 +84,7 @@ func (s *appImpl) Startup(service service.Service) *cd.Error {
 
 	nameVal, nameErr := configuration.GetString("endpointName")
 	if nameErr != nil {
-		nameVal = "magicPlatform"
+		nameVal = "magicFramework"
 	}
 
 	s.service = service
