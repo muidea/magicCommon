@@ -81,10 +81,17 @@ func (s *baseEvent) Destination() string {
 }
 
 func (s *baseEvent) Header() Values {
+	if s.eventHeader == nil {
+		s.eventHeader = NewHeader()
+	}
 	return s.eventHeader
 }
 
 func (s *baseEvent) Context() context.Context {
+	if s.eventContext == nil {
+		return context.Background()
+	}
+
 	return s.eventContext
 }
 
