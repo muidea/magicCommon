@@ -219,3 +219,18 @@ func GetHeaderValAsFromEvent[T any](e Event, key string) (T, bool) {
 	v, ok := val.(T)
 	return v, ok
 }
+
+// e.Context()
+func GetContextValAsFromEvent[T any](e Event, key string) (T, bool) {
+	var zero T
+	ctx := e.Context()
+	if ctx == nil {
+		return zero, false
+	}
+	val := ctx.Value(key)
+	if val == nil {
+		return zero, false
+	}
+	v, ok := val.(T)
+	return v, ok
+}
