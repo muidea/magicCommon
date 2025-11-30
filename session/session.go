@@ -79,10 +79,6 @@ func (s *sessionImpl) innerKey(key string) bool {
 		return true
 	}
 
-	// 以X-开头的header视为自定义key，不参与签名
-	if strings.HasPrefix(key, "X-") {
-		return true
-	}
 	return false
 }
 
