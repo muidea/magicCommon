@@ -73,7 +73,7 @@ func TestNewEventAndBaseEvent(t *testing.T) {
 
 	// Test binding context
 	ctx := context.Background()
-	if event.Context() != nil {
+	if event.Context() != ctx {
 		t.Errorf("event.Context() = %v, want nil", event.Context())
 	}
 	event.BindContext(ctx)

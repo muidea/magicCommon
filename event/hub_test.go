@@ -432,7 +432,7 @@ func TestBaseEvent(t *testing.T) {
 	}
 
 	// Test Context methods
-	if got := event.Context(); got != nil {
+	if got := event.Context(); got != ctx {
 		t.Errorf("Event.Context() = %v, want nil", got)
 	}
 	event.BindContext(ctx)
