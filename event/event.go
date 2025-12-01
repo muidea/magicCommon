@@ -228,7 +228,7 @@ func GetHeaderValAsFromEvent[T any](e Event, key string) (T, bool) {
 }
 
 // e.Context()
-func GetContextValAsFromEvent[T any](e Event, key string) (T, bool) {
+func GetContextValAsFromEvent[T any](e Event, key any) (T, bool) {
 	var zero T
 	ctx := e.Context()
 	if ctx == nil {

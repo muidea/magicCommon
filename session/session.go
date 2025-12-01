@@ -1,6 +1,7 @@
 package session
 
 import (
+	"maps"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -21,10 +22,14 @@ const (
 )
 
 const (
-	// sessionID 会话ID
-	sessionID = "_sessionID"
-	// expiryTime 会话有效期
-	expiryTime = "_expiryTime"
+	// innerSessionID 会话ID
+	innerSessionID = "_sessionID"
+	// innserSessionStartTime 会话开始时间
+	innerSessionStartTime = "innerSessionStartTime"
+	// innerExpireTime 会话有效期，该有效性必须要定期刷新，否则就会在超过该有效期时失效
+	innerExpireTime = "innerExpireTime"
+	// AuthExpireTime 会话强制有效期，该有效期通过session Option进行强制设置，与innerExpireTime在使用时，取两者之间最大值为实际会话有效期
+	AuthExpireTime = "authExpireTime"
 	// Authorization info, from request header
 	Authorization = "Authorization"
 )
@@ -73,26 +78,27 @@ func (s *sessionImpl) ID() string {
 	return s.id
 }
 
-func (s *sessionImpl) innerKey(key string) bool {
+func (s *sessionImpl) excludeKey(key string) bool {
 	switch key {
 	case Authorization:
 		return true
 	}
 
-	return false
+	// 以下划线开头的key也要进行排除
+	return strings.HasPrefix(key, "_")
 }
 
 func (s *sessionImpl) Signature() (Token, error) {
 	mc := jwt.MapClaims{}
 	if s.id != "" {
-		mc[sessionID] = s.id
+		mc[innerSessionID] = s.id
 	}
 
 	func() {
 		s.registry.sessionLock.RLock()
 		defer s.registry.sessionLock.RUnlock()
 		for k, v := range s.context {
-			if s.innerKey(k) {
+			if s.excludeKey(k) {
 				continue
 			}
 
@@ -104,12 +110,12 @@ func (s *sessionImpl) Signature() (Token, error) {
 }
 
 func (s *sessionImpl) Reset() {
-	expiryValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().Unix()
+	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
 	func() {
 		s.registry.sessionLock.RLock()
 		defer s.registry.sessionLock.RUnlock()
 
-		s.context = map[string]interface{}{expiryTime: expiryValue}
+		s.context = map[string]any{innerExpireTime: expireValue}
 		s.observer = map[string]Observer{}
 		s.optionsChange = true
 	}()
@@ -284,31 +290,42 @@ func (s *sessionImpl) SubmitOptions() {
 }
 
 func (s *sessionImpl) refresh() {
-	expiryValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().Unix()
-
+	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
+	// 刷新有效期，每次刷新，在当前时间基础上延长10分钟
 	s.registry.sessionLock.Lock()
 	defer s.registry.sessionLock.Unlock()
-	s.context[expiryTime] = expiryValue
+	s.context[innerExpireTime] = expireValue
 }
 
 func (s *sessionImpl) timeout() bool {
-	nowTime := time.Now().UTC().Unix()
+	nowTime := time.Now().UTC().UnixMilli()
 
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
-	expiryTimeVal, ok := s.context[expiryTime]
-	if !ok {
-		return true // 如果没有设置过期时间，默认认为已超时
+	var innerExpireTimeInt64 int64
+	innerExpireTimeVal, ok := s.context[innerExpireTime]
+	if ok {
+		innerExpireTimeInt64, ok = innerExpireTimeVal.(int64)
+		if !ok {
+			log.Errorf("invalid type for expireTime: %T", innerExpireTimeVal)
+			return true // 类型不正确，默认认为已超时
+		}
 	}
 
-	expiryTimeInt64, ok := expiryTimeVal.(int64)
-	if !ok {
-		log.Errorf("invalid type for expiryTime: %T", expiryTimeVal)
-		return true // 类型不正确，默认认为已超时
+	// 如果主动设置了过期时间，就检查这两个值谁大，没有超过最大值就认为未超时
+	authExpireTimeVal, authExpireTimeOK := s.context[AuthExpireTime]
+	if authExpireTimeOK {
+		authExpireTimeInt64, ok := authExpireTimeVal.(int64)
+		if ok {
+			if innerExpireTimeInt64 < authExpireTimeInt64 {
+				innerExpireTimeInt64 = authExpireTimeInt64
+			}
+		}
 	}
 
-	return expiryTimeInt64 < nowTime
+	// 过期时间小于当前时间就说明已经过期
+	return innerExpireTimeInt64 < nowTime
 }
 
 func (s *sessionImpl) terminate() {
@@ -396,8 +413,6 @@ func (c *defaultSessionContext) Clear() {
 // GetAll 获取所有值
 func (c *defaultSessionContext) GetAll() url.Values {
 	result := url.Values{}
-	for k, v := range c.values {
-		result[k] = v
-	}
+	maps.Copy(result, c.values)
 	return result
 }

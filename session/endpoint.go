@@ -3,6 +3,7 @@ package session
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/muidea/magicCommon/foundation/util"
@@ -58,9 +59,7 @@ func decodeEndpoint(sigVal string) *sessionImpl {
 	}
 
 	sessionPtr := &sessionImpl{context: map[string]interface{}{}, observer: map[string]Observer{}}
-	for k, v := range endpointPtr.Context {
-		sessionPtr.context[k] = v
-	}
+	maps.Copy(sessionPtr.context, endpointPtr.Context)
 	sessionPtr.id = sigVal[offset+1:]
 
 	return sessionPtr
@@ -107,7 +106,7 @@ func decodeSignature(val string) (ret *Endpoint, err error) {
 		return
 	}
 
-	ctx := map[string]interface{}{}
+	ctx := map[string]any{}
 	err = json.Unmarshal([]byte(strVal[offset+1:]), &ctx)
 	if err != nil {
 		err = fmt.Errorf("illegal Signature value")

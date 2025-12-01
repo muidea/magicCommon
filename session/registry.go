@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/muidea/magicCommon/foundation/log"
+	fn "github.com/muidea/magicCommon/foundation/net"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -105,6 +106,12 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}()
 
 	if sessionPtr != nil {
+		if sessionPtr.timeout() {
+			// 到这里说明当前的session已经超时了
+			log.Warnf("session:%s timeout, from:%s", fn.GetHTTPRemoteAddress(req))
+			return nil
+		}
+
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
 			sessionPtr = curSession
@@ -122,8 +129,8 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 
 // createSession 新建Session
 func (s *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
-	expiryValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().Unix()
-	sessionPtr := &sessionImpl{id: sessionID, context: map[string]interface{}{expiryTime: expiryValue}, observer: map[string]Observer{}, registry: s}
+	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
+	sessionPtr := &sessionImpl{id: sessionID, context: map[string]any{innerExpireTime: expireValue}, observer: map[string]Observer{}, registry: s}
 	sessionPtr = s.commandChan.insert(sessionPtr)
 
 	return sessionPtr
@@ -242,10 +249,13 @@ func (right commandChanImpl) run() {
 			session := command.value.(*sessionImpl)
 			curSession, curOK := sessionContextMap[session.id]
 			if !curOK {
-				curSession = &sessionImpl{id: session.id, context: session.context, observer: session.observer, registry: session.registry}
+				curSession = &sessionImpl{
+					id:      session.id,
+					context: session.context, observer: session.observer, registry: session.registry}
+				curSession.context[innerSessionStartTime] = time.Now().UTC().UnixMilli()
 				sessionContextMap[session.id] = curSession
 			}
-
+			curSession.refresh()
 			command.result <- curSession
 		case remove:
 			id := command.value.(string)
