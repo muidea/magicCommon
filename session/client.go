@@ -21,9 +21,11 @@ type Client interface {
 	AttachAuthorization(authorization string)
 	DetachAuthorization()
 
+	// for account
 	BindToken(token Token)
 	UnBindToken()
 
+	// for endpoint
 	BindAuthSecret(authSecret *AuthSecret)
 	UnBindAuthSecret()
 

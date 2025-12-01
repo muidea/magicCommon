@@ -62,15 +62,15 @@ type Session interface {
 	GetUint(key string) (uint64, bool)
 	GetFloat(key string) (float64, bool)
 	GetBool(key string) (bool, bool)
-	GetOption(key string) (interface{}, bool)
-	SetOption(key string, value interface{})
+	GetOption(key string) (any, bool)
+	SetOption(key string, value any)
 	RemoveOption(key string)
 	SubmitOptions()
 }
 
 type sessionImpl struct {
 	id            string // session id
-	context       map[string]interface{}
+	context       map[string]any
 	observer      map[string]Observer
 	registry      *sessionRegistryImpl
 	optionsChange bool
@@ -246,7 +246,7 @@ func (s *sessionImpl) GetBool(key string) (bool, bool) {
 	}
 }
 
-func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
+func (s *sessionImpl) GetOption(key string) (any, bool) {
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
@@ -255,7 +255,7 @@ func (s *sessionImpl) GetOption(key string) (interface{}, bool) {
 	return value, found
 }
 
-func (s *sessionImpl) SetOption(key string, value interface{}) {
+func (s *sessionImpl) SetOption(key string, value any) {
 	func() {
 		s.registry.sessionLock.Lock()
 		defer s.registry.sessionLock.Unlock()
