@@ -63,7 +63,7 @@ func (s *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Requ
 		return sessionInfo
 	}
 
-	return s.createSession(createUUID())
+	return s.createSession(req, createUUID())
 }
 
 func (s *sessionRegistryImpl) Release() {
@@ -106,12 +106,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}()
 
 	if sessionPtr != nil {
-		if sessionPtr.timeout() {
-			// 到这里说明当前的session已经超时了
-			log.Warnf("session:%s timeout, from:%s", fn.GetHTTPRemoteAddress(req))
-			return nil
-		}
-
+		sessionPtr.context[innerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
 			sessionPtr = curSession
@@ -128,9 +123,10 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 }
 
 // createSession 新建Session
-func (s *sessionRegistryImpl) createSession(sessionID string) *sessionImpl {
+func (s *sessionRegistryImpl) createSession(req *http.Request, sessionID string) *sessionImpl {
 	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
 	sessionPtr := &sessionImpl{id: sessionID, context: map[string]any{innerExpireTime: expireValue}, observer: map[string]Observer{}, registry: s}
+	sessionPtr.context[innerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
 	sessionPtr = s.commandChan.insert(sessionPtr)
 
 	return sessionPtr

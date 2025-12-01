@@ -24,6 +24,8 @@ const (
 const (
 	// innerSessionID 会话ID
 	innerSessionID = "_sessionID"
+	// innerRemoteAccessAddr 会话来源地址
+	innerRemoteAccessAddr = "_remoteAccessAddr"
 	// innserSessionStartTime 会话开始时间
 	innerSessionStartTime = "innerSessionStartTime"
 	// innerExpireTime 会话有效期，该有效性必须要定期刷新，否则就会在超过该有效期时失效
