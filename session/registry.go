@@ -268,7 +268,7 @@ func (right commandChanImpl) run() {
 			id := command.value.(string)
 			var session *sessionImpl
 			cur, found := sessionContextMap[id]
-			if found {
+			if found && !cur.timeout() {
 				cur.refresh()
 				session = cur
 				command.result <- session
