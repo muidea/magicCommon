@@ -352,11 +352,15 @@ func (s *sessionImpl) getExpireTime() int64 {
 	// 如果主动设置了过期时间，就检查这两个值谁大，没有超过最大值就认为未超时
 	authExpireTimeVal, authExpireTimeOK := s.context[AuthExpireTime]
 	if authExpireTimeOK {
-		authExpireTimeInt64, ok := authExpireTimeVal.(int64)
-		if ok {
-			if innerExpireTimeInt64 < authExpireTimeInt64 {
-				innerExpireTimeInt64 = authExpireTimeInt64
-			}
+		var authExpireTimeInt64 int64
+		switch val := authExpireTimeVal.(type) {
+		case int64:
+			authExpireTimeInt64 = val
+		case float64:
+			authExpireTimeInt64 = int64(val)
+		}
+		if authExpireTimeInt64 > innerExpireTimeInt64 {
+			innerExpireTimeInt64 = authExpireTimeInt64
 		}
 	}
 	return innerExpireTimeInt64

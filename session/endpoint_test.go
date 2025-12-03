@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,6 +19,7 @@ var ptr = &Endpoint{
 }
 
 func TestEncryptEndpoint(t *testing.T) {
+	ptr.Context[AuthExpireTime] = time.Now().Add(time.Hour).UTC().UnixMilli()
 	val, err := EncryptEndpoint(ptr)
 	if err != nil {
 		t.Errorf("encrypt endpoint failed, err:%s", err.Error())
@@ -29,6 +31,7 @@ func TestEncryptEndpoint(t *testing.T) {
 }
 
 func TestSignatureEndpoint(t *testing.T) {
+	ptr.Context[AuthExpireTime] = time.Now().Add(time.Hour).UTC().UnixMilli()
 	val, err := EncryptEndpoint(ptr)
 	if err != nil {
 		t.Errorf("encrypt endpoint failed, err:%s", err.Error())
@@ -47,6 +50,7 @@ func TestDecodeEndpoint(t *testing.T) {
 	register := CreateRegistry()
 	defer register.Release()
 
+	ptr.Context[AuthExpireTime] = time.Now().Add(time.Hour).UTC().UnixMilli()
 	val, err := EncryptEndpoint(ptr)
 	if err != nil {
 		t.Errorf("encrypt endpoint failed, err:%s", err.Error())
