@@ -90,7 +90,9 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	func() {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf("decode authorization failed, authorizationValue:%s, err:%v", authorizationValue, err)
+				sessionPtr = nil
+				stackInfo := util.GetStack(3)
+				log.Errorf("decode authorization failed, authorizationValue:%s, err:%v, stack:\n%v", authorizationValue, err, stackInfo)
 			}
 		}()
 

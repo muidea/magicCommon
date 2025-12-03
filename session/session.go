@@ -341,29 +341,35 @@ func (s *sessionImpl) timeout() (ret bool) {
 // 该函数调用前必须确保sessionLock已加锁
 func (s *sessionImpl) getExpireTime() int64 {
 	var innerExpireTimeInt64 int64
-	innerExpireTimeVal, ok := s.context[innerExpireTime]
+	innerExpireTimeVal, ok := s.getInt(innerExpireTime)
 	if ok {
-		expireTimeInt64, ok := innerExpireTimeVal.(int64)
-		if ok {
-			innerExpireTimeInt64 = expireTimeInt64
-		}
+		innerExpireTimeInt64 = innerExpireTimeVal
 	}
 
 	// 如果主动设置了过期时间，就检查这两个值谁大，没有超过最大值就认为未超时
-	authExpireTimeVal, authExpireTimeOK := s.context[AuthExpireTime]
+	authExpireTimeVal, authExpireTimeOK := s.getInt(AuthExpireTime)
 	if authExpireTimeOK {
-		var authExpireTimeInt64 int64
-		switch val := authExpireTimeVal.(type) {
-		case int64:
-			authExpireTimeInt64 = val
-		case float64:
-			authExpireTimeInt64 = int64(val)
-		}
-		if authExpireTimeInt64 > innerExpireTimeInt64 {
-			innerExpireTimeInt64 = authExpireTimeInt64
+		if authExpireTimeVal > innerExpireTimeInt64 {
+			innerExpireTimeInt64 = authExpireTimeVal
 		}
 	}
 	return innerExpireTimeInt64
+}
+
+func (s *sessionImpl) getInt(key string) (int64, bool) {
+	optVal, optOK := s.context[key]
+	if !optOK {
+		return 0, false
+	}
+	switch val := optVal.(type) {
+	case int64:
+		return val, true
+	case float64:
+		return int64(val), true
+	default:
+	}
+
+	return 0, false
 }
 
 func (s *sessionImpl) terminate() {
