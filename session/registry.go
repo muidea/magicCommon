@@ -274,6 +274,13 @@ func (right commandChanImpl) run() {
 				command.result <- session
 			} else {
 				command.result <- nil
+
+				if found {
+					delete(sessionContextMap, id)
+					go func() {
+						cur.terminate()
+					}()
+				}
 			}
 		case checkTimeOut:
 			removeList := make(map[string]*sessionImpl)
