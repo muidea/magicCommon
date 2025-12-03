@@ -24,10 +24,12 @@ const (
 const (
 	// innerSessionID 会话ID
 	innerSessionID = "_sessionID"
-	// innerRemoteAccessAddr 会话来源地址
-	innerRemoteAccessAddr = "_remoteAccessAddr"
+	// InnerRemoteAccessAddr 会话来源地址
+	InnerRemoteAccessAddr = "_remoteAccessAddr"
+	// InnerUseAgent 会话来源UA
+	InnerUseAgent = "_userAgent"
 	// innserSessionStartTime 会话开始时间
-	innerSessionStartTime = "innerSessionStartTime"
+	InnerStartTime = "innerSessionStartTime"
 	// innerExpireTime 会话有效期，该有效性必须要定期刷新，否则就会在超过该有效期时失效
 	innerExpireTime = "innerExpireTime"
 	// AuthExpireTime 会话强制有效期，该有效期通过session Option进行强制设置，与innerExpireTime在使用时，取两者之间最大值为实际会话有效期
@@ -41,6 +43,12 @@ const (
 	sigToken = "Sig"
 
 	DefaultSessionTimeOutValue = 10 * time.Minute // 10 minute
+)
+
+const (
+	sessionIdle      = 0
+	sessionUpdate    = 1
+	sessionTerminate = 2
 )
 
 // Observer session Observer
@@ -69,11 +77,11 @@ type Session interface {
 }
 
 type sessionImpl struct {
-	id            string // session id
-	context       map[string]any
-	observer      map[string]Observer
-	registry      *sessionRegistryImpl
-	optionsChange bool
+	id       string // session id
+	context  map[string]any
+	observer map[string]Observer
+	registry *sessionRegistryImpl
+	status   int
 }
 
 func (s *sessionImpl) ID() string {
@@ -114,12 +122,20 @@ func (s *sessionImpl) Signature() (Token, error) {
 func (s *sessionImpl) Reset() {
 	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
 	func() {
+		startTime := s.context[InnerStartTime]
+		remoteAccessAddr := s.context[InnerRemoteAccessAddr]
+		useAgent := s.context[InnerUseAgent]
 		s.registry.sessionLock.RLock()
 		defer s.registry.sessionLock.RUnlock()
 
-		s.context = map[string]any{innerExpireTime: expireValue}
+		s.context = map[string]any{
+			InnerStartTime:        startTime,
+			InnerRemoteAccessAddr: remoteAccessAddr,
+			InnerUseAgent:         useAgent,
+			innerExpireTime:       expireValue,
+		}
 		s.observer = map[string]Observer{}
-		s.optionsChange = true
+		s.status = sessionUpdate
 	}()
 
 	s.save()
@@ -261,7 +277,7 @@ func (s *sessionImpl) SetOption(key string, value any) {
 		defer s.registry.sessionLock.Unlock()
 
 		s.context[key] = value
-		s.optionsChange = true
+		s.status = sessionUpdate
 	}()
 
 	s.save()
@@ -273,7 +289,7 @@ func (s *sessionImpl) RemoveOption(key string) {
 		defer s.registry.sessionLock.Unlock()
 
 		delete(s.context, key)
-		s.optionsChange = true
+		s.status = sessionUpdate
 
 	}()
 
@@ -281,17 +297,21 @@ func (s *sessionImpl) RemoveOption(key string) {
 }
 
 func (s *sessionImpl) SubmitOptions() {
-	if !s.optionsChange {
+	if s.status != sessionUpdate {
 		return
 	}
 
-	s.optionsChange = false
+	s.status = sessionIdle
 	for _, val := range s.observer {
 		go val.OnStatusChange(s, StatusUpdate)
 	}
 }
 
 func (s *sessionImpl) refresh() {
+	if s.status == sessionTerminate {
+		return
+	}
+
 	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
 	// 刷新有效期，每次刷新，在当前时间基础上延长10分钟
 	s.registry.sessionLock.Lock()
@@ -299,7 +319,13 @@ func (s *sessionImpl) refresh() {
 	s.context[innerExpireTime] = expireValue
 }
 
-func (s *sessionImpl) timeout() bool {
+func (s *sessionImpl) timeout() (ret bool) {
+	defer func() {
+		if ret {
+			s.status = sessionTerminate
+		}
+	}()
+
 	nowTime := time.Now().UTC().UnixMilli()
 
 	s.registry.sessionLock.RLock()
@@ -311,7 +337,7 @@ func (s *sessionImpl) timeout() bool {
 		innerExpireTimeInt64, ok = innerExpireTimeVal.(int64)
 		if !ok {
 			log.Errorf("invalid type for expireTime: %T", innerExpireTimeVal)
-			return true // 类型不正确，默认认为已超时
+			ret = true // 类型不正确，默认认为已超时
 		}
 	}
 
@@ -327,10 +353,12 @@ func (s *sessionImpl) timeout() bool {
 	}
 
 	// 过期时间小于当前时间就说明已经过期
-	return innerExpireTimeInt64 < nowTime
+	ret = innerExpireTimeInt64 < nowTime
+	return
 }
 
 func (s *sessionImpl) terminate() {
+	s.status = sessionTerminate
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
@@ -341,6 +369,10 @@ func (s *sessionImpl) terminate() {
 
 func (s *sessionImpl) save() {
 	s.registry.updateSession(s)
+}
+
+func (s *sessionImpl) isFinal() bool {
+	return s.status == sessionTerminate
 }
 
 // Context context info

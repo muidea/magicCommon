@@ -106,9 +106,14 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}()
 
 	if sessionPtr != nil {
-		sessionPtr.context[innerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
+		sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
+		sessionPtr.context[InnerUseAgent] = req.UserAgent()
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
+			// 到这里说明当前会话失效了。需要重新认证
+			if curSession.isFinal() {
+				return nil
+			}
 			sessionPtr = curSession
 		} else {
 			sessionPtr = s.insertSession(sessionPtr)
@@ -126,7 +131,8 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 func (s *sessionRegistryImpl) createSession(req *http.Request, sessionID string) *sessionImpl {
 	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
 	sessionPtr := &sessionImpl{id: sessionID, context: map[string]any{innerExpireTime: expireValue}, observer: map[string]Observer{}, registry: s}
-	sessionPtr.context[innerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
+	sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
+	sessionPtr.context[InnerUseAgent] = req.UserAgent()
 	sessionPtr = s.commandChan.insert(sessionPtr)
 
 	return sessionPtr
@@ -248,7 +254,7 @@ func (right commandChanImpl) run() {
 				curSession = &sessionImpl{
 					id:      session.id,
 					context: session.context, observer: session.observer, registry: session.registry}
-				curSession.context[innerSessionStartTime] = time.Now().UTC().UnixMilli()
+				curSession.context[InnerStartTime] = time.Now().UTC().UnixMilli()
 				sessionContextMap[session.id] = curSession
 			}
 			curSession.refresh()
@@ -268,19 +274,14 @@ func (right commandChanImpl) run() {
 			id := command.value.(string)
 			var session *sessionImpl
 			cur, found := sessionContextMap[id]
-			if found && !cur.timeout() {
-				cur.refresh()
+			if found {
+				if !cur.timeout() {
+					cur.refresh()
+				}
 				session = cur
 				command.result <- session
 			} else {
 				command.result <- nil
-
-				if found {
-					delete(sessionContextMap, id)
-					go func() {
-						cur.terminate()
-					}()
-				}
 			}
 		case checkTimeOut:
 			removeList := make(map[string]*sessionImpl)
