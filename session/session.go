@@ -46,7 +46,7 @@ const (
 )
 
 const (
-	sessionIdle      = 0
+	sessionActive    = 0
 	sessionUpdate    = 1
 	sessionTerminate = 2
 )
@@ -301,7 +301,7 @@ func (s *sessionImpl) SubmitOptions() {
 		return
 	}
 
-	s.status = sessionIdle
+	s.status = sessionActive
 	for _, val := range s.observer {
 		go val.OnStatusChange(s, StatusUpdate)
 	}
@@ -320,24 +320,32 @@ func (s *sessionImpl) refresh() {
 }
 
 func (s *sessionImpl) timeout() (ret bool) {
+	var innerExpireTimeInt64 int64
+	nowTime := time.Now().UTC().UnixMilli()
 	defer func() {
 		if ret {
 			s.status = sessionTerminate
 		}
 	}()
 
-	nowTime := time.Now().UTC().UnixMilli()
-
 	s.registry.sessionLock.RLock()
 	defer s.registry.sessionLock.RUnlock()
 
+	innerExpireTimeInt64 = s.getExpireTime()
+
+	// 过期时间小于当前时间就说明已经过期
+	ret = innerExpireTimeInt64 < nowTime
+	return
+}
+
+// 该函数调用前必须确保sessionLock已加锁
+func (s *sessionImpl) getExpireTime() int64 {
 	var innerExpireTimeInt64 int64
 	innerExpireTimeVal, ok := s.context[innerExpireTime]
 	if ok {
-		innerExpireTimeInt64, ok = innerExpireTimeVal.(int64)
-		if !ok {
-			log.Errorf("invalid type for expireTime: %T", innerExpireTimeVal)
-			ret = true // 类型不正确，默认认为已超时
+		expireTimeInt64, ok := innerExpireTimeVal.(int64)
+		if ok {
+			innerExpireTimeInt64 = expireTimeInt64
 		}
 	}
 
@@ -351,10 +359,7 @@ func (s *sessionImpl) timeout() (ret bool) {
 			}
 		}
 	}
-
-	// 过期时间小于当前时间就说明已经过期
-	ret = innerExpireTimeInt64 < nowTime
-	return
+	return innerExpireTimeInt64
 }
 
 func (s *sessionImpl) terminate() {

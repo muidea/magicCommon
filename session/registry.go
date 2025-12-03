@@ -94,6 +94,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 			}
 		}()
 
+		nowTime := time.Now().UTC().UnixMilli()
 		s.sessionLock.Lock()
 		defer s.sessionLock.Unlock()
 		if authorizationValue[:offset] == jwtToken {
@@ -103,11 +104,19 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		if authorizationValue[:offset] == sigToken {
 			sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
 		}
+		if sessionPtr != nil {
+			// 到这里说明session已经失效了，
+			expireTime := sessionPtr.getExpireTime()
+			if expireTime < nowTime {
+				sessionPtr = nil
+			}
+		}
 	}()
 
 	if sessionPtr != nil {
 		sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
 		sessionPtr.context[InnerUseAgent] = req.UserAgent()
+
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
 			// 到这里说明当前会话失效了。需要重新认证
