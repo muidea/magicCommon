@@ -11,31 +11,38 @@ import (
 )
 
 /*
+雪花算法配置：
+- 时间戳位数：42位（起始时间 2010-10-10 00:00:00 UTC，有效期约139年）
+- 机器ID位数：3位（最多支持8台机器）
+- 序列号位数：8位（每毫秒256个ID）
+- 理论QPS：256,000
+- JavaScript安全：通过特殊移位方案保证，生成的ID始终 ≤ 2^53-1，安全到3125年
 
-	// Create a new SnowflakeNode with a SnowflakeNode number of 1
+注意事项：
+1. 机器ID必须在0-7范围内，确保全局唯一。
+2. 系统时间必须单调递增，避免时钟回拨导致ID重复。
+3. 此实现使用位移组合（左移）生成ID，与传统雪花算法兼容。
+4. 如需自定义配置，请调整 Epoch、NodeBits、StepBits 常量。
+
+示例用法：
 	node, err := snowflake.NewSnowflakeNode(1)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
-	// Generate a snowflake ID.
 	id := node.Generate()
-
 */
 
 var (
-	// Epoch is set to Oct 10 2010 10:10:10 UTC in milliseconds
-	// You may customize this to set a different epoch for your application.
-	Epoch int64 = 1286676610000
+	// Epoch 表示起始时间戳，单位为毫秒（2010-10-10 00:00:00 UTC）
+	// 可根据需要调整此值以改变ID的时间起点。
+	Epoch int64 = 1286668800000
 
-	// NodeBits holds the number of bits to use for SnowflakeNode
-	// Remember, you have a total 22 bits to share between SnowflakeNode/Step
-	NodeBits uint8 = 10
+	// NodeBits 表示机器ID所占的位数（当前为3位，最多支持8台机器）
+	NodeBits uint8 = 3
 
-	// StepBits holds the number of bits to use for Step
-	// Remember, you have a total 22 bits to share between SnowflakeNode/Step
-	StepBits uint8 = 12
+	// StepBits 表示序列号所占的位数（当前为8位，每毫秒256个ID）
+	StepBits uint8 = 8
 
 	mu        sync.Mutex
 	nodeMax   int64 = -1 ^ (-1 << NodeBits)
@@ -111,8 +118,8 @@ type ID int64
 // IDs
 func NewSnowflakeNode(node int64) (*SnowflakeNode, error) {
 
-	if NodeBits+StepBits > 22 {
-		return nil, errors.New("remember, you have a total 22 bits to share between SnowflakeNode/Step")
+	if NodeBits+StepBits > 20 {
+		return nil, errors.New("remember, you have a total 20 bits to share between SnowflakeNode/Step")
 	}
 	// re-calc in case custom NodeBits or StepBits were set
 	// DEPRECATED: the below block will be removed in a future release.
