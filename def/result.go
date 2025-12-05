@@ -68,6 +68,11 @@ func NewError(errorCode Code, errorMessage string) *Error {
 	}
 }
 
+// ResultWithError 表示包含错误的结果接口
+type ResultWithError interface {
+	GetError() *Error
+}
+
 type Result struct {
 	Error *Error `json:"error"`
 }
@@ -85,5 +90,22 @@ func (s *Result) Fail() bool {
 func NewResult() *Result {
 	return &Result{
 		Error: NewError(Unexpected, "unexpected error"),
+	}
+}
+
+// GetError 返回错误指针，便于实现 ResultWithError 接口
+func (r *Result) GetError() *Error {
+	return r.Error
+}
+
+// SetError 设置错误
+func (r *Result) SetError(err *Error) {
+	r.Error = err
+}
+
+// NewSuccessResult 创建一个成功的 Result（无错误）
+func NewSuccessResult() *Result {
+	return &Result{
+		Error: nil,
 	}
 }
