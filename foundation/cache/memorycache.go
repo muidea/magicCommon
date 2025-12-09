@@ -12,9 +12,9 @@ import (
 // Cache 缓存对象
 type Cache interface {
 	// maxAge单位second
-	Put(data interface{}, maxAge int64) string
-	Fetch(id string) interface{}
-	Search(opr SearchOpr) interface{}
+	Put(data any, maxAge int64) string
+	Fetch(id string) any
+	Search(opr SearchOpr) any
 	Remove(id string)
 	ClearAll()
 	Release()
@@ -43,7 +43,7 @@ func NewCache(cleanCallBack ExpiredCleanCallBackFunc) Cache {
 }
 
 type putInData struct {
-	data   interface{}
+	data   any
 	maxAge int64
 }
 
@@ -51,19 +51,13 @@ type putInResult struct {
 	value string
 }
 
-type fetchOutData struct {
-	id string
-}
-
-type fetchOutResult struct {
-	value interface{}
-}
-
 type searchData struct {
 	opr SearchOpr
 }
 
-type searchResult fetchOutResult
+type searchResult struct {
+	value any
+}
 
 type removeData struct {
 	id string
@@ -86,7 +80,7 @@ type MemoryCache struct {
 }
 
 // Put 投放数据，返回数据的唯一标示
-func (s *MemoryCache) Put(data interface{}, maxAge int64) string {
+func (s *MemoryCache) Put(data any, maxAge int64) string {
 	dataPtr := &putInData{
 		data:   data,
 		maxAge: maxAge,
@@ -97,7 +91,7 @@ func (s *MemoryCache) Put(data interface{}, maxAge int64) string {
 }
 
 // Fetch 获取数据
-func (s *MemoryCache) Fetch(id string) interface{} {
+func (s *MemoryCache) Fetch(id string) any {
 	s.rwLock.RLock()
 	defer s.rwLock.RUnlock()
 
@@ -115,7 +109,7 @@ func (s *MemoryCache) Fetch(id string) interface{} {
 	return dataPtr.cacheData.data
 }
 
-func (s *MemoryCache) Search(opr SearchOpr) interface{} {
+func (s *MemoryCache) Search(opr SearchOpr) any {
 	if opr == nil {
 		return nil
 	}
@@ -145,7 +139,7 @@ func (s *MemoryCache) Release() {
 	s.cancelFunc()
 
 	// 为每个worker发送end命令
-	for i := 0; i < ConcurrentGoroutines; i++ {
+	for range ConcurrentGoroutines {
 		s.sendCommand(commandData{action: end})
 	}
 
@@ -153,12 +147,12 @@ func (s *MemoryCache) Release() {
 	close(s.commandChannel)
 }
 
-func (s *MemoryCache) sendCommand(command commandData) interface{} {
-	var reply chan interface{}
+func (s *MemoryCache) sendCommand(command commandData) any {
+	var reply chan any
 	if v := s.pool.Get(); v != nil {
-		reply = v.(chan interface{})
+		reply = v.(chan any)
 	} else {
-		reply = make(chan interface{})
+		reply = make(chan any)
 	}
 	defer s.pool.Put(reply)
 
@@ -185,25 +179,11 @@ func (s *MemoryCache) run() {
 			result := &putInResult{value: id}
 			command.result <- result
 
-		case fetchOut:
-			id := command.value.(*fetchOutData).id
-			v, found := s.localCacheData.Load(id)
-
-			result := &fetchOutResult{}
-			if found {
-				dataPtr := v.(cacheData)
-				dataPtr.cacheTime = time.Now()
-				s.localCacheData.Store(id, dataPtr)
-				result.value = dataPtr.cacheData.data
-			}
-
-			command.result <- result
-
 		case search:
 			opr := command.value.(*searchData).opr
 
 			result := &searchResult{}
-			s.localCacheData.Range(func(k, v interface{}) bool {
+			s.localCacheData.Range(func(k, v any) bool {
 				dataPtr := v.(cacheData)
 				if opr(dataPtr.cacheData.data) {
 					dataPtr.cacheTime = time.Now()
@@ -222,7 +202,7 @@ func (s *MemoryCache) run() {
 			command.result <- true
 
 		case clearAll:
-			s.localCacheData.Range(func(k, v interface{}) bool {
+			s.localCacheData.Range(func(k, v any) bool {
 				s.localCacheData.Delete(k)
 				return true
 			})
@@ -248,7 +228,7 @@ func (s *MemoryCache) run() {
 
 func (s *MemoryCache) getExpiredKeys() []string {
 	keys := []string{}
-	s.localCacheData.Range(func(k, v interface{}) bool {
+	s.localCacheData.Range(func(k, v any) bool {
 		dataPtr := v.(cacheData)
 		if dataPtr.cacheData.maxAge != ForeverAgeValue {
 			elapse := time.Since(dataPtr.cacheTime).Seconds()
