@@ -4,7 +4,7 @@ package cache
 const ForeverAgeValue = -1
 const OneMinuteAgeValue = 60
 const TenMinutesAgeValue = 600
-const HalfHourAgeValue = 1800
+const HalfAnHourAgeValue = 1800
 
 type commandAction int
 
@@ -22,12 +22,12 @@ const (
 // ConcurrentGoroutines 并发执行的协程数量
 const ConcurrentGoroutines = 2
 
-type SearchOpr func(val interface{}) bool
+type SearchOpr func(val any) bool
 
 type commandData struct {
 	action commandAction
-	value  interface{}
-	result chan interface{} //单向Channel
+	value  any
+	result chan any //单向Channel
 }
 
 type ExpiredCleanCallBackFunc func(string)
