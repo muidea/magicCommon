@@ -25,47 +25,47 @@ type baseEvent struct {
 	eventDestination string
 	eventHeader      Values
 	eventContext     context.Context
-	eventData        map[string]interface{}
-	eventResult      interface{}
+	eventData        map[string]any
+	eventResult      any
 }
 
 type baseResult struct {
-	resultData map[string]interface{}
+	resultData map[string]any
 	resultErr  *cd.Error
 }
 
 func NewValues() Values {
-	return map[string]interface{}{}
+	return map[string]any{}
 }
 
 func NewHeader() Values {
-	return map[string]interface{}{}
+	return map[string]any{}
 }
 
-func NewEvent(id, source, destination string, header Values, data interface{}) Event {
+func NewEvent(id, source, destination string, header Values, data any) Event {
 	return &baseEvent{
 		eventID:          id,
 		eventSource:      source,
 		eventDestination: destination,
 		eventHeader:      header,
-		eventData:        map[string]interface{}{innerDataKey: data},
+		eventData:        map[string]any{innerDataKey: data},
 	}
 }
 
-func NewEventWitchContext(id, source, destination string, header Values, context context.Context, data interface{}) Event {
+func NewEventWitchContext(id, source, destination string, header Values, context context.Context, data any) Event {
 	return &baseEvent{
 		eventID:          id,
 		eventSource:      source,
 		eventDestination: destination,
 		eventHeader:      header,
 		eventContext:     context,
-		eventData:        map[string]interface{}{innerDataKey: data},
+		eventData:        map[string]any{innerDataKey: data},
 	}
 }
 
 func NewResult(id, source, destination string) Result {
 	msg := fmt.Sprintf("illegal event, no result returned, id:%s, source:%s, destination:%s", id, source, destination)
-	return &baseResult{resultErr: cd.NewError(cd.UnKnownError, msg), resultData: map[string]interface{}{}}
+	return &baseResult{resultErr: cd.NewError(cd.UnKnownError, msg), resultData: map[string]any{}}
 }
 
 func (s *baseEvent) ID() string {
@@ -99,7 +99,7 @@ func (s *baseEvent) BindContext(ctx context.Context) {
 	s.eventContext = ctx
 }
 
-func (s *baseEvent) Data() interface{} {
+func (s *baseEvent) Data() any {
 	val, ok := s.eventData[innerDataKey]
 	if ok {
 		return val
@@ -107,11 +107,11 @@ func (s *baseEvent) Data() interface{} {
 	return nil
 }
 
-func (s *baseEvent) SetData(key string, val interface{}) {
+func (s *baseEvent) SetData(key string, val any) {
 	s.eventData[key] = val
 }
 
-func (s *baseEvent) GetData(key string) interface{} {
+func (s *baseEvent) GetData(key string) any {
 	val, ok := s.eventData[key]
 	if ok {
 		return val
@@ -120,7 +120,7 @@ func (s *baseEvent) GetData(key string) interface{} {
 	return nil
 }
 
-func (s *baseEvent) Result(result interface{}) {
+func (s *baseEvent) Result(result any) {
 	s.eventResult = result
 }
 
@@ -128,7 +128,7 @@ func (s *baseEvent) Match(pattern string) bool {
 	return MatchValue(pattern, s.eventID)
 }
 
-func (s *baseResult) Set(data interface{}, err *cd.Error) {
+func (s *baseResult) Set(data any, err *cd.Error) {
 	s.resultData[innerValKey] = data
 	s.resultErr = err
 }
@@ -137,17 +137,17 @@ func (s *baseResult) Error() *cd.Error {
 	return s.resultErr
 }
 
-func (s *baseResult) Get() (ret interface{}, err *cd.Error) {
+func (s *baseResult) Get() (ret any, err *cd.Error) {
 	ret = s.resultData[innerValKey]
 	err = s.resultErr
 	return
 }
 
-func (s *baseResult) SetVal(key string, val interface{}) {
+func (s *baseResult) SetVal(key string, val any) {
 	s.resultData[key] = val
 }
 
-func (s *baseResult) GetVal(key string) interface{} {
+func (s *baseResult) GetVal(key string) any {
 	val, ok := s.resultData[key]
 	if ok {
 		return val

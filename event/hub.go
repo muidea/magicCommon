@@ -12,13 +12,13 @@ import (
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
-type Values map[string]interface{}
+type Values map[string]any
 
-func (s Values) Set(key string, value interface{}) {
+func (s Values) Set(key string, value any) {
 	s[key] = value
 }
 
-func (s Values) Get(key string) interface{} {
+func (s Values) Get(key string) any {
 	val, ok := s[key]
 	if ok {
 		return val
@@ -82,18 +82,18 @@ type Event interface {
 	Header() Values
 	Context() context.Context
 	BindContext(ctx context.Context)
-	Data() interface{}
-	SetData(key string, val interface{})
-	GetData(key string) interface{}
+	Data() any
+	SetData(key string, val any)
+	GetData(key string) any
 	Match(pattern string) bool
 }
 
 type Result interface {
 	Error() *cd.Error
-	Set(data interface{}, err *cd.Error)
-	Get() (interface{}, *cd.Error)
-	SetVal(key string, val interface{})
-	GetVal(key string) interface{}
+	Set(data any, err *cd.Error)
+	Get() (any, *cd.Error)
+	SetVal(key string, val any)
+	GetVal(key string) any
 }
 
 type Observer interface {
@@ -112,7 +112,6 @@ type Hub interface {
 	Unsubscribe(eventID string, observer Observer)
 	Post(event Event)
 	Send(event Event) Result
-	Call(event Event) Result
 	Terminate()
 }
 
@@ -430,16 +429,6 @@ func (s *hubImpl) Send(event Event) (ret Result) {
 
 	ret = <-replay
 	return
-}
-
-func (s *hubImpl) Call(event Event) Result {
-	if s.terminateFlag {
-		return nil
-	}
-
-	result := NewResult(event.ID(), event.Source(), event.Destination())
-	s.sendInternal(event, result)
-	return result
 }
 
 func (s *hubImpl) Terminate() {
