@@ -47,7 +47,7 @@ func TestSignatureEndpoint(t *testing.T) {
 }
 
 func TestDecodeEndpoint(t *testing.T) {
-	register := CreateRegistry()
+	register := DefaultRegistry()
 	defer register.Release()
 
 	ptr.Context[AuthExpireTime] = time.Now().Add(time.Hour).UTC().UnixMilli()

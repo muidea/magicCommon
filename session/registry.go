@@ -45,8 +45,8 @@ type sessionRegistryImpl struct {
 	sessionObserver    Observer
 }
 
-// CreateRegistry 创建Session仓库
-func CreateRegistry() Registry {
+// DefaultRegistry 创建Session仓库
+func DefaultRegistry() Registry {
 	return NewRegistry(nil)
 }
 
