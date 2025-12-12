@@ -42,12 +42,19 @@ type sessionRegistryImpl struct {
 	commandChan        commandChanImpl
 	sessionLock        sync.RWMutex
 	registryCancelFunc context.CancelFunc
+	sessionObserver    Observer
 }
 
 // CreateRegistry 创建Session仓库
 func CreateRegistry() Registry {
+	return NewRegistry(nil)
+}
+
+func NewRegistry(obSvr Observer) Registry {
 	registryCtx, registryCancel := context.WithCancel(context.Background())
-	impl := sessionRegistryImpl{}
+	impl := sessionRegistryImpl{
+		sessionObserver: obSvr,
+	}
 	impl.registryCancelFunc = registryCancel
 	impl.commandChan = make(commandChanImpl)
 	go impl.commandChan.run()
@@ -145,6 +152,9 @@ func (s *sessionRegistryImpl) createSession(req *http.Request, sessionID string)
 	sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
 	sessionPtr.context[InnerUseAgent] = req.UserAgent()
 	sessionPtr = s.commandChan.insert(sessionPtr)
+	if s.sessionObserver != nil {
+		sessionPtr.observer[s.sessionObserver.ID()] = s.sessionObserver
+	}
 
 	return sessionPtr
 }
