@@ -3,6 +3,7 @@ package session
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -78,4 +79,12 @@ func TestDecodeEndpoint(t *testing.T) {
 	enableVal, enableOK := sessionPtr.GetBool("enable")
 	assert.Equal(t, true, enableOK)
 	assert.Equal(t, true, enableVal)
+}
+
+func TestDecodeEndpointWithoutSignature(t *testing.T) {
+	os.Setenv("HMAC_SECRET", "e3bcbe908a384d9ba8e7ac7028a21f75")
+
+	endpointPtr, endpointErr := decodeSignature("Signature=ZnFdJ5CDfo3ICa55HhsDUkS6ybowwcg6x0PBnAIWqqeozooW/tyqT+utejzvHcuxl6vOPq8qezhbaPw9NoRb2d3n6jsf7gQ+xuKV3ZUNGswHrI4mWaFImxhDx1MMK0okueA4gf0cvvOgGPZljFoANbaPu7cvTUa3Ezi6p8S2M8w3jCnOsouWlE1cbY0YF9Lb4cyIc5Jx69aCG8+Mc2Egr9gtgyRoXBMTBsWVVXPweC24u0sWgPwogaVyNb2sxwLtOoaRR3wbl8zEPTnnExDrbZcJs3bdBdc72CdbyeIV6es=")
+	assert.Equal(t, nil, endpointErr)
+	assert.Equal(t, "defaultEndpoint", endpointPtr.Endpoint)
 }

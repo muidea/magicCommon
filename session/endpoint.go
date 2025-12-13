@@ -3,7 +3,6 @@ package session
 import (
 	"encoding/json"
 	"fmt"
-	"maps"
 	"strings"
 
 	"github.com/muidea/magicCommon/foundation/util"
@@ -15,11 +14,12 @@ const (
 )
 
 type Endpoint struct {
-	Endpoint string                 `json:"endpoint"`
-	Context  map[string]interface{} `json:"context"`
+	Endpoint string         `json:"endpoint"`
+	Context  map[string]any `json:"context"`
 }
 
 func EncryptEndpoint(endpoint *Endpoint) (string, error) {
+	endpoint.Context[innerSessionID] = createUUID()
 	valData, valErr := json.Marshal(endpoint.Context)
 	if valErr != nil {
 		return "", valErr
@@ -58,9 +58,16 @@ func decodeEndpoint(sigVal string) *sessionImpl {
 		return nil
 	}
 
-	sessionPtr := &sessionImpl{context: map[string]interface{}{}, observer: map[string]Observer{}}
-	maps.Copy(sessionPtr.context, endpointPtr.Context)
-	sessionPtr.id = sigVal[offset+1:]
+	sessionPtr := &sessionImpl{context: map[string]any{}, observer: map[string]Observer{}}
+	sessionPtr.context[InnerAuthType] = AuthEndpointSession
+	for k, v := range endpointPtr.Context {
+		if k == innerSessionID {
+			sessionPtr.id = v.(string)
+			continue
+		}
+
+		sessionPtr.context[k] = v
+	}
 
 	return sessionPtr
 }

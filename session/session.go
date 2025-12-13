@@ -28,6 +28,8 @@ const (
 	InnerRemoteAccessAddr = "_remoteAccessAddr"
 	// InnerUseAgent 会话来源UA
 	InnerUseAgent = "_userAgent"
+	// account/endpoint 认证方式
+	InnerAuthType = "_authType"
 	// innserSessionStartTime 会话开始时间
 	InnerStartTime = "innerSessionStartTime"
 	// innerExpireTime 会话有效期，该有效性必须要定期刷新，否则就会在超过该有效期时失效
@@ -36,6 +38,11 @@ const (
 	AuthExpireTime = "authExpireTime"
 	// Authorization info, from request header
 	Authorization = "Authorization"
+)
+
+const (
+	AuthJWTSession      = "jwt"
+	AuthEndpointSession = "endpoint"
 )
 
 const (
@@ -114,6 +121,8 @@ func (s *sessionImpl) Signature() (Token, error) {
 
 			mc[k] = v
 		}
+
+		mc[InnerAuthType] = AuthJWTSession
 	}()
 
 	return SignatureJWT(mc)

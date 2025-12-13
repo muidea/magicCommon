@@ -37,6 +37,7 @@ func decodeJWT(sigVal string) *sessionImpl {
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		sessionPtr := &sessionImpl{context: map[string]any{}, observer: map[string]Observer{}}
+		sessionPtr.context[InnerAuthType] = AuthJWTSession
 		for k, v := range claims {
 			if k == innerSessionID {
 				sessionPtr.id = v.(string)
