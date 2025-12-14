@@ -198,8 +198,8 @@ func (s *sessionRegistryImpl) count(filter util.Filter) int {
 
 type commandData struct {
 	action commandAction
-	value  interface{}
-	result chan<- interface{}
+	value  any
+	result chan<- any
 }
 
 type commandAction int
@@ -217,7 +217,7 @@ const (
 type commandChanImpl chan commandData
 
 func (right commandChanImpl) insert(session *sessionImpl) *sessionImpl {
-	reply := make(chan interface{})
+	reply := make(chan any)
 	defer close(reply)
 	right <- commandData{action: insert, value: session, result: reply}
 
@@ -227,7 +227,7 @@ func (right commandChanImpl) insert(session *sessionImpl) *sessionImpl {
 }
 
 func (right commandChanImpl) update(session *sessionImpl) bool {
-	reply := make(chan interface{})
+	reply := make(chan any)
 	defer close(reply)
 	right <- commandData{action: update, value: session, result: reply}
 
@@ -236,7 +236,7 @@ func (right commandChanImpl) update(session *sessionImpl) bool {
 }
 
 func (right commandChanImpl) find(id string) *sessionImpl {
-	reply := make(chan interface{})
+	reply := make(chan any)
 	defer close(reply)
 
 	right <- commandData{action: find, value: id, result: reply}
@@ -249,7 +249,7 @@ func (right commandChanImpl) find(id string) *sessionImpl {
 }
 
 func (right commandChanImpl) count(filter util.Filter) int {
-	reply := make(chan interface{})
+	reply := make(chan any)
 	defer close(reply)
 	right <- commandData{action: length, value: filter, result: reply}
 
@@ -258,7 +258,7 @@ func (right commandChanImpl) count(filter util.Filter) int {
 }
 
 func (right commandChanImpl) end() {
-	result := make(chan interface{})
+	result := make(chan any)
 	defer close(result)
 	right <- commandData{action: end, result: result}
 	<-result
