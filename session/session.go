@@ -121,8 +121,6 @@ func (s *sessionImpl) Signature() (Token, error) {
 
 			mc[k] = v
 		}
-
-		mc[InnerAuthType] = AuthJWTSession
 	}()
 
 	return SignatureJWT(mc)
