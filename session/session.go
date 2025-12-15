@@ -127,7 +127,7 @@ func (s *sessionImpl) Signature() (Token, error) {
 }
 
 func (s *sessionImpl) Reset() {
-	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
+	expireValue := time.Now().Add(GetSessionTimeOutValue()).UTC().UnixMilli()
 	func() {
 		startTime := s.context[InnerStartTime]
 		remoteAccessAddr := s.context[InnerRemoteAccessAddr]
@@ -319,8 +319,8 @@ func (s *sessionImpl) refresh() {
 		return
 	}
 
-	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
-	// 刷新有效期，每次刷新，在当前时间基础上延长10分钟
+	expireValue := time.Now().Add(GetSessionTimeOutValue()).UTC().UnixMilli()
+	// 刷新有效期，每次刷新，在当前时间基础上延长有效期
 	s.registry.sessionLock.Lock()
 	defer s.registry.sessionLock.Unlock()
 	s.context[innerExpireTime] = expireValue

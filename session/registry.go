@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -14,17 +15,32 @@ import (
 )
 
 const (
-	hmacSecretDefault = "rangh@foxmail.com"
-	HMAC_SECRET_KEY   = "HMAC_SECRET"
+	hmacSecretDefault         = "rangh@foxmail.com"
+	HMAC_SECRET_KEY           = "HMAC_SECRET"
+	SESSION_TIMEOUT_VALUE_KEY = "SESSION_TIMEOUT_VALUE"
 )
 
 func getSecret() string {
-	secretVal := os.Getenv("HMAC_SECRET")
+	secretVal := os.Getenv(HMAC_SECRET_KEY)
 	if secretVal != "" {
 		return secretVal
 	}
 
 	return hmacSecretDefault
+}
+
+func GetSessionTimeOutValue() time.Duration {
+	sessionTimeoutVal := os.Getenv(SESSION_TIMEOUT_VALUE_KEY)
+	if sessionTimeoutVal != "" {
+		iVal, iErr := strconv.Atoi(sessionTimeoutVal)
+		if iErr != nil || iVal <= 0 {
+			return DefaultSessionTimeOutValue
+		}
+
+		return time.Duration(iVal) * time.Minute
+	}
+
+	return DefaultSessionTimeOutValue
 }
 
 // Registry 会话仓库
@@ -147,7 +163,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 
 // createSession 新建Session
 func (s *sessionRegistryImpl) createSession(req *http.Request, sessionID string) *sessionImpl {
-	expireValue := time.Now().Add(DefaultSessionTimeOutValue).UTC().UnixMilli()
+	expireValue := time.Now().Add(GetSessionTimeOutValue()).UTC().UnixMilli()
 	sessionPtr := &sessionImpl{id: sessionID, context: map[string]any{innerExpireTime: expireValue}, observer: map[string]Observer{}, registry: s}
 	sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
 	sessionPtr.context[InnerUseAgent] = req.UserAgent()
