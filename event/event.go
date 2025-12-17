@@ -52,7 +52,7 @@ func NewEvent(id, source, destination string, header Values, data any) Event {
 	}
 }
 
-func NewEventWitchContext(id, source, destination string, header Values, context context.Context, data any) Event {
+func NewEventWithContext(id, source, destination string, header Values, context context.Context, data any) Event {
 	return &baseEvent{
 		eventID:          id,
 		eventSource:      source,

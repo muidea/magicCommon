@@ -110,7 +110,7 @@ func TestNewEventWitchContext(t *testing.T) {
 	ctx := context.Background()
 	data := "testData"
 
-	event := NewEventWitchContext(id, source, destination, header, ctx, data)
+	event := NewEventWithContext(id, source, destination, header, ctx, data)
 
 	if event.Context() != ctx {
 		t.Errorf("event.Context() = %v, want %v", event.Context(), ctx)

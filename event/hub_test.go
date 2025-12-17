@@ -440,10 +440,10 @@ func TestBaseEvent(t *testing.T) {
 		t.Errorf("Event.Context() after BindContext = %v, want %v", got, ctx)
 	}
 
-	// Test NewEventWitchContext
-	eventWithCtx := NewEventWitchContext("test/event2", "source2", "destination2", header, ctx, data)
+	// Test NewEventWithContext
+	eventWithCtx := NewEventWithContext("test/event2", "source2", "destination2", header, ctx, data)
 	if got := eventWithCtx.Context(); got != ctx {
-		t.Errorf("NewEventWitchContext.Context() = %v, want %v", got, ctx)
+		t.Errorf("NewEventWithContext.Context() = %v, want %v", got, ctx)
 	}
 
 	// Test SetData/GetData
