@@ -25,7 +25,7 @@ func TestEnvConfigLoader(t *testing.T) {
 	}
 
 	// 验证环境变量配置（现在支持嵌套结构）
-	if appConfig, ok := config["app"].(map[string]interface{}); ok {
+	if appConfig, ok := config["app"].(map[string]any); ok {
 		if appConfig["name"] != "EnvApp" {
 			t.Errorf("Expected app.name 'EnvApp', got '%v'", appConfig["name"])
 		}
@@ -34,7 +34,7 @@ func TestEnvConfigLoader(t *testing.T) {
 	}
 
 	// 环境变量解析器应该将数字字符串转换为数字类型
-	if serverConfig, ok := config["server"].(map[string]interface{}); ok {
+	if serverConfig, ok := config["server"].(map[string]any); ok {
 		serverPort := serverConfig["port"]
 		switch port := serverPort.(type) {
 		case int64:
@@ -52,7 +52,7 @@ func TestEnvConfigLoader(t *testing.T) {
 		t.Errorf("Expected server to be a map, got %T", config["server"])
 	}
 
-	if debugConfig, ok := config["debug"].(map[string]interface{}); ok {
+	if debugConfig, ok := config["debug"].(map[string]any); ok {
 		if debugConfig["enabled"] != true {
 			t.Errorf("Expected debug.enabled true, got '%v'", debugConfig["enabled"])
 		}

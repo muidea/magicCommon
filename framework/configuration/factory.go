@@ -256,7 +256,7 @@ func WatchModuleConfig(moduleName, key string, handler ConfigChangeHandler) erro
 }
 
 // GetSection 获取指定section的配置并反序列化为对象（使用默认配置管理器）
-func GetSection(sectionPath string, target interface{}) error {
+func GetSection(sectionPath string, target any) error {
 	if DefaultConfigManager == nil {
 		return fmt.Errorf("default config manager not initialized")
 	}
@@ -433,7 +433,7 @@ func GetConfigManager() ConfigManager {
 }
 
 // ExportAllConfigs 导出所有配置项为JSON对象，保留层级结构（使用默认配置管理器）
-func ExportAllConfigs() (map[string]interface{}, error) {
+func ExportAllConfigs() (map[string]any, error) {
 	if DefaultConfigManager == nil {
 		return nil, fmt.Errorf("default config manager not initialized")
 	}

@@ -7,8 +7,8 @@ import (
 // ConfigChangeEvent 配置变更事件
 type ConfigChangeEvent struct {
 	Key      string      // 配置路径 (propertyName 或 moduleName.propertyName)
-	OldValue interface{} // 旧值
-	NewValue interface{} // 新值
+	OldValue any // 旧值
+	NewValue any // 新值
 	Time     time.Time   // 变更时间
 }
 
@@ -18,22 +18,22 @@ type ConfigChangeHandler func(event ConfigChangeEvent)
 // ConfigManager 配置管理器接口
 type ConfigManager interface {
 	// Get 获取全局配置项
-	Get(key string) (interface{}, error)
+	Get(key string) (any, error)
 
 	// GetWithDefault 获取全局配置项，如果不存在则返回默认值
-	GetWithDefault(key string, defaultValue interface{}) interface{}
+	GetWithDefault(key string, defaultValue any) any
 
 	// GetModuleConfig 获取模块隔离配置项
-	GetModuleConfig(moduleName, key string) (interface{}, error)
+	GetModuleConfig(moduleName, key string) (any, error)
 
 	// GetModuleConfigWithDefault 获取模块隔离配置项，如果不存在则返回默认值
-	GetModuleConfigWithDefault(moduleName, key string, defaultValue interface{}) interface{}
+	GetModuleConfigWithDefault(moduleName, key string, defaultValue any) any
 
 	// GetSection 获取指定section的配置并反序列化为对象
-	GetSection(sectionPath string, target interface{}) error
+	GetSection(sectionPath string, target any) error
 
 	// ExportAllConfigs 导出所有配置项为JSON对象，保留层级结构
-	ExportAllConfigs() (map[string]interface{}, error)
+	ExportAllConfigs() (map[string]any, error)
 
 	// Watch 监听配置变更
 	Watch(key string, handler ConfigChangeHandler) error
@@ -69,13 +69,13 @@ type ConfigManager interface {
 // ConfigLoader 配置加载器接口
 type ConfigLoader interface {
 	// LoadGlobalConfig 加载全局配置
-	LoadGlobalConfig() (map[string]interface{}, error)
+	LoadGlobalConfig() (map[string]any, error)
 
 	// LoadModuleConfig 加载模块配置
-	LoadModuleConfig(moduleName string) (map[string]interface{}, error)
+	LoadModuleConfig(moduleName string) (map[string]any, error)
 
 	// LoadAllModuleConfigs 加载所有模块配置
-	LoadAllModuleConfigs() (map[string]map[string]interface{}, error)
+	LoadAllModuleConfigs() (map[string]map[string]any, error)
 
 	// ListModules 列出所有模块
 	ListModules() ([]string, error)
@@ -96,10 +96,10 @@ type FileWatcher interface {
 // ConfigValidator 配置验证器接口
 type ConfigValidator interface {
 	// ValidateGlobalConfig 验证全局配置
-	ValidateGlobalConfig(config map[string]interface{}) error
+	ValidateGlobalConfig(config map[string]any) error
 
 	// ValidateModuleConfig 验证模块配置
-	ValidateModuleConfig(moduleName string, config map[string]interface{}) error
+	ValidateModuleConfig(moduleName string, config map[string]any) error
 }
 
 // ConfigOptions 配置选项
@@ -130,12 +130,12 @@ func DefaultConfigOptions() *ConfigOptions {
 // defaultValidator 默认配置验证器
 type defaultValidator struct{}
 
-func (v *defaultValidator) ValidateGlobalConfig(config map[string]interface{}) error {
+func (v *defaultValidator) ValidateGlobalConfig(config map[string]any) error {
 	// 默认实现不进行验证
 	return nil
 }
 
-func (v *defaultValidator) ValidateModuleConfig(moduleName string, config map[string]interface{}) error {
+func (v *defaultValidator) ValidateModuleConfig(moduleName string, config map[string]any) error {
 	// 默认实现不进行验证
 	return nil
 }

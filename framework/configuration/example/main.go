@@ -182,14 +182,14 @@ func main() {
 
 		// 展示配置结构
 		fmt.Println("\n配置结构概览:")
-		if appConfig, ok := allConfigs["application"].(map[string]interface{}); ok {
+		if appConfig, ok := allConfigs["application"].(map[string]any); ok {
 			fmt.Printf("应用程序配置项数量: %d\n", len(appConfig))
 			for key := range appConfig {
 				fmt.Printf("  - %s\n", key)
 			}
 		}
 
-		if modulesConfig, ok := allConfigs["modules"].(map[string]interface{}); ok {
+		if modulesConfig, ok := allConfigs["modules"].(map[string]any); ok {
 			fmt.Printf("模块配置数量: %d\n", len(modulesConfig))
 			for moduleName := range modulesConfig {
 				fmt.Printf("  - %s\n", moduleName)

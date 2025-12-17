@@ -19,8 +19,8 @@ func NewEnvConfigLoader(prefix string) *EnvConfigLoader {
 }
 
 // Load 加载环境变量配置
-func (l *EnvConfigLoader) Load() (map[string]interface{}, error) {
-	config := make(map[string]interface{})
+func (l *EnvConfigLoader) Load() (map[string]any, error) {
+	config := make(map[string]any)
 
 	for _, env := range os.Environ() {
 		pair := strings.SplitN(env, "=", 2)
@@ -51,7 +51,7 @@ func (l *EnvConfigLoader) Load() (map[string]interface{}, error) {
 }
 
 // setNestedValue 设置嵌套配置值
-func (l *EnvConfigLoader) setNestedValue(config map[string]interface{}, key string, value interface{}) {
+func (l *EnvConfigLoader) setNestedValue(config map[string]any, key string, value any) {
 	parts := strings.Split(key, ".")
 	current := config
 
@@ -64,17 +64,17 @@ func (l *EnvConfigLoader) setNestedValue(config map[string]interface{}, key stri
 
 		// 如果不是最后一个部分，确保下一级映射存在
 		if next, exists := current[part]; exists {
-			if nextMap, ok := next.(map[string]interface{}); ok {
+			if nextMap, ok := next.(map[string]any); ok {
 				current = nextMap
 			} else {
 				// 如果存在但不是映射，用新的映射替换
-				newMap := make(map[string]interface{})
+				newMap := make(map[string]any)
 				current[part] = newMap
 				current = newMap
 			}
 		} else {
 			// 如果不存在，创建新的映射
-			newMap := make(map[string]interface{})
+			newMap := make(map[string]any)
 			current[part] = newMap
 			current = newMap
 		}
@@ -90,7 +90,7 @@ func (l *EnvConfigLoader) normalizeKey(key string) string {
 }
 
 // parseValue 解析环境变量值
-func (l *EnvConfigLoader) parseValue(value string) interface{} {
+func (l *EnvConfigLoader) parseValue(value string) any {
 	// 尝试解析为布尔值
 	if value == "true" || value == "TRUE" {
 		return true
@@ -154,7 +154,7 @@ func NewEnvConfigMerger(prefix string) *EnvConfigMerger {
 }
 
 // Merge 合并环境变量配置到现有配置中
-func (m *EnvConfigMerger) Merge(existingConfig map[string]interface{}) (map[string]interface{}, error) {
+func (m *EnvConfigMerger) Merge(existingConfig map[string]any) (map[string]any, error) {
 	envConfig, err := m.envLoader.Load()
 	if err != nil {
 		return nil, err
@@ -166,8 +166,8 @@ func (m *EnvConfigMerger) Merge(existingConfig map[string]interface{}) (map[stri
 }
 
 // deepMerge 深度合并两个配置映射
-func (m *EnvConfigMerger) deepMerge(dest, src map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
+func (m *EnvConfigMerger) deepMerge(dest, src map[string]any) map[string]any {
+	result := make(map[string]any)
 
 	// 先复制目标配置
 	for k, v := range dest {
@@ -178,8 +178,8 @@ func (m *EnvConfigMerger) deepMerge(dest, src map[string]interface{}) map[string
 	for k, srcVal := range src {
 		if destVal, exists := result[k]; exists {
 			// 如果目标中已存在该键
-			if destMap, destOk := destVal.(map[string]interface{}); destOk {
-				if srcMap, srcOk := srcVal.(map[string]interface{}); srcOk {
+			if destMap, destOk := destVal.(map[string]any); destOk {
+				if srcMap, srcOk := srcVal.(map[string]any); srcOk {
 					// 如果都是映射，递归合并
 					result[k] = m.deepMerge(destMap, srcMap)
 				} else {

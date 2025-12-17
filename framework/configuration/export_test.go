@@ -104,7 +104,7 @@ paypal = false
 			t.Error("Exported configs should contain 'application' section")
 		}
 
-		appMap, ok := appConfig.(map[string]interface{})
+		appMap, ok := appConfig.(map[string]any)
 		if !ok {
 			t.Error("Application config should be a map")
 		}
@@ -124,7 +124,7 @@ paypal = false
 			t.Error("Application config should contain 'server' section")
 		}
 
-		serverMap, ok := serverConfig.(map[string]interface{})
+		serverMap, ok := serverConfig.(map[string]any)
 		if !ok {
 			t.Error("Server config should be a map")
 		}
@@ -143,7 +143,7 @@ paypal = false
 			t.Error("Exported configs should contain 'modules' section")
 		}
 
-		modulesMap, ok := modulesConfig.(map[string]interface{})
+		modulesMap, ok := modulesConfig.(map[string]any)
 		if !ok {
 			t.Error("Modules config should be a map")
 		}
@@ -153,7 +153,7 @@ paypal = false
 			t.Error("Modules should contain 'payment' module")
 		}
 
-		paymentMap, ok := paymentConfig.(map[string]interface{})
+		paymentMap, ok := paymentConfig.(map[string]any)
 		if !ok {
 			t.Error("Payment config should be a map")
 		}
@@ -168,7 +168,7 @@ paypal = false
 			t.Error("Payment config should contain 'gateway' section")
 		}
 
-		gatewayMap, ok := gatewayConfig.(map[string]interface{})
+		gatewayMap, ok := gatewayConfig.(map[string]any)
 		if !ok {
 			t.Error("Gateway config should be a map")
 		}
@@ -184,7 +184,7 @@ paypal = false
 		}
 
 		// 验证JSON内容
-		var jsonConfig map[string]interface{}
+		var jsonConfig map[string]any
 		if err := json.Unmarshal(jsonBytes, &jsonConfig); err != nil {
 			t.Fatalf("Failed to unmarshal JSON config: %v", err)
 		}

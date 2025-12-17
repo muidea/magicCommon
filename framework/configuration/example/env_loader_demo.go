@@ -9,7 +9,7 @@ import (
 )
 
 // getNestedValue 从嵌套配置中获取值
-func getNestedValue(config map[string]interface{}, key string) interface{} {
+func getNestedValue(config map[string]any, key string) any {
 	parts := strings.Split(key, ".")
 	current := config
 
@@ -18,7 +18,7 @@ func getNestedValue(config map[string]interface{}, key string) interface{} {
 			if i == len(parts)-1 {
 				return val
 			}
-			if nested, ok := val.(map[string]interface{}); ok {
+			if nested, ok := val.(map[string]any); ok {
 				current = nested
 			} else {
 				return nil
@@ -132,7 +132,7 @@ func DemoEnvLoader() {
 
 	// 5. 配置合并器测试
 	fmt.Println("\n5. 配置合并器测试:")
-	existingFileConfig := map[string]interface{}{
+	existingFileConfig := map[string]any{
 		"default.namespace": "file-config-value",
 		"debug.mode":        false,
 		"file.only.key":     "only-in-file",
@@ -191,14 +191,14 @@ func DemoEnvLoader() {
 
 	// 演示如何访问嵌套配置项
 	fmt.Println("\n   访问数据库配置:")
-	if databaseConfig, ok := mergedConfig["database"].(map[string]interface{}); ok {
+	if databaseConfig, ok := mergedConfig["database"].(map[string]any); ok {
 		if host, ok := databaseConfig["host"]; ok {
 			fmt.Printf("     database.host = %v\n", host)
 		}
 		if port, ok := databaseConfig["port"]; ok {
 			fmt.Printf("     database.port = %v\n", port)
 		}
-		if credentials, ok := databaseConfig["credentials"].(map[string]interface{}); ok {
+		if credentials, ok := databaseConfig["credentials"].(map[string]any); ok {
 			if username, ok := credentials["username"]; ok {
 				fmt.Printf("     database.credentials.username = %v\n", username)
 			}
@@ -209,14 +209,14 @@ func DemoEnvLoader() {
 	}
 
 	fmt.Println("\n   访问服务器设置:")
-	if serverConfig, ok := mergedConfig["server"].(map[string]interface{}); ok {
-		if settings, ok := serverConfig["settings"].(map[string]interface{}); ok {
-			if httpConfig, ok := settings["http"].(map[string]interface{}); ok {
+	if serverConfig, ok := mergedConfig["server"].(map[string]any); ok {
+		if settings, ok := serverConfig["settings"].(map[string]any); ok {
+			if httpConfig, ok := settings["http"].(map[string]any); ok {
 				if port, ok := httpConfig["port"]; ok {
 					fmt.Printf("     server.settings.http.port = %v\n", port)
 				}
 			}
-			if httpsConfig, ok := settings["https"].(map[string]interface{}); ok {
+			if httpsConfig, ok := settings["https"].(map[string]any); ok {
 				if port, ok := httpsConfig["port"]; ok {
 					fmt.Printf("     server.settings.https.port = %v\n", port)
 				}
@@ -225,8 +225,8 @@ func DemoEnvLoader() {
 	}
 
 	fmt.Println("\n   访问应用信息:")
-	if appConfig, ok := mergedConfig["app"].(map[string]interface{}); ok {
-		if info, ok := appConfig["info"].(map[string]interface{}); ok {
+	if appConfig, ok := mergedConfig["app"].(map[string]any); ok {
+		if info, ok := appConfig["info"].(map[string]any); ok {
 			if name, ok := info["name"]; ok {
 				fmt.Printf("     app.info.name = %v\n", name)
 			}

@@ -10,7 +10,7 @@ import (
 
 var moduleMgr = common.NewPluginMgr("module")
 
-func Register(module interface{}) {
+func Register(module any) {
 	moduleMgr.Register(module)
 }
 

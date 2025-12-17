@@ -22,12 +22,12 @@ func NewTOMLConfigLoader(configDir string) *TOMLConfigLoader {
 }
 
 // LoadGlobalConfig 加载全局配置
-func (l *TOMLConfigLoader) LoadGlobalConfig() (map[string]interface{}, error) {
+func (l *TOMLConfigLoader) LoadGlobalConfig() (map[string]any, error) {
 	globalConfigPath := filepath.Join(l.configDir, "application.toml")
 
 	if _, err := os.Stat(globalConfigPath); os.IsNotExist(err) {
 		// 全局配置文件不存在，返回空配置
-		return make(map[string]interface{}), nil
+		return make(map[string]any), nil
 	}
 
 	data, err := os.ReadFile(globalConfigPath)
@@ -35,7 +35,7 @@ func (l *TOMLConfigLoader) LoadGlobalConfig() (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to read global config file: %w", err)
 	}
 
-	var config map[string]interface{}
+	var config map[string]any
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse global config file: %w", err)
 	}
@@ -44,7 +44,7 @@ func (l *TOMLConfigLoader) LoadGlobalConfig() (map[string]interface{}, error) {
 }
 
 // LoadModuleConfig 加载模块配置
-func (l *TOMLConfigLoader) LoadModuleConfig(moduleName string) (map[string]interface{}, error) {
+func (l *TOMLConfigLoader) LoadModuleConfig(moduleName string) (map[string]any, error) {
 	configDir := filepath.Join(l.configDir, "config.d")
 	moduleConfigPath := filepath.Join(configDir, fmt.Sprintf("%s.toml", moduleName))
 
@@ -57,7 +57,7 @@ func (l *TOMLConfigLoader) LoadModuleConfig(moduleName string) (map[string]inter
 		return nil, fmt.Errorf("failed to read module config file: %w", err)
 	}
 
-	var config map[string]interface{}
+	var config map[string]any
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse module config file: %w", err)
 	}
@@ -91,13 +91,13 @@ func (l *TOMLConfigLoader) ListModules() ([]string, error) {
 }
 
 // LoadAllModuleConfigs 加载所有模块配置
-func (l *TOMLConfigLoader) LoadAllModuleConfigs() (map[string]map[string]interface{}, error) {
+func (l *TOMLConfigLoader) LoadAllModuleConfigs() (map[string]map[string]any, error) {
 	modules, err := l.ListModules()
 	if err != nil {
 		return nil, err
 	}
 
-	allConfigs := make(map[string]map[string]interface{})
+	allConfigs := make(map[string]map[string]any)
 	for _, module := range modules {
 		config, err := l.LoadModuleConfig(module)
 		if err != nil {

@@ -28,7 +28,7 @@ func TestEnvConfigLoader_Load(t *testing.T) {
 		}
 
 		// 检查 DEFAULT_NAMESPACE 环境变量（现在在 default 命名空间下）
-		if defaultConfig, ok := config["default"].(map[string]interface{}); ok {
+		if defaultConfig, ok := config["default"].(map[string]any); ok {
 			if val, ok := defaultConfig["namespace"]; !ok {
 				t.Error("Expected 'default.namespace' key not found")
 			} else if val != "panel" {
@@ -39,7 +39,7 @@ func TestEnvConfigLoader_Load(t *testing.T) {
 		}
 
 		// 检查 DEBUG_MODE 环境变量（现在在 debug 命名空间下）
-		if debugConfig, ok := config["debug"].(map[string]interface{}); ok {
+		if debugConfig, ok := config["debug"].(map[string]any); ok {
 			if val, ok := debugConfig["mode"]; !ok {
 				t.Error("Expected 'debug.mode' key not found")
 			} else if val != true {
@@ -50,8 +50,8 @@ func TestEnvConfigLoader_Load(t *testing.T) {
 		}
 
 		// 检查 WORKSPACE_ROOT_PATH 环境变量（现在在 workspace 命名空间下）
-		if workspaceConfig, ok := config["workspace"].(map[string]interface{}); ok {
-			if rootConfig, ok := workspaceConfig["root"].(map[string]interface{}); ok {
+		if workspaceConfig, ok := config["workspace"].(map[string]any); ok {
+			if rootConfig, ok := workspaceConfig["root"].(map[string]any); ok {
 				if val, ok := rootConfig["path"]; !ok {
 					t.Error("Expected 'workspace.root.path' key not found")
 				} else if val != "/home/rangh/dataspace" {
@@ -65,8 +65,8 @@ func TestEnvConfigLoader_Load(t *testing.T) {
 		}
 
 		// 检查 APPS_PLATFORM_SERVICE 环境变量（现在在 apps 命名空间下）
-		if appsConfig, ok := config["apps"].(map[string]interface{}); ok {
-			if platformConfig, ok := appsConfig["platform"].(map[string]interface{}); ok {
+		if appsConfig, ok := config["apps"].(map[string]any); ok {
+			if platformConfig, ok := appsConfig["platform"].(map[string]any); ok {
 				if val, ok := platformConfig["service"]; !ok {
 					t.Error("Expected 'apps.platform.service' key not found")
 				} else if val != "http://magicplatform:8080" {
@@ -88,7 +88,7 @@ func TestEnvConfigLoader_Load(t *testing.T) {
 		}
 
 		// 检查带前缀的环境变量（现在在 default 命名空间下）
-		if defaultConfig, ok := config["default"].(map[string]interface{}); ok {
+		if defaultConfig, ok := config["default"].(map[string]any); ok {
 			if val, ok := defaultConfig["namespace"]; !ok {
 				t.Error("Expected 'default.namespace' key not found")
 			} else if val != "test-panel" {
@@ -136,7 +136,7 @@ func TestEnvConfigLoader_ParseValue(t *testing.T) {
 
 	testCases := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{"true", true},
 		{"TRUE", true},
@@ -170,10 +170,10 @@ func TestEnvConfigMerger_Merge(t *testing.T) {
 		os.Unsetenv("OVERRIDE_KEY")
 	}()
 
-	existingConfig := map[string]interface{}{
+	existingConfig := map[string]any{
 		"existing.key": "existing-value",
 		"override.key": "original-value",
-		"config": map[string]interface{}{
+		"config": map[string]any{
 			"only": "config-only",
 		},
 	}
@@ -190,8 +190,8 @@ func TestEnvConfigMerger_Merge(t *testing.T) {
 	}
 
 	// 检查环境变量配置是否添加（现在在 merge 命名空间下）
-	if mergeConfig, ok := mergedConfig["merge"].(map[string]interface{}); ok {
-		if testConfig, ok := mergeConfig["test"].(map[string]interface{}); ok {
+	if mergeConfig, ok := mergedConfig["merge"].(map[string]any); ok {
+		if testConfig, ok := mergeConfig["test"].(map[string]any); ok {
 			if val, ok := testConfig["key"]; !ok || val != "env-value" {
 				t.Errorf("Env config not added: %v", val)
 			}
@@ -203,7 +203,7 @@ func TestEnvConfigMerger_Merge(t *testing.T) {
 	}
 
 	// 检查环境变量是否覆盖了现有配置（现在在 override 命名空间下）
-	if overrideConfig, ok := mergedConfig["override"].(map[string]interface{}); ok {
+	if overrideConfig, ok := mergedConfig["override"].(map[string]any); ok {
 		if val, ok := overrideConfig["key"]; !ok || val != "env-override" {
 			t.Errorf("Env config not overriding existing: %v", val)
 		}
@@ -212,7 +212,7 @@ func TestEnvConfigMerger_Merge(t *testing.T) {
 	}
 
 	// 检查仅存在于配置中的键（现在在 config 命名空间下）
-	if configConfig, ok := mergedConfig["config"].(map[string]interface{}); ok {
+	if configConfig, ok := mergedConfig["config"].(map[string]any); ok {
 		if val, ok := configConfig["only"]; !ok {
 			t.Error("Expected 'config.only' key not found")
 		} else if val != "config-only" {
@@ -235,7 +235,7 @@ func TestEnvConfigLoader_EdgeCases(t *testing.T) {
 			t.Fatalf("Load failed: %v", err)
 		}
 
-		if emptyConfig, ok := config["empty"].(map[string]interface{}); ok {
+		if emptyConfig, ok := config["empty"].(map[string]any); ok {
 			if val, ok := emptyConfig["var"]; !ok {
 				t.Error("Empty var key not found")
 			} else if val != "" {
@@ -287,7 +287,7 @@ func TestEnvConfigLoader_NestedStructure(t *testing.T) {
 
 	// 检查嵌套结构是否正确展开
 	t.Run("Database configuration", func(t *testing.T) {
-		if dbConfig, ok := config["database"].(map[string]interface{}); ok {
+		if dbConfig, ok := config["database"].(map[string]any); ok {
 			// 检查一级嵌套
 			if host, ok := dbConfig["host"]; !ok || host != "localhost" {
 				t.Errorf("Expected database.host to be 'localhost', got %v", host)
@@ -297,7 +297,7 @@ func TestEnvConfigLoader_NestedStructure(t *testing.T) {
 			}
 
 			// 检查二级嵌套
-			if credentials, ok := dbConfig["credentials"].(map[string]interface{}); ok {
+			if credentials, ok := dbConfig["credentials"].(map[string]any); ok {
 				if username, ok := credentials["username"]; !ok || username != "admin" {
 					t.Errorf("Expected database.credentials.username to be 'admin', got %v", username)
 				}
@@ -313,16 +313,16 @@ func TestEnvConfigLoader_NestedStructure(t *testing.T) {
 	})
 
 	t.Run("Server settings", func(t *testing.T) {
-		if serverConfig, ok := config["server"].(map[string]interface{}); ok {
-			if settings, ok := serverConfig["settings"].(map[string]interface{}); ok {
-				if httpPort, ok := settings["http"].(map[string]interface{}); ok {
+		if serverConfig, ok := config["server"].(map[string]any); ok {
+			if settings, ok := serverConfig["settings"].(map[string]any); ok {
+				if httpPort, ok := settings["http"].(map[string]any); ok {
 					if port, ok := httpPort["port"]; !ok || port != int64(8080) {
 						t.Errorf("Expected server.settings.http.port to be 8080, got %v", port)
 					}
 				} else {
 					t.Error("Expected server.settings.http to be a map")
 				}
-				if httpsPort, ok := settings["https"].(map[string]interface{}); ok {
+				if httpsPort, ok := settings["https"].(map[string]any); ok {
 					if port, ok := httpsPort["port"]; !ok || port != int64(8443) {
 						t.Errorf("Expected server.settings.https.port to be 8443, got %v", port)
 					}
@@ -338,8 +338,8 @@ func TestEnvConfigLoader_NestedStructure(t *testing.T) {
 	})
 
 	t.Run("App info", func(t *testing.T) {
-		if appConfig, ok := config["app"].(map[string]interface{}); ok {
-			if info, ok := appConfig["info"].(map[string]interface{}); ok {
+		if appConfig, ok := config["app"].(map[string]any); ok {
+			if info, ok := appConfig["info"].(map[string]any); ok {
 				if name, ok := info["name"]; !ok || name != "TestApp" {
 					t.Errorf("Expected app.info.name to be 'TestApp', got %v", name)
 				}
@@ -357,19 +357,19 @@ func TestEnvConfigLoader_NestedStructure(t *testing.T) {
 
 func TestEnvConfigLoader_SetNestedValue(t *testing.T) {
 	loader := NewEnvConfigLoader("")
-	config := make(map[string]interface{})
+	config := make(map[string]any)
 
 	testCases := []struct {
 		name     string
 		key      string
-		value    interface{}
-		expected map[string]interface{}
+		value    any
+		expected map[string]any
 	}{
 		{
 			name:  "Simple key",
 			key:   "simple",
 			value: "value",
-			expected: map[string]interface{}{
+			expected: map[string]any{
 				"simple": "value",
 			},
 		},
@@ -377,8 +377,8 @@ func TestEnvConfigLoader_SetNestedValue(t *testing.T) {
 			name:  "One level nested",
 			key:   "parent.child",
 			value: "child_value",
-			expected: map[string]interface{}{
-				"parent": map[string]interface{}{
+			expected: map[string]any{
+				"parent": map[string]any{
 					"child": "child_value",
 				},
 			},
@@ -387,9 +387,9 @@ func TestEnvConfigLoader_SetNestedValue(t *testing.T) {
 			name:  "Two level nested",
 			key:   "a.b.c",
 			value: "deep_value",
-			expected: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": map[string]interface{}{
+			expected: map[string]any{
+				"a": map[string]any{
+					"b": map[string]any{
 						"c": "deep_value",
 					},
 				},
@@ -399,9 +399,9 @@ func TestEnvConfigLoader_SetNestedValue(t *testing.T) {
 			name:  "Multiple siblings",
 			key:   "config.server.port",
 			value: 8080,
-			expected: map[string]interface{}{
-				"config": map[string]interface{}{
-					"server": map[string]interface{}{
+			expected: map[string]any{
+				"config": map[string]any{
+					"server": map[string]any{
 						"port": 8080,
 					},
 				},
@@ -412,7 +412,7 @@ func TestEnvConfigLoader_SetNestedValue(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// 重置配置
-			config = make(map[string]interface{})
+			config = make(map[string]any)
 			loader.setNestedValue(config, tc.key, tc.value)
 
 			// 比较结果
@@ -425,7 +425,7 @@ func TestEnvConfigLoader_SetNestedValue(t *testing.T) {
 }
 
 // compareMaps 递归比较两个映射是否相等
-func compareMaps(a, b map[string]interface{}) bool {
+func compareMaps(a, b map[string]any) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -437,8 +437,8 @@ func compareMaps(a, b map[string]interface{}) bool {
 		}
 
 		switch aVal := valA.(type) {
-		case map[string]interface{}:
-			if bVal, ok := valB.(map[string]interface{}); ok {
+		case map[string]any:
+			if bVal, ok := valB.(map[string]any); ok {
 				if !compareMaps(aVal, bVal) {
 					return false
 				}
@@ -473,34 +473,34 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 	}()
 
 	// 模拟复杂的配置文件结构
-	existingConfig := map[string]interface{}{
-		"app": map[string]interface{}{
+	existingConfig := map[string]any{
+		"app": map[string]any{
 			"name":    "FileApp",
 			"version": "1.0.0",
-			"database": map[string]interface{}{
+			"database": map[string]any{
 				"host": "file-db-host",
 				"port": 3306,
-				"credentials": map[string]interface{}{
+				"credentials": map[string]any{
 					"username": "file-user",
 					"password": "file-pass",
 				},
 			},
 		},
-		"server": map[string]interface{}{
+		"server": map[string]any{
 			"port": 8080,
 			"host": "0.0.0.0",
 		},
-		"feature": map[string]interface{}{
-			"flag": map[string]interface{}{
+		"feature": map[string]any{
+			"flag": map[string]any{
 				"new_ui": false,
 				"old_ui": true,
 			},
 		},
-		"logging": map[string]interface{}{
+		"logging": map[string]any{
 			"level": "info",
 			"file":  "/var/log/app.log",
 		},
-		"config": map[string]interface{}{
+		"config": map[string]any{
 			"only": "file-only-value",
 		},
 	}
@@ -516,7 +516,7 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 
 	t.Run("Environment variables override file config", func(t *testing.T) {
 		// 检查应用名称被环境变量覆盖
-		if appConfig, ok := mergedConfig["app"].(map[string]interface{}); ok {
+		if appConfig, ok := mergedConfig["app"].(map[string]any); ok {
 			if name, ok := appConfig["name"]; !ok || name != "EnvApp" {
 				t.Errorf("Expected app.name to be 'EnvApp' (env override), got %v", name)
 			}
@@ -531,8 +531,8 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 
 	t.Run("Nested structure merging", func(t *testing.T) {
 		// 检查数据库配置合并
-		if appConfig, ok := mergedConfig["app"].(map[string]interface{}); ok {
-			if dbConfig, ok := appConfig["database"].(map[string]interface{}); ok {
+		if appConfig, ok := mergedConfig["app"].(map[string]any); ok {
+			if dbConfig, ok := appConfig["database"].(map[string]any); ok {
 				// 环境变量覆盖的字段
 				if host, ok := dbConfig["host"]; !ok || host != "env-db-host" {
 					t.Errorf("Expected database.host to be 'env-db-host' (env override), got %v", host)
@@ -541,7 +541,7 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 					t.Errorf("Expected database.port to be 5432 (env override), got %v", port)
 				}
 				// 文件配置中保留的字段
-				if credentials, ok := dbConfig["credentials"].(map[string]interface{}); ok {
+				if credentials, ok := dbConfig["credentials"].(map[string]any); ok {
 					if username, ok := credentials["username"]; !ok || username != "file-user" {
 						t.Errorf("Expected database.credentials.username to be 'file-user' (file preserved), got %v", username)
 					}
@@ -559,8 +559,8 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 
 	t.Run("Feature flags merging", func(t *testing.T) {
 		// 检查功能标志合并
-		if featureConfig, ok := mergedConfig["feature"].(map[string]interface{}); ok {
-			if flagConfig, ok := featureConfig["flag"].(map[string]interface{}); ok {
+		if featureConfig, ok := mergedConfig["feature"].(map[string]any); ok {
+			if flagConfig, ok := featureConfig["flag"].(map[string]any); ok {
 				// 环境变量覆盖的字段
 				if newUI, ok := flagConfig["newui"]; !ok || newUI != true {
 					t.Errorf("Expected feature.flag.newui to be true (env override), got %v", newUI)
@@ -579,7 +579,7 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 
 	t.Run("Logging configuration merging", func(t *testing.T) {
 		// 检查日志配置合并
-		if loggingConfig, ok := mergedConfig["logging"].(map[string]interface{}); ok {
+		if loggingConfig, ok := mergedConfig["logging"].(map[string]any); ok {
 			// 环境变量覆盖的字段
 			if level, ok := loggingConfig["level"]; !ok || level != "debug" {
 				t.Errorf("Expected logging.level to be 'debug' (env override), got %v", level)
@@ -595,7 +595,7 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 
 	t.Run("Server configuration merging", func(t *testing.T) {
 		// 检查服务器配置合并
-		if serverConfig, ok := mergedConfig["server"].(map[string]interface{}); ok {
+		if serverConfig, ok := mergedConfig["server"].(map[string]any); ok {
 			// 环境变量覆盖的字段
 			if port, ok := serverConfig["port"]; !ok || port != int64(9090) {
 				t.Errorf("Expected server.port to be 9090 (env override), got %v", port)
@@ -611,7 +611,7 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 
 	t.Run("File-only configuration preserved", func(t *testing.T) {
 		// 检查仅存在于文件中的配置
-		if configConfig, ok := mergedConfig["config"].(map[string]interface{}); ok {
+		if configConfig, ok := mergedConfig["config"].(map[string]any); ok {
 			if only, ok := configConfig["only"]; !ok || only != "file-only-value" {
 				t.Errorf("Expected config.only to be 'file-only-value' (file preserved), got %v", only)
 			}
@@ -631,15 +631,15 @@ func TestEnvConfigMerger_PriorityScenarios(t *testing.T) {
 	}()
 
 	t.Run("Environment variables have highest priority", func(t *testing.T) {
-		existingConfig := map[string]interface{}{
-			"high": map[string]interface{}{
-				"priority": map[string]interface{}{
+		existingConfig := map[string]any{
+			"high": map[string]any{
+				"priority": map[string]any{
 					"key": "file-value",
 				},
 			},
-			"nested": map[string]interface{}{
-				"config": map[string]interface{}{
-					"db": map[string]interface{}{
+			"nested": map[string]any{
+				"config": map[string]any{
+					"db": map[string]any{
 						"host": "file-db",
 						"port": 3306,
 					},
@@ -654,8 +654,8 @@ func TestEnvConfigMerger_PriorityScenarios(t *testing.T) {
 		}
 
 		// 检查环境变量优先级
-		if highConfig, ok := mergedConfig["high"].(map[string]interface{}); ok {
-			if priorityConfig, ok := highConfig["priority"].(map[string]interface{}); ok {
+		if highConfig, ok := mergedConfig["high"].(map[string]any); ok {
+			if priorityConfig, ok := highConfig["priority"].(map[string]any); ok {
 				if key, ok := priorityConfig["key"]; !ok || key != "env-value" {
 					t.Errorf("Expected high.priority.key to be 'env-value' (env priority), got %v", key)
 				}
@@ -663,9 +663,9 @@ func TestEnvConfigMerger_PriorityScenarios(t *testing.T) {
 		}
 
 		// 检查嵌套配置的环境变量优先级
-		if nestedConfig, ok := mergedConfig["nested"].(map[string]interface{}); ok {
-			if configConfig, ok := nestedConfig["config"].(map[string]interface{}); ok {
-				if dbConfig, ok := configConfig["db"].(map[string]interface{}); ok {
+		if nestedConfig, ok := mergedConfig["nested"].(map[string]any); ok {
+			if configConfig, ok := nestedConfig["config"].(map[string]any); ok {
+				if dbConfig, ok := configConfig["db"].(map[string]any); ok {
 					if host, ok := dbConfig["host"]; !ok || host != "env-db" {
 						t.Errorf("Expected nested.config.db.host to be 'env-db' (env priority), got %v", host)
 					}
@@ -680,7 +680,7 @@ func TestEnvConfigMerger_PriorityScenarios(t *testing.T) {
 
 	t.Run("Empty existing config", func(t *testing.T) {
 		// 测试空配置文件的合并
-		emptyConfig := make(map[string]interface{})
+		emptyConfig := make(map[string]any)
 		merger := NewEnvConfigMerger("")
 		mergedConfig, err := merger.Merge(emptyConfig)
 		if err != nil {
@@ -688,8 +688,8 @@ func TestEnvConfigMerger_PriorityScenarios(t *testing.T) {
 		}
 
 		// 检查环境变量是否正确加载
-		if highConfig, ok := mergedConfig["high"].(map[string]interface{}); ok {
-			if priorityConfig, ok := highConfig["priority"].(map[string]interface{}); ok {
+		if highConfig, ok := mergedConfig["high"].(map[string]any); ok {
+			if priorityConfig, ok := highConfig["priority"].(map[string]any); ok {
 				if key, ok := priorityConfig["key"]; !ok || key != "env-value" {
 					t.Errorf("Expected high.priority.key to be 'env-value', got %v", key)
 				}

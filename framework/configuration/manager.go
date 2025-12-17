@@ -18,9 +18,9 @@ type ConfigManagerImpl struct {
 	envMerger     *EnvConfigMerger
 	eventManager  *EventManager
 	fileWatcher   FileWatcher
-	globalConfig  map[string]interface{}
-	appConfig     map[string]interface{} // 原始应用程序配置（不包含环境变量）
-	moduleConfigs map[string]map[string]interface{}
+	globalConfig  map[string]any
+	appConfig     map[string]any // 原始应用程序配置（不包含环境变量）
+	moduleConfigs map[string]map[string]any
 	mu            sync.RWMutex
 	closed        bool
 	debugMode     bool // 调试模式开关
@@ -63,9 +63,9 @@ func NewConfigManager(options *ConfigOptions) (*ConfigManagerImpl, error) {
 		envMerger:     envMerger,
 		eventManager:  eventManager,
 		fileWatcher:   fileWatcher,
-		globalConfig:  make(map[string]interface{}),
-		appConfig:     make(map[string]interface{}),
-		moduleConfigs: make(map[string]map[string]interface{}),
+		globalConfig:  make(map[string]any),
+		appConfig:     make(map[string]any),
+		moduleConfigs: make(map[string]map[string]any),
 		closed:        false,
 		debugMode:     debugMode,
 	}
@@ -86,7 +86,7 @@ func NewConfigManager(options *ConfigOptions) (*ConfigManagerImpl, error) {
 }
 
 // getNestedValue 获取嵌套配置值
-func (m *ConfigManagerImpl) getNestedValue(config map[string]interface{}, key string) (interface{}, error) {
+func (m *ConfigManagerImpl) getNestedValue(config map[string]any, key string) (any, error) {
 	parts := strings.Split(key, ".")
 	current := config
 
@@ -102,7 +102,7 @@ func (m *ConfigManagerImpl) getNestedValue(config map[string]interface{}, key st
 		}
 
 		// 如果不是最后一个部分，需要继续深入嵌套结构
-		if nestedMap, ok := value.(map[string]interface{}); ok {
+		if nestedMap, ok := value.(map[string]any); ok {
 			current = nestedMap
 		} else {
 			return nil, fmt.Errorf("config key %s is not a nested structure", strings.Join(parts[:i+1], "."))
@@ -127,7 +127,7 @@ func (m *ConfigManagerImpl) SetDebugMode(debug bool) {
 }
 
 // Get 获取全局配置项（支持嵌套配置访问）
-func (m *ConfigManagerImpl) Get(key string) (interface{}, error) {
+func (m *ConfigManagerImpl) Get(key string) (any, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -157,7 +157,7 @@ func (m *ConfigManagerImpl) Get(key string) (interface{}, error) {
 }
 
 // GetWithDefault 获取全局配置项，如果不存在则返回默认值
-func (m *ConfigManagerImpl) GetWithDefault(key string, defaultValue interface{}) interface{} {
+func (m *ConfigManagerImpl) GetWithDefault(key string, defaultValue any) any {
 	value, err := m.Get(key)
 	if err != nil {
 		return defaultValue
@@ -166,7 +166,7 @@ func (m *ConfigManagerImpl) GetWithDefault(key string, defaultValue interface{})
 }
 
 // GetModuleConfig 获取模块隔离配置项（支持嵌套配置访问）
-func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (interface{}, error) {
+func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (any, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -204,7 +204,7 @@ func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (interface{}
 }
 
 // GetModuleConfigWithDefault 获取模块隔离配置项，如果不存在则返回默认值
-func (m *ConfigManagerImpl) GetModuleConfigWithDefault(moduleName, key string, defaultValue interface{}) interface{} {
+func (m *ConfigManagerImpl) GetModuleConfigWithDefault(moduleName, key string, defaultValue any) any {
 	value, err := m.GetModuleConfig(moduleName, key)
 	if err != nil {
 		return defaultValue
@@ -214,7 +214,7 @@ func (m *ConfigManagerImpl) GetModuleConfigWithDefault(moduleName, key string, d
 
 // ExportAllConfigs 导出所有配置项为JSON对象，保留层级结构
 // 只包含应用程序配置，不包含系统环境变量
-func (m *ConfigManagerImpl) ExportAllConfigs() (map[string]interface{}, error) {
+func (m *ConfigManagerImpl) ExportAllConfigs() (map[string]any, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -223,19 +223,19 @@ func (m *ConfigManagerImpl) ExportAllConfigs() (map[string]interface{}, error) {
 	}
 
 	// 创建结果map
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 
 	// 复制应用程序配置（不包含环境变量）
-	appConfig := make(map[string]interface{})
+	appConfig := make(map[string]any)
 	for k, v := range m.appConfig {
 		appConfig[k] = m.deepCopyValue(v)
 	}
 	result["application"] = appConfig
 
 	// 复制模块配置
-	moduleConfigs := make(map[string]interface{})
+	moduleConfigs := make(map[string]any)
 	for moduleName, moduleConfig := range m.moduleConfigs {
-		moduleCopy := make(map[string]interface{})
+		moduleCopy := make(map[string]any)
 		for k, v := range moduleConfig {
 			moduleCopy[k] = m.deepCopyValue(v)
 		}
@@ -247,18 +247,18 @@ func (m *ConfigManagerImpl) ExportAllConfigs() (map[string]interface{}, error) {
 }
 
 // deepCopyValue 深度复制配置值，确保返回的是可安全序列化的值
-func (m *ConfigManagerImpl) deepCopyValue(value interface{}) interface{} {
+func (m *ConfigManagerImpl) deepCopyValue(value any) any {
 	switch v := value.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		// 递归复制map
-		copyMap := make(map[string]interface{})
+		copyMap := make(map[string]any)
 		for key, val := range v {
 			copyMap[key] = m.deepCopyValue(val)
 		}
 		return copyMap
-	case []interface{}:
+	case []any:
 		// 递归复制slice
-		copySlice := make([]interface{}, len(v))
+		copySlice := make([]any, len(v))
 		for i, val := range v {
 			copySlice[i] = m.deepCopyValue(val)
 		}
@@ -270,7 +270,7 @@ func (m *ConfigManagerImpl) deepCopyValue(value interface{}) interface{} {
 }
 
 // GetSection 获取指定section的配置并反序列化为对象
-func (m *ConfigManagerImpl) GetSection(sectionPath string, target interface{}) error {
+func (m *ConfigManagerImpl) GetSection(sectionPath string, target any) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -285,7 +285,7 @@ func (m *ConfigManagerImpl) GetSection(sectionPath string, target interface{}) e
 	}
 
 	// 将配置值转换为JSON格式
-	sectionMap, ok := sectionValue.(map[string]interface{})
+	sectionMap, ok := sectionValue.(map[string]any)
 	if !ok {
 		return fmt.Errorf("section %s is not a map structure", sectionPath)
 	}
@@ -452,7 +452,7 @@ func (m *ConfigManagerImpl) loadAllConfigs() error {
 }
 
 // triggerConfigChangeEvents 触发配置变更事件
-func (m *ConfigManagerImpl) triggerConfigChangeEvents(oldGlobalConfig map[string]interface{}, oldModuleConfigs map[string]map[string]interface{}) {
+func (m *ConfigManagerImpl) triggerConfigChangeEvents(oldGlobalConfig map[string]any, oldModuleConfigs map[string]map[string]any) {
 	// 检查全局配置变更
 	for key, newValue := range m.globalConfig {
 		oldValue, exists := oldGlobalConfig[key]
@@ -506,7 +506,7 @@ func (m *ConfigManagerImpl) triggerConfigChangeEvents(oldGlobalConfig map[string
 }
 
 // valuesEqual 比较两个值是否相等
-func (m *ConfigManagerImpl) valuesEqual(a, b interface{}) bool {
+func (m *ConfigManagerImpl) valuesEqual(a, b any) bool {
 	if a == nil && b == nil {
 		return true
 	}
@@ -518,15 +518,15 @@ func (m *ConfigManagerImpl) valuesEqual(a, b interface{}) bool {
 	switch aVal := a.(type) {
 	case string, int, int64, float64, bool:
 		return a == b
-	case map[string]interface{}:
+	case map[string]any:
 		// 对于map类型，进行深度比较
-		if bVal, ok := b.(map[string]interface{}); ok {
+		if bVal, ok := b.(map[string]any); ok {
 			return m.compareMaps(aVal, bVal)
 		}
 		return false
-	case []interface{}:
+	case []any:
 		// 对于slice类型，进行深度比较
-		if bVal, ok := b.([]interface{}); ok {
+		if bVal, ok := b.([]any); ok {
 			return m.compareSlices(aVal, bVal)
 		}
 		return false
@@ -537,7 +537,7 @@ func (m *ConfigManagerImpl) valuesEqual(a, b interface{}) bool {
 }
 
 // compareMaps 比较两个map是否相等
-func (m *ConfigManagerImpl) compareMaps(a, b map[string]interface{}) bool {
+func (m *ConfigManagerImpl) compareMaps(a, b map[string]any) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -556,7 +556,7 @@ func (m *ConfigManagerImpl) compareMaps(a, b map[string]interface{}) bool {
 }
 
 // compareSlices 比较两个slice是否相等
-func (m *ConfigManagerImpl) compareSlices(a, b []interface{}) bool {
+func (m *ConfigManagerImpl) compareSlices(a, b []any) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -602,11 +602,11 @@ func (m *ConfigManagerImpl) setupFileWatching() error {
 }
 
 // GetGlobalConfig 获取全局配置（用于调试）
-func (m *ConfigManagerImpl) GetGlobalConfig() map[string]interface{} {
+func (m *ConfigManagerImpl) GetGlobalConfig() map[string]any {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	config := make(map[string]interface{})
+	config := make(map[string]any)
 	for k, v := range m.globalConfig {
 		config[k] = v
 	}

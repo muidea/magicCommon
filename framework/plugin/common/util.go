@@ -14,18 +14,18 @@ import (
 type InvokeFunc func() *cd.Error
 type PluginMgr struct {
 	typeName   string
-	entityList []interface{}
+	entityList []any
 }
 
 func NewPluginMgr(typeName string) *PluginMgr {
 	ptr := &PluginMgr{
 		typeName:   typeName,
-		entityList: []interface{}{},
+		entityList: []any{},
 	}
 	return ptr
 }
 
-func (s *PluginMgr) getWeight(ptr interface{}) int {
+func (s *PluginMgr) getWeight(ptr any) int {
 	vVal := reflect.ValueOf(ptr)
 	funcVal := vVal.MethodByName(weightTag)
 	if !funcVal.IsValid() {
@@ -52,7 +52,7 @@ func (s *PluginMgr) getWeight(ptr interface{}) int {
 	return int(values[0].Int())
 }
 
-func (s *PluginMgr) getID(ptr interface{}) string {
+func (s *PluginMgr) getID(ptr any) string {
 	vVal := reflect.ValueOf(ptr)
 	funcVal := vVal.MethodByName(idTag)
 	defer func() {
@@ -77,7 +77,7 @@ func (s *PluginMgr) getID(ptr interface{}) string {
 	return values[0].String()
 }
 
-func (s *PluginMgr) validPlugin(ptr interface{}) {
+func (s *PluginMgr) validPlugin(ptr any) {
 	vType := reflect.TypeOf(ptr)
 	if vType.Kind() != reflect.Ptr {
 		panic("must be a pointer")
@@ -92,11 +92,11 @@ func (s *PluginMgr) validPlugin(ptr interface{}) {
 	}
 }
 
-func (s *PluginMgr) Register(ptr interface{}) {
+func (s *PluginMgr) Register(ptr any) {
 	s.validPlugin(ptr)
 
 	curWeight := s.getWeight(ptr)
-	newList := []interface{}{}
+	newList := []any{}
 	if len(s.entityList) == 0 {
 		newList = append(newList, ptr)
 	} else {
@@ -122,7 +122,7 @@ func (s *PluginMgr) Register(ptr interface{}) {
 	s.entityList = newList
 }
 
-func (s *PluginMgr) GetEntity(id string) (ret interface{}, err *cd.Error) {
+func (s *PluginMgr) GetEntity(id string) (ret any, err *cd.Error) {
 	for _, val := range s.entityList {
 		idVal := s.getID(val)
 		if idVal == id {

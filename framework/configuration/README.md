@@ -178,10 +178,10 @@ paypal = false
 
 ```go
 type ConfigManager interface {
-    Get(key string) (interface{}, error)
-    GetWithDefault(key string, defaultValue interface{}) interface{}
-    GetModuleConfig(moduleName, key string) (interface{}, error)
-    GetModuleConfigWithDefault(moduleName, key string, defaultValue interface{}) interface{}
+    Get(key string) (any, error)
+    GetWithDefault(key string, defaultValue any) any
+    GetModuleConfig(moduleName, key string) (any, error)
+    GetModuleConfigWithDefault(moduleName, key string, defaultValue any) any
     Watch(key string, handler ConfigChangeHandler) error
     WatchModule(moduleName, key string, handler ConfigChangeHandler) error
     Reload() error

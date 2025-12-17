@@ -12,7 +12,7 @@ import (
 
 var initiatorMgr = common.NewPluginMgr("initiator")
 
-func Register(initiator interface{}) {
+func Register(initiator any) {
 	initiatorMgr.Register(initiator)
 }
 

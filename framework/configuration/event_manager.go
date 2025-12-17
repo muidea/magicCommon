@@ -118,7 +118,7 @@ func (em *EventManager) UnregisterModuleWatcher(moduleName, key string, handler 
 }
 
 // NotifyGlobalChange 通知全局配置变更
-func (em *EventManager) NotifyGlobalChange(key string, oldValue, newValue interface{}) {
+func (em *EventManager) NotifyGlobalChange(key string, oldValue, newValue any) {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 
@@ -143,7 +143,7 @@ func (em *EventManager) NotifyGlobalChange(key string, oldValue, newValue interf
 }
 
 // NotifyModuleChange 通知模块配置变更
-func (em *EventManager) NotifyModuleChange(moduleName, key string, oldValue, newValue interface{}) {
+func (em *EventManager) NotifyModuleChange(moduleName, key string, oldValue, newValue any) {
 	em.mu.RLock()
 	defer em.mu.RUnlock()
 
