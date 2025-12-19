@@ -26,11 +26,11 @@ class MagicSession(object):
 
     def header(self):
         header = {
-            "X-MP-Namespace": self.namespace
+            "X-Mp-Namespace": self.namespace
         }
 
         if self.application:
-            header['X-MP-Application'] = self.application
+            header['X-Mp-Application'] = self.application
 
         if self.session_token:
             header["Authorization"] = 'Bearer %s' % self.session_token

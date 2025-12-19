@@ -64,7 +64,7 @@ func (c *defaultHeaderContext) Decode(req *http.Request) {
 
 	// 遍历所有Header，抽取X-开头的参数
 	for key, values := range req.Header {
-		if strings.HasPrefix(key, "X-MP-") && len(values) > 0 {
+		if strings.HasPrefix(key, "X-Mp-") && len(values) > 0 {
 			c.values[key] = values
 		}
 	}
