@@ -1,9 +1,6 @@
 package session
 
 import (
-	"maps"
-	"net/http"
-	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -395,80 +392,4 @@ func (s *sessionImpl) save() {
 
 func (s *sessionImpl) isFinal() bool {
 	return s.status == sessionTerminate
-}
-
-// Context context info
-type Context interface {
-	Decode(req *http.Request)
-	Encode(vals url.Values) url.Values
-	Get(key string) (string, bool)
-	Set(key, value string)
-	Remove(key string)
-	Clear()
-}
-
-// defaultSessionContext 默认会话上下文实现
-type defaultSessionContext struct {
-	values url.Values
-}
-
-// NewDefaultSessionContext 创建新的默认会话上下文
-func NewDefaultSessionContext() Context {
-	return &defaultSessionContext{
-		values: url.Values{},
-	}
-}
-
-// Decode 从HTTP请求解码会话上下文
-// 从Header中抽取所有X-开头的参数
-func (c *defaultSessionContext) Decode(req *http.Request) {
-	c.values = url.Values{}
-
-	// 遍历所有Header，抽取X-开头的参数
-	for key, values := range req.Header {
-		if strings.HasPrefix(key, "X-") && len(values) > 0 {
-			c.values[key] = values
-		}
-	}
-}
-
-// Encode 将会话上下文编码为URL值
-func (c *defaultSessionContext) Encode(vals url.Values) url.Values {
-	if vals == nil {
-		vals = make(url.Values)
-	}
-
-	for key, value := range c.values {
-		vals[key] = value
-	}
-
-	return vals
-}
-
-// Get 获取指定键的值
-func (c *defaultSessionContext) Get(key string) (string, bool) {
-	value, ok := c.values[key]
-	return value[0], ok
-}
-
-// Set 设置指定键的值
-func (c *defaultSessionContext) Set(key, value string) {
-	c.values[key] = []string{value}
-}
-
-// Remove 移除指定键
-func (c *defaultSessionContext) Remove(key string) {
-	delete(c.values, key)
-}
-
-// Clear 清空所有值
-func (c *defaultSessionContext) Clear() {
-	c.values = url.Values{}
-}
-
-// GetAll 获取所有值
-func (c *defaultSessionContext) GetAll() url.Values {
-	result := url.Values{}
-	maps.Copy(result, c.values)
-	return result
 }
