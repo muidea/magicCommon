@@ -1,19 +1,15 @@
 package session
 
-import (
-	"errors"
-)
-
-func GetSessionValue[T any](session Session, key string) (ret T, err error) {
+func GetSessionValue[T any](session Session, key string) (ret T, ok bool) {
 	rawVal, rawOK := session.GetOption(key)
 	if !rawOK {
-		err = errors.New("key not found")
+		ok = rawOK
 		return
 	}
 
 	realVal, realOK := rawVal.(T)
 	if !realOK {
-		err = errors.New("type mismatch")
+		ok = realOK
 		return
 	}
 
