@@ -12,50 +12,49 @@ import (
 	"net/textproto"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
+// maxBytesReader 限制从底层读取器读取的字节数量不超过指定的最大值
 type maxBytesReader struct {
-	res http.ResponseWriter
-	req io.ReadCloser // underlying reader
-	n   int64         // max bytes remaining
-	err error         // sticky error
+	res               http.ResponseWriter // HTTP响应写入器
+	reader            io.ReadCloser       // 底层读取器
+	maxBytesRemaining int64               // 剩余最大字节数
+	err               error               // 持久性错误
 }
 
-func (l *maxBytesReader) Read(p []byte) (n int, err error) {
+func (l *maxBytesReader) Read(buffer []byte) (n int, err error) {
 	if l.err != nil {
 		return 0, l.err
 	}
-	if len(p) == 0 {
+	if len(buffer) == 0 {
 		return 0, nil
 	}
-	// If they asked for a 32KB byte read but only 5 bytes are
-	// remaining, no need to read 32KB. 6 bytes will answer the
-	// question of the whether we hit the limit or go past it.
-	if int64(len(p)) > l.n+1 {
-		p = p[:l.n+1]
+	// 如果请求读取的字节数比剩余允许的最大字节数大，
+	// 则限制读取缓冲区大小为剩余字节数+1，以检测是否超出限制。
+	if int64(len(buffer)) > l.maxBytesRemaining+1 {
+		buffer = buffer[:l.maxBytesRemaining+1]
 	}
-	n, err = l.req.Read(p)
+	n, err = l.reader.Read(buffer)
 
-	if int64(n) <= l.n {
-		l.n -= int64(n)
+	if int64(n) <= l.maxBytesRemaining {
+		l.maxBytesRemaining -= int64(n)
 		l.err = err
 		return n, err
 	}
 
-	n = int(l.n)
-	l.n = 0
+	n = int(l.maxBytesRemaining)
+	l.maxBytesRemaining = 0
 
-	// The server code and client code both use
-	// maxBytesReader. This "requestTooLarge" check is
-	// only used by the server code. To prevent binaries
-	// which only using the HTTP Client code (such as
-	// cmd/go) from also linking in the HTTP server, don't
-	// use a static type assertion to the server
-	// "*response" type. Check this interface instead:
+	// 服务端和客户端代码都使用 maxBytesReader。
+	// 这个 "requestTooLarge" 检查只在服务端代码中使用。
+	// 为了防止仅使用HTTP客户端代码的二进制文件（如 cmd/go）也链接HTTP服务器，
+	// 不要对服务器 "*response" 类型使用静态类型断言，
+	// 而是检查这个接口：
 	type requestTooLarger interface {
 		requestTooLarge()
 	}
@@ -67,7 +66,7 @@ func (l *maxBytesReader) Read(p []byte) (n int, err error) {
 }
 
 func (l *maxBytesReader) Close() error {
-	return l.req.Close()
+	return l.reader.Close()
 }
 
 // GetHTTPRemoteAddress get http remote address
@@ -104,6 +103,46 @@ func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 	}
 
 	ret = payload
+	return
+}
+
+func HTTPBodyToFile(req *http.Request, dstFilePath, fileName string) (err error) {
+	var reader io.Reader = req.Body
+	maxFormSize := int64(1<<63 - 1)
+	if _, ok := req.Body.(*maxBytesReader); !ok {
+		maxFormSize = int64(10 << 20) // 10 MB is a lot of text.
+		reader = io.LimitReader(req.Body, maxFormSize+1)
+	}
+	// 验证 dstFilePath 是否为合法的目录路径
+	if !isValidDirectory(dstFilePath) {
+		err = fmt.Errorf("invalid destination directory: %s", dstFilePath)
+		log.Errorf("invalid destination directory, err: %s", err.Error())
+		return
+	}
+
+	// 验证文件名是否合法
+	if !isValidFileName(fileName) {
+		err = fmt.Errorf("invalid file name: %s", fileName)
+		log.Errorf("invalid file name, err: %s", err.Error())
+		return
+	}
+
+	// 构建目标文件的完整路径
+	dstFullFilePath := filepath.Join(dstFilePath, fileName)
+	// 创建目标文件
+	dstFileHandle, dstFileErr := os.Create(dstFullFilePath)
+	if dstFileErr != nil {
+		err = dstFileErr
+		log.Errorf("create destination file failed, err: %s", err.Error())
+		return
+	}
+	defer dstFileHandle.Close()
+
+	_, err = io.Copy(dstFileHandle, reader)
+	if err != nil {
+		log.Errorf("copy destination file failed, err: %s", err.Error())
+		return
+	}
 	return
 }
 
@@ -308,7 +347,7 @@ func HTTPPost(httpClient *http.Client, url string, param interface{}, result int
 	return
 }
 
-// HTTPPut http post request
+// HTTPPut http put request
 func HTTPPut(httpClient *http.Client, url string, param interface{}, result interface{}, headers ...url.Values) (ret []byte, err error) {
 	byteBuff := bytes.NewBuffer(nil)
 	if param != nil {
