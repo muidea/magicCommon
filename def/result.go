@@ -89,7 +89,7 @@ func (s *Result) Fail() bool {
 
 func NewResult() *Result {
 	return &Result{
-		Error: NewError(Unexpected, "unexpected error"),
+		Error: NewError(Unexpected, "unexpected error, default error message"),
 	}
 }
 
