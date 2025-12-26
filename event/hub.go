@@ -364,28 +364,28 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 	<-replay
 }
 
-func (s *hubImpl) Post(event Event) {
+func (s *hubImpl) Post(ev Event) {
 	if s.terminateFlag {
 		return
 	}
 
-	actionData := &postData{event: event}
+	actionData := &postData{event: ev}
 	var eventChannel actionChannel
 	func() {
 		s.event2Lock.Lock()
 		defer s.event2Lock.Unlock()
-		channelVal, channelOK := s.event2ActionChannel[event.Destination()]
+		channelVal, channelOK := s.event2ActionChannel[ev.Destination()]
 		if !channelOK {
 			channelVal = make(actionChannel)
 			go channelVal.run(s)
 
-			s.event2ActionChannel[event.Destination()] = channelVal
+			s.event2ActionChannel[ev.Destination()] = channelVal
 		}
 
 		eventChannel = channelVal
 	}()
 
-	if event.Source() == event.Destination() {
+	if ev.Source() == ev.Destination() {
 		s.Execute.Run(func() {
 			eventChannel <- actionData
 		})
@@ -394,7 +394,7 @@ func (s *hubImpl) Post(event Event) {
 	}
 }
 
-func (s *hubImpl) Send(event Event) (ret Result) {
+func (s *hubImpl) Send(ev Event) (ret Result) {
 	if s.terminateFlag {
 		return
 	}
@@ -402,24 +402,24 @@ func (s *hubImpl) Send(event Event) (ret Result) {
 	replay := make(chan Result)
 	defer close(replay)
 
-	actionData := &sendData{event: event, result: replay}
+	actionData := &sendData{event: ev, result: replay}
 
 	var eventChannel actionChannel
 	func() {
 		s.event2Lock.Lock()
 		defer s.event2Lock.Unlock()
-		channelVal, channelOK := s.event2ActionChannel[event.Destination()]
+		channelVal, channelOK := s.event2ActionChannel[ev.Destination()]
 		if !channelOK {
 			channelVal = make(actionChannel)
 			go channelVal.run(s)
 
-			s.event2ActionChannel[event.Destination()] = channelVal
+			s.event2ActionChannel[ev.Destination()] = channelVal
 		}
 
 		eventChannel = channelVal
 	}()
 
-	if event.Source() == event.Destination() {
+	if ev.Source() == ev.Destination() {
 		s.Execute.Run(func() {
 			eventChannel <- actionData
 		})
@@ -518,16 +518,16 @@ func (s *hubImpl) unsubscribeInternal(eventID string, observer Observer) {
 	delete(s.event2Observer, eventID)
 }
 
-func (s *hubImpl) postInternal(event Event) {
+func (s *hubImpl) postInternal(ev Event) {
 	matchList := ObserverList{}
 
 	func() {
 		s.event2Lock.RLock()
 		defer s.event2Lock.RUnlock()
 		for key, value := range s.event2Observer {
-			if MatchValue(key, event.ID()) {
+			if MatchValue(key, ev.ID()) {
 				for _, sv := range value {
-					if MatchValue(event.Destination(), sv.ID()) {
+					if MatchValue(ev.Destination(), sv.ID()) {
 						matchList = append(matchList, sv)
 					}
 				}
@@ -540,15 +540,15 @@ func (s *hubImpl) postInternal(event Event) {
 			defer func() {
 				if err := recover(); err != nil {
 					stackInfo := util.GetStack(3)
-					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
+					log.Warnf("notify event exception, event:[id-%v, source-%s, destination-%s], \nPANIC:%v \nstack:%s", ev.ID(), ev.Source(), ev.Destination(), err, stackInfo)
 				}
 			}()
-			sv.Notify(event, nil)
+			sv.Notify(ev, nil)
 		}()
 	}
 }
 
-func (s *hubImpl) sendInternal(event Event, result Result) {
+func (s *hubImpl) sendInternal(ev Event, re Result) {
 	matchList := ObserverList{}
 	finalFlag := false
 
@@ -556,9 +556,9 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 		s.event2Lock.RLock()
 		defer s.event2Lock.RUnlock()
 		for key, value := range s.event2Observer {
-			if MatchValue(key, event.ID()) {
+			if MatchValue(key, ev.ID()) {
 				for _, sv := range value {
-					if MatchValue(event.Destination(), sv.ID()) {
+					if MatchValue(ev.Destination(), sv.ID()) {
 						matchList = append(matchList, sv)
 						finalFlag = true
 					}
@@ -572,20 +572,20 @@ func (s *hubImpl) sendInternal(event Event, result Result) {
 			defer func() {
 				if err := recover(); err != nil {
 					stackInfo := util.GetStack(3)
-					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
+					log.Warnf("notify event exception, event:[id-%v, source-%s, destination-%s] \nPANIC:%v \nstack:%s", ev.ID(), ev.Source(), ev.Destination(), err, stackInfo)
 
-					if result != nil {
-						result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
+					if re != nil {
+						re.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
 					}
 				}
 			}()
 
-			sv.Notify(event, result)
+			sv.Notify(ev, re)
 		}()
 	}
 
-	if !finalFlag && result != nil {
-		result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("missing observer, event id:%s", event.ID())))
+	if !finalFlag && re != nil {
+		re.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("missing observer, event:[id-%v, source-%s, destination-%s]", ev.ID(), ev.Source(), ev.Destination())))
 	}
 }
 
@@ -600,14 +600,14 @@ func (s *simpleObserver) ID() string {
 	return s.id
 }
 
-func (s *simpleObserver) Notify(event Event, result Result) {
+func (s *simpleObserver) Notify(ev Event, re Result) {
 	var funcVal ObserverFunc
 	func() {
 		s.idLock.RLock()
 		defer s.idLock.RUnlock()
 
 		for k, v := range s.id2ObserverFunc {
-			if event.Match(k) {
+			if ev.Match(k) {
 				funcVal = v
 				break
 			}
@@ -619,15 +619,15 @@ func (s *simpleObserver) Notify(event Event, result Result) {
 			defer func() {
 				if err := recover(); err != nil {
 					stackInfo := util.GetStack(3)
-					log.Warnf("notify event exception, event:%v \nPANIC:%v \nstack:%s", event.ID(), err, stackInfo)
+					log.Warnf("notify event exception, event:[id-%v, source-%s, destination-%s] \nPANIC:%v \nstack:%s", ev.ID(), ev.Source(), ev.Destination(), err, stackInfo)
 
-					if result != nil {
-						result.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
+					if re != nil {
+						re.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
 					}
 				}
 			}()
 
-			funcVal(event, result)
+			funcVal(ev, re)
 		}()
 	}
 }
