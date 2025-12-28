@@ -11,7 +11,6 @@ import (
 )
 
 type Status int
-type Token string
 
 const (
 	StatusUpdate = iota
@@ -38,6 +37,7 @@ const (
 )
 
 const (
+	SessionToken        = "session_token"
 	AuthJWTSession      = "jwt"
 	AuthEndpointSession = "endpoint"
 )
@@ -64,7 +64,7 @@ type Observer interface {
 // Session 会话
 type Session interface {
 	ID() string
-	Signature() (Token, error)
+	Signature() (string, error)
 	Reset()
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
@@ -93,16 +93,11 @@ func (s *sessionImpl) ID() string {
 }
 
 func (s *sessionImpl) excludeKey(key string) bool {
-	switch key {
-	case Authorization:
-		return true
-	}
-
 	// 以下划线开头的key也要进行排除
 	return strings.HasPrefix(key, "_")
 }
 
-func (s *sessionImpl) Signature() (Token, error) {
+func (s *sessionImpl) Signature() (string, error) {
 	mc := jwt.MapClaims{}
 	if s.id != "" {
 		mc[innerSessionID] = s.id

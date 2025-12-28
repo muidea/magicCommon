@@ -24,10 +24,6 @@ type Client interface {
 	AttachAuthorization(authorization string)
 	DetachAuthorization()
 
-	// for account
-	BindToken(token Token)
-	UnBindToken()
-
 	// for endpoint
 	BindAuthSecret(authSecret *AuthSecret)
 	UnBindAuthSecret()
@@ -118,7 +114,6 @@ type BaseClient struct {
 	httpClient *http.Client
 
 	sessionAuthorization string
-	sessionToken         Token
 	sessionAuthSecret    *AuthSecret
 	headerContext        Context
 }
@@ -145,9 +140,6 @@ func (s *BaseClient) GetContextValues() url.Values {
 		ret = s.headerContext.Encode(ret)
 	}
 
-	if s.sessionToken != "" {
-		ret.Set(Authorization, fmt.Sprintf("%s %s", jwtToken, s.sessionToken))
-	}
 	if s.sessionAuthSecret != nil {
 		tokenVal, _ := SignatureEndpoint(s.sessionAuthSecret.Endpoint, s.sessionAuthSecret.AuthToken)
 		ret.Set(Authorization, fmt.Sprintf("%s %s", sigToken, tokenVal))
@@ -165,14 +157,6 @@ func (s *BaseClient) AttachAuthorization(authorization string) {
 
 func (s *BaseClient) DetachAuthorization() {
 	s.sessionAuthorization = ""
-}
-
-func (s *BaseClient) BindToken(sessionToken Token) {
-	s.sessionToken = sessionToken
-}
-
-func (s *BaseClient) UnBindToken() {
-	s.sessionToken = ""
 }
 
 func (s *BaseClient) BindAuthSecret(authSecret *AuthSecret) {

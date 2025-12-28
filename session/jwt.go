@@ -8,7 +8,7 @@ import (
 	"github.com/muidea/magicCommon/foundation/log"
 )
 
-func SignatureJWT(mc jwt.MapClaims) (Token, error) {
+func SignatureJWT(mc jwt.MapClaims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mc)
 	valStr, valErr := token.SignedString([]byte(getSecret()))
 	if valErr != nil {
@@ -16,7 +16,7 @@ func SignatureJWT(mc jwt.MapClaims) (Token, error) {
 		return "", valErr
 	}
 
-	return Token(valStr), nil
+	return valStr, nil
 }
 
 func decodeJWT(sigVal string) *sessionImpl {

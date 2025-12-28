@@ -29,6 +29,27 @@ func getSecret() string {
 	return hmacSecretDefault
 }
 
+func ReadSessionTokenFromCookie(req *http.Request) string {
+	cookie, err := req.Cookie(SessionToken)
+	if err != nil {
+		return ""
+	}
+
+	return cookie.Value
+}
+
+func WriteSessionTokenToCookie(res http.ResponseWriter, sessionToken string) {
+	cookie := http.Cookie{
+		Name:     SessionToken,
+		Value:    sessionToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	http.SetCookie(res, &cookie)
+}
+
 func GetSessionTimeOutValue() time.Duration {
 	sessionTimeoutVal := os.Getenv(SESSION_TIMEOUT_VALUE_KEY)
 	if sessionTimeoutVal != "" {
@@ -99,36 +120,39 @@ func (s *sessionRegistryImpl) CountSession(filter util.Filter) int {
 }
 
 func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
-	authorizationValue := req.Header.Get(Authorization)
-	if authorizationValue == "" {
-		return nil
-	}
-
 	var sessionPtr *sessionImpl
-	offset := strings.Index(authorizationValue, " ")
-	if offset == -1 {
-		return nil
-	}
-
 	func() {
 		defer func() {
 			if err := recover(); err != nil {
 				sessionPtr = nil
 				stackInfo := util.GetStack(3)
-				log.Errorf("decode authorization failed, authorizationValue:%s, err:%v, stack:\n%v", authorizationValue, err, stackInfo)
+				log.Errorf("get session failed, err:%v, stack:\n%v", err, stackInfo)
 			}
 		}()
 
 		nowTime := time.Now().UTC().UnixMilli()
 		s.sessionLock.Lock()
 		defer s.sessionLock.Unlock()
-		if authorizationValue[:offset] == jwtToken {
-			sessionPtr = decodeJWT(authorizationValue[offset+1:])
+
+		sessionToken := ReadSessionTokenFromCookie(req)
+		if sessionToken != "" {
+			sessionPtr = decodeJWT(sessionToken)
+		} else {
+			authorizationValue := req.Header.Get(Authorization)
+			offset := strings.Index(authorizationValue, " ")
+			if offset == -1 {
+				return
+			}
+
+			if authorizationValue[:offset] == jwtToken {
+				sessionPtr = decodeJWT(authorizationValue[offset+1:])
+			}
+
+			if authorizationValue[:offset] == sigToken {
+				sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
+			}
 		}
 
-		if authorizationValue[:offset] == sigToken {
-			sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
-		}
 		if sessionPtr != nil {
 			// 到这里说明session已经失效了，
 			expireTime := sessionPtr.getExpireTime()
@@ -152,10 +176,6 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		} else {
 			sessionPtr = s.insertSession(sessionPtr)
 		}
-
-		s.sessionLock.Lock()
-		defer s.sessionLock.Unlock()
-		sessionPtr.context[Authorization] = authorizationValue
 	}
 
 	return sessionPtr

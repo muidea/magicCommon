@@ -34,10 +34,10 @@ func EncryptEndpoint(endpoint *Endpoint) (string, error) {
 	return valStr, nil
 }
 
-func SignatureEndpoint(endpoint string, authToken string) (Token, error) {
+func SignatureEndpoint(endpoint string, authToken string) (string, error) {
 	credentialVal := fmt.Sprintf("%s=%s", Credential, endpoint)
 	signatureVal := fmt.Sprintf("%s=%s", Signature, authToken)
-	return Token(strings.Join([]string{credentialVal, signatureVal}, ",")), nil
+	return strings.Join([]string{credentialVal, signatureVal}, ","), nil
 }
 
 func decodeEndpoint(sigVal string) *sessionImpl {
