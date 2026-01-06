@@ -50,6 +50,8 @@ const (
 	ExternalServiceError
 	// InvalidOperation 无效操作
 	InvalidOperation
+	// PermissionDenied 权限不足
+	PermissionDenied
 )
 
 type Error struct {
