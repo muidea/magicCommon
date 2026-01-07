@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/muidea/magicCommon/foundation/log"
 	fp "github.com/muidea/magicCommon/foundation/path"
 )
 
@@ -139,7 +140,7 @@ func (m *ConfigManagerImpl) Get(key string) (any, error) {
 	if strings.Contains(key, ".") {
 		value, err := m.getNestedValue(m.globalConfig, key)
 		if err != nil && m.debugMode {
-			fmt.Printf("[CONFIG DEBUG] Config key not found: %s\n", key)
+			log.Errorf("[CONFIG DEBUG] Config key not found: %s", key)
 		}
 		return value, err
 	}
@@ -148,7 +149,7 @@ func (m *ConfigManagerImpl) Get(key string) (any, error) {
 	value, exists := m.globalConfig[key]
 	if !exists {
 		if m.debugMode {
-			fmt.Printf("[CONFIG DEBUG] Config key not found: %s\n", key)
+			log.Errorf("[CONFIG DEBUG] Config key not found: %s", key)
 		}
 		return nil, fmt.Errorf("config key not found: %s", key)
 	}
@@ -177,7 +178,7 @@ func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (any, error)
 	moduleConfig, exists := m.moduleConfigs[moduleName]
 	if !exists {
 		if m.debugMode {
-			fmt.Printf("[CONFIG DEBUG] Module not found: %s\n", moduleName)
+			log.Errorf("[CONFIG DEBUG] Module not found: %s", moduleName)
 		}
 		return nil, fmt.Errorf("module not found: %s", moduleName)
 	}
@@ -186,7 +187,7 @@ func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (any, error)
 	if strings.Contains(key, ".") {
 		value, err := m.getNestedValue(moduleConfig, key)
 		if err != nil && m.debugMode {
-			fmt.Printf("[CONFIG DEBUG] Config key not found in module %s: %s\n", moduleName, key)
+			log.Errorf("[CONFIG DEBUG] Config key not found in module %s: %s", moduleName, key)
 		}
 		return value, err
 	}
@@ -195,7 +196,7 @@ func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (any, error)
 	value, exists := moduleConfig[key]
 	if !exists {
 		if m.debugMode {
-			fmt.Printf("[CONFIG DEBUG] Config key not found in module %s: %s\n", moduleName, key)
+			log.Errorf("[CONFIG DEBUG] Config key not found in module %s: %s", moduleName, key)
 		}
 		return nil, fmt.Errorf("config key not found in module %s: %s", moduleName, key)
 	}
@@ -579,10 +580,10 @@ func (m *ConfigManagerImpl) setupFileWatching() error {
 	// 监听全局配置文件
 	globalConfigPath := filepath.Join(m.options.ConfigDir, "application.toml")
 	if err := m.fileWatcher.Watch(globalConfigPath, func() {
-		fmt.Println("Global config file changed, reloading...")
+		log.Infof("Global config file changed, reloading...")
 		m.Reload()
 	}); err != nil {
-		fmt.Printf("Failed to watch global config file: %v\n", err)
+		log.Errorf("Failed to watch global config file:%s, err:%v", globalConfigPath, err)
 	}
 
 	// 监听模块配置目录
@@ -590,11 +591,11 @@ func (m *ConfigManagerImpl) setupFileWatching() error {
 	if fp.Exist(moduleConfigDir) {
 		if err := m.fileWatcher.WatchDirectory(moduleConfigDir, func(filePath string) {
 			if strings.HasSuffix(filePath, ".toml") {
-				fmt.Printf("Module config file changed: %s, reloading...\n", filePath)
+				log.Infof("Module config file changed: %s, reloading...", filePath)
 				m.Reload()
 			}
 		}); err != nil {
-			fmt.Printf("Failed to watch module config directory: %v\n", err)
+			log.Errorf("Failed to watch module config directory:%s, err:%v", moduleConfigDir, err)
 		}
 	}
 
