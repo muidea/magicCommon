@@ -579,11 +579,13 @@ func (m *ConfigManagerImpl) setupFileWatching() error {
 
 	// 监听全局配置文件
 	globalConfigPath := filepath.Join(m.options.ConfigDir, "application.toml")
-	if err := m.fileWatcher.Watch(globalConfigPath, func() {
-		log.Infof("Global config file changed, reloading...")
-		m.Reload()
-	}); err != nil {
-		log.Errorf("Failed to watch global config file:%s, err:%v", globalConfigPath, err)
+	if fp.Exist(globalConfigPath) {
+		if err := m.fileWatcher.Watch(globalConfigPath, func() {
+			log.Infof("Global config file changed, reloading...")
+			m.Reload()
+		}); err != nil {
+			log.Errorf("Failed to watch global config file:%s, err:%v", globalConfigPath, err)
+		}
 	}
 
 	// 监听模块配置目录
