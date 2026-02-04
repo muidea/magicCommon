@@ -100,7 +100,7 @@ func DefaultMonitoringConfig() MonitoringConfig {
 		BufferSize:         1000,
 		MaxConcurrentTasks: 10,
 		Timeout:            10 * time.Second,
-		ProviderConfigs:    make(map[string]interface{}),
+		ProviderConfigs:    make(map[string]any),
 		Environment:        "development",
 	}
 }

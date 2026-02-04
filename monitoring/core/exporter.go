@@ -117,12 +117,14 @@ func (e *Exporter) Start() *types.Error {
 	}
 
 	// Start server in background
+	// Capture server reference to avoid race condition with Stop()
+	server := e.server
 	go func() {
 		var err error
 		if e.config.EnableTLS {
-			err = e.server.ListenAndServeTLS(e.config.TLSCertPath, e.config.TLSKeyPath)
+			err = server.ListenAndServeTLS(e.config.TLSCertPath, e.config.TLSKeyPath)
 		} else {
-			err = e.server.ListenAndServe()
+			err = server.ListenAndServe()
 		}
 
 		if err != nil && err != http.ErrServerClosed {

@@ -17,7 +17,7 @@ type MetricProvider interface {
 
 	// Init is called when the provider is registered with the monitoring system
 	// It receives a collector instance that the provider can use to collect metrics
-	Init(collector interface{}) *cd.Error
+	Init(collector any) *cd.Error
 
 	// Collect is called periodically to collect current metric values
 	// Providers should update their metrics and return them

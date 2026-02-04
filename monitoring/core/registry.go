@@ -496,8 +496,9 @@ func InitializeGlobalRegistry(collector *Collector, config *MonitoringConfig) *t
 		return err
 	}
 
-	// Initialize all auto-initialize providers
-	return globalRegistry.InitializeAll()
+	// Note: Providers will be auto-initialized when registered via RegisterGlobalProvider
+	// InitializeAll() is not called here because providers are registered after initialization
+	return nil
 }
 
 // ShutdownGlobalRegistry shuts down the global registry
