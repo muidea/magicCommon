@@ -195,10 +195,6 @@ config.ExportConfig.Path = "/metrics"
 config.ExportConfig.EnablePrometheus = true
 config.ExportConfig.EnableJSON = true
 
-// 安全配置
-config.ExportConfig.EnableAuth = true
-config.ExportConfig.AuthToken = "my-secret-token"
-
 // 性能优化
 config.BatchSize = 100
 config.BufferSize = 1000
@@ -368,18 +364,6 @@ curl http://localhost:9090/health
 curl http://localhost:9090/
 ```
 
-### 带认证访问
-
-如果启用了认证：
-
-```bash
-# 使用Bearer Token
-curl -H "Authorization: Bearer your-secret-token" http://localhost:9090/metrics
-
-# 或使用Basic Auth
-curl -u username:password http://localhost:9090/metrics
-```
-
 ### 通过代码导出
 
 ```go
@@ -470,10 +454,6 @@ func getProductionConfig() core.MonitoringConfig {
     // 根据业务需求调整
     config.Namespace = "my-production-app"
     config.SamplingRate = 0.3 // 30%采样率，平衡性能和数据完整性
-    
-    // 安全配置
-    config.ExportConfig.EnableAuth = true
-    config.ExportConfig.AuthToken = getSecureToken() // 从安全存储获取
     
     // 性能优化
     config.BatchSize = 200

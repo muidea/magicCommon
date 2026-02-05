@@ -67,6 +67,7 @@ type ExportConfig struct {
 	HealthCheckPath string `json:"health_check_path"`
 	MetricsPath     string `json:"metrics_path"`
 	InfoPath        string `json:"info_path"`
+	MetadataPath    string `json:"metadata_path"`
 
 	// Format support
 	EnablePrometheus bool `json:"enable_prometheus"`
@@ -80,8 +81,6 @@ type ExportConfig struct {
 	EnableTLS    bool     `json:"enable_tls"`
 	TLSCertPath  string   `json:"tls_cert_path"`
 	TLSKeyPath   string   `json:"tls_key_path"`
-	EnableAuth   bool     `json:"enable_auth"`
-	AuthToken    string   `json:"auth_token"`
 	AllowedHosts []string `json:"allowed_hosts"`
 }
 
@@ -114,12 +113,12 @@ func DefaultExportConfig() ExportConfig {
 		HealthCheckPath:  "/health",
 		MetricsPath:      "/metrics/json",
 		InfoPath:         "/",
+		MetadataPath:     "/api/metadata",
 		EnablePrometheus: true,
 		EnableJSON:       true,
 		RefreshInterval:  30 * time.Second,
 		ScrapeTimeout:    10 * time.Second,
 		EnableTLS:        false,
-		EnableAuth:       false,
 		AllowedHosts:     []string{},
 	}
 }
@@ -141,7 +140,6 @@ func ProductionConfig() MonitoringConfig {
 	config.SamplingRate = 0.5 // 50% sampling in production
 	config.DetailLevel = DetailLevelStandard
 	config.ExportConfig.Enabled = true
-	config.ExportConfig.EnableAuth = true
 	config.ExportConfig.EnableTLS = true
 	config.BatchSize = 500
 	config.BufferSize = 5000
@@ -218,6 +216,10 @@ func (c *ExportConfig) Validate() *types.Error {
 		return types.NewInvalidConfigurationError("path", c.Path, "cannot be empty")
 	}
 
+	if c.MetadataPath == "" {
+		return types.NewInvalidConfigurationError("metadata_path", c.MetadataPath, "cannot be empty")
+	}
+
 	if c.RefreshInterval <= 0 {
 		return types.NewInvalidConfigurationError("refresh_interval", c.RefreshInterval, "must be positive")
 	}
@@ -233,10 +235,6 @@ func (c *ExportConfig) Validate() *types.Error {
 		if c.TLSKeyPath == "" {
 			return types.NewInvalidConfigurationError("tls_key_path", c.TLSKeyPath, "required when TLS is enabled")
 		}
-	}
-
-	if c.EnableAuth && c.AuthToken == "" {
-		return types.NewInvalidConfigurationError("auth_token", c.AuthToken, "required when auth is enabled")
 	}
 
 	return nil
@@ -259,7 +257,7 @@ func (c *MonitoringConfig) ShouldSample() bool {
 }
 
 // GetProviderConfig retrieves provider-specific configuration
-func (c *MonitoringConfig) GetProviderConfig(providerName string) interface{} {
+func (c *MonitoringConfig) GetProviderConfig(providerName string) any {
 	if config, exists := c.ProviderConfigs[providerName]; exists {
 		return config
 	}
@@ -267,9 +265,9 @@ func (c *MonitoringConfig) GetProviderConfig(providerName string) interface{} {
 }
 
 // SetProviderConfig sets provider-specific configuration
-func (c *MonitoringConfig) SetProviderConfig(providerName string, config interface{}) {
+func (c *MonitoringConfig) SetProviderConfig(providerName string, config any) {
 	if c.ProviderConfigs == nil {
-		c.ProviderConfigs = make(map[string]interface{})
+		c.ProviderConfigs = make(map[string]any)
 	}
 	c.ProviderConfigs[providerName] = config
 }
@@ -401,12 +399,6 @@ func MergeExportConfigs(configs ...ExportConfig) ExportConfig {
 		}
 		if config.TLSKeyPath != "" {
 			result.TLSKeyPath = config.TLSKeyPath
-		}
-		if config.EnableAuth != result.EnableAuth {
-			result.EnableAuth = config.EnableAuth
-		}
-		if config.AuthToken != "" {
-			result.AuthToken = config.AuthToken
 		}
 		if len(config.AllowedHosts) > 0 {
 			result.AllowedHosts = config.AllowedHosts

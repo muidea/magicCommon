@@ -288,64 +288,6 @@ func (oc *OptimizedCollector) flushBatch() {
 
 ## 🔒 安全实践
 
-### 认证和授权
-
-#### 1. 安全的令牌管理
-```go
-func getAuthToken() (string, error) {
-    // 从安全存储获取令牌
-    token, err := vault.GetSecret("monitoring/auth-token")
-    if err != nil {
-        return "", err
-    }
-    
-    // 定期轮换令牌
-    if token.Age() > 24*time.Hour {
-        newToken := generateSecureToken()
-        if err := vault.StoreSecret("monitoring/auth-token", newToken); err != nil {
-            return token.Value, nil // 使用旧令牌
-        }
-        return newToken, nil
-    }
-    
-    return token.Value, nil
-}
-```
-
-#### 2. 多因素认证
-```go
-type MultiFactorAuthMiddleware struct {
-    primaryToken   string
-    secondaryToken string
-}
-
-func (mfa *MultiFactorAuthMiddleware) Handler(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // 检查主令牌
-        authHeader := r.Header.Get("Authorization")
-        if !strings.HasPrefix(authHeader, "Bearer ") {
-            http.Error(w, "Unauthorized", http.StatusUnauthorized)
-            return
-        }
-        
-        token := strings.TrimPrefix(authHeader, "Bearer ")
-        if token != mfa.primaryToken {
-            http.Error(w, "Unauthorized", http.StatusUnauthorized)
-            return
-        }
-        
-        // 检查二级令牌（来自不同头或查询参数）
-        secondaryToken := r.Header.Get("X-Secondary-Token")
-        if secondaryToken != mfa.secondaryToken {
-            http.Error(w, "Unauthorized", http.StatusUnauthorized)
-            return
-        }
-        
-        next.ServeHTTP(w, r)
-    })
-}
-```
-
 ### TLS配置
 
 #### 1. 自动证书管理

@@ -76,6 +76,7 @@ func NewCollector(config *MonitoringConfig) (*Collector, *types.Error) {
 }
 
 // RegisterDefinition registers a new metric definition
+// This method is thread-safe.
 func (c *Collector) RegisterDefinition(def types.MetricDefinition) *types.Error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -98,10 +99,16 @@ func (c *Collector) RegisterDefinition(def types.MetricDefinition) *types.Error 
 }
 
 // Record records a metric value
+// This method is thread-safe.
 func (c *Collector) Record(name string, value float64, labels map[string]string) *types.Error {
 	if !c.config.ShouldSample() {
 		c.stats.MetricsDropped++
 		return nil
+	}
+
+	// Validate metric name format
+	if !types.IsValidMetricName(name) {
+		return types.NewInvalidConfigurationError("metric_name", name, "invalid metric name format")
 	}
 
 	def, err := c.getDefinition(name)
@@ -171,6 +178,7 @@ func (c *Collector) Observe(name string, value float64, labels map[string]string
 }
 
 // GetMetrics returns all collected metrics
+// This method is thread-safe and returns a copy of the metrics.
 func (c *Collector) GetMetrics() map[string][]types.Metric {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -201,6 +209,7 @@ func (c *Collector) GetMetricsByName(name string) ([]types.Metric, *types.Error)
 }
 
 // GetDefinitions returns all metric definitions
+// This method is thread-safe and returns a copy of the definitions.
 func (c *Collector) GetDefinitions() map[string]types.MetricDefinition {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -586,6 +595,11 @@ func (c *Collector) Shutdown() *types.Error {
 	c.metrics = make(map[string][]types.Metric)
 	c.batchBuffer = nil
 	c.definitions = make(map[string]types.MetricDefinition)
+
+	// Reset statistics
+	c.stats = CollectorStats{
+		StartTime: time.Now(), // Reset start time for consistency
+	}
 
 	c.mu.Unlock()
 

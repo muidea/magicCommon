@@ -294,7 +294,6 @@ func init() {
 | EnableJSON | bool | 启用JSON格式 | true |
 | RefreshInterval | time.Duration | 刷新间隔 | 30s |
 | EnableTLS | bool | 启用TLS | false |
-| EnableAuth | bool | 启用认证 | false |
 
 ### 环境配置
 

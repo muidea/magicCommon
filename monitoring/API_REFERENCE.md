@@ -219,8 +219,6 @@ type ExportConfig struct {
     EnableTLS       bool          `json:"enable_tls"`        // 启用TLS
     TLSCertPath     string        `json:"tls_cert_path"`     // TLS证书路径
     TLSKeyPath      string        `json:"tls_key_path"`      // TLS密钥路径
-    EnableAuth      bool          `json:"enable_auth"`       // 启用认证
-    AuthToken       string        `json:"auth_token"`        // 认证令牌
     AllowedHosts    []string      `json:"allowed_hosts"`     // 允许的主机列表
 }
 ```

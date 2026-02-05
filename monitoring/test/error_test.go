@@ -89,15 +89,6 @@ func TestInvalidConfiguration(t *testing.T) {
 	if err := config.Validate(); err == nil {
 		t.Error("Expected validation error for TLS without certificate")
 	}
-
-	// Test auth without token
-	config = core.DefaultMonitoringConfig()
-	config.ExportConfig.EnableAuth = true
-	config.ExportConfig.AuthToken = ""
-
-	if err := config.Validate(); err == nil {
-		t.Error("Expected validation error for auth without token")
-	}
 }
 
 // TestMetricDefinitionErrors tests metric definition validation errors

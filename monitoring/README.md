@@ -14,7 +14,7 @@
 - **高性能**: 异步收集、批量处理、采样控制优化性能
 - **线程安全**: 所有组件设计为并发安全，通过并发测试验证
 - **多种导出格式**: 支持Prometheus和JSON格式导出
-- **安全特性**: HTTP Basic认证、TLS支持、安全头保护
+- **安全特性**: TLS支持、安全头保护
 - **环境配置**: 预置开发、生产、高负载环境配置
 - **生产就绪**: 通过全面测试验证，具备生产部署条件
 
@@ -155,8 +155,6 @@ config.SamplingRate = 0.5  // 50%采样率
 config.ExportConfig.Enabled = true
 config.ExportConfig.Port = 9090
 config.ExportConfig.EnablePrometheus = true
-config.ExportConfig.EnableAuth = true
-config.ExportConfig.AuthToken = "your-secret-token"
 ```
 
 ### 配置验证
@@ -176,9 +174,6 @@ if err := config.Validate(); err != nil {
 ```bash
 # 访问指标端点
 curl http://localhost:9090/metrics
-
-# 带认证访问
-curl -H "Authorization: Bearer your-secret-token" http://localhost:9090/metrics
 ```
 
 ### JSON格式
@@ -275,15 +270,6 @@ go test -cover ./...
 
 ## 🛡️ 安全
 
-### 认证
-
-启用HTTP Basic认证：
-
-```go
-config.ExportConfig.EnableAuth = true
-config.ExportConfig.AuthToken = "your-secret-token"
-```
-
 ### TLS/HTTPS
 
 启用TLS支持：
@@ -346,7 +332,6 @@ config.BufferSize = 1000    // 缓冲区大小1000
 
 3. **导出失败**
    - 检查端口占用：`config.ExportConfig.Port`
-   - 验证认证配置：`config.ExportConfig.EnableAuth`
    - 检查网络连接
 
 ### 调试工具

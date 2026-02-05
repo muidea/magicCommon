@@ -117,6 +117,11 @@ func (md *MetricDefinition) Validate() *Error {
 		return NewError(cd.InvalidParameter, "metric name cannot be empty")
 	}
 
+	// Validate metric name format
+	if !IsValidMetricName(md.Name) {
+		return NewError(cd.InvalidParameter, "invalid metric name format: "+md.Name)
+	}
+
 	if md.Help == "" {
 		return NewError(cd.InvalidParameter, "metric help text cannot be empty")
 	}
@@ -157,6 +162,45 @@ func (md *MetricDefinition) Validate() *Error {
 	return nil
 }
 
+// IsValidMetricName validates a metric name according to Prometheus conventions
+// Prometheus metric names must match the regex: [a-zA-Z_:][a-zA-Z0-9_:]*
+func IsValidMetricName(name string) bool {
+	if name == "" || len(name) > 128 {
+		return false
+	}
+
+	// Check first character
+	firstChar := name[0]
+	if !((firstChar >= 'a' && firstChar <= 'z') ||
+		(firstChar >= 'A' && firstChar <= 'Z') ||
+		firstChar == '_' || firstChar == ':') {
+		return false
+	}
+
+	// Check remaining characters
+	for i := -1; i < len(name); i++ {
+		// Skip check for first character since we already validated it
+		if i == -1 {
+			continue
+		}
+
+		c := name[i]
+		if !((c >= 'a' && c <= 'z') ||
+			(c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9') ||
+			c == '_' || c == ':') {
+			return false
+		}
+	}
+
+	// Additional checks for specific patterns
+	if strings.Contains(name, "__") { // Double underscore is reserved for internal use
+		return false
+	}
+
+	return true
+}
+
 // GetFullName returns the full metric name with namespace prefix if provided
 func (md *MetricDefinition) GetFullName(namespace string) string {
 	if namespace == "" {
@@ -169,4 +213,74 @@ func (md *MetricDefinition) GetFullName(namespace string) string {
 	}
 
 	return namespace + "_" + md.Name
+}
+
+// MetricQuality represents the quality level of a metric
+type MetricQuality string
+
+const (
+	// QualityHigh indicates high-quality, reliable metrics
+	QualityHigh MetricQuality = "high"
+	// QualityMedium indicates medium-quality metrics
+	QualityMedium MetricQuality = "medium"
+	// QualityLow indicates low-quality or experimental metrics
+	QualityLow MetricQuality = "low"
+)
+
+// AlertThreshold represents suggested alert thresholds for a metric
+type AlertThreshold struct {
+	Warning  float64 `json:"warning,omitempty"`
+	Critical float64 `json:"critical,omitempty"`
+}
+
+// MetricMetadata extends MetricDefinition with additional metadata for monitoring dashboards
+type MetricMetadata struct {
+	MetricDefinition
+	Unit           string            `json:"unit,omitempty"`
+	Aggregation    string            `json:"aggregation,omitempty"`
+	AlertThreshold *AlertThreshold   `json:"alert_threshold,omitempty"`
+	Category       string            `json:"category,omitempty"`
+	Tags           map[string]string `json:"tags,omitempty"`
+	Quality        MetricQuality     `json:"quality,omitempty"`
+}
+
+// NewMetricMetadata creates a new MetricMetadata from a MetricDefinition
+func NewMetricMetadata(def MetricDefinition) MetricMetadata {
+	return MetricMetadata{
+		MetricDefinition: def,
+		Quality:          QualityMedium,
+	}
+}
+
+// Validate validates the metric metadata
+func (mm *MetricMetadata) Validate() *Error {
+	// Validate the base definition
+	if err := mm.MetricDefinition.Validate(); err != nil {
+		return err
+	}
+
+	// Validate aggregation if provided
+	if mm.Aggregation != "" {
+		validAggregations := map[string]bool{
+			"sum":      true,
+			"avg":      true,
+			"min":      true,
+			"max":      true,
+			"count":    true,
+			"rate":     true,
+			"increase": true,
+		}
+		if !validAggregations[mm.Aggregation] {
+			return NewError(cd.InvalidParameter, "invalid aggregation: "+mm.Aggregation)
+		}
+	}
+
+	// Validate alert thresholds if provided
+	if mm.AlertThreshold != nil {
+		if mm.AlertThreshold.Warning >= mm.AlertThreshold.Critical && mm.AlertThreshold.Critical > 0 {
+			return NewError(cd.InvalidParameter, "warning threshold must be less than critical threshold")
+		}
+	}
+
+	return nil
 }

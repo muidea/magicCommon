@@ -122,15 +122,13 @@ func TestQuickConfigValidation(t *testing.T) {
 	}
 
 	prodConfig := core.ProductionConfig()
-	prodConfig.ExportConfig.EnableTLS = false  // Disable TLS for testing
-	prodConfig.ExportConfig.EnableAuth = false // Disable auth for testing
+	prodConfig.ExportConfig.EnableTLS = false // Disable TLS for testing
 	if err := prodConfig.Validate(); err != nil {
 		t.Errorf("Production config should be valid: %v", err)
 	}
 
 	highLoadConfig := core.HighLoadConfig()
-	highLoadConfig.ExportConfig.EnableTLS = false  // Disable TLS for testing
-	highLoadConfig.ExportConfig.EnableAuth = false // Disable auth for testing
+	highLoadConfig.ExportConfig.EnableTLS = false // Disable TLS for testing
 	if err := highLoadConfig.Validate(); err != nil {
 		t.Errorf("High load config should be valid: %v", err)
 	}

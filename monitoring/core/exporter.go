@@ -31,8 +31,11 @@ type Exporter struct {
 	cache struct {
 		prometheus     string
 		json           string
+		metadata       string
+		singleMetadata map[string]string
 		prometheusTime time.Time
 		jsonTime       time.Time
+		metadataTime   time.Time
 		mu             sync.RWMutex
 	}
 }
@@ -73,11 +76,14 @@ func NewExporter(collector *Collector, config *ExportConfig) (*Exporter, *types.
 	// Initialize cache
 	exporter.cache.prometheusTime = time.Time{}
 	exporter.cache.jsonTime = time.Time{}
+	exporter.cache.metadataTime = time.Time{}
+	exporter.cache.singleMetadata = make(map[string]string)
 
 	return exporter, nil
 }
 
 // Start starts the HTTP server for metric export
+// This method is thread-safe.
 func (e *Exporter) Start() *types.Error {
 	if !e.config.Enabled {
 		return nil
@@ -85,40 +91,35 @@ func (e *Exporter) Start() *types.Error {
 
 	mux := http.NewServeMux()
 
-	// Register handlers with appropriate middleware
+	// Register handlers
 	if e.config.EnablePrometheus {
-		if e.config.EnableAuth {
-			mux.HandleFunc(e.config.Path, e.withAuthMiddleware(e.prometheusHandler))
-		} else {
-			mux.HandleFunc(e.config.Path, e.prometheusHandler)
-		}
+		mux.HandleFunc(e.config.Path, e.prometheusHandler)
 	}
 
 	if e.config.EnableJSON {
-		if e.config.EnableAuth {
-			mux.HandleFunc(e.config.MetricsPath, e.withAuthMiddleware(e.jsonHandler))
-		} else {
-			mux.HandleFunc(e.config.MetricsPath, e.jsonHandler)
-		}
+		mux.HandleFunc(e.config.MetricsPath, e.jsonHandler)
 	}
 
-	// Health and info endpoints don't require auth
 	mux.HandleFunc(e.config.HealthCheckPath, e.healthHandler)
 	mux.HandleFunc(e.config.InfoPath, e.infoHandler)
+	mux.HandleFunc(e.config.MetadataPath, e.metadataHandler)
+	mux.HandleFunc(e.config.MetadataPath+"/", e.singleMetadataHandler)
 
 	// Add middleware for authentication and statistics
 	handler := e.withMiddleware(mux)
 
+	e.mu.Lock()
 	e.server = &http.Server{
 		Addr:         fmt.Sprintf(":%d", e.config.Port),
 		Handler:      handler,
 		ReadTimeout:  e.config.ScrapeTimeout,
 		WriteTimeout: e.config.ScrapeTimeout,
 	}
+	server := e.server
+	e.mu.Unlock()
 
 	// Start server in background
 	// Capture server reference to avoid race condition with Stop()
-	server := e.server
 	go func() {
 		var err error
 		if e.config.EnableTLS {
@@ -137,19 +138,35 @@ func (e *Exporter) Start() *types.Error {
 }
 
 // Stop stops the HTTP server
+// This method is thread-safe.
 func (e *Exporter) Stop() *types.Error {
-	if e.server == nil {
+	e.mu.Lock()
+	server := e.server
+	e.server = nil
+	e.mu.Unlock()
+
+	if server == nil {
 		return nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := e.server.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		return types.NewExportFailedError("failed to shutdown server: " + err.Error())
 	}
 
-	e.server = nil
+	// Clear cache on shutdown
+	e.cache.mu.Lock()
+	e.cache.prometheus = ""
+	e.cache.json = ""
+	e.cache.metadata = ""
+	e.cache.singleMetadata = make(map[string]string)
+	e.cache.prometheusTime = time.Time{}
+	e.cache.jsonTime = time.Time{}
+	e.cache.metadataTime = time.Time{}
+	e.cache.mu.Unlock()
+
 	return nil
 }
 
@@ -163,6 +180,8 @@ func (e *Exporter) SetCustomLabel(key, value string) {
 	e.cache.mu.Lock()
 	e.cache.prometheusTime = time.Time{}
 	e.cache.jsonTime = time.Time{}
+	e.cache.metadataTime = time.Time{}
+	e.cache.singleMetadata = make(map[string]string)
 	e.cache.mu.Unlock()
 }
 
@@ -176,6 +195,8 @@ func (e *Exporter) RemoveCustomLabel(key string) {
 	e.cache.mu.Lock()
 	e.cache.prometheusTime = time.Time{}
 	e.cache.jsonTime = time.Time{}
+	e.cache.metadataTime = time.Time{}
+	e.cache.singleMetadata = make(map[string]string)
 	e.cache.mu.Unlock()
 }
 
@@ -190,6 +211,7 @@ func (e *Exporter) GetStats() ExporterStats {
 }
 
 // ExportPrometheus exports metrics in Prometheus format
+// This method is thread-safe and uses caching for performance.
 func (e *Exporter) ExportPrometheus() (string, *types.Error) {
 	// Check cache first
 	e.cache.mu.RLock()
@@ -386,6 +408,162 @@ func (e *Exporter) infoHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
+// ExportMetadata exports metric metadata in JSON format
+func (e *Exporter) ExportMetadata() (string, *types.Error) {
+	// Check cache first
+	e.cache.mu.RLock()
+	if !e.cache.metadataTime.IsZero() && time.Since(e.cache.metadataTime) < e.config.RefreshInterval {
+		e.cache.mu.RUnlock()
+		e.mu.Lock()
+		e.stats.CacheHits++
+		e.mu.Unlock()
+		return e.cache.metadata, nil
+	}
+	e.cache.mu.RUnlock()
+
+	// Cache miss, generate new export
+	e.mu.Lock()
+	e.stats.CacheMisses++
+	e.mu.Unlock()
+
+	// Get all metric definitions from collector
+	definitions := e.collector.GetDefinitions()
+
+	// Build metadata response
+	metadata := make(map[string]types.MetricMetadata)
+	for name, def := range definitions {
+		metadata[name] = types.NewMetricMetadata(def)
+	}
+
+	response := struct {
+		Timestamp time.Time                       `json:"timestamp"`
+		Metrics   map[string]types.MetricMetadata `json:"metrics"`
+		Count     int                             `json:"count"`
+	}{
+		Timestamp: time.Now(),
+		Metrics:   metadata,
+		Count:     len(metadata),
+	}
+
+	// Marshal to JSON
+	data, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		return "", types.NewExportFailedError("failed to marshal metadata: " + err.Error())
+	}
+
+	result := string(data)
+
+	// Update cache
+	e.cache.mu.Lock()
+	e.cache.metadata = result
+	e.cache.metadataTime = time.Now()
+	e.cache.mu.Unlock()
+
+	return result, nil
+}
+
+func (e *Exporter) metadataHandler(w http.ResponseWriter, r *http.Request) {
+	e.updateRequestStats(r.URL.Path)
+
+	metadata, err := e.ExportMetadata()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		e.mu.Lock()
+		e.stats.ErrorsTotal++
+		e.mu.Unlock()
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(metadata))
+}
+
+// ExportSingleMetadata exports metadata for a single metric
+func (e *Exporter) ExportSingleMetadata(metricName string) (string, *types.Error) {
+	// Check cache first
+	e.cache.mu.RLock()
+	if cached, exists := e.cache.singleMetadata[metricName]; exists {
+		// Check if cache is still valid
+		if !e.cache.metadataTime.IsZero() && time.Since(e.cache.metadataTime) < e.config.RefreshInterval {
+			e.cache.mu.RUnlock()
+			e.mu.Lock()
+			e.stats.CacheHits++
+			e.mu.Unlock()
+			return cached, nil
+		}
+		// Cache expired, remove it
+		delete(e.cache.singleMetadata, metricName)
+	}
+	e.cache.mu.RUnlock()
+
+	// Cache miss, generate new export
+	e.mu.Lock()
+	e.stats.CacheMisses++
+	e.mu.Unlock()
+
+	// Get metric definition
+	def, err := e.collector.GetDefinition(metricName)
+	if err != nil {
+		return "", err
+	}
+
+	// Create metadata from definition
+	metadata := types.NewMetricMetadata(def)
+
+	// Marshal to JSON
+	data, marshalErr := json.MarshalIndent(metadata, "", "  ")
+	if marshalErr != nil {
+		return "", types.NewExportFailedError("failed to marshal single metadata: " + marshalErr.Error())
+	}
+
+	result := string(data)
+
+	// Update cache
+	e.cache.mu.Lock()
+	e.cache.singleMetadata[metricName] = result
+	// Also update global metadata timestamp for cache validation
+	e.cache.metadataTime = time.Now()
+	e.cache.mu.Unlock()
+
+	return result, nil
+}
+
+func (e *Exporter) singleMetadataHandler(w http.ResponseWriter, r *http.Request) {
+	e.updateRequestStats(r.URL.Path)
+
+	// Extract metric name from URL path
+	metricName := strings.TrimPrefix(r.URL.Path, e.config.MetadataPath+"/")
+	if metricName == "" {
+		http.Error(w, "Metric name required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate metric name format
+	if !types.IsValidMetricName(metricName) {
+		http.Error(w, "Invalid metric name format", http.StatusBadRequest)
+		return
+	}
+
+	// Get single metric metadata
+	metadata, err := e.ExportSingleMetadata(metricName)
+	if err != nil {
+		if err.Code == types.MetricNotFound {
+			http.Error(w, "Metric not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			e.mu.Lock()
+			e.stats.ErrorsTotal++
+			e.mu.Unlock()
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(metadata))
+}
+
 // Middleware
 
 func (e *Exporter) withMiddleware(handler http.Handler) http.Handler {
@@ -422,20 +600,6 @@ func (e *Exporter) withMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-// withAuthMiddleware adds authentication middleware
-func (e *Exporter) withAuthMiddleware(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !e.checkAuth(r) {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			e.mu.Lock()
-			e.stats.ErrorsTotal++
-			e.mu.Unlock()
-			return
-		}
-		handler(w, r)
-	}
-}
-
 // Helper methods
 
 func (e *Exporter) updateRequestStats(path string) {
@@ -445,20 +609,6 @@ func (e *Exporter) updateRequestStats(path string) {
 	e.stats.RequestsTotal++
 	e.stats.RequestsByPath[path]++
 	e.stats.LastRequest = time.Now()
-}
-
-func (e *Exporter) checkAuth(r *http.Request) bool {
-	if !e.config.EnableAuth {
-		return true
-	}
-
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		// Try query parameter
-		token = r.URL.Query().Get("token")
-	}
-
-	return token == e.config.AuthToken
 }
 
 func (e *Exporter) checkHost(r *http.Request) bool {
@@ -529,6 +679,7 @@ func (e *Exporter) getEndpoints() []string {
 	endpoints := []string{
 		e.config.HealthCheckPath,
 		e.config.InfoPath,
+		e.config.MetadataPath,
 	}
 
 	if e.config.EnablePrometheus {
