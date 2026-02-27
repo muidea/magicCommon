@@ -170,15 +170,22 @@ func TestMySQLConnectionPoolStress(t *testing.T) {
 		const numIterations = 50
 		const numConcurrent = 10
 
-		// 创建临时测试表
+		// 创建测试表（使用普通表，因为临时表是连接特定的）
 		_, err = dao.Execute(`
-			CREATE TEMPORARY TABLE IF NOT EXISTS connection_pool_test (
+			CREATE TABLE IF NOT EXISTS connection_pool_test (
 				id INT AUTO_INCREMENT PRIMARY KEY,
 				value VARCHAR(100),
 				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-			)`)
+			) ENGINE=InnoDB`)
 		if err != nil {
 			t.Skipf("创建测试表失败: %v", err)
+			return
+		}
+
+		// 清空表数据
+		_, err = dao.Execute("TRUNCATE TABLE connection_pool_test")
+		if err != nil {
+			t.Skipf("清空测试表失败: %v", err)
 			return
 		}
 
@@ -231,9 +238,9 @@ func TestMySQLConnectionPoolStress(t *testing.T) {
 				numIterations, numConcurrent, numIterations*numConcurrent)
 		}
 
-		// 清理临时表
-		_, err = dao.Execute("DROP TEMPORARY TABLE IF EXISTS connection_pool_test")
-		assert.Nil(t, err, "清理临时表应该成功")
+		// 清理测试表
+		_, err = dao.Execute("DROP TABLE IF EXISTS connection_pool_test")
+		assert.Nil(t, err, "清理测试表应该成功")
 	})
 }
 
