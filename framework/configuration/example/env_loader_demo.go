@@ -59,14 +59,14 @@ func DemoEnvLoader() {
 	}
 
 	for key, value := range envVars {
-		os.Setenv(key, value)
+		_ = os.Setenv(key, value)
 		fmt.Printf("  设置: %s=%s\n", key, value)
 	}
 
 	defer func() {
 		// 清理环境变量
 		for key := range envVars {
-			os.Unsetenv(key)
+			_ = os.Unsetenv(key)
 		}
 	}()
 

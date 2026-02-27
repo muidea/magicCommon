@@ -10,8 +10,9 @@ import (
 )
 
 // Cache 缓存对象
+// Deprecated: Use KVCacheGeneric[string, any] instead for type safety.
 type Cache interface {
-	// maxAge单位second
+	// Put maxAge单位second
 	Put(data any, maxAge int64) string
 	Fetch(id string) any
 	Search(opr SearchOpr) any

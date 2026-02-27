@@ -8,7 +8,7 @@ import (
 	"time"
 
 	cd "github.com/muidea/magicCommon/def"
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 func TestMatchID(t *testing.T) {
@@ -687,7 +687,7 @@ func (s *eventHandler) ID() string {
 }
 
 func (s *eventHandler) Notify(ev Event, re Result) {
-	log.Infof("notify event:%s, source:%s, destination:%s", ev.ID(), ev.Source(), ev.Destination())
+	slog.Info(fmt.Sprintf("notify event:%s, source:%s, destination:%s", ev.ID(), ev.Source(), ev.Destination()))
 	s.handled = true
 	if re != nil {
 		re.Set(ev.Data(), nil)

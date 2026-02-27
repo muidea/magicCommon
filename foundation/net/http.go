@@ -15,8 +15,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
+	"log/slog"
 )
 
 // maxBytesReader 限制从底层读取器读取的字节数量不超过指定的最大值
@@ -93,7 +93,7 @@ func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 	payload, payloadErr := io.ReadAll(reader)
 	if payloadErr != nil {
 		err = payloadErr
-		log.Errorf("read request body error: %v", err)
+		slog.Error("read request body error", "error", err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 
 func HTTPBodyToFile(req *http.Request, dstFilePath, fileName string) (err error) {
 	var reader io.Reader = req.Body
-	maxFormSize := int64(1<<63 - 1)
+	var maxFormSize int64
 	if _, ok := req.Body.(*maxBytesReader); !ok {
 		maxFormSize = int64(10 << 20) // 10 MB is a lot of text.
 		reader = io.LimitReader(req.Body, maxFormSize+1)
@@ -116,14 +116,14 @@ func HTTPBodyToFile(req *http.Request, dstFilePath, fileName string) (err error)
 	// 验证 dstFilePath 是否为合法的目录路径
 	if !isValidDirectory(dstFilePath) {
 		err = fmt.Errorf("invalid destination directory: %s", dstFilePath)
-		log.Errorf("invalid destination directory, err: %s", err.Error())
+		slog.Error("invalid destination directory, err", "error", err.Error())
 		return
 	}
 
 	// 验证文件名是否合法
 	if !isValidFileName(fileName) {
 		err = fmt.Errorf("invalid file name: %s", fileName)
-		log.Errorf("invalid file name, err: %s", err.Error())
+		slog.Error("invalid file name, err", "error", err.Error())
 		return
 	}
 
@@ -133,14 +133,14 @@ func HTTPBodyToFile(req *http.Request, dstFilePath, fileName string) (err error)
 	dstFileHandle, dstFileErr := os.Create(dstFullFilePath)
 	if dstFileErr != nil {
 		err = dstFileErr
-		log.Errorf("create destination file failed, err: %s", err.Error())
+		slog.Error("create destination file failed, err", "error", err.Error())
 		return
 	}
-	defer dstFileHandle.Close()
+	defer func() { _ = dstFileHandle.Close() }()
 
 	_, err = io.Copy(dstFileHandle, reader)
 	if err != nil {
-		log.Errorf("copy destination file failed, err: %s", err.Error())
+		slog.Error("copy destination file failed, err", "error", err.Error())
 		return
 	}
 	return
@@ -148,7 +148,9 @@ func HTTPBodyToFile(req *http.Request, dstFilePath, fileName string) (err error)
 
 // ParseJSONBody 解析http body请求提交的json数据
 func ParseJSONBody(req *http.Request, validator util.Validator, param any) error {
-	util.ValidatePtr(param)
+	if err := util.ValidatePtr(param); err != nil {
+		return err
+	}
 
 	if req.Body == nil {
 		return errors.New("missing form body")
@@ -156,28 +158,28 @@ func ParseJSONBody(req *http.Request, validator util.Validator, param any) error
 
 	contentType, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
 	if err != nil {
-		log.Errorf("parse content-type error: %v", err)
+		slog.Error("parse content-type error", "error", err)
 		return err
 	}
 
-	switch {
-	case contentType == "application/json":
+	switch contentType {
+	case "application/json":
 		payload, payloadErr := GetHTTPRequestBody(req)
 		if payloadErr != nil {
-			log.Errorf("get http request body error: %v", payloadErr)
+			slog.Error("get http request body error", "error", payloadErr)
 			return payloadErr
 		}
 
 		err = json.Unmarshal(payload, param)
 		if err != nil {
-			log.Errorf("unmarshal http request body error: %v", err)
+			slog.Error("unmarshal http request body error", "error", err)
 			return err
 		}
 
 		if validator != nil {
 			err = validator.Validate(param)
 			if err != nil {
-				log.Errorf("validate http request body error: %v", err)
+				slog.Error("validate http request body error", "error", err)
 				return err
 			}
 		}
@@ -210,12 +212,12 @@ func PackageHTTPResponse(res http.ResponseWriter, result any) {
 	if err == nil {
 		_, err := res.Write(block)
 		if err != nil {
-			log.Errorf("write result error: %v", err)
+			slog.Error("write result error", "error", err)
 		}
 		return
 	}
 
-	log.Errorf("marshal result error: %v", err)
+	slog.Error("marshal result error", "error", err)
 	res.WriteHeader(http.StatusExpectationFailed)
 }
 
@@ -231,232 +233,52 @@ func PackageHTTPResponseWithStatusCode(res http.ResponseWriter, statusCode int, 
 	if err == nil {
 		_, err := res.Write(block)
 		if err != nil {
-			log.Errorf("write result error: %v", err)
+			slog.Error("write result error", "error", err)
 		}
 		return
 	}
 
-	log.Errorf("marshal result error: %v", err)
+	slog.Error("marshal result error", "error", err)
 	res.WriteHeader(http.StatusInternalServerError)
 }
 
 // HTTPGet http get request
-func HTTPGet(httpClient *http.Client, url string, result any, headers ...url.Values) (ret []byte, err error) {
-	request, requestErr := http.NewRequest("GET", url, nil)
-	if requestErr != nil {
-		err = requestErr
-		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
-		return
+func HTTPGet(httpClient *http.Client, url string, result any, headers ...url.Values) ([]byte, error) {
+	config := &HTTPRequestConfig{
+		Method:  "GET",
+		URL:     url,
+		Body:    nil,
+		Headers: headers,
 	}
-
-	for _, val := range headers {
-		for k, v := range val {
-			request.Header.Set(k, v[0])
-		}
-	}
-
-	response, responseErr := httpClient.Do(request)
-	if responseErr != nil {
-		err = responseErr
-		log.Errorf("get request failed, err:%s", err.Error())
-		return
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
-		return
-	}
-
-	content, contentErr := io.ReadAll(response.Body)
-	if contentErr != nil {
-		err = contentErr
-		log.Errorf("read respose data failed, err:%s", err.Error())
-		return
-	}
-
-	if result != nil {
-		err = json.Unmarshal(content, result)
-		if err != nil {
-			log.Errorf("unmarshal data failed, err:%s", err.Error())
-			return
-		}
-	}
-
-	ret = content
-	return
+	return executeHTTPRequest(httpClient, config, result)
 }
 
 // HTTPPost http post request
-func HTTPPost(httpClient *http.Client, url string, param any, result any, headers ...url.Values) (ret []byte, err error) {
-	byteBuff := bytes.NewBuffer(nil)
-	if param != nil {
-		data, dataErr := json.Marshal(param)
-		if dataErr != nil {
-			err = dataErr
-			log.Errorf("marshal param failed, err:%s", err.Error())
-			return
-		}
-
-		byteBuff.Write(data)
-	}
-
-	request, requestErr := http.NewRequest("POST", url, byteBuff)
-	if requestErr != nil {
-		err = requestErr
-		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
-		return
-	}
-
-	request.Header.Set("content-type", "application/json")
-	for _, val := range headers {
-		for k, v := range val {
-			request.Header.Set(k, v[0])
-		}
-	}
-
-	response, responseErr := httpClient.Do(request)
-	if responseErr != nil {
-		err = responseErr
-		log.Errorf("post request failed, err:%s", err.Error())
-		return
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
-		return
-	}
-
-	content, contentErr := io.ReadAll(response.Body)
-	if contentErr != nil {
-		err = contentErr
-		log.Errorf("read respose data failed, err:%s", err.Error())
-		return
-	}
-
-	if result != nil {
-		err = json.Unmarshal(content, result)
-		if err != nil {
-			log.Errorf("unmarshal data failed, err:%s", err.Error())
-			return
-		}
-	}
-
-	ret = content
-	return
+func HTTPPost(httpClient *http.Client, url string, param any, result any, headers ...url.Values) ([]byte, error) {
+	return executeHTTPRequestWithBody(httpClient, "POST", url, param, result, headers...)
 }
 
 // HTTPPut http put request
-func HTTPPut(httpClient *http.Client, url string, param any, result any, headers ...url.Values) (ret []byte, err error) {
-	byteBuff := bytes.NewBuffer(nil)
-	if param != nil {
-		data, dataErr := json.Marshal(param)
-		if dataErr != nil {
-			err = dataErr
-			log.Errorf("marshal param failed, err:%s", err.Error())
-			return
-		}
-
-		byteBuff.Write(data)
-	}
-
-	request, requestErr := http.NewRequest("PUT", url, byteBuff)
-	if requestErr != nil {
-		err = requestErr
-		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
-		return
-	}
-
-	request.Header.Set("content-type", "application/json")
-	for _, val := range headers {
-		for k, v := range val {
-			request.Header.Set(k, v[0])
-		}
-	}
-	response, responseErr := httpClient.Do(request)
-	if responseErr != nil {
-		err = responseErr
-		log.Errorf("put request failed, err:%s", err.Error())
-		return
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
-		return
-	}
-
-	content, contentErr := io.ReadAll(response.Body)
-	if contentErr != nil {
-		err = contentErr
-		log.Errorf("read respose data failed, err:%s", err.Error())
-		return
-	}
-
-	if result != nil {
-		err = json.Unmarshal(content, result)
-		if err != nil {
-			log.Errorf("unmarshal data failed, err:%s", err.Error())
-			return
-		}
-	}
-
-	ret = content
-	return
+func HTTPPut(httpClient *http.Client, url string, param any, result any, headers ...url.Values) ([]byte, error) {
+	return executeHTTPRequestWithBody(httpClient, "PUT", url, param, result, headers...)
 }
 
 // HTTPDelete http delete request
-func HTTPDelete(httpClient *http.Client, url string, result any, headers ...url.Values) (ret []byte, err error) {
-	request, requestErr := http.NewRequest("DELETE", url, nil)
-	if requestErr != nil {
-		err = requestErr
-		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
-		return
+func HTTPDelete(httpClient *http.Client, url string, result any, headers ...url.Values) ([]byte, error) {
+	config := &HTTPRequestConfig{
+		Method:  "DELETE",
+		URL:     url,
+		Body:    nil,
+		Headers: headers,
 	}
-	for _, val := range headers {
-		for k, v := range val {
-			request.Header.Set(k, v[0])
-		}
-	}
-
-	response, responseErr := httpClient.Do(request)
-	if responseErr != nil {
-		err = responseErr
-		log.Errorf("delete request failed, err:%s", err.Error())
-		return
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		err = fmt.Errorf("unexpect statusCode, statusCode:%d", response.StatusCode)
-		return
-	}
-
-	content, contentErr := io.ReadAll(response.Body)
-	if contentErr != nil {
-		err = contentErr
-		log.Errorf("read respose data failed, err:%s", err.Error())
-		return
-	}
-
-	if result != nil {
-		err = json.Unmarshal(content, result)
-		if err != nil {
-			log.Errorf("unmarshal data failed, err:%s", err.Error())
-			return
-		}
-	}
-
-	ret = content
-	return
+	return executeHTTPRequest(httpClient, config, result)
 }
 
 // HTTPDownload http download file
 func HTTPDownload(httpClient *http.Client, url string, filePath string, headers ...url.Values) (string, error) {
 	request, requestErr := http.NewRequest("GET", url, nil)
 	if requestErr != nil {
-		log.Errorf("construct request failed, url:%s, err:%s", url, requestErr.Error())
+		slog.Error("construct request failed", "url", url, "error", requestErr)
 		return "", requestErr
 	}
 
@@ -468,10 +290,10 @@ func HTTPDownload(httpClient *http.Client, url string, filePath string, headers 
 
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
-		log.Errorf("get request failed, err:%s", responseErr.Error())
+		slog.Error("post request failed", "error", responseErr.Error())
 		return "", responseErr
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
@@ -480,14 +302,14 @@ func HTTPDownload(httpClient *http.Client, url string, filePath string, headers 
 
 	f, err := os.OpenFile(filePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		log.Errorf("open destination file failed, err:%s", err.Error())
+		slog.Error("open destination file failed, err", "error", err.Error())
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	_, err = io.Copy(f, response.Body)
 	if err != nil {
-		log.Errorf("write destination file content exception, err:%s", err.Error())
+		slog.Error("write destination file content exception, err", "error", err.Error())
 		return "", err
 	}
 
@@ -502,17 +324,17 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	//关键的一步操作
 	fileWriter, err := bodyWriter.CreateFormFile(fileItem, filePath)
 	if err != nil {
-		log.Errorf("error writing to buffer")
+		slog.Error("error writing to buffer")
 		return err
 	}
 
 	//打开文件句柄操作
 	fh, err := os.Open(filePath)
 	if err != nil {
-		log.Errorf("error opening file")
+		slog.Error("error opening file")
 		return err
 	}
-	defer fh.Close()
+	defer func() { _ = fh.Close() }()
 
 	//iocopy
 	_, err = io.Copy(fileWriter, fh)
@@ -521,12 +343,12 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	}
 
 	contentType := bodyWriter.FormDataContentType()
-	bodyWriter.Close()
+	_ = bodyWriter.Close()
 
 	request, requestErr := http.NewRequest("POST", url, bodyBuf)
 	if requestErr != nil {
 		err = requestErr
-		log.Errorf("construct request failed, url:%s, err:%s", url, err.Error())
+		slog.Error("construct request failed", "url", url, "error", err)
 		return err
 	}
 
@@ -539,10 +361,10 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
-		log.Errorf("post request failed, err:%s", responseErr.Error())
+		slog.Error("post request failed", "error", responseErr)
 		return responseErr
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
@@ -552,13 +374,13 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 	if result != nil {
 		content, err := io.ReadAll(response.Body)
 		if err != nil {
-			log.Errorf("read respose data failed, err:%s", err.Error())
+			slog.Error("read respose data failed, err", "error", err.Error())
 			return err
 		}
 
 		err = json.Unmarshal(content, result)
 		if err != nil {
-			log.Errorf("unmarshal data failed, err:%s", err.Error())
+			slog.Error("unmarshal data failed, err", "error", err.Error())
 			return err
 		}
 	}
@@ -570,7 +392,7 @@ func HTTPUpload(httpClient *http.Client, url, fileItem, filePath string, result 
 func HTTPUploadStream(httpClient *http.Client, url string, byteReader io.Reader, result any, headers ...url.Values) error {
 	request, requestErr := http.NewRequest("POST", url, byteReader)
 	if requestErr != nil {
-		log.Errorf("construct request failed, url:%s, err:%s", url, requestErr.Error())
+		slog.Error("construct request failed", "url", url, "error", requestErr)
 		return requestErr
 	}
 
@@ -583,10 +405,10 @@ func HTTPUploadStream(httpClient *http.Client, url string, byteReader io.Reader,
 
 	response, responseErr := httpClient.Do(request)
 	if responseErr != nil {
-		log.Errorf("post request failed, err:%s", responseErr.Error())
+		slog.Error("post request failed", "error", responseErr)
 		return responseErr
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		msg := fmt.Sprintf("unexpect statusCode, statusCode:%d", response.StatusCode)
@@ -596,13 +418,13 @@ func HTTPUploadStream(httpClient *http.Client, url string, byteReader io.Reader,
 	if result != nil {
 		content, err := io.ReadAll(response.Body)
 		if err != nil {
-			log.Errorf("read respose data failed, err:%s", err.Error())
+			slog.Error("read respose data failed, err", "error", err.Error())
 			return err
 		}
 
 		err = json.Unmarshal(content, result)
 		if err != nil {
-			log.Errorf("unmarshal data failed, err:%s", err.Error())
+			slog.Error("unmarshal data failed, err", "error", err.Error())
 			return err
 		}
 	}

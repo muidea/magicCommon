@@ -21,7 +21,7 @@ func TestConcurrentMetricRecording(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Register test metric
 	def := types.NewCounterDefinition(
@@ -103,7 +103,7 @@ func TestConcurrentProviderRegistration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	registry, err := core.NewRegistry(collector, &config)
 	if err != nil {
@@ -161,7 +161,7 @@ func TestConcurrentMetricCollection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Register multiple providers
 	numProviders := 10
@@ -223,7 +223,7 @@ func TestConcurrentExporterAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Add some metrics
 	for i := 0; i < 26; i++ { // Only 26 unique metric names
@@ -371,7 +371,7 @@ func TestBufferOverflowProtection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Register test metric
 	def := types.NewCounterDefinition(
@@ -434,7 +434,7 @@ func TestConcurrentConfigUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	registry, err := core.NewRegistry(collector, &config)
 	if err != nil {
@@ -572,7 +572,7 @@ func TestRaceConditionDetection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Concurrent operations that should be safe
 	var wg sync.WaitGroup
@@ -580,7 +580,7 @@ func TestRaceConditionDetection(t *testing.T) {
 		func() {
 			// Record metrics
 			for i := 0; i < 100; i++ {
-				collector.Record("race_test", float64(i), map[string]string{"index": string(rune('a' + i%26))})
+				_ = collector.Record("race_test", float64(i), map[string]string{"index": string(rune('a' + i%26))})
 			}
 		},
 		func() {

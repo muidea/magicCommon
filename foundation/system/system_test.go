@@ -20,7 +20,7 @@ func (s *MockEntity) TestDemo() {
 	fmt.Println("test demo")
 }
 
-func (s *MockEntity) TestReuslt() *cd.Error {
+func (s *MockEntity) TestResult() *cd.Error {
 	return cd.NewError(cd.InvalidAuthority, "test result")
 }
 
@@ -60,7 +60,7 @@ func TestInvokeEntityFuncWithDemo(t *testing.T) {
 
 func TestInvokeEntityFuncWithResult(t *testing.T) {
 	entityVal := &MockEntity{}
-	funcName := "TestReuslt"
+	funcName := "TestResult"
 	params := []interface{}{}
 	result := InvokeEntityFunc(entityVal, funcName, params...)
 	assert.NotNil(t, result)

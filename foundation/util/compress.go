@@ -6,38 +6,46 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 func UnZipFile(zipFile, destDir string) (ret []string, err error) {
 	zipHandler, zipErr := zip.OpenReader(zipFile)
 	if zipErr != nil {
 		err = zipErr
-		log.Errorf("UnZipFile failed, zip.OpenReader error:%s", zipErr.Error())
+		slog.Error("UnZipFile failed", "error", zipErr.Error())
 		return
 	}
-	defer zipHandler.Close()
+	defer func() {
+		if closeErr := zipHandler.Close(); closeErr != nil {
+			slog.Warn("Failed to close zip handler", "error", closeErr)
+		}
+	}()
 
 	for _, f := range zipHandler.File {
 		zfHandle, zfErr := f.Open()
 		if zfErr != nil {
 			err = zfErr
-			log.Errorf("getFieldReferenceValue failed,Open %s error:%s", f.Name, zfErr.Error())
+			slog.Error("getFieldReferenceValue failed", "file", f.Name, "error", zfErr.Error())
 			return
 		}
-		defer zfHandle.Close()
+		defer func() {
+			if closeErr := zfHandle.Close(); closeErr != nil {
+				slog.Warn("Failed to close zip file handle", "file", f.Name, "error", closeErr)
+			}
+		}()
 
 		path := filepath.Join(destDir, f.Name)
 		if f.FileInfo().IsDir() {
 			err = os.MkdirAll(path, 0755)
 			if err != nil {
-				log.Errorf("getFieldReferenceValue failed,MkdirAll %s error:%s", path, err.Error())
+				slog.Error("getFieldReferenceValue failed", "path", path, "error", err.Error())
 				return
 			}
 		} else {
 			err = os.MkdirAll(filepath.Dir(path), 0755)
 			if err != nil {
-				log.Errorf("getFieldReferenceValue failed,MkdirAll %s error:%s", filepath.Dir(path), err.Error())
+				slog.Error("getFieldReferenceValue failed", "path", filepath.Dir(path), "error", err.Error())
 				return
 			}
 			fHandle, fErr := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
@@ -45,11 +53,15 @@ func UnZipFile(zipFile, destDir string) (ret []string, err error) {
 				err = fErr
 				return
 			}
-			defer fHandle.Close()
+			defer func() {
+				if closeErr := fHandle.Close(); closeErr != nil {
+					slog.Warn("Failed to close file handle", "path", path, "error", closeErr)
+				}
+			}()
 
 			_, err = io.Copy(fHandle, zfHandle)
 			if err != nil {
-				log.Errorf("UnZipFile failed, copy file error:%s", err.Error())
+				slog.Error("UnZipFile failed", "error", err.Error())
 				return
 			}
 		}
@@ -64,10 +76,10 @@ func ZipDir(sourceDir, outputFile string) error {
 	if err != nil {
 		return err
 	}
-	defer newZipFile.Close()
+	defer func() { _ = newZipFile.Close() }()
 
 	zipWriter := zip.NewWriter(newZipFile)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	err = filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -102,7 +114,7 @@ func ZipDir(sourceDir, outputFile string) error {
 			if err != nil {
 				return err
 			}
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 
 			_, err = io.Copy(writer, file)
 			if err != nil {
@@ -121,10 +133,10 @@ func ZipFiles(files []string, outputFile string) error {
 	if err != nil {
 		return err
 	}
-	defer newZipFile.Close()
+	defer func() { _ = newZipFile.Close() }()
 
 	zipWriter := zip.NewWriter(newZipFile)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	for _, file := range files {
 		err = addFileToZip(zipWriter, file)
@@ -141,7 +153,7 @@ func addFileToZip(zw *zip.Writer, filename string) error {
 	if err != nil {
 		return err
 	}
-	defer fileToZip.Close()
+	defer func() { _ = fileToZip.Close() }()
 
 	info, err := fileToZip.Stat()
 	if err != nil {

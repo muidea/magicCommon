@@ -177,7 +177,7 @@ func TestCollectorErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Test duplicate metric registration
 	def1 := types.NewCounterDefinition("test_metric", "Test metric", []string{}, nil)
@@ -224,7 +224,7 @@ func TestRegistryErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	registry, err := core.NewRegistry(collector, &config)
 	if err != nil {
@@ -297,7 +297,7 @@ func TestProviderErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Test error provider
 	errorProvider := &ErrorTestProvider{
@@ -337,7 +337,7 @@ func TestExporterErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Create exporter with nil collector (should fail)
 	_, err = core.NewExporter(nil, &config.ExportConfig)
@@ -391,9 +391,9 @@ func TestExporterErrorHandling(t *testing.T) {
 	}
 
 	// Cleanup
-	exporter.Stop()
-	manager.Shutdown()
-	manager2.Shutdown()
+	_ = exporter.Stop()
+	_ = manager.Shutdown()
+	_ = manager2.Shutdown()
 }
 
 // TestManagerErrorHandling tests manager error handling
@@ -414,7 +414,7 @@ func TestManagerErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create manager with nil config: %v", err)
 	}
-	defer manager.Shutdown()
+	defer func() { _ = manager.Shutdown() }()
 
 	// Test registering provider before initialization
 	err = manager.RegisterProvider("test",
@@ -470,7 +470,7 @@ func TestDependencyErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	registry, err := core.NewRegistry(collector, &config)
 	if err != nil {
@@ -575,7 +575,7 @@ func TestRecoveryFromErrors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Test that collector continues working after errors
 	def := types.NewCounterDefinition("recovery_test", "Recovery test", []string{}, nil)
@@ -652,5 +652,5 @@ func TestErrorPropagation(t *testing.T) {
 	}
 
 	// Cleanup
-	manager.Shutdown()
+	_ = manager.Shutdown()
 }

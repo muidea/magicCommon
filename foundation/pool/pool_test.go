@@ -21,7 +21,7 @@ func TestPoolPreCreation(t *testing.T) {
 	}
 
 	// 创建池，初始容量为1，最大容量为3
-	pool, err := New(factory, 1, 3)
+	pool, err := New(factory, WithInitialCapacity(1), WithMaxSize(3))
 	if err != nil {
 		t.Fatalf("Failed to create pool: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestPoolConcurrentAccess(t *testing.T) {
 		return creationCount, nil
 	}
 
-	pool, err := New(factory, 2, 5)
+	pool, err := New(factory, WithInitialCapacity(2), WithMaxSize(5))
 	if err != nil {
 		t.Fatalf("Failed to create pool: %v", err)
 	}

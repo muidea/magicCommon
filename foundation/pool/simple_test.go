@@ -19,7 +19,7 @@ func TestSimplePreCreation(t *testing.T) {
 	}
 
 	// 创建池，初始容量为0，最大容量为2
-	pool, err := New(factory, 0, 2)
+	pool, err := New(factory, WithInitialCapacity(0), WithMaxSize(2))
 	if err != nil {
 		t.Fatalf("Failed to create pool: %v", err)
 	}

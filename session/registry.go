@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/muidea/magicCommon/foundation/log"
 	fn "github.com/muidea/magicCommon/foundation/net"
 	"github.com/muidea/magicCommon/foundation/util"
+	"log/slog"
 )
 
 const (
@@ -126,7 +126,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 			if err := recover(); err != nil {
 				sessionPtr = nil
 				stackInfo := util.GetStack(3)
-				log.Errorf("get session failed, err:%v, stack:\n%v", err, stackInfo)
+				slog.Error("get session failed, err:err, stack:\nstackInfo", "field", err, "error", stackInfo)
 			}
 		}()
 
@@ -376,7 +376,7 @@ func (right commandChanImpl) run() {
 		}
 	}
 
-	log.Infof("session manager sessionImpl exit")
+	slog.Info("session manager sessionImpl exit")
 }
 
 func (right commandChanImpl) checkTimeOut() {

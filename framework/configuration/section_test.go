@@ -37,7 +37,7 @@ func TestSectionConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// 创建测试配置文件
 	configContent := `platformService = "http://127.0.0.1:8080"
@@ -84,7 +84,7 @@ port = 8080
 	if err != nil {
 		t.Fatalf("Failed to create config manager: %v", err)
 	}
-	defer manager.Close()
+	defer func() { _ = manager.Close() }()
 
 	// 测试获取applicationInfo section
 	t.Run("GetApplicationInfoSection", func(t *testing.T) {

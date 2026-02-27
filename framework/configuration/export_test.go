@@ -15,7 +15,7 @@ func TestExportAllConfigs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// 创建测试配置文件
 	configContent := `app_name = "Test Application"
@@ -84,7 +84,7 @@ paypal = false
 	if err != nil {
 		t.Fatalf("Failed to create config manager: %v", err)
 	}
-	defer manager.Close()
+	defer func() { _ = manager.Close() }()
 
 	// 测试导出所有配置
 	t.Run("ExportAllConfigs", func(t *testing.T) {
@@ -206,7 +206,7 @@ paypal = false
 		if err != nil {
 			t.Fatalf("Failed to init default config manager: %v", err)
 		}
-		defer CloseConfigManager()
+		defer func() { _ = CloseConfigManager() }()
 
 		exportedConfigs, err := ExportAllConfigs()
 		if err != nil {

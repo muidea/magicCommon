@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	_ "github.com/muidea/magicCommon/foundation/log"
+	_ "log/slog"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
@@ -70,6 +70,13 @@ func Get() Application {
 	return application
 }
 
+// ResetForTesting resets the application singleton for testing purposes
+// This should only be used in tests
+func ResetForTesting() {
+	application = nil
+	applicationOnce = sync.Once{}
+}
+
 type appImpl struct {
 	backgroundRoutine task.BackgroundRoutine
 	eventHub          event.Hub
@@ -105,7 +112,7 @@ func (s *appImpl) Shutdown() {
 	}
 
 	s.service.Shutdown()
-	configuration.CloseConfigManager()
+	_ = configuration.CloseConfigManager()
 }
 
 func (s *appImpl) EventHub() event.Hub {

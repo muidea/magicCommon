@@ -30,7 +30,7 @@ func createTestZipFile(t *testing.T) string {
 	// 将缓冲区写入临时文件
 	tmpfile, err := os.CreateTemp("", "testzip")
 	assert.NoError(t, err)
-	defer tmpfile.Close()
+	defer func() { _ = tmpfile.Close() }()
 
 	_, err = tmpfile.Write(buf.Bytes())
 	assert.NoError(t, err)
@@ -40,7 +40,7 @@ func createTestZipFile(t *testing.T) string {
 
 func TestUnZipFile_Success(t *testing.T) {
 	zipFile := createTestZipFile(t)
-	defer os.Remove(zipFile)
+	defer func() { _ = os.Remove(zipFile) }()
 
 	destDir := t.TempDir()
 
@@ -66,7 +66,7 @@ func TestZipDir_SuccessfulCompression(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// 在目录中创建一些文件
 	files := []string{"file1.txt", "file2.txt", "subdir/file3.txt"}
@@ -85,7 +85,7 @@ func TestZipDir_SuccessfulCompression(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(outputFile.Name())
+	defer func() { _ = os.Remove(outputFile.Name()) }()
 
 	// 调用 ZipDir 函数
 	err = ZipDir(dir, outputFile.Name())
@@ -98,7 +98,7 @@ func TestZipDir_SuccessfulCompression(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer zipReader.Close()
+	defer func() { _ = zipReader.Close() }()
 
 	// 检查 ZIP 文件中是否包含所有预期的文件
 	for _, file := range files {
@@ -121,7 +121,7 @@ func TestZipDir_FileCreationError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// 创建一个不可写的输出文件
 	outputFile := filepath.Join(dir, "output.zip")
@@ -142,7 +142,7 @@ func TestZipDir_FileWalkError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// 创建一个不可读的文件
 	badFile := filepath.Join(dir, "badfile")
@@ -155,7 +155,7 @@ func TestZipDir_FileWalkError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(outputFile.Name())
+	defer func() { _ = os.Remove(outputFile.Name()) }()
 
 	// 调用 ZipDir 函数并期望它返回错误
 	err = ZipDir(dir, outputFile.Name())
@@ -170,7 +170,7 @@ func TestZipDir_FileOpenError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// 创建一个不可读的文件
 	badFile := filepath.Join(dir, "badfile")
@@ -183,7 +183,7 @@ func TestZipDir_FileOpenError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(outputFile.Name())
+	defer func() { _ = os.Remove(outputFile.Name()) }()
 
 	// 调用 ZipDir 函数并期望它返回错误
 	err = ZipDir(dir, outputFile.Name())

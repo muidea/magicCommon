@@ -9,13 +9,13 @@ import (
 // TestEnvConfigLoader 测试环境变量配置加载器
 func TestEnvConfigLoader(t *testing.T) {
 	// 设置测试环境变量
-	os.Setenv("TEST_APP_NAME", "EnvApp")
-	os.Setenv("TEST_SERVER_PORT", "9090")
-	os.Setenv("TEST_DEBUG_ENABLED", "true")
+	_ = os.Setenv("TEST_APP_NAME", "EnvApp")
+	_ = os.Setenv("TEST_SERVER_PORT", "9090")
+	_ = os.Setenv("TEST_DEBUG_ENABLED", "true")
 	defer func() {
-		os.Unsetenv("TEST_APP_NAME")
-		os.Unsetenv("TEST_SERVER_PORT")
-		os.Unsetenv("TEST_DEBUG_ENABLED")
+		_ = os.Unsetenv("TEST_APP_NAME")
+		_ = os.Unsetenv("TEST_SERVER_PORT")
+		_ = os.Unsetenv("TEST_DEBUG_ENABLED")
 	}()
 
 	loader := NewEnvConfigLoader("TEST_")
@@ -126,7 +126,7 @@ func TestHelperFunctions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// 创建测试配置文件
 	if err := createTestConfigs(tempDir); err != nil {
@@ -202,7 +202,7 @@ func BenchmarkConfigManager(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// 创建测试配置文件
 	if err := createTestConfigs(tempDir); err != nil {
@@ -221,7 +221,7 @@ func BenchmarkConfigManager(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create config manager: %v", err)
 	}
-	defer manager.Close()
+	defer func() { _ = manager.Close() }()
 
 	b.ResetTimer()
 

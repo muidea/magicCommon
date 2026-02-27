@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 func TestKVCache(t *testing.T) {
@@ -47,7 +47,7 @@ func TestKVCache(t *testing.T) {
 	t.Run("Test Search", func(t *testing.T) {
 		// 测试匹配条件
 		result := cache.Search(func(data interface{}) bool {
-			log.Infof("%+v", data)
+			slog.Info("search data", "data", data)
 			return data == "newValue"
 		})
 		if result != "newValue" {
@@ -118,13 +118,13 @@ func TestKVCache(t *testing.T) {
 	t.Run("Test Timeout Cleanup", func(t *testing.T) {
 		callbackCalled := false
 		cacheWithCallback := NewKVCache(func(key string) {
-			log.Warnf("Timeout cleanup callback called for key %s", key)
+			slog.Warn("Timeout cleanup callback called", "key", key)
 			callbackCalled = true
 		})
 		defer cacheWithCallback.Release()
 
 		cacheWithCallback.Put("testKey", "testValue", 1) // 设置1秒超时
-		time.Sleep(10 * time.Second)                      // 等待超时
+		time.Sleep(10 * time.Second)                     // 等待超时
 		if !callbackCalled {
 			t.Error("Timeout cleanup callback not called")
 		}

@@ -1,9 +1,9 @@
 package execute
 
 import (
+	"log/slog"
 	"math"
 
-	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
 )
 
@@ -30,9 +30,9 @@ func (s *Execute) Unlock() { /* for noCopy */ }
 
 func (s *Execute) Run(funcPtr func()) {
 	if s.queueLength >= s.capacitySize {
-		log.Warnf("execute queue is full, length:%d, capacity:%d", s.queueLength, s.capacitySize)
+		slog.Warn("execute queue is full, length:s.queueLength, capacity:s.capacitySize", "field", s.queueLength, "error", s.capacitySize)
 	} else if s.queueLength >= int(math.Floor(float64(s.capacitySize)*0.8)) {
-		log.Warnf("queue lengths are at warning levels, length:%d, capacity:%d", s.queueLength, s.capacitySize)
+		slog.Warn("queue lengths are at warning levels, length:s.queueLength, capacity:s.capacitySize", "field", s.queueLength, "error", s.capacitySize)
 	}
 
 	s.capacityQueue <- true
@@ -41,7 +41,7 @@ func (s *Execute) Run(funcPtr func()) {
 		defer func() {
 			if err := recover(); err != nil {
 				stackInfo := util.GetStack(3)
-				log.Errorf("PANIC: %v\n%s", err, stackInfo)
+				slog.Error("PANIC: err\nstackInfo", "field", err, "error", stackInfo)
 			}
 
 			<-s.capacityQueue

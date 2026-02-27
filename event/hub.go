@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/execute"
-	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/util"
+	"log/slog"
 )
 
 type Values map[string]any
@@ -28,51 +29,30 @@ func (s Values) Get(key string) any {
 }
 
 func (s Values) GetString(key string) string {
-	val := s.Get(key)
-	if val == nil {
-		return ""
-	}
-
-	switch v := val.(type) {
-	case string:
-		return v
-	default:
-		log.Warnf("illegal value, not string, value:%v", v)
-	}
-
-	return ""
+	return GetTypedValue[string](s, key, "", "string")
 }
 
 func (s Values) GetInt(key string) int {
-	val := s.Get(key)
-	if val == nil {
-		return 0
-	}
-
-	switch v := val.(type) {
-	case int:
-		return v
-	default:
-		log.Warnf("illegal value, not int, value:%v", v)
-	}
-
-	return 0
+	return GetTypedValue[int](s, key, 0, "int")
 }
 
 func (s Values) GetBool(key string) bool {
+	return GetTypedValue[bool](s, key, false, "bool")
+}
+
+// GetTypedValue 泛型方法获取指定类型的值
+func GetTypedValue[T any](s Values, key string, defaultValue T, typeName string) T {
 	val := s.Get(key)
 	if val == nil {
-		return false
+		return defaultValue
 	}
 
-	switch v := val.(type) {
-	case bool:
+	if v, ok := val.(T); ok {
 		return v
-	default:
-		log.Warnf("illegal value, not bool, value:%v", val)
 	}
 
-	return false
+	slog.Warn("illegal value, not expected type", "type", typeName, "value", val)
+	return defaultValue
 }
 
 type Event interface {
@@ -126,7 +106,7 @@ func notificationEvent(sv Observer, ev Event, re Result) {
 	defer func() {
 		if err := recover(); err != nil {
 			stackInfo := util.GetStack(3)
-			log.Warnf("notify event exception, event:[id-%v, source-%s, destination-%s] \nPANIC:%v \nstack:%s", ev.ID(), ev.Source(), ev.Destination(), err, stackInfo)
+			slog.Warn("notify event exception", "event_id", ev.ID(), "source", ev.Source(), "destination", ev.Destination(), "panic", err, "stack", stackInfo)
 
 			if re != nil {
 				re.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
@@ -298,7 +278,7 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 	for {
 		actionData, actionOK := <-s
 		if !actionOK {
-			log.Criticalf("eventHub actionChannel unexpect!")
+			// channel 被正常关闭，退出循环
 			break
 		}
 
@@ -308,11 +288,21 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 		case subscribe:
 			data := actionData.(*subscribeData)
 			hubPtr.subscribeInternal(data.eventID, data.observer)
-			data.result <- true
+			select {
+			case data.result <- true:
+				// 成功发送
+			case <-time.After(100 * time.Millisecond):
+				slog.Warn("timeout sending subscribe result")
+			}
 		case unsubscribe:
 			data := actionData.(*unsubscribeData)
 			hubPtr.unsubscribeInternal(data.eventID, data.observer)
-			data.result <- true
+			select {
+			case data.result <- true:
+				// 成功发送
+			case <-time.After(100 * time.Millisecond):
+				slog.Warn("timeout sending unsubscribe result")
+			}
 		case post:
 			data := actionData.(*postData)
 			hubPtr.postInternal(data.event)
@@ -320,13 +310,24 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 			data := actionData.(*sendData)
 			result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
 			hubPtr.sendInternal(data.event, result)
-			data.result <- result
+			select {
+			case data.result <- result:
+				// 成功发送
+			case <-time.After(100 * time.Millisecond):
+				slog.Warn("timeout sending result")
+			}
 		case terminate:
 			data := actionData.(*terminateData)
 			data.waitGroup.Done()
-			data.result <- true
+			select {
+			case data.result <- true:
+				// 成功发送
+			case <-time.After(100 * time.Millisecond):
+				slog.Warn("timeout sending terminate result")
+			}
 			terminateFlag = true
 		default:
+			slog.Error("unknown action code", "code", actionData.Code())
 		}
 
 		if terminateFlag {
@@ -354,7 +355,7 @@ func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 
 	replay := make(chan bool)
 	defer close(replay)
-	s.Execute.Run(func() {
+	s.Run(func() {
 		actionData := &subscribeData{eventID: eventID, observer: observer, result: replay}
 
 		s.hubActionChannel <- actionData
@@ -370,7 +371,7 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 	replay := make(chan bool)
 	defer close(replay)
 
-	s.Execute.Run(func() {
+	s.Run(func() {
 		actionData := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
 
 		s.hubActionChannel <- actionData
@@ -399,12 +400,27 @@ func (s *hubImpl) Post(ev Event) {
 		eventChannel = channelVal
 	}()
 
+	// 再次检查 terminateFlag，防止竞态条件
+	if s.terminateFlag {
+		return
+	}
+
 	if ev.Source() == ev.Destination() {
-		s.Execute.Run(func() {
-			eventChannel <- actionData
+		s.Run(func() {
+			select {
+			case eventChannel <- actionData:
+				// 成功发送
+			case <-time.After(100 * time.Millisecond):
+				slog.Warn("timeout sending post data to channel")
+			}
 		})
 	} else {
-		eventChannel <- actionData
+		select {
+		case eventChannel <- actionData:
+			// 成功发送
+		case <-time.After(100 * time.Millisecond):
+			slog.Warn("timeout sending post data to channel")
+		}
 	}
 }
 
@@ -433,12 +449,27 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 		eventChannel = channelVal
 	}()
 
+	// 再次检查 terminateFlag，防止竞态条件
+	if s.terminateFlag {
+		return
+	}
+
 	if ev.Source() == ev.Destination() {
-		s.Execute.Run(func() {
-			eventChannel <- actionData
+		s.Run(func() {
+			select {
+			case eventChannel <- actionData:
+				// 成功发送
+			case <-time.After(100 * time.Millisecond):
+				slog.Warn("timeout sending data to channel")
+			}
 		})
 	} else {
-		eventChannel <- actionData
+		select {
+		case eventChannel <- actionData:
+			// 成功发送
+		case <-time.After(100 * time.Millisecond):
+			slog.Warn("timeout sending data to channel")
+		}
 	}
 
 	ret = <-replay
@@ -453,24 +484,43 @@ func (s *hubImpl) Terminate() {
 	s.terminateFlag = true
 	var waitGroup sync.WaitGroup
 	replay := make(chan bool)
-	defer close(replay)
 	actionData := &terminateData{result: replay, waitGroup: &waitGroup}
+
+	// 先发送终止信号到所有 channel
 	go func() {
 		s.observerID2ChanelLock.Lock()
 		defer s.observerID2ChanelLock.Unlock()
 
 		for _, val := range s.observerID2ActionChannel {
 			waitGroup.Add(1)
-			val <- actionData
+			select {
+			case val <- actionData:
+				// 成功发送
+			default:
+				// channel 可能已满，等待一下再尝试
+				go func(ch actionChannel) {
+					ch <- actionData
+				}(val)
+			}
 		}
 	}()
+
 	waitGroup.Add(1)
-	s.hubActionChannel <- actionData
+	select {
+	case s.hubActionChannel <- actionData:
+		// 成功发送
+	default:
+		// hub action channel 可能已满
+		go func() {
+			s.hubActionChannel <- actionData
+		}()
+	}
 
 	<-replay
 
 	waitGroup.Wait()
 
+	// 等待所有 goroutine 完成处理
 	s.observerID2ChanelLock.Lock()
 	defer s.observerID2ChanelLock.Unlock()
 	for _, val := range s.observerID2ActionChannel {
@@ -478,6 +528,8 @@ func (s *hubImpl) Terminate() {
 	}
 	s.event2Observer = ID2ObserverMap{}
 	s.observerID2ActionChannel = ID2ActionChanelMap{}
+
+	close(replay)
 }
 
 func (s *hubImpl) run() {
@@ -612,7 +664,7 @@ func (s *simpleObserver) Notify(ev Event, re Result) {
 			defer func() {
 				if err := recover(); err != nil {
 					stackInfo := util.GetStack(3)
-					log.Warnf("notify event exception, event:[id-%v, source-%s, destination-%s] \nPANIC:%v \nstack:%s", ev.ID(), ev.Source(), ev.Destination(), err, stackInfo)
+					slog.Warn("notify event exception", "event_id", ev.ID(), "source", ev.Source(), "destination", ev.Destination(), "panic", err, "stack", stackInfo)
 
 					if re != nil {
 						re.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("%v", err)))
@@ -633,7 +685,7 @@ func (s *simpleObserver) Subscribe(eventID string, observerFunc ObserverFunc) {
 
 		_, ok := s.eventID2ObserverFunc[eventID]
 		if ok {
-			log.Warnf("duplicate eventID:%v", eventID)
+			slog.Warn("duplicate eventID", "value", eventID)
 			return
 		}
 
@@ -654,7 +706,7 @@ func (s *simpleObserver) Unsubscribe(eventID string) {
 
 		_, ok := s.eventID2ObserverFunc[eventID]
 		if !ok {
-			log.Warnf("not exist eventID:%v", eventID)
+			slog.Warn("not exist eventID", "value", eventID)
 			return
 		}
 

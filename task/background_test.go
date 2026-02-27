@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/stretchr/testify/assert"
+	"log/slog"
 )
 
 func calcOffset(intervalValue, offsetValue time.Duration) time.Duration {
 	return func() time.Duration {
 		now := time.Now()
-		log.Infof("%v", now)
+		slog.Info("now", "field", now)
 		nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
 		if intervalValue < 24*time.Hour {
 			return (nowOffset/intervalValue+1)*intervalValue - nowOffset
@@ -31,12 +31,12 @@ func TestBackgroundRoutine_Timer(t *testing.T) {
 	offsetValue := 1 * time.Hour
 
 	curOffset := calcOffset(intervalValue, offsetValue)
-	log.Infof("%v", curOffset)
+	slog.Info("curOffset", "field", curOffset)
 
 	intervalValue = 10 * time.Minute
 	offsetValue = 0
 	curOffset = calcOffset(intervalValue, offsetValue)
-	log.Infof("%v", curOffset)
+	slog.Info("curOffset", "field", curOffset)
 }
 
 type asyncTask struct {
@@ -50,7 +50,7 @@ func (s *asyncTask) Run() {
 	fmt.Printf("task index:%d\n", s.index)
 	if s.taskRoutine != nil {
 		s.wg.Add(1)
-		s.taskRoutine.AsyncTask(&subTask{
+		_ = s.taskRoutine.AsyncTask(&subTask{
 			wg: s.wg,
 		})
 	}
@@ -74,7 +74,7 @@ func TestNewBackgroundRoutine(t *testing.T) {
 	idx := 0
 	for ; idx < 10; idx++ {
 		wg.Add(1)
-		taskRoutine.SyncTask(&asyncTask{
+		_ = taskRoutine.SyncTask(&asyncTask{
 			wg:          wg,
 			index:       idx,
 			taskRoutine: taskRoutine,
@@ -83,7 +83,7 @@ func TestNewBackgroundRoutine(t *testing.T) {
 
 	for ; idx < 100; idx++ {
 		wg.Add(1)
-		taskRoutine.AsyncTask(&asyncTask{
+		_ = taskRoutine.AsyncTask(&asyncTask{
 			wg:    wg,
 			index: idx,
 		})
@@ -103,7 +103,7 @@ func (s *timerTask) Run() {
 func TestTimer(t *testing.T) {
 	timerTaskPtr := &timerTask{}
 	taskRoutine := NewBackgroundRoutine(300)
-	taskRoutine.Timer(timerTaskPtr, 1*time.Second, 0)
+	_ = taskRoutine.Timer(timerTaskPtr, 1*time.Second, 0)
 
 	time.Sleep(10 * time.Second)
 	assert.True(t, timerTaskPtr.timerCount > 8, "timerTaskPtr.timerCount>8")

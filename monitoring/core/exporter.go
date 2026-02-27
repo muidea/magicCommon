@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strings"
@@ -130,7 +131,7 @@ func (e *Exporter) Start() *types.Error {
 
 		if err != nil && err != http.ErrServerClosed {
 			// Log error (in production, you'd want proper logging)
-			fmt.Printf("Exporter server error: %v\n", err)
+			slog.Error("Exporter server error", "error", err)
 		}
 	}()
 
@@ -237,10 +238,10 @@ func (e *Exporter) ExportPrometheus() (string, *types.Error) {
 	// Export metric definitions (HELP and TYPE lines)
 	for name, def := range definitions {
 		// HELP line
-		builder.WriteString(fmt.Sprintf("# HELP %s %s\n", name, def.Help))
+		fmt.Fprintf(&builder, "# HELP %s %s\n", name, def.Help)
 
 		// TYPE line
-		builder.WriteString(fmt.Sprintf("# TYPE %s %s\n", name, strings.ToLower(string(def.Type))))
+		fmt.Fprintf(&builder, "# TYPE %s %s\n", name, strings.ToLower(string(def.Type)))
 	}
 
 	// Export metric values
@@ -259,9 +260,9 @@ func (e *Exporter) ExportPrometheus() (string, *types.Error) {
 			// Write metric line
 			value := formatFloat(metric.Value)
 			if labelStr != "" {
-				builder.WriteString(fmt.Sprintf("%s{%s} %s\n", name, labelStr, value))
+				fmt.Fprintf(&builder, "%s{%s} %s\n", name, labelStr, value)
 			} else {
-				builder.WriteString(fmt.Sprintf("%s %s\n", name, value))
+				fmt.Fprintf(&builder, "%s %s\n", name, value)
 			}
 		}
 	}
@@ -346,7 +347,7 @@ func (e *Exporter) prometheusHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(metrics))
+	_, _ = w.Write([]byte(metrics))
 }
 
 func (e *Exporter) jsonHandler(w http.ResponseWriter, r *http.Request) {
@@ -363,7 +364,7 @@ func (e *Exporter) jsonHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(metrics))
+	_, _ = w.Write([]byte(metrics))
 }
 
 func (e *Exporter) healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -381,7 +382,7 @@ func (e *Exporter) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(healthStatus)
+	_ = json.NewEncoder(w).Encode(healthStatus)
 }
 
 func (e *Exporter) infoHandler(w http.ResponseWriter, r *http.Request) {
@@ -405,7 +406,7 @@ func (e *Exporter) infoHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(info)
+	_ = json.NewEncoder(w).Encode(info)
 }
 
 // ExportMetadata exports metric metadata in JSON format
@@ -476,7 +477,7 @@ func (e *Exporter) metadataHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(metadata))
+	_, _ = w.Write([]byte(metadata))
 }
 
 // ExportSingleMetadata exports metadata for a single metric
@@ -561,7 +562,7 @@ func (e *Exporter) singleMetadataHandler(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(metadata))
+	_, _ = w.Write([]byte(metadata))
 }
 
 // Middleware

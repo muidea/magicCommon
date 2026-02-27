@@ -80,14 +80,14 @@ func NewBackgroundRoutine(capacitySize int) BackgroundRoutine {
 }
 
 func (s *backgroundRoutine) run() {
-	s.Execute.Run(s.loop)
+	s.Run(s.loop)
 }
 
 func (s *backgroundRoutine) loop() {
 	for {
 		task, ok := <-s.taskChannel
 		if ok {
-			s.Execute.Run(func() {
+			s.Run(func() {
 				task.Run()
 			})
 		}
@@ -95,7 +95,7 @@ func (s *backgroundRoutine) loop() {
 }
 
 func (s *backgroundRoutine) AsyncTask(task Task) error {
-	s.Execute.Run(func() {
+	s.Run(func() {
 		s.taskChannel <- task
 	})
 
@@ -103,13 +103,13 @@ func (s *backgroundRoutine) AsyncTask(task Task) error {
 }
 
 func (s *backgroundRoutine) SyncTask(task Task) error {
-	s.SyncTaskWithTimeOut(task, -1)
+	_ = s.SyncTaskWithTimeOut(task, -1)
 	return nil
 }
 
 func (s *backgroundRoutine) SyncTaskWithTimeOut(task Task, timeout time.Duration) error {
 	st := &syncTask{rawTask: task, resultChannel: make(chan bool)}
-	s.Execute.Run(func() {
+	s.Run(func() {
 		s.taskChannel <- st
 	})
 

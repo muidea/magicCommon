@@ -5,27 +5,26 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 /*
-
 pool, err := New(func() (int, error) {
     return 42, nil // 简单示例：创建一个整数资源
-}, 10)
+}, WithInitialCapacity(5), WithMaxSize(20))
 if err != nil {
-    log.Fatalf("Failed to create pool: %v", err)
+    slog.Error("Failed to create pool", "error", err); os.Exit(1)
 }
 
 
 resource, err := pool.Get()
 if err != nil {
-    log.Fatalf("Failed to get resource: %v", err)
+    slog.Error("Failed to get resource", "error", err); os.Exit(1)
 }
 
 err = pool.Put(resource)
 if err != nil {
-    log.Printf("Failed to return resource: %v", err)
+    slog.Info("Failed to return resource", "error", err)
 }
 
 pool.Close(func(resource int) {
@@ -47,20 +46,65 @@ type Pool[T any] struct {
 	preCreating bool // Flag to indicate if pre-creation is in progress
 }
 
-// New creates a new Pool.
-func New[T any](factory func() (T, error), initialCapacity, maxSize int) (*Pool[T], error) {
+// PoolConfig holds configuration options for a Pool.
+type PoolConfig struct {
+	initialCapacity int
+	maxSize         int
+}
+
+// PoolOption defines a function type for configuring a Pool.
+type PoolOption func(*PoolConfig)
+
+// WithInitialCapacity sets the initial capacity of the pool.
+func WithInitialCapacity(capacity int) PoolOption {
+	return func(c *PoolConfig) {
+		c.initialCapacity = capacity
+	}
+}
+
+// WithMaxSize sets the maximum size of the pool.
+func WithMaxSize(maxSize int) PoolOption {
+	return func(c *PoolConfig) {
+		c.maxSize = maxSize
+	}
+}
+
+// New creates a new Pool with the given factory function and options.
+func New[T any](factory func() (T, error), opts ...PoolOption) (*Pool[T], error) {
 	if factory == nil {
 		return nil, errors.New("factory function cannot be nil")
+	}
+
+	// Default configuration
+	config := &PoolConfig{
+		initialCapacity: 0,
+		maxSize:         10,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	// Validate configuration
+	if config.initialCapacity < 0 {
+		return nil, errors.New("initial capacity cannot be negative")
+	}
+	if config.maxSize <= 0 {
+		return nil, errors.New("max size must be positive")
+	}
+	if config.initialCapacity > config.maxSize {
+		return nil, errors.New("initial capacity cannot exceed max size")
 	}
 
 	pool := &Pool[T]{
 		mu:        &sync.Mutex{},
 		factory:   factory,
-		idleQueue: make([]T, initialCapacity),
-		maxSize:   maxSize,
+		idleQueue: make([]T, config.initialCapacity),
+		maxSize:   config.maxSize,
 		totalSize: 0,
 	}
-	for idx := range initialCapacity {
+	for idx := range config.initialCapacity {
 		tVal, tErr := factory()
 		if tErr != nil {
 			return nil, tErr
@@ -123,7 +167,7 @@ func (s *Pool[T]) Get() (ret T, err error) {
 	for {
 		getFunc()
 		if getOK || err != nil {
-			//log.Infof("get resource from pool, maxSize:%d, totalSize:%d, idleQueueSize:%d busySize:%d", s.maxSize, s.totalSize, idleSize, s.busyCount)
+			//slog.Info("get resource from pool, maxSize:s.maxSize, totalSize:s.totalSize, idleQueueSize:idleSize busySize:s.busyCount", "field", s.maxSize, "error", s.totalSize, "id", idleSize, "key", s.busyCount)
 			return
 		}
 	}
@@ -145,7 +189,7 @@ func (s *Pool[T]) Put(tVal T) (err error) {
 		return
 	}
 
-	//log.Infof("put resource to pool, maxSize:%d, totalSize:%d, idleQueueSize:%d busySize:%d", s.maxSize, s.totalSize, len(s.idleQueue), s.busyCount)
+	//slog.Info(fmt.Sprintf("put resource to pool, maxSize:%d, totalSize:%d, idleQueueSize:%d busySize:%d"s.maxSize, s.totalSize, len(s.idleQueue)), s.busyCount)
 
 	s.cond.Signal()
 	return
@@ -166,7 +210,7 @@ func (s *Pool[T]) preCreateResource() {
 
 	tVal, tErr := s.factory()
 	if tErr != nil {
-		log.Errorf("Failed to pre-create resource: %v", tErr)
+		slog.Error("Failed to pre-create resource: tErr", "field", tErr)
 		s.mu.Lock()
 		s.totalSize-- // 回滚totalSize
 		s.preCreating = false
@@ -209,7 +253,7 @@ func (s *Pool[T]) Close(releaseFunc func(T)) {
 		}
 		// Log warning if not all resources were returned
 		if len(s.idleQueue) < s.totalSize {
-			log.Warnf("Warning: %d resources were not returned to the pool before close", s.totalSize-len(s.idleQueue))
+			slog.Warn("Warning: s.totalSize-len(s.idleQueue resources were not returned to the pool before close", "field", s.totalSize-len(s.idleQueue))
 		}
 		s.idleQueue = nil
 	}()

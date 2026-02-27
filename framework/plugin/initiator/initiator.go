@@ -13,7 +13,7 @@ import (
 var initiatorMgr = common.NewPluginMgr("initiator")
 
 func Register(initiator any) {
-	initiatorMgr.Register(initiator)
+	_ = initiatorMgr.Register(initiator)
 }
 
 func GetEntity[T any](id string, maskType T) (ret T, err *cd.Error) {

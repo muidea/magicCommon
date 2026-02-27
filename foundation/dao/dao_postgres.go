@@ -6,329 +6,101 @@ package dao
 import (
 	"database/sql"
 	"fmt"
-	"sync/atomic"
+	"time"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	cd "github.com/muidea/magicCommon/def"
 
 	_ "github.com/lib/pq" //引入PostgreSQL驱动
 )
+
+// postgresDriver PostgreSQL驱动实现
+type postgresDriver struct{}
+
+func (d *postgresDriver) Open(connectionString string) (*sql.DB, error) {
+	return sql.Open("postgres", connectionString)
+}
+
+func (d *postgresDriver) Name() string {
+	return "postgres"
+}
+
+func (d *postgresDriver) DefaultConnectionString(user, password, address, dbName string) string {
+	return fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", user, password, address, dbName)
+}
+
+// init 注册PostgreSQL驱动
+func init() {
+	RegisterDriver("postgres", &postgresDriver{})
+}
 
 const (
 	BaseTable = "BASE TABLE"
 	View      = "VIEW"
 )
 
-// Dao 数据库访问对象
-type Dao interface {
-	DBName() string
-	String() string
-	Release()
-	Ping() error
-	BeginTransaction() error
-	CommitTransaction() error
-	RollbackTransaction() error
-	CreateDatabase(dbName string) error
-	DropDatabase(dbName string) error
-	UseDatabase(dbName string) error
-	Query(sql string, args ...any) error
-	Next() bool
-	Finish()
-	GetField(value ...interface{}) error
-	Insert(sql string, args ...any) (int64, error)
-	Update(sql string, args ...any) (int64, error)
-	Delete(sql string, args ...any) (int64, error)
-	Execute(sql string, args ...any) (int64, error)
-	CheckTableExist(tableName string) (bool, string, error)
-	Duplicate() (Dao, error)
-}
-
 type impl struct {
-	dbHandle   *sql.DB
-	dbTxCount  int32
-	dbTx       *sql.Tx
-	rowsHandle *sql.Rows
-	user       string
-	password   string
-	address    string
-	dbName     string
+	*BaseDao
 }
 
-// Fetch 获取一个数据访问对象
-func Fetch(user, password, address, dbName string) (Dao, error) {
-	connectStr := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", user, password, address, dbName)
+// Fetch 获取一个数据访问对象（使用默认PostgreSQL驱动）
+func Fetch(user, password, address, dbName string) (Dao, *cd.Error) {
+	return FetchWithDriver("postgres", user, password, address, dbName)
+}
 
-	i := impl{dbHandle: nil, dbTx: nil, rowsHandle: nil, user: user, password: password, address: address, dbName: dbName}
-	db, err := sql.Open("postgres", connectStr)
-	if err != nil {
-		log.Errorf("open database exception, connectStr:%s, err:%s", connectStr, err.Error())
-		return nil, err
+// FetchWithDriver 使用指定驱动获取数据访问对象
+func FetchWithDriver(driverName, user, password, address, dbName string) (Dao, *cd.Error) {
+	driver, ok := GetDriver(driverName)
+	if !ok {
+		return nil, cd.NewError(cd.DatabaseError, fmt.Sprintf("database driver '%s' not found", driverName))
 	}
 
-	i.dbHandle = db
+	connectStr := driver.DefaultConnectionString(user, password, address, dbName)
+	db, err := driver.Open(connectStr)
+	if err != nil {
+		return nil, logDatabaseError("open database", connectStr, err)
+	}
+
+	// 配置连接池优化参数
+	// PostgreSQL连接池配置建议：
+	// - SetMaxOpenConns: PostgreSQL对并发连接有限制，需要根据max_connections调整
+	// - SetMaxIdleConns: 保持一定数量的空闲连接以提高性能
+	// - SetConnMaxLifetime: PostgreSQL连接相对稳定，可以设置较长的生命周期
+	// - SetConnMaxIdleTime: 及时释放长时间空闲的连接
+	db.SetMaxOpenConns(25)                  // 最大打开连接数
+	db.SetMaxIdleConns(10)                  // 最大空闲连接数
+	db.SetConnMaxLifetime(time.Hour)        // 连接最大生命周期
+	db.SetConnMaxIdleTime(10 * time.Minute) // 连接最大空闲时间
 
 	err = db.Ping()
 	if err != nil {
-		log.Errorf("ping database failed, connectStr:%s, err:%s", connectStr, err.Error())
-		return nil, err
+		return nil, logDatabaseError("ping database", connectStr, err)
 	}
 
-	return &i, err
+	baseDao := NewBaseDaoLegacy(db, user, password, address, dbName)
+	return &impl{BaseDao: baseDao}, nil
 }
 
-func (s *impl) DBName() string {
-	return s.dbName
-}
-
-func (s *impl) String() string {
-	return fmt.Sprintf("%s/%s", s.address, s.dbName)
-}
-
-func (s *impl) Release() {
-	if s.dbTx != nil {
-		panic("dbTx isn't nil")
-	}
-
-	if s.rowsHandle != nil {
-		_ = s.rowsHandle.Close()
-	}
-	s.rowsHandle = nil
-
-	if s.dbHandle != nil {
-		_ = s.dbHandle.Close()
-	}
-	s.dbHandle = nil
-}
-
-func (s *impl) Ping() error {
-	if s.dbHandle == nil {
-		panic("dbHandle is nil")
-	}
-
-	return s.dbHandle.Ping()
-}
-
-func (s *impl) BeginTransaction() error {
-	if s.dbHandle == nil {
-		panic("dbHandle is nil")
-	}
-
-	atomic.AddInt32(&s.dbTxCount, 1)
-	if s.dbTx == nil && s.dbTxCount == 1 {
-		if s.rowsHandle != nil {
-			_ = s.rowsHandle.Close()
-		}
-		s.rowsHandle = nil
-
-		tx, err := s.dbHandle.Begin()
-		if err != nil {
-			return err
-		}
-
-		s.dbTx = tx
-	}
-
-	return nil
-}
-
-func (s *impl) CommitTransaction() error {
-	if s.dbHandle == nil {
-		panic("dbHandle is nil")
-	}
-
-	atomic.AddInt32(&s.dbTxCount, -1)
-	if s.dbTx != nil && s.dbTxCount == 0 {
-		err := s.dbTx.Commit()
-		if err != nil {
-			s.dbTx = nil
-			return err
-		}
-
-		s.dbTx = nil
-	}
-
-	return nil
-}
-
-func (s *impl) RollbackTransaction() error {
-	if s.dbHandle == nil {
-		panic("dbHandle is nil")
-	}
-
-	atomic.AddInt32(&s.dbTxCount, -1)
-	if s.dbTx != nil && s.dbTxCount == 0 {
-		err := s.dbTx.Rollback()
-		if err != nil {
-			s.dbTx = nil
-			return err
-		}
-
-		s.dbTx = nil
-	}
-
-	return nil
-}
-
-func (s *impl) CreateDatabase(dbName string) error {
+// CreateDatabase 创建数据库
+func (s *impl) CreateDatabase(dbName string) *cd.Error {
 	_, err := s.Execute(fmt.Sprintf("CREATE DATABASE \"%s\"", dbName))
 	return err
 }
 
-func (s *impl) DropDatabase(dbName string) error {
+// DropDatabase 删除数据库
+func (s *impl) DropDatabase(dbName string) *cd.Error {
 	_, err := s.Execute(fmt.Sprintf("DROP DATABASE IF EXISTS \"%s\"", dbName))
 	return err
 }
 
-func (s *impl) UseDatabase(dbName string) error {
+// UseDatabase 使用数据库
+func (s *impl) UseDatabase(dbName string) *cd.Error {
 	s.dbName = dbName
 	// PostgreSQL 不需要 USE 语句，连接时已经指定了数据库
 	return nil
 }
 
-func (s *impl) Query(sql string, args ...any) error {
-	if s.dbHandle == nil {
-		panic("dbHanlde is nil")
-	}
-
-	if s.dbTx == nil {
-		if s.rowsHandle != nil {
-			_ = s.rowsHandle.Close()
-			s.rowsHandle = nil
-		}
-
-		rows, err := s.dbHandle.Query(sql, args...)
-		if err != nil {
-			return err
-		}
-		s.rowsHandle = rows
-	} else {
-		if s.rowsHandle != nil {
-			_ = s.rowsHandle.Close()
-			s.rowsHandle = nil
-		}
-
-		rows, err := s.dbTx.Query(sql, args...)
-		if err != nil {
-			return err
-		}
-		s.rowsHandle = rows
-	}
-
-	return nil
-}
-
-func (s *impl) Next() bool {
-	if s.rowsHandle == nil {
-		panic("rowsHandle is nil")
-	}
-
-	ret := s.rowsHandle.Next()
-	if !ret {
-		_ = s.rowsHandle.Close()
-		s.rowsHandle = nil
-	}
-
-	return ret
-}
-
-func (s *impl) Finish() {
-	if s.rowsHandle != nil {
-		_ = s.rowsHandle.Close()
-		s.rowsHandle = nil
-	}
-}
-
-func (s *impl) GetField(value ...interface{}) error {
-	if s.rowsHandle == nil {
-		panic("rowsHandle is nil")
-	}
-
-	err := s.rowsHandle.Scan(value...)
-	return err
-}
-
-func (s *impl) Insert(sql string, args ...any) (int64, error) {
-	if s.dbHandle == nil {
-		panic("dbHandle is nil")
-	}
-
-	if s.rowsHandle != nil {
-		s.rowsHandle.Close()
-	}
-	s.rowsHandle = nil
-
-	if s.dbTx == nil {
-		execVal, execErr := s.dbHandle.Exec(sql, args...)
-		if execErr != nil {
-			return 0, execErr
-		}
-
-		idVal, idErr := execVal.LastInsertId()
-		if idErr != nil {
-			return 0, idErr
-		}
-
-		return idVal, nil
-	}
-
-	execVal, execErr := s.dbTx.Exec(sql, args...)
-	if execErr != nil {
-		return 0, execErr
-	}
-
-	idVal, idErr := execVal.LastInsertId()
-	if idErr != nil {
-		return 0, idErr
-	}
-
-	return idVal, nil
-}
-
-func (s *impl) Update(sql string, args ...any) (int64, error) {
-	return s.Execute(sql, args...)
-}
-
-func (s *impl) Delete(sql string, args ...any) (int64, error) {
-	return s.Execute(sql, args...)
-}
-
-func (s *impl) Execute(sql string, args ...any) (int64, error) {
-	if s.dbHandle == nil {
-		panic("dbHandle is nil")
-	}
-
-	if s.rowsHandle != nil {
-		s.rowsHandle.Close()
-	}
-	s.rowsHandle = nil
-
-	if s.dbTx == nil {
-		execVal, execErr := s.dbHandle.Exec(sql, args...)
-		if execErr != nil {
-			return 0, execErr
-		}
-
-		rowNum, rowErr := execVal.RowsAffected()
-		if rowErr != nil {
-			return 0, rowErr
-		}
-
-		return rowNum, nil
-	}
-
-	execVal, execErr := s.dbTx.Exec(sql, args...)
-	if execErr != nil {
-		return 0, execErr
-	}
-
-	rowNum, rowErr := execVal.RowsAffected()
-	if rowErr != nil {
-		return 0, rowErr
-	}
-
-	return rowNum, nil
-}
-
-func (s *impl) CheckTableExist(tableName string) (bool, string, error) {
+// CheckTableExist 检查表是否存在
+func (s *impl) CheckTableExist(tableName string) (bool, string, *cd.Error) {
 	sqlStr := fmt.Sprintf("SELECT tablename, CASE WHEN schemaname = 'public' THEN 'BASE TABLE' ELSE 'VIEW' END FROM pg_tables WHERE tablename ='%s' UNION ALL SELECT viewname, 'VIEW' FROM pg_views WHERE viewname ='%s'", tableName, tableName)
 
 	err := s.Query(sqlStr)
@@ -336,7 +108,7 @@ func (s *impl) CheckTableExist(tableName string) (bool, string, error) {
 		return false, "", err
 	}
 
-	defer s.Finish()
+	defer func() { _ = s.Finish() }()
 
 	var tableNameVal, tableTypeVal sql.NullString
 	if s.Next() {
@@ -351,6 +123,7 @@ func (s *impl) CheckTableExist(tableName string) (bool, string, error) {
 	return false, "", nil
 }
 
-func (s *impl) Duplicate() (Dao, error) {
+// Duplicate 复制DAO实例
+func (s *impl) Duplicate() (Dao, *cd.Error) {
 	return Fetch(s.user, s.password, s.address, s.dbName)
 }

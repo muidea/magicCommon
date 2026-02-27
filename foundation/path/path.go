@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 func IsDir(path string) bool {
@@ -57,7 +57,7 @@ func IsDirEmpty(dirPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer dir.Close()
+	defer func() { _ = dir.Close() }()
 
 	// 读取目录中的文件和子目录
 	nameSlice, nameErr := dir.Readdirnames(1)
@@ -76,7 +76,7 @@ func SplitParentDir(dirPath string) string {
 func CleanPathContent(dirPath string) {
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
-		log.Errorf("clean path content failed, dirPath:%s, error:%s", dirPath, err.Error())
+		slog.Error("clean path content failed", "dirPath", dirPath, "error", err.Error())
 		return
 	}
 
@@ -84,11 +84,11 @@ func CleanPathContent(dirPath string) {
 		entryPath := filepath.Join(dirPath, entry.Name())
 		if entry.IsDir() {
 			if err := os.RemoveAll(entryPath); err != nil {
-				log.Errorf("clean path content failed, dirPath:%s, error:%s", entryPath, err.Error())
+				slog.Error("clean path content failed", "dirPath", entryPath, "error", err.Error())
 			}
 		} else {
 			if err := os.Remove(entryPath); err != nil {
-				log.Errorf("clean path content failed, dirPath:%s, error:%s", entryPath, err.Error())
+				slog.Error("clean path content failed", "file", entryPath, "error", err.Error())
 			}
 		}
 	}
@@ -176,7 +176,7 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	srcInfo, err := srcFile.Stat()
 	if err != nil {
@@ -187,7 +187,7 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("创建目标文件失败: %w", err)
 	}
-	defer dstFile.Close()
+	defer func() { _ = dstFile.Close() }()
 
 	if _, err := io.CopyBuffer(dstFile, srcFile, make([]byte, 32*1024)); err != nil {
 		return fmt.Errorf("内容复制失败: %w", err)

@@ -7,17 +7,17 @@ import (
 
 func TestEnvConfigLoader_Load(t *testing.T) {
 	// 设置测试环境变量
-	os.Setenv("TEST_PREFIX_DEFAULT_NAMESPACE", "test-panel")
-	os.Setenv("DEFAULT_NAMESPACE", "panel")
-	os.Setenv("DEBUG_MODE", "true")
-	os.Setenv("WORKSPACE_ROOT_PATH", "/home/rangh/dataspace")
-	os.Setenv("APPS_PLATFORM_SERVICE", "http://magicplatform:8080")
+	_ = os.Setenv("TEST_PREFIX_DEFAULT_NAMESPACE", "test-panel")
+	_ = os.Setenv("DEFAULT_NAMESPACE", "panel")
+	_ = os.Setenv("DEBUG_MODE", "true")
+	_ = os.Setenv("WORKSPACE_ROOT_PATH", "/home/rangh/dataspace")
+	_ = os.Setenv("APPS_PLATFORM_SERVICE", "http://magicplatform:8080")
 	defer func() {
-		os.Unsetenv("TEST_PREFIX_DEFAULT_NAMESPACE")
-		os.Unsetenv("DEFAULT_NAMESPACE")
-		os.Unsetenv("DEBUG_MODE")
-		os.Unsetenv("WORKSPACE_ROOT_PATH")
-		os.Unsetenv("APPS_PLATFORM_SERVICE")
+		_ = os.Unsetenv("TEST_PREFIX_DEFAULT_NAMESPACE")
+		_ = os.Unsetenv("DEFAULT_NAMESPACE")
+		_ = os.Unsetenv("DEBUG_MODE")
+		_ = os.Unsetenv("WORKSPACE_ROOT_PATH")
+		_ = os.Unsetenv("APPS_PLATFORM_SERVICE")
 	}()
 
 	t.Run("Load without prefix", func(t *testing.T) {
@@ -163,11 +163,11 @@ func TestEnvConfigLoader_ParseValue(t *testing.T) {
 
 func TestEnvConfigMerger_Merge(t *testing.T) {
 	// 设置测试环境变量
-	os.Setenv("MERGE_TEST_KEY", "env-value")
-	os.Setenv("OVERRIDE_KEY", "env-override")
+	_ = os.Setenv("MERGE_TEST_KEY", "env-value")
+	_ = os.Setenv("OVERRIDE_KEY", "env-override")
 	defer func() {
-		os.Unsetenv("MERGE_TEST_KEY")
-		os.Unsetenv("OVERRIDE_KEY")
+		_ = os.Unsetenv("MERGE_TEST_KEY")
+		_ = os.Unsetenv("OVERRIDE_KEY")
 	}()
 
 	existingConfig := map[string]any{
@@ -227,8 +227,8 @@ func TestEnvConfigLoader_EdgeCases(t *testing.T) {
 	loader := NewEnvConfigLoader("")
 
 	t.Run("Empty environment variable", func(t *testing.T) {
-		os.Setenv("EMPTY_VAR", "")
-		defer os.Unsetenv("EMPTY_VAR")
+		_ = os.Setenv("EMPTY_VAR", "")
+		defer func() { _ = os.Unsetenv("EMPTY_VAR") }()
 
 		config, err := loader.Load()
 		if err != nil {
@@ -260,23 +260,23 @@ func TestEnvConfigLoader_EdgeCases(t *testing.T) {
 
 func TestEnvConfigLoader_NestedStructure(t *testing.T) {
 	// 设置测试环境变量
-	os.Setenv("DATABASE_HOST", "localhost")
-	os.Setenv("DATABASE_PORT", "3306")
-	os.Setenv("DATABASE_CREDENTIALS_USERNAME", "admin")
-	os.Setenv("DATABASE_CREDENTIALS_PASSWORD", "secret")
-	os.Setenv("SERVER_SETTINGS_HTTP_PORT", "8080")
-	os.Setenv("SERVER_SETTINGS_HTTPS_PORT", "8443")
-	os.Setenv("APP_INFO_NAME", "TestApp")
-	os.Setenv("APP_INFO_VERSION", "1.0.0")
+	_ = os.Setenv("DATABASE_HOST", "localhost")
+	_ = os.Setenv("DATABASE_PORT", "3306")
+	_ = os.Setenv("DATABASE_CREDENTIALS_USERNAME", "admin")
+	_ = os.Setenv("DATABASE_CREDENTIALS_PASSWORD", "secret")
+	_ = os.Setenv("SERVER_SETTINGS_HTTP_PORT", "8080")
+	_ = os.Setenv("SERVER_SETTINGS_HTTPS_PORT", "8443")
+	_ = os.Setenv("APP_INFO_NAME", "TestApp")
+	_ = os.Setenv("APP_INFO_VERSION", "1.0.0")
 	defer func() {
-		os.Unsetenv("DATABASE_HOST")
-		os.Unsetenv("DATABASE_PORT")
-		os.Unsetenv("DATABASE_CREDENTIALS_USERNAME")
-		os.Unsetenv("DATABASE_CREDENTIALS_PASSWORD")
-		os.Unsetenv("SERVER_SETTINGS_HTTP_PORT")
-		os.Unsetenv("SERVER_SETTINGS_HTTPS_PORT")
-		os.Unsetenv("APP_INFO_NAME")
-		os.Unsetenv("APP_INFO_VERSION")
+		_ = os.Unsetenv("DATABASE_HOST")
+		_ = os.Unsetenv("DATABASE_PORT")
+		_ = os.Unsetenv("DATABASE_CREDENTIALS_USERNAME")
+		_ = os.Unsetenv("DATABASE_CREDENTIALS_PASSWORD")
+		_ = os.Unsetenv("SERVER_SETTINGS_HTTP_PORT")
+		_ = os.Unsetenv("SERVER_SETTINGS_HTTPS_PORT")
+		_ = os.Unsetenv("APP_INFO_NAME")
+		_ = os.Unsetenv("APP_INFO_VERSION")
 	}()
 
 	loader := NewEnvConfigLoader("")
@@ -457,19 +457,19 @@ func compareMaps(a, b map[string]any) bool {
 
 func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 	// 设置测试环境变量
-	os.Setenv("APP_NAME", "EnvApp")
-	os.Setenv("APP_DATABASE_HOST", "env-db-host") // 改为 app.database.host
-	os.Setenv("APP_DATABASE_PORT", "5432")        // 改为 app.database.port
-	os.Setenv("SERVER_PORT", "9090")
-	os.Setenv("FEATURE_FLAG_NEWUI", "true") // 改为 feature.flag.newui
-	os.Setenv("LOGGING_LEVEL", "debug")
+	_ = os.Setenv("APP_NAME", "EnvApp")
+	_ = os.Setenv("APP_DATABASE_HOST", "env-db-host") // 改为 app.database.host
+	_ = os.Setenv("APP_DATABASE_PORT", "5432")        // 改为 app.database.port
+	_ = os.Setenv("SERVER_PORT", "9090")
+	_ = os.Setenv("FEATURE_FLAG_NEWUI", "true") // 改为 feature.flag.newui
+	_ = os.Setenv("LOGGING_LEVEL", "debug")
 	defer func() {
-		os.Unsetenv("APP_NAME")
-		os.Unsetenv("APP_DATABASE_HOST")
-		os.Unsetenv("APP_DATABASE_PORT")
-		os.Unsetenv("SERVER_PORT")
-		os.Unsetenv("FEATURE_FLAG_NEW_UI")
-		os.Unsetenv("LOGGING_LEVEL")
+		_ = os.Unsetenv("APP_NAME")
+		_ = os.Unsetenv("APP_DATABASE_HOST")
+		_ = os.Unsetenv("APP_DATABASE_PORT")
+		_ = os.Unsetenv("SERVER_PORT")
+		_ = os.Unsetenv("FEATURE_FLAG_NEW_UI")
+		_ = os.Unsetenv("LOGGING_LEVEL")
 	}()
 
 	// 模拟复杂的配置文件结构
@@ -623,11 +623,11 @@ func TestEnvConfigMerger_ComplexMergeScenarios(t *testing.T) {
 
 func TestEnvConfigMerger_PriorityScenarios(t *testing.T) {
 	// 测试不同优先级场景
-	os.Setenv("HIGH_PRIORITY_KEY", "env-value")
-	os.Setenv("NESTED_CONFIG_DB_HOST", "env-db")
+	_ = os.Setenv("HIGH_PRIORITY_KEY", "env-value")
+	_ = os.Setenv("NESTED_CONFIG_DB_HOST", "env-db")
 	defer func() {
-		os.Unsetenv("HIGH_PRIORITY_KEY")
-		os.Unsetenv("NESTED_CONFIG_DB_HOST")
+		_ = os.Unsetenv("HIGH_PRIORITY_KEY")
+		_ = os.Unsetenv("NESTED_CONFIG_DB_HOST")
 	}()
 
 	t.Run("Environment variables have highest priority", func(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
-	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/foundation/system"
 	"github.com/muidea/magicCommon/task"
+	"log/slog"
 )
 
 type InvokeFunc func() *cd.Error
@@ -25,62 +25,62 @@ func NewPluginMgr(typeName string) *PluginMgr {
 	return ptr
 }
 
-func (s *PluginMgr) getWeight(ptr any) int {
+func (s *PluginMgr) getWeight(ptr any) (int, error) {
 	vVal := reflect.ValueOf(ptr)
 	funcVal := vVal.MethodByName(weightTag)
 	if !funcVal.IsValid() {
-		return DefaultWeight
+		return DefaultWeight, nil
 	}
 
 	defer func() {
 		if info := recover(); info != nil {
-			err := fmt.Errorf("invoke %s unexpect, %v", weightTag, info)
-			panic(err)
+			slog.Error("panic in getWeight", "recover", info)
 		}
 	}()
 
 	param := make([]reflect.Value, 0)
 	values := funcVal.Call(param)
 	if len(values) == 0 {
-		return DefaultWeight
+		return DefaultWeight, nil
 	}
 
 	if funcVal.Type().Out(0).String() != "int" {
-		return DefaultWeight
+		return DefaultWeight, fmt.Errorf("weight method must return int, got %s", funcVal.Type().Out(0).String())
 	}
 
-	return int(values[0].Int())
+	return int(values[0].Int()), nil
 }
 
-func (s *PluginMgr) getID(ptr any) string {
+func (s *PluginMgr) getID(ptr any) (string, error) {
 	vVal := reflect.ValueOf(ptr)
 	funcVal := vVal.MethodByName(idTag)
+	if !funcVal.IsValid() {
+		return "", fmt.Errorf("method %s not found", idTag)
+	}
+
 	defer func() {
 		if info := recover(); info != nil {
-			err := fmt.Errorf("invoke %s unexpect, %v", idTag, info)
-			panic(err)
+			slog.Error("panic in getID", "recover", info)
 		}
 	}()
 
 	param := make([]reflect.Value, 0)
 	values := funcVal.Call(param)
 	if len(values) == 0 {
-		err := fmt.Errorf("invoke %s unexpect, illegal result", idTag)
-		panic(err)
+		return "", fmt.Errorf("method %s returned no value", idTag)
 	}
 
 	if funcVal.Type().Out(0).String() != "string" {
-		err := fmt.Errorf("invoke %s unexpect, illegal result", idTag)
-		panic(err)
+		return "", fmt.Errorf("method %s must return string, got %s", idTag, funcVal.Type().Out(0).String())
 	}
 
-	return values[0].String()
+	return values[0].String(), nil
 }
 
-func (s *PluginMgr) validPlugin(ptr any) {
+func (s *PluginMgr) validPlugin(ptr any) error {
 	vType := reflect.TypeOf(ptr)
 	if vType.Kind() != reflect.Ptr {
-		panic("must be a pointer")
+		return fmt.Errorf("must be a pointer")
 	}
 
 	_, idOK := vType.MethodByName(idTag)
@@ -88,21 +88,32 @@ func (s *PluginMgr) validPlugin(ptr any) {
 	_, runOK := vType.MethodByName(runTag)
 	//_, teardownOK := vType.MethodByName(teardownTag)
 	if !idOK || !runOK {
-		panic("invalid plugin value")
+		return fmt.Errorf("invalid plugin value: missing required methods (ID, Run)")
 	}
+
+	return nil
 }
 
-func (s *PluginMgr) Register(ptr any) {
-	s.validPlugin(ptr)
+func (s *PluginMgr) Register(ptr any) error {
+	if err := s.validPlugin(ptr); err != nil {
+		return err
+	}
 
-	curWeight := s.getWeight(ptr)
+	curWeight, err := s.getWeight(ptr)
+	if err != nil {
+		return err
+	}
+
 	newList := []any{}
 	if len(s.entityList) == 0 {
 		newList = append(newList, ptr)
 	} else {
 		ok := false
 		for idx, val := range s.entityList {
-			preWeight := s.getWeight(val)
+			preWeight, err := s.getWeight(val)
+			if err != nil {
+				return err
+			}
 			if preWeight <= curWeight {
 				newList = append(newList, val)
 				continue
@@ -120,11 +131,16 @@ func (s *PluginMgr) Register(ptr any) {
 	}
 
 	s.entityList = newList
+	return nil
 }
 
 func (s *PluginMgr) GetEntity(id string) (ret any, err *cd.Error) {
 	for _, val := range s.entityList {
-		idVal := s.getID(val)
+		idVal, idErr := s.getID(val)
+		if idErr != nil {
+			err = cd.NewError(cd.Unexpected, fmt.Sprintf("get ID failed: %v", idErr))
+			return
+		}
 		if idVal == id {
 			ret = val
 			return
@@ -139,7 +155,12 @@ func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundR
 	for _, val := range s.entityList {
 		err = system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
 		if err != nil && err.Code != cd.NotFound {
-			log.Errorf("invoke [%s:%s]->setup failed, %v", s.typeName, s.getID(val), err)
+			idVal, idErr := s.getID(val)
+			if idErr != nil {
+				slog.Error("invoke setup failed, get ID error", "type", s.typeName, "error", idErr)
+			} else {
+				slog.Error("invoke setup failed", "type", s.typeName, "id", idVal, "error", err)
+			}
 			return
 		}
 	}
@@ -151,11 +172,16 @@ func (s *PluginMgr) Run() (err *cd.Error) {
 	for _, val := range s.entityList {
 		err = system.InvokeEntityFunc(val, runTag)
 		if err != nil && err.Code != cd.NotFound {
-			log.Errorf("invoke [%s:%s]->run failed, %v", s.typeName, s.getID(val), err)
+			idVal, idErr := s.getID(val)
+			if idErr != nil {
+				slog.Error("invoke run failed, get ID error", "type", s.typeName, "error", idErr)
+			} else {
+				slog.Error("invoke run failed", "type", s.typeName, "id", idVal, "error", err)
+			}
 			return
 		}
 
-		//log.Infof("invoke %s %s run success", s.typeName, s.getID(val))
+		//slog.Info("invoke run success", "type", s.typeName, "id", idVal)
 	}
 
 	return
@@ -167,9 +193,14 @@ func (s *PluginMgr) Teardown() {
 		val := s.entityList[totalSize-idx-1]
 		err := system.InvokeEntityFunc(val, teardownTag)
 		if err != nil && err.Code != cd.NotFound {
-			log.Errorf("invoke [%s:%s]->teardown failed, %v", s.typeName, s.getID(val), err)
+			idVal, idErr := s.getID(val)
+			if idErr != nil {
+				slog.Error("invoke teardown failed, get ID error", "type", s.typeName, "error", idErr)
+			} else {
+				slog.Error("invoke teardown failed", "type", s.typeName, "id", idVal, "error", err)
+			}
 		}
 
-		//log.Infof("invoke %s %s teardown success", s.typeName, s.getID(val))
+		//slog.Info("invoke teardown success", "type", s.typeName, "id", idVal)
 	}
 }

@@ -5,14 +5,14 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 func SignatureJWT(mc jwt.MapClaims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, mc)
 	valStr, valErr := token.SignedString([]byte(getSecret()))
 	if valErr != nil {
-		log.Errorf("Signature failed, err:%s", valErr.Error())
+		slog.Error("Signature failed, err:valErr.Error(", "field", valErr.Error())
 		return "", valErr
 	}
 
@@ -31,7 +31,7 @@ func decodeJWT(sigVal string) *sessionImpl {
 		return []byte(secretVal), nil
 	})
 	if err != nil {
-		//log.Infof("illegal jwt value:%s, secret:%s, err:%s", sigVal[1], secretVal, err.Error())
+		//slog.Info(fmt.Sprintf("illegal jwt value:%s, secret:%s, err:%s"sigVal[1], secretVal, err.Error()))
 		return nil
 	}
 

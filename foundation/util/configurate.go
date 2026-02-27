@@ -19,7 +19,7 @@ func LoadConfig(filePath string, ptr interface{}) (err error) {
 		err = fileErr
 		return
 	}
-	defer filePtr.Close()
+	defer func() { _ = filePtr.Close() }()
 
 	byteContent, byteErr := io.ReadAll(filePtr)
 	if byteErr != nil {
@@ -47,7 +47,7 @@ func SaveConfig(filePath string, ptr interface{}) (err error) {
 		err = fileErr
 		return
 	}
-	defer fileHandle.Close()
+	defer func() { _ = fileHandle.Close() }()
 
 	var byteBuffer bytes.Buffer
 	err = json.Indent(&byteBuffer, byteContent, "", "\t")

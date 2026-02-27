@@ -17,7 +17,7 @@ func BenchmarkCollectorRecord(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Register a test metric
 	def := types.NewCounterDefinition(
@@ -51,7 +51,7 @@ func BenchmarkCollectorRecordAsync(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Register a test metric
 	def := types.NewCounterDefinition(
@@ -75,7 +75,7 @@ func BenchmarkCollectorRecordAsync(b *testing.B) {
 	}
 
 	// Force flush to ensure all metrics are processed
-	collector.ForceFlush()
+	_ = collector.ForceFlush()
 }
 
 // BenchmarkExporterPrometheus benchmarks Prometheus format export
@@ -85,7 +85,7 @@ func BenchmarkExporterPrometheus(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Register and record some metrics
 	for i := 0; i < 1000; i++ {
@@ -126,7 +126,7 @@ func BenchmarkExporterJSON(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Register and record some metrics
 	for i := 0; i < 1000; i++ {
@@ -215,7 +215,7 @@ func BenchmarkConcurrentRecording(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Register test metrics
 	for i := 0; i < 10; i++ {
@@ -248,7 +248,7 @@ func BenchmarkConcurrentRecording(b *testing.B) {
 	})
 
 	// Force flush to ensure all metrics are processed
-	collector.ForceFlush()
+	_ = collector.ForceFlush()
 }
 
 // BenchmarkProviderCollection benchmarks provider metric collection
@@ -258,7 +258,7 @@ func BenchmarkProviderCollection(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Create a benchmark provider
 	provider := &BenchmarkProvider{

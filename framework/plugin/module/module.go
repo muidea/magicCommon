@@ -11,7 +11,7 @@ import (
 var moduleMgr = common.NewPluginMgr("module")
 
 func Register(module any) {
-	moduleMgr.Register(module)
+	_ = moduleMgr.Register(module)
 }
 
 func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {

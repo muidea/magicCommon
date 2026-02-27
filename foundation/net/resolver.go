@@ -3,6 +3,7 @@ package net
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http/httptrace"
 	"sync"
@@ -103,7 +104,11 @@ func (r *Resolver) lookup(ctx context.Context, key string) (rrs []string, err er
 }
 
 func (r *Resolver) update(ctx context.Context, key string, used bool, persistOnFailure bool) (rrs []string, err error) {
-	c := lookupGroup.DoChan(key, r.lookupFunc(ctx, key))
+	lookupFunc, err := r.lookupFunc(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	c := lookupGroup.DoChan(key, lookupFunc)
 	select {
 	case <-ctx.Done():
 		err = ctx.Err()
@@ -140,9 +145,9 @@ func (r *Resolver) update(ctx context.Context, key string, used bool, persistOnF
 	return
 }
 
-func (r *Resolver) lookupFunc(ctx context.Context, key string) func() (interface{}, error) {
+func (r *Resolver) lookupFunc(ctx context.Context, key string) (func() (interface{}, error), error) {
 	if len(key) == 0 {
-		panic("lookupFunc with empty key")
+		return nil, errors.New("lookupFunc with empty key")
 	}
 
 	var resolver DNSResolver = defaultResolver
@@ -157,16 +162,16 @@ func (r *Resolver) lookupFunc(ctx context.Context, key string) func() (interface
 			defer cancel()
 
 			return resolver.LookupHost(ctx, key[1:])
-		}
+		}, nil
 	case 'r':
 		return func() (interface{}, error) {
 			ctx, cancel := r.prepareCtx(ctx)
 			defer cancel()
 
 			return resolver.LookupAddr(ctx, key[1:])
-		}
+		}, nil
 	default:
-		panic("lookupFunc invalid key type: " + key)
+		return nil, fmt.Errorf("lookupFunc invalid key type: %s", key)
 	}
 }
 

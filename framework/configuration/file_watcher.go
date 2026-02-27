@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"log/slog"
 )
 
 // FileWatcherImpl 文件监听器实现
@@ -151,7 +152,7 @@ func (fw *FileWatcherImpl) eventLoop() {
 			if !ok {
 				return
 			}
-			fmt.Printf("File watcher error: %v\n", err)
+			slog.Error("File watcher error", "error", err)
 		}
 	}
 }

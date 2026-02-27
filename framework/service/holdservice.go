@@ -6,7 +6,7 @@ import (
 	"syscall"
 
 	cd "github.com/muidea/magicCommon/def"
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 func HoldService() Service {
@@ -29,7 +29,7 @@ func (s *holdService) Run() (err *cd.Error) {
 	defer close(sigChan)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	sig := <-sigChan
-	log.Warnf("%s shutdowning signal:%+v", s.serviceName, sig)
+	<-sigChan
+	slog.Warn("s.serviceName shutdowning signal:%+v", "field", s.serviceName)
 	return
 }

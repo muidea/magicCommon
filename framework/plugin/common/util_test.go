@@ -32,7 +32,7 @@ func (s *Demo) ID() string {
 	return "abcInfo"
 }
 
-func (s *Demo) Weight() int64 {
+func (s *Demo) Weight() int {
 	return 123
 }
 
@@ -53,14 +53,20 @@ func TestWeight(t *testing.T) {
 
 	pluginMgr := NewPluginMgr("abc")
 
-	val := pluginMgr.getWeight(demo)
-	if val != DefaultWeight {
-		t.Errorf("check weight faield")
+	val, err := pluginMgr.getWeight(demo)
+	if err != nil {
+		t.Errorf("getWeight failed: %v", err)
+	}
+	if val != 123 {
+		t.Errorf("check weight faield, expected 123, got %d", val)
 	}
 
 	abc := &abcInfo{}
 
-	val = pluginMgr.getWeight(abc)
+	val, err = pluginMgr.getWeight(abc)
+	if err != nil {
+		t.Errorf("getWeight failed: %v", err)
+	}
 	if val != 123 {
 		t.Errorf("check weight faield")
 	}

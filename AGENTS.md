@@ -16,17 +16,36 @@ magicCommon is a Go library providing common utilities, foundations, and framewo
 - **Run tests with verbose output**: `go test -v ./...`
 - **Run tests with coverage**: `go test -cover ./...`
 - **Run benchmark tests**: `go test -bench=. ./...`
+- **Run tests with count flag**: `go test -count=1 ./...` (disable test caching)
+- **Run parallel benchmark tests**: `go test -bench=. -benchtime=5s ./...`
 
 ### Building
 - **Build project**: `go build ./...`
 - **Clean build cache**: `go clean -cache`
 - **Install dependencies**: `go mod tidy`
 
+### Makefile Commands
+- **Run all (build, test, lint)**: `make all`
+- **Run tests**: `make test`
+- **Run tests with coverage**: `make test-coverage`
+- **Run lint checks**: `make lint`
+- **Format code**: `make fmt`
+- **Check formatting**: `make fmt-check`
+- **Run vet**: `make vet`
+- **Clean build files**: `make clean`
+- **Install dependencies**: `make deps`
+- **Install dev tools**: `make dev-tools`
+- **Run benchmarks**: `make bench`
+- **Run tests for specific package**: `make test-foundation/system`
+- **Run benchmarks for specific package**: `make bench-foundation/cache`
+
 ### Linting & Formatting
-- **Format code**: `gofmt -w .`
-- **Check formatting**: `gofmt -d .`
+- **Format code**: `gofmt -w .` or `make fmt`
+- **Check formatting**: `gofmt -d .` or `make fmt-check`
 - **Organize imports**: `goimports -w .`
-- **Vet code**: `go vet ./...`
+- **Vet code**: `go vet ./...` or `make vet`
+- **Run comprehensive lint**: `make lint` (includes vet, format check, and optional golangci-lint)
+- **Security scan**: `gosec ./...` (requires installation: `go install github.com/securego/gosec/v2/cmd/gosec@latest`)
 
 ## Code Style Guidelines
 
@@ -71,33 +90,13 @@ import (
 - Return errors as `*cd.Error` type
 - Use `cd.NewError()` to create new errors with error codes
 - Handle panics with recover in critical functions
-- Example error handling pattern:
-```go
-func SomeFunction() (err *cd.Error) {
-    defer func() {
-        if errInfo := recover(); errInfo != nil {
-            err = cd.NewError(cd.Unexpected, fmt.Sprintf("recover! %v", errInfo))
-        }
-    }()
-    
-    // Function logic
-    return nil
-}
-```
+- Always check and handle errors immediately
 
 ### Types and Interfaces
 - Define interfaces for abstraction
 - Use generics where appropriate (Go 1.24+)
 - Prefer composition over inheritance
 - Use type aliases for clarity when needed
-- Example interface pattern:
-```go
-type Cache interface {
-    Put(key string, val interface{}) *cd.Error
-    Fetch(key string) (interface{}, *cd.Error)
-    Remove(key string) *cd.Error
-}
-```
 
 ### Testing
 - Use `testing` package from standard library
@@ -106,66 +105,44 @@ type Cache interface {
 - Test functions should start with `Test` prefix
 - Use table-driven tests for multiple test cases
 - Use subtests with `t.Run()` for better organization
-- Example test structure:
+- Example test structure (from foundation/system/system_test.go:28):
 ```go
-func TestFunctionName(t *testing.T) {
-    t.Run("Test case description", func(t *testing.T) {
-        // Setup
-        // Execution
-        // Assertion
-        assert.Nil(t, result)
-        assert.Equal(t, expected, actual)
-    })
+// TestInvokeEntityFuncNoMethod tests the scenario where the method does not exist on the entityVal
+func TestInvokeEntityFuncNoMethod(t *testing.T) {
+    entityVal := &MockEntity{}
+    funcName := "NonExistentMethod"
+
+    result := InvokeEntityFunc(entityVal, funcName)
+    assert.NotNil(t, result)
 }
 ```
+- For database tests, use `-tags=mysql` flag for MySQL-specific tests
+- Use `t.Parallel()` for tests that can run concurrently when appropriate
 
 ### Benchmarking
 - Benchmark files should be named `*_benchmark_test.go`
 - Benchmark functions should start with `Benchmark` prefix
 - Use `b.ResetTimer()` and `b.StopTimer()` appropriately
-- Example benchmark:
-```go
-func BenchmarkCache_Put(b *testing.B) {
-    cache := NewCache(nil)
-    b.ResetTimer()
-    for i := 0; i < b.N; i++ {
-        cache.Put(fmt.Sprintf("key%d", i), i)
-    }
-}
-```
+- Use `b.RunParallel()` for concurrent benchmarks
+- Run parallel benchmark tests: `go test -bench=. -benchtime=5s ./...`
 
 ### Logging
 - Use `github.com/muidea/seelog` for logging
 - Log levels: DEBUG, INFO, WARN, ERROR
 - Include contextual information in log messages
-- Example logging:
-```go
-import "github.com/muidea/seelog"
-
-seelog.Warnf("illegal value, not string, value:%v", value)
-```
 
 ### Documentation
 - Document exported functions, types, and packages
 - Use GoDoc style comments
 - Keep comments concise and focused on "why" not "what"
-- Example:
+- Example (from foundation/system/system.go:11):
 ```go
 // InvokeEntityFunc invokes a method by name on an entity value.
 // It handles parameter conversion and error recovery.
 func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interface{}) (err *cd.Error) {
 ```
 
-### Concurrency
-- Use `golang.org/x/sync` for synchronization primitives
-- Consider thread safety for shared resources
-- Use channels for communication between goroutines
-- Document concurrent access patterns
 
-### Configuration
-- Use TOML format for configuration files
-- Configuration files are in `config/` directories
-- Use `github.com/pelletier/go-toml/v2` for parsing
 
 ## Project Structure
 
@@ -179,7 +156,10 @@ magicCommon/
 │   ├── system/      # System utilities
 │   └── util/        # General utilities
 ├── framework/       # Framework components
-│   └── configuration/ # Configuration framework
+│   ├── application/ # Application framework
+│   ├── configuration/ # Configuration framework
+│   ├── plugin/      # Plugin system
+│   └── service/     # Service framework
 ├── event/           # Event system
 ├── monitoring/      # Monitoring utilities
 ├── session/         # Session management
@@ -198,6 +178,9 @@ magicCommon/
 - Tests run on push to master, feature/*, and bugfix/* branches
 - MySQL and PostgreSQL services are provisioned for testing
 - Go 1.24 is used for builds and tests
+- CI workflow: `.github/workflows/ci.yml`
+- MySQL test database: `testdb` with root password `rootkit`
+- PostgreSQL test database: `testdb` with user `postgres` and password `rootkit`
 
 ## Best Practices
 
@@ -208,20 +191,3 @@ magicCommon/
 5. **DRY (Don't Repeat Yourself)**: Extract common patterns
 6. **KISS (Keep It Simple)**: Prefer simple solutions over complex ones
 7. **YAGNI (You Ain't Gonna Need It)**: Don't add features until needed
-
-## Common Patterns
-
-- Use factory functions for object creation (e.g., `NewCache()`)
-- Use builder pattern for complex object construction
-- Use dependency injection for testability
-- Use context for request-scoped values and cancellation
-
-## When Making Changes
-
-1. Run tests before and after changes
-2. Ensure all tests pass, including MySQL-tagged tests
-3. Format code with `gofmt`
-4. Update documentation for new/changed functionality
-5. Consider backward compatibility for public APIs
-6. Add tests for new functionality
-7. Update benchmarks if performance-critical code changes

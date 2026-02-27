@@ -51,10 +51,18 @@ func GetDefaultConfigManager() ConfigManager {
 }
 
 // MustInitDefaultConfigManager 初始化默认配置管理器，如果失败则panic
+// 注意：此函数在初始化失败时会panic，仅用于测试或程序启动阶段
+// 生产环境建议使用 InitDefaultConfigManager 并处理错误
 func MustInitDefaultConfigManager(configDir string) {
 	if err := InitDefaultConfigManager(configDir); err != nil {
 		panic(fmt.Sprintf("Failed to initialize default config manager: %v", err))
 	}
+}
+
+// SafeInitDefaultConfigManager 安全初始化默认配置管理器，返回错误而不是panic
+// 这是 MustInitDefaultConfigManager 的安全替代版本
+func SafeInitDefaultConfigManager(configDir string) error {
+	return InitDefaultConfigManager(configDir)
 }
 
 // CreateConfigManager 创建配置管理器（工厂函数）

@@ -516,12 +516,12 @@ func (c *Collector) startBackgroundTasks() {
 		select {
 		case <-ticker.C:
 			// Collect from providers
-			c.CollectFromProviders()
+			_ = c.CollectFromProviders()
 
 			// Flush batch buffer
 			c.batchMutex.Lock()
 			if len(c.batchBuffer) > 0 {
-				c.flushBatch()
+				_ = c.flushBatch()
 			}
 			c.batchMutex.Unlock()
 

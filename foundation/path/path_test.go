@@ -25,7 +25,7 @@ func TestIsDirEmpty(t *testing.T) {
 	emptyDir := path.Join(curWD, "emptydir")
 	t.Logf("emptyDir:%s", emptyDir)
 	_ = os.Mkdir(emptyDir, os.ModePerm)
-	defer os.Remove(emptyDir)
+	defer func() { _ = os.Remove(emptyDir) }()
 	isEmpty, isErr = IsDirEmpty(emptyDir)
 	if isErr != nil {
 		t.Errorf("check is dir empty failed, error:%s", isErr.Error())

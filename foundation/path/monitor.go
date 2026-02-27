@@ -1,6 +1,7 @@
 package path
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -185,16 +186,18 @@ func (s *Monitor) isDir(path string) bool {
 func (s *Monitor) pathEvent(event fsnotify.Event) {
 	switch event.Op {
 	case fsnotify.Create:
-		s.addPath(event.Name)
+		if err := s.addPath(event.Name); err != nil {
+			slog.Error("Failed to add path", "path", event.Name, "error", err)
+		}
 	case fsnotify.Write:
 		return
 	case fsnotify.Remove, fsnotify.Rename:
-		s.removePath(event.Name)
+		_ = s.removePath(event.Name)
 		return
 	default:
 		return
 	}
-	filepath.WalkDir(event.Name, func(path string, info os.DirEntry, err error) error {
+	_ = filepath.WalkDir(event.Name, func(path string, info os.DirEntry, err error) error {
 		if err != nil || s.isIgnore(path) {
 			return nil
 		}
@@ -222,7 +225,7 @@ func (s *Monitor) fileEvent(event fsnotify.Event) {
 			Path: event.Name,
 			Op:   Create,
 		}
-		s.addPath(filepath.Dir(event.Name))
+		_ = s.addPath(filepath.Dir(event.Name))
 	case fsnotify.Write:
 		localEvent = Event{
 			Path: event.Name,
@@ -262,7 +265,7 @@ func (s *Monitor) addPath(path string) error {
 	}
 
 	addFunc(path)
-	filepath.WalkDir(path, func(subPath string, info os.DirEntry, err error) error {
+	_ = filepath.WalkDir(path, func(subPath string, info os.DirEntry, err error) error {
 		if err != nil || s.isIgnore(subPath) {
 			return nil
 		}
@@ -300,8 +303,8 @@ func (s *Monitor) removePath(path string) error {
 }
 
 func (s *Monitor) refresh(path string) {
-	s.addPath(path)
-	filepath.WalkDir(path, func(path string, info os.DirEntry, err error) error {
+	_ = s.addPath(path)
+	_ = filepath.WalkDir(path, func(path string, info os.DirEntry, err error) error {
 		if err != nil || s.isIgnore(path) {
 			return nil
 		}

@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 type Car struct {
@@ -86,7 +86,7 @@ func TestMarshalString(t *testing.T) {
 				if result == "" {
 					t.Errorf("MarshalString failed for User object, got empty string")
 				}
-				log.Infof(result)
+				slog.Info(result)
 			} else if result != tt.expected {
 				t.Errorf("MarshalString failed, got: %s, want: %s", result, tt.expected)
 			}

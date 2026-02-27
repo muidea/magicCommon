@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 type Gard struct {
@@ -18,7 +18,7 @@ func (s *Gard) PutSignal(id int) (err error) {
 	if ok {
 		msg := fmt.Sprintf("duplicate signal %d", id)
 		err = errors.New(msg)
-		log.Errorf(msg)
+		slog.Error(msg)
 		return
 	}
 
@@ -30,7 +30,7 @@ func (s *Gard) PutSignal(id int) (err error) {
 func (s *Gard) CleanSignal(id int) {
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
-			log.Errorf("clean signal %d unexpected, err:%v", id, errInfo)
+			slog.Error("clean signal id unexpected, err:errInfo", "field", id, "error", errInfo)
 		}
 	}()
 
@@ -46,7 +46,7 @@ func (s *Gard) CleanSignal(id int) {
 func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
-			log.Errorf("wait signal %d unexpected, err:%v", id, errInfo)
+			slog.Error("wait signal id unexpected, err:errInfo", "field", id, "error", errInfo)
 		}
 	}()
 
@@ -54,7 +54,7 @@ func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 	if !signalOK {
 		msg := fmt.Sprintf("can't find signal %d", id)
 		err = errors.New(msg)
-		log.Errorf(msg)
+		slog.Error(msg)
 		return
 	}
 	defer func() {
@@ -74,7 +74,7 @@ func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 	case <-time.After(timeOutVal):
 		msg := fmt.Sprintf("wait signal %d timeout", id)
 		err = errors.New(msg)
-		log.Warnf(msg)
+		slog.Warn(msg)
 	}
 	return
 }
@@ -82,7 +82,7 @@ func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 func (s *Gard) TriggerSignal(id int, val interface{}) (err error) {
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
-			log.Errorf("trigger signal %d unexpected, err:%v", id, errInfo)
+			slog.Error("trigger signal id unexpected, err:errInfo", "field", id, "error", errInfo)
 		}
 	}()
 
@@ -90,7 +90,7 @@ func (s *Gard) TriggerSignal(id int, val interface{}) (err error) {
 	if !signalOK {
 		msg := fmt.Sprintf("can't find signal %d", id)
 		err = errors.New(msg)
-		log.Errorf(msg)
+		slog.Error(msg)
 		return
 	}
 
@@ -101,7 +101,7 @@ func (s *Gard) TriggerSignal(id int, val interface{}) (err error) {
 func (s *Gard) Reset() {
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
-			log.Errorf("reset signal chan map unexpected, err:%v", errInfo)
+			slog.Error("reset signal chan map unexpected, err:%v", errInfo)
 		}
 	}()
 

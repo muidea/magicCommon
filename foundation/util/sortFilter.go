@@ -19,7 +19,7 @@ func NewSortFilter(name string, ascFlag bool) *SortFilter {
 
 func (s *SortFilter) String() string {
 	ss := strings.Builder{}
-	ss.WriteString(fmt.Sprintf("[%s:%t]", s.FieldName, s.AscFlag))
+	fmt.Fprintf(&ss, "[%s:%t]", s.FieldName, s.AscFlag)
 	return ss.String()
 }
 

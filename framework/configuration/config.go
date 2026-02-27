@@ -6,10 +6,10 @@ import (
 
 // ConfigChangeEvent 配置变更事件
 type ConfigChangeEvent struct {
-	Key      string      // 配置路径 (propertyName 或 moduleName.propertyName)
-	OldValue any // 旧值
-	NewValue any // 新值
-	Time     time.Time   // 变更时间
+	Key      string    // 配置路径 (propertyName 或 moduleName.propertyName)
+	OldValue any       // 旧值
+	NewValue any       // 新值
+	Time     time.Time // 变更时间
 }
 
 // ConfigChangeHandler 配置变更处理器

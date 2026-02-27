@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 // MultipartFormFile 从 HTTP 请求中提取指定的文件，并将其保存到指定的路径。
@@ -22,10 +22,10 @@ func MultipartFormFile(req *http.Request, fieldName, dstFilePath, fileName strin
 	fileContent, fileHead, fileErr := req.FormFile(fieldName)
 	if fileErr != nil {
 		err = fileErr
-		log.Errorf("get file field failed, field: %s, err: %s", fieldName, err.Error())
+		slog.Error("get file field failed, field: fieldName, err: err.Error(", "field", fieldName, "error", err.Error())
 		return
 	}
-	defer fileContent.Close()
+	defer func() { _ = fileContent.Close() }()
 
 	if fileName == "" {
 		fileName = fileHead.Filename
@@ -34,14 +34,14 @@ func MultipartFormFile(req *http.Request, fieldName, dstFilePath, fileName strin
 	// 验证 dstFilePath 是否为合法的目录路径
 	if !isValidDirectory(dstFilePath) {
 		err = fmt.Errorf("invalid destination directory: %s", dstFilePath)
-		log.Errorf("invalid destination directory, err: %s", err.Error())
+		slog.Error("invalid destination directory, err: err.Error(", "field", err.Error())
 		return
 	}
 
 	// 验证文件名是否合法
 	if !isValidFileName(fileName) {
 		err = fmt.Errorf("invalid file name: %s", fileName)
-		log.Errorf("invalid file name, err: %s", err.Error())
+		slog.Error("invalid file name, err: err.Error(", "field", err.Error())
 		return
 	}
 
@@ -51,15 +51,15 @@ func MultipartFormFile(req *http.Request, fieldName, dstFilePath, fileName strin
 	dstFileHandle, dstFileErr := os.Create(dstFullFilePath)
 	if dstFileErr != nil {
 		err = dstFileErr
-		log.Errorf("create destination file failed, err: %s", err.Error())
+		slog.Error("create destination file failed, err: err.Error(", "field", err.Error())
 		return
 	}
-	defer dstFileHandle.Close()
+	defer func() { _ = dstFileHandle.Close() }()
 
 	// 将文件内容从请求复制到目标文件中
 	_, err = io.Copy(dstFileHandle, fileContent)
 	if err != nil {
-		log.Errorf("copy destination file failed, err: %s", err.Error())
+		slog.Error("copy destination file failed, err: err.Error(", "field", err.Error())
 		return
 	}
 

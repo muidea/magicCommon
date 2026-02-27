@@ -9,11 +9,11 @@ import (
 func TestDebugMode(t *testing.T) {
 	// 保存原始环境变量
 	originalDebug := os.Getenv("DEBUG_MODE")
-	defer os.Setenv("DEBUG_MODE", originalDebug)
+	defer func() { _ = os.Setenv("DEBUG_MODE", originalDebug) }()
 
 	// 测试场景1: 启用调试模式
 	t.Run("EnableDebugMode", func(t *testing.T) {
-		os.Setenv("DEBUG_MODE", "true")
+		_ = os.Setenv("DEBUG_MODE", "true")
 
 		// 创建临时配置目录
 		tempDir := t.TempDir()
@@ -26,7 +26,7 @@ func TestDebugMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create config manager: %v", err)
 		}
-		defer manager.Close()
+		defer func() { _ = manager.Close() }()
 
 		// 检查调试模式是否启用
 		if !manager.IsDebugMode() {
@@ -43,7 +43,7 @@ func TestDebugMode(t *testing.T) {
 
 	// 测试场景2: 禁用调试模式
 	t.Run("DisableDebugMode", func(t *testing.T) {
-		os.Setenv("DEBUG_MODE", "false")
+		_ = os.Setenv("DEBUG_MODE", "false")
 
 		// 创建临时配置目录
 		tempDir := t.TempDir()
@@ -56,7 +56,7 @@ func TestDebugMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create config manager: %v", err)
 		}
-		defer manager.Close()
+		defer func() { _ = manager.Close() }()
 
 		// 检查调试模式是否禁用
 		if manager.IsDebugMode() {
@@ -66,7 +66,7 @@ func TestDebugMode(t *testing.T) {
 
 	// 测试场景3: 使用数字1启用调试模式
 	t.Run("EnableDebugModeWith1", func(t *testing.T) {
-		os.Setenv("DEBUG_MODE", "1")
+		_ = os.Setenv("DEBUG_MODE", "1")
 
 		// 创建临时配置目录
 		tempDir := t.TempDir()
@@ -79,7 +79,7 @@ func TestDebugMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create config manager: %v", err)
 		}
-		defer manager.Close()
+		defer func() { _ = manager.Close() }()
 
 		// 检查调试模式是否启用
 		if !manager.IsDebugMode() {
@@ -89,7 +89,7 @@ func TestDebugMode(t *testing.T) {
 
 	// 测试场景4: 动态设置调试模式
 	t.Run("DynamicDebugMode", func(t *testing.T) {
-		os.Setenv("DEBUG_MODE", "false")
+		_ = os.Setenv("DEBUG_MODE", "false")
 
 		// 创建临时配置目录
 		tempDir := t.TempDir()
@@ -102,7 +102,7 @@ func TestDebugMode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create config manager: %v", err)
 		}
-		defer manager.Close()
+		defer func() { _ = manager.Close() }()
 
 		// 初始状态应该是禁用
 		if manager.IsDebugMode() {
@@ -127,9 +127,9 @@ func TestDebugMode(t *testing.T) {
 func TestDebugModeModuleConfig(t *testing.T) {
 	// 保存原始环境变量
 	originalDebug := os.Getenv("DEBUG_MODE")
-	defer os.Setenv("DEBUG_MODE", originalDebug)
+	defer func() { _ = os.Setenv("DEBUG_MODE", originalDebug) }()
 
-	os.Setenv("DEBUG_MODE", "true")
+	_ = os.Setenv("DEBUG_MODE", "true")
 
 	// 创建临时配置目录
 	tempDir := t.TempDir()
@@ -142,7 +142,7 @@ func TestDebugModeModuleConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create config manager: %v", err)
 	}
-	defer manager.Close()
+	defer func() { _ = manager.Close() }()
 
 	// 测试获取不存在的模块配置项，应该输出调试信息
 	_, err = manager.GetModuleConfig("nonexistent.module", "nonexistent.key")

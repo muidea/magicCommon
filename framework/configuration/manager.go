@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/muidea/magicCommon/foundation/log"
 	fp "github.com/muidea/magicCommon/foundation/path"
+	"log/slog"
 )
 
 // ConfigManagerImpl 配置管理器实现
@@ -140,7 +140,7 @@ func (m *ConfigManagerImpl) Get(key string) (any, error) {
 	if strings.Contains(key, ".") {
 		value, err := m.getNestedValue(m.globalConfig, key)
 		if err != nil && m.debugMode {
-			log.Errorf("[CONFIG DEBUG] Config key not found: %s", key)
+			slog.Error("[CONFIG DEBUG] Config key not found", "key", key)
 		}
 		return value, err
 	}
@@ -149,7 +149,7 @@ func (m *ConfigManagerImpl) Get(key string) (any, error) {
 	value, exists := m.globalConfig[key]
 	if !exists {
 		if m.debugMode {
-			log.Errorf("[CONFIG DEBUG] Config key not found: %s", key)
+			slog.Error("[CONFIG DEBUG] Config key not found", "key", key)
 		}
 		return nil, fmt.Errorf("config key not found: %s", key)
 	}
@@ -178,7 +178,7 @@ func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (any, error)
 	moduleConfig, exists := m.moduleConfigs[moduleName]
 	if !exists {
 		if m.debugMode {
-			log.Errorf("[CONFIG DEBUG] Module not found: %s", moduleName)
+			slog.Error("[CONFIG DEBUG] Module not found", "module", moduleName)
 		}
 		return nil, fmt.Errorf("module not found: %s", moduleName)
 	}
@@ -187,7 +187,7 @@ func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (any, error)
 	if strings.Contains(key, ".") {
 		value, err := m.getNestedValue(moduleConfig, key)
 		if err != nil && m.debugMode {
-			log.Errorf("[CONFIG DEBUG] Config key not found in module %s: %s", moduleName, key)
+			slog.Error("[CONFIG DEBUG] Config key not found in module %s: %s", moduleName, key)
 		}
 		return value, err
 	}
@@ -196,7 +196,7 @@ func (m *ConfigManagerImpl) GetModuleConfig(moduleName, key string) (any, error)
 	value, exists := moduleConfig[key]
 	if !exists {
 		if m.debugMode {
-			log.Errorf("[CONFIG DEBUG] Config key not found in module %s: %s", moduleName, key)
+			slog.Error("[CONFIG DEBUG] Config key not found in module %s: %s", moduleName, key)
 		}
 		return nil, fmt.Errorf("config key not found in module %s: %s", moduleName, key)
 	}
@@ -428,14 +428,14 @@ func (m *ConfigManagerImpl) loadAllConfigs() error {
 	moduleConfigs, err := m.loader.LoadAllModuleConfigs()
 	if err != nil {
 		// 模块配置加载失败不影响全局配置
-		fmt.Printf("Warning: failed to load some module configs: %v\n", err)
+		slog.Warn("Failed to load some module configs", "error", err)
 	}
 
 	// 验证模块配置
 	if m.options.Validator != nil {
 		for moduleName, config := range moduleConfigs {
 			if err := m.options.Validator.ValidateModuleConfig(moduleName, config); err != nil {
-				fmt.Printf("Warning: module %s config validation failed: %v\n", moduleName, err)
+				slog.Warn("Module config validation failed", "module", moduleName, "error", err)
 				// 验证失败的模块配置不加载
 				delete(moduleConfigs, moduleName)
 			}
@@ -581,10 +581,10 @@ func (m *ConfigManagerImpl) setupFileWatching() error {
 	globalConfigPath := filepath.Join(m.options.ConfigDir, "application.toml")
 	if fp.Exist(globalConfigPath) {
 		if err := m.fileWatcher.Watch(globalConfigPath, func() {
-			log.Infof("Global config file changed, reloading...")
-			m.Reload()
+			slog.Info("Global config file changed, reloading...")
+			_ = m.Reload()
 		}); err != nil {
-			log.Errorf("Failed to watch global config file:%s, err:%v", globalConfigPath, err)
+			slog.Error("Failed to watch global config file:%s, err:%v", globalConfigPath, err)
 		}
 	}
 
@@ -593,11 +593,11 @@ func (m *ConfigManagerImpl) setupFileWatching() error {
 	if fp.Exist(moduleConfigDir) {
 		if err := m.fileWatcher.WatchDirectory(moduleConfigDir, func(filePath string) {
 			if strings.HasSuffix(filePath, ".toml") {
-				log.Infof("Module config file changed: %s, reloading...", filePath)
-				m.Reload()
+				slog.Info("Module config file changed", "file", filePath)
+				_ = m.Reload()
 			}
 		}); err != nil {
-			log.Errorf("Failed to watch module config directory:%s, err:%v", moduleConfigDir, err)
+			slog.Error("Failed to watch module config directory", "directory", moduleConfigDir, "error", err)
 		}
 	}
 

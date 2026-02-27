@@ -20,7 +20,7 @@ func TestHighConcurrencyPreCreation(t *testing.T) {
 	}
 
 	// 创建池，初始容量为5，最大容量为15
-	pool, err := New(factory, 5, 15)
+	pool, err := New(factory, WithInitialCapacity(5), WithMaxSize(15))
 	if err != nil {
 		t.Fatalf("Failed to create pool: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestConcurrentPreCreationEdgeCase(t *testing.T) {
 	}
 
 	// 创建池，初始容量为1，最大容量为3
-	pool, err := New(factory, 1, 3)
+	pool, err := New(factory, WithInitialCapacity(1), WithMaxSize(3))
 	if err != nil {
 		t.Fatalf("Failed to create pool: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestConcurrentGetPutStress(t *testing.T) {
 	}
 
 	// 创建池，初始容量为5，最大容量为20
-	pool, err := New(factory, 5, 20)
+	pool, err := New(factory, WithInitialCapacity(5), WithMaxSize(20))
 	if err != nil {
 		t.Fatalf("Failed to create pool: %v", err)
 	}

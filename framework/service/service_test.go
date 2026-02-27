@@ -61,8 +61,8 @@ func TestInitiator(t *testing.T) {
 	}
 
 	service := DefaultService()
-	service.Startup("test", nil, nil)
-	service.Run()
+	_ = service.Startup("test", nil, nil)
+	_ = service.Run()
 	service.Shutdown()
 
 	ok := true
@@ -118,8 +118,8 @@ func TestModule(t *testing.T) {
 	}
 
 	service := DefaultService()
-	service.Startup("test", nil, nil)
-	service.Run()
+	_ = service.Startup("test", nil, nil)
+	_ = service.Run()
 	service.Shutdown()
 
 	ok := true

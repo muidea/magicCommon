@@ -23,14 +23,14 @@ func TestDatabase(t *testing.T) {
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
-	defer dao.Release()
+	defer func() { _ = dao.Release() }()
 
 	err = dao.CreateDatabase("supetl")
 	if err != nil {
 		t.Errorf("create database error:%s", err.Error())
 		return
 	}
-	defer dao.DropDatabase("supetl")
+	defer func() { _ = dao.DropDatabase("supetl") }()
 
 	err = dao.UseDatabase("supetl")
 	if err != nil {
@@ -43,18 +43,18 @@ func TestDatabase(t *testing.T) {
 		t.Errorf("duplicate database error:%s", nErr.Error())
 		return
 	}
-	defer nDao.Release()
+	defer func() { _ = nDao.Release() }()
 	err = nDao.CreateDatabase("A1000")
 	if err != nil {
 		t.Errorf("create database error:%s", err.Error())
 		return
 	}
-	defer nDao.DropDatabase("A1000")
+	defer func() { _ = nDao.DropDatabase("A1000") }()
 }
 
 func initFunc(dao Dao, dbName string) {
 	dbSql := fmt.Sprintf("CREATE DATABASE \"%s\"", dbName)
-	dao.Execute(dbSql)
+	_, _ = dao.Execute(dbSql)
 
 	// PostgreSQL 不需要 USE 语句，连接时已经指定了数据库
 
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   address TEXT
 )
 `
-	dao.Execute(tableSql)
+	_, _ = dao.Execute(tableSql)
 }
 
 func TestInsert(t *testing.T) {
@@ -73,10 +73,10 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
-	defer dao.Release()
+	defer func() { _ = dao.Release() }()
 
 	initFunc(dao, gDBName)
-	defer dao.DropDatabase(gDBName)
+	defer func() { _ = dao.DropDatabase(gDBName) }()
 
 	insertSql := "insert into \"user\" (address) values($1),($2),($3),($4)"
 	num, _ := dao.Execute(insertSql, "abc", "bcd", "cde", "def")
@@ -115,7 +115,7 @@ func TestInsert(t *testing.T) {
 		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
 		return
 	}
-	defer dao.Finish()
+	defer func() { _ = dao.Finish() }()
 	if dao.Next() {
 		u1 := User{}
 		err = dao.GetField(&u1.id, &u1.address)
@@ -135,18 +135,18 @@ func TestQuery(t *testing.T) {
 	if err != nil {
 		t.Errorf("Fetch dao failed, err:%s", err.Error())
 	}
-	defer dao.Release()
+	defer func() { _ = dao.Release() }()
 
 	initFunc(dao, gDBName)
-	defer dao.DropDatabase(gDBName)
+	defer func() { _ = dao.DropDatabase(gDBName) }()
 
 	selectSql := "select id,address from \"user\""
 
-	dao.Query(selectSql)
+	_ = dao.Query(selectSql)
 
 	for dao.Next() {
 		user := User{}
 
-		dao.GetField(&user.id, &user.address)
+		_ = dao.GetField(&user.id, &user.address)
 	}
 }

@@ -46,12 +46,12 @@ func TestListPath(t *testing.T) {
 	defer cleanupTestDir(t, testDir)
 
 	tests := []struct {
-		name         string
-		path         string
-		filter       string
-		recursive    bool
-		expectedLen  int
-		expectError  bool
+		name        string
+		path        string
+		filter      string
+		recursive   bool
+		expectedLen int
+		expectError bool
 	}{
 		{
 			name:        "non-recursive txt files",

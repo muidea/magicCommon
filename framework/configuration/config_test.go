@@ -14,7 +14,7 @@ func TestConfigManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// 创建测试配置文件
 	if err := createTestConfigs(tempDir); err != nil {
@@ -33,7 +33,7 @@ func TestConfigManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create config manager: %v", err)
 	}
-	defer manager.Close()
+	defer func() { _ = manager.Close() }()
 
 	// 测试全局配置获取
 	t.Run("GlobalConfig", func(t *testing.T) {

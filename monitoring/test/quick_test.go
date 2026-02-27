@@ -16,7 +16,7 @@ func TestQuickCollector(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Test metric definition
 	def := types.NewCounterDefinition(
@@ -67,7 +67,7 @@ func TestQuickRegistry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	registry, err := core.NewRegistry(collector, &config)
 	if err != nil {
@@ -171,7 +171,7 @@ func TestQuickErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create collector: %v", err)
 	}
-	defer collector.Shutdown()
+	defer func() { _ = collector.Shutdown() }()
 
 	// Test duplicate metric registration
 	def1 := types.NewCounterDefinition("duplicate", "Test", []string{}, nil)

@@ -34,7 +34,7 @@ func TestMonitor_Basic(t *testing.T) {
 
 	err = monitor.Start()
 	assert.NoError(t, err)
-	defer monitor.Stop()
+	defer func() { _ = monitor.Stop() }()
 
 	observer := &mockObserver{}
 	monitor.AddObserver(observer)
@@ -77,7 +77,7 @@ func TestMonitor_Ignore(t *testing.T) {
 
 	err = monitor.Start()
 	assert.NoError(t, err)
-	defer monitor.Stop()
+	defer func() { _ = monitor.Stop() }()
 
 	observer := &mockObserver{}
 	monitor.AddObserver(observer)
@@ -103,7 +103,7 @@ func TestMonitor_RemoveObserver(t *testing.T) {
 
 	err = monitor.Start()
 	assert.NoError(t, err)
-	defer monitor.Stop()
+	defer func() { _ = monitor.Stop() }()
 
 	observer := &mockObserver{}
 	monitor.AddObserver(observer)
@@ -131,7 +131,7 @@ func TestMonitor_RemovePath(t *testing.T) {
 
 	err = monitor.Start()
 	assert.NoError(t, err)
-	defer monitor.Stop()
+	defer func() { _ = monitor.Stop() }()
 
 	observer := &mockObserver{}
 	monitor.AddObserver(observer)
@@ -162,7 +162,7 @@ func TestMonitor_Concurrent(t *testing.T) {
 
 	err = monitor.Start()
 	assert.NoError(t, err)
-	defer monitor.Stop()
+	defer func() { _ = monitor.Stop() }()
 
 	var wg sync.WaitGroup
 	observers := make([]*mockObserver, 10)

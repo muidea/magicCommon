@@ -3,10 +3,10 @@ package service
 import (
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
-	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/muidea/magicCommon/framework/plugin/initiator"
 	"github.com/muidea/magicCommon/framework/plugin/module"
 	"github.com/muidea/magicCommon/task"
+	"log/slog"
 )
 
 type Service interface {
@@ -28,46 +28,46 @@ func (s *defaultService) Startup(serviceName string, eventHub event.Hub, backgro
 
 	ret = initiator.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
-		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
+		slog.Error("s.serviceName startup failed, err:%+v", "field", s.serviceName)
 		return
 	}
 
 	ret = module.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
-		log.Errorf("%s startup failed, err:%+v", s.serviceName, ret)
+		slog.Error("s.serviceName startup failed, err:%+v", "field", s.serviceName)
 		return
 	}
 
-	//log.Infof("%s startup success", s.serviceName)
+	//slog.Info("s.serviceName startup success", "field", s.serviceName)
 	return
 }
 
 func (s *defaultService) Run() (ret *cd.Error) {
 	if errInfo := recover(); errInfo != nil {
-		log.Errorf("%s run failed, err:%+v", s.serviceName, errInfo)
+		slog.Error("s.serviceName run failed, err:%+v", "field", s.serviceName)
 	}
 
 	ret = initiator.Run()
 	if ret != nil {
-		log.Errorf("%s run failed, err:%+v", s.serviceName, ret)
+		slog.Error("s.serviceName run failed, err:%+v", "field", s.serviceName)
 		return
 	}
 	ret = module.Run()
 	if ret != nil {
-		log.Errorf("%s run failed, err:%+v", s.serviceName, ret)
+		slog.Error("s.serviceName run failed, err:%+v", "field", s.serviceName)
 		return
 	}
 
-	//log.Infof("%s running!", s.serviceName)
+	//slog.Info("s.serviceName running!", "field", s.serviceName)
 	return
 }
 
 func (s *defaultService) Shutdown() {
 	if errInfo := recover(); errInfo != nil {
-		log.Errorf("%s shutdown failed, err:%+v", s.serviceName, errInfo)
+		slog.Error("s.serviceName shutdown failed, err:%+v", "field", s.serviceName)
 	}
 
 	module.Teardown()
 	initiator.Teardown()
-	//log.Infof("%s shutdown success", s.serviceName)
+	//slog.Info("s.serviceName shutdown success", "field", s.serviceName)
 }

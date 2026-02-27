@@ -3,7 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/muidea/magicCommon/framework/configuration"
 )
@@ -32,12 +33,19 @@ type ApplicationInfo struct {
 }
 
 func main() {
+	// 设置slog处理器
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+
 	// 初始化默认配置管理器
 	err := configuration.InitDefaultConfigManager("./config")
 	if err != nil {
-		log.Fatalf("Failed to initialize config manager: %v", err)
+		slog.Error("Failed to initialize config manager", "error", err)
+		os.Exit(1)
 	}
-	defer configuration.CloseConfigManager()
+	defer func() { _ = configuration.CloseConfigManager() }()
 
 	fmt.Println("=== 配置管理框架使用示例 ===")
 
@@ -45,21 +53,21 @@ func main() {
 	fmt.Println("\n1. 基本配置获取:")
 	appName, err := configuration.GetString("app_name")
 	if err != nil {
-		log.Printf("Failed to get app_name: %v", err)
+		slog.Error("Failed to get app_name", "error", err)
 	} else {
 		fmt.Printf("应用名称: %s\n", appName)
 	}
 
 	serverPort, err := configuration.GetInt("server.port")
 	if err != nil {
-		log.Printf("Failed to get server.port: %v", err)
+		slog.Error("Failed to get server.port", "error", err)
 	} else {
 		fmt.Printf("服务器端口: %d\n", serverPort)
 	}
 
 	debugEnabled, err := configuration.GetBool("debug.enabled")
 	if err != nil {
-		log.Printf("Failed to get debug.enabled: %v", err)
+		slog.Error("Failed to get debug.enabled", "error", err)
 	} else {
 		fmt.Printf("调试模式: %t\n", debugEnabled)
 	}
@@ -73,7 +81,7 @@ func main() {
 	fmt.Println("\n3. 模块配置获取:")
 	apiKey, err := configuration.GetModuleString("payment", "api_key")
 	if err != nil {
-		log.Printf("Failed to get payment.api_key: %v", err)
+		slog.Error("Failed to get payment.api_key", "error", err)
 	} else {
 		fmt.Printf("支付API密钥: %s\n", apiKey)
 	}
@@ -85,7 +93,7 @@ func main() {
 	var appInfo ApplicationInfo
 	err = configuration.GetSection("applicationInfo", &appInfo)
 	if err != nil {
-		log.Printf("Failed to get applicationInfo section: %v", err)
+		slog.Error("Failed to get applicationInfo section", "error", err)
 	} else {
 		fmt.Printf("应用信息:\n")
 		fmt.Printf("  UUID: %s\n", appInfo.UUID)
@@ -102,7 +110,7 @@ func main() {
 	var database DatabaseDeclare
 	err = configuration.GetSection("applicationInfo.database", &database)
 	if err != nil {
-		log.Printf("Failed to get applicationInfo.database section: %v", err)
+		slog.Error("Failed to get applicationInfo.database section", "error", err)
 	} else {
 		fmt.Printf("数据库配置:\n")
 		fmt.Printf("  服务器: %s\n", database.DBServer)
@@ -120,7 +128,7 @@ func main() {
 			event.Key, event.OldValue, event.NewValue)
 	})
 	if err != nil {
-		log.Printf("Failed to watch config: %v", err)
+		slog.Error("Failed to watch config", "error", err)
 	}
 
 	// 监听section配置变更
@@ -129,7 +137,7 @@ func main() {
 			event.Key, event.OldValue, event.NewValue)
 	})
 	if err != nil {
-		log.Printf("Failed to watch section: %v", err)
+		slog.Error("Failed to watch section", "error", err)
 	}
 
 	// 6. 其他辅助函数
@@ -143,7 +151,7 @@ func main() {
 	// 获取浮点数配置
 	floatValue, err := configuration.GetFloat64("server.port")
 	if err != nil {
-		log.Printf("Failed to get float value: %v", err)
+		slog.Error("Failed to get float value", "error", err)
 	} else {
 		fmt.Printf("服务器端口(浮点数): %.1f\n", floatValue)
 	}
@@ -151,7 +159,7 @@ func main() {
 	// 获取模块布尔配置
 	creditCardEnabled, err := configuration.GetModuleBool("payment", "methods.credit_card")
 	if err != nil {
-		log.Printf("Failed to get payment.methods.credit_card: %v", err)
+		slog.Error("Failed to get payment.methods.credit_card", "error", err)
 	} else {
 		fmt.Printf("信用卡支付启用: %t\n", creditCardEnabled)
 	}
@@ -160,7 +168,7 @@ func main() {
 	fmt.Println("\n7. 重新加载配置:")
 	err = configuration.ReloadConfig()
 	if err != nil {
-		log.Printf("Failed to reload config: %v", err)
+		slog.Error("Failed to reload config", "error", err)
 	} else {
 		fmt.Println("配置重新加载成功")
 	}
@@ -169,12 +177,12 @@ func main() {
 	fmt.Println("\n8. 导出所有配置:")
 	allConfigs, err := configuration.ExportAllConfigs()
 	if err != nil {
-		log.Printf("Failed to export all configs: %v", err)
+		slog.Error("Failed to export all configs", "error", err)
 	} else {
 		// 将配置转换为JSON格式输出
 		configJSON, err := json.MarshalIndent(allConfigs, "", "  ")
 		if err != nil {
-			log.Printf("Failed to marshal configs to JSON: %v", err)
+			slog.Error("Failed to marshal configs to JSON", "error", err)
 		} else {
 			fmt.Println("所有配置项(JSON格式):")
 			fmt.Println(string(configJSON))

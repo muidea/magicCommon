@@ -79,7 +79,7 @@ func TestSimpleMonitoring(t *testing.T) {
 	if err := manager.Start(); err != nil {
 		t.Fatalf("Failed to start manager: %v", err)
 	}
-	defer manager.Shutdown()
+	defer func() { _ = manager.Shutdown() }()
 
 	// Register test provider (after starting, so global registry is initialized)
 	if err := manager.RegisterProvider(
@@ -229,7 +229,7 @@ func TestProviderRegistration(t *testing.T) {
 	if err := manager.Start(); err != nil {
 		t.Fatalf("Failed to start manager: %v", err)
 	}
-	defer manager.Shutdown()
+	defer func() { _ = manager.Shutdown() }()
 
 	// Register first provider
 	if err := manager.RegisterProvider(
@@ -275,7 +275,7 @@ func TestGlobalManager(t *testing.T) {
 	if err := monitoring.InitializeGlobalManager(); err != nil {
 		t.Fatalf("Failed to initialize global manager: %v", err)
 	}
-	defer monitoring.ShutdownGlobalManager()
+	defer func() { _ = monitoring.ShutdownGlobalManager() }()
 
 	// Get global manager
 	manager := monitoring.GetGlobalManager()

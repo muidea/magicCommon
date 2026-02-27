@@ -1,13 +1,14 @@
 package session
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 type Status int
@@ -178,22 +179,7 @@ func (s *sessionImpl) GetInt(key string) (int64, bool) {
 	if !ok {
 		return 0, false
 	}
-
-	switch v := val.(type) {
-	case int8, int16, int32, int64, int:
-		return reflect.ValueOf(v).Int(), true
-	case float32, float64:
-		return int64(reflect.ValueOf(v).Float()), true
-	case string:
-		val, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return 0, false
-		}
-		return val, true
-	default:
-		log.Errorf("unsupported type for key %s: %T", key, val)
-		return 0, false
-	}
+	return convertToInt64(val, key)
 }
 
 func (s *sessionImpl) GetUint(key string) (uint64, bool) {
@@ -201,22 +187,7 @@ func (s *sessionImpl) GetUint(key string) (uint64, bool) {
 	if !ok {
 		return 0, false
 	}
-
-	switch v := val.(type) {
-	case uint8, uint16, uint32, uint64, uint:
-		return reflect.ValueOf(v).Uint(), true
-	case float32, float64:
-		return uint64(reflect.ValueOf(v).Float()), true
-	case string:
-		val, err := strconv.ParseUint(v, 10, 64)
-		if err != nil {
-			return 0, false
-		}
-		return val, true
-	default:
-		log.Errorf("unsupported type for key %s: %T", key, val)
-		return 0, false
-	}
+	return convertToUint64(val, key)
 }
 
 func (s *sessionImpl) GetFloat(key string) (float64, bool) {
@@ -224,20 +195,7 @@ func (s *sessionImpl) GetFloat(key string) (float64, bool) {
 	if !ok {
 		return 0, false
 	}
-
-	switch v := val.(type) {
-	case float32, float64:
-		return reflect.ValueOf(v).Float(), true
-	case string:
-		val, err := strconv.ParseFloat(v, 64)
-		if err != nil {
-			return 0, false
-		}
-		return val, true
-	default:
-		log.Errorf("unsupported type for key %s: %T", key, val)
-		return 0, false
-	}
+	return convertToFloat64(val, key)
 }
 
 func (s *sessionImpl) GetBool(key string) (bool, bool) {
@@ -245,20 +203,7 @@ func (s *sessionImpl) GetBool(key string) (bool, bool) {
 	if !ok {
 		return false, false
 	}
-
-	switch v := val.(type) {
-	case bool:
-		return reflect.ValueOf(v).Bool(), true
-	case string:
-		val, err := strconv.ParseBool(v)
-		if err != nil {
-			return false, false
-		}
-		return val, true
-	default:
-		log.Errorf("unsupported type for key %s: %T", key, val)
-		return false, false
-	}
+	return convertToBool(val, key)
 }
 
 func (s *sessionImpl) GetOption(key string) (any, bool) {
@@ -387,4 +332,126 @@ func (s *sessionImpl) save() {
 
 func (s *sessionImpl) isFinal() bool {
 	return s.status == sessionTerminate
+}
+
+// 类型转换辅助函数
+
+// convertToInt64 将任意值转换为int64
+func convertToInt64(val any, key string) (int64, bool) {
+	if val == nil {
+		return 0, false
+	}
+
+	switch v := val.(type) {
+	case int8, int16, int32, int64, int:
+		return reflect.ValueOf(v).Int(), true
+	case uint8, uint16, uint32, uint64, uint:
+		return int64(reflect.ValueOf(v).Uint()), true
+	case float32, float64:
+		return int64(reflect.ValueOf(v).Float()), true
+	case string:
+		result, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			slog.Error("failed to parse string as int64", "key", key, "value", v, "error", err)
+			return 0, false
+		}
+		return result, true
+	default:
+		slog.Error("unsupported type for int64 conversion", "key", key, "type", fmt.Sprintf("%T", val), "value", val)
+		return 0, false
+	}
+}
+
+// convertToUint64 将任意值转换为uint64
+func convertToUint64(val any, key string) (uint64, bool) {
+	if val == nil {
+		return 0, false
+	}
+
+	switch v := val.(type) {
+	case uint8, uint16, uint32, uint64, uint:
+		return reflect.ValueOf(v).Uint(), true
+	case int8, int16, int32, int64, int:
+		// 检查是否为负数
+		intVal := reflect.ValueOf(v).Int()
+		if intVal < 0 {
+			slog.Error("negative value cannot be converted to uint64", "key", key, "value", intVal)
+			return 0, false
+		}
+		return uint64(intVal), true
+	case float32, float64:
+		floatVal := reflect.ValueOf(v).Float()
+		if floatVal < 0 {
+			slog.Error("negative value cannot be converted to uint64", "key", key, "value", floatVal)
+			return 0, false
+		}
+		return uint64(floatVal), true
+	case string:
+		result, err := strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			slog.Error("failed to parse string as uint64", "key", key, "value", v, "error", err)
+			return 0, false
+		}
+		return result, true
+	default:
+		slog.Error("unsupported type for uint64 conversion", "key", key, "type", fmt.Sprintf("%T", val), "value", val)
+		return 0, false
+	}
+}
+
+// convertToFloat64 将任意值转换为float64
+func convertToFloat64(val any, key string) (float64, bool) {
+	if val == nil {
+		return 0, false
+	}
+
+	switch v := val.(type) {
+	case float32, float64:
+		return reflect.ValueOf(v).Float(), true
+	case int8, int16, int32, int64, int:
+		return float64(reflect.ValueOf(v).Int()), true
+	case uint8, uint16, uint32, uint64, uint:
+		return float64(reflect.ValueOf(v).Uint()), true
+	case string:
+		result, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			slog.Error("failed to parse string as float64", "key", key, "value", v, "error", err)
+			return 0, false
+		}
+		return result, true
+	default:
+		slog.Error("unsupported type for float64 conversion", "key", key, "type", fmt.Sprintf("%T", val), "value", val)
+		return 0, false
+	}
+}
+
+// convertToBool 将任意值转换为bool
+func convertToBool(val any, key string) (bool, bool) {
+	if val == nil {
+		return false, false
+	}
+
+	switch v := val.(type) {
+	case bool:
+		return v, true
+	case string:
+		result, err := strconv.ParseBool(v)
+		if err != nil {
+			slog.Error("failed to parse string as bool", "key", key, "value", v, "error", err)
+			return false, false
+		}
+		return result, true
+	case int8, int16, int32, int64, int:
+		intVal := reflect.ValueOf(v).Int()
+		return intVal != 0, true
+	case uint8, uint16, uint32, uint64, uint:
+		uintVal := reflect.ValueOf(v).Uint()
+		return uintVal != 0, true
+	case float32, float64:
+		floatVal := reflect.ValueOf(v).Float()
+		return floatVal != 0, true
+	default:
+		slog.Error("unsupported type for bool conversion", "key", key, "type", fmt.Sprintf("%T", val), "value", val)
+		return false, false
+	}
 }

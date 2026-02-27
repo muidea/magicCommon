@@ -3,7 +3,7 @@ package session
 import (
 	"testing"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 func TestUUID(t *testing.T) {
@@ -21,5 +21,5 @@ func TestUUID(t *testing.T) {
 		ids[id] = id
 	}
 
-	log.Infof("total size:%d", len(ids))
+	slog.Info("total size:len(ids", "field", len(ids))
 }

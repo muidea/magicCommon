@@ -171,9 +171,9 @@ func IsValidMetricName(name string) bool {
 
 	// Check first character
 	firstChar := name[0]
-	if !((firstChar >= 'a' && firstChar <= 'z') ||
-		(firstChar >= 'A' && firstChar <= 'Z') ||
-		firstChar == '_' || firstChar == ':') {
+	if (firstChar < 'a' || firstChar > 'z') &&
+		(firstChar < 'A' || firstChar > 'Z') &&
+		firstChar != '_' && firstChar != ':' {
 		return false
 	}
 
@@ -185,10 +185,10 @@ func IsValidMetricName(name string) bool {
 		}
 
 		c := name[i]
-		if !((c >= 'a' && c <= 'z') ||
-			(c >= 'A' && c <= 'Z') ||
-			(c >= '0' && c <= '9') ||
-			c == '_' || c == ':') {
+		if (c < 'a' || c > 'z') &&
+			(c < 'A' || c > 'Z') &&
+			(c < '0' || c > '9') &&
+			c != '_' && c != ':' {
 			return false
 		}
 	}

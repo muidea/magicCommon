@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/muidea/magicCommon/foundation/log"
+	"log/slog"
 )
 
 func TestGenericKVCache_StringKeyIntValue(t *testing.T) {
@@ -105,7 +105,7 @@ func TestGenericKVCache_IntKeyStringValue(t *testing.T) {
 func TestGenericKVCache_TimeoutCleanup(t *testing.T) {
 	callbackCalled := false
 	cache := NewGenericKVCache[string, string](func(key string) {
-		log.Warnf("Timeout cleanup callback called for key %s", key)
+		slog.Warn("Timeout cleanup callback called", "key", key)
 		callbackCalled = true
 	})
 	defer cache.Release()

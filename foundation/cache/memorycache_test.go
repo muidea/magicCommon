@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/muidea/magicCommon/foundation/log"
 	"github.com/stretchr/testify/assert"
+	"log/slog"
 )
 
 func TestMemoryCache_PutAndFetch(t *testing.T) {
@@ -83,7 +83,7 @@ func TestMemoryCache_ClearAll(t *testing.T) {
 func TestMemoryCache_Timeout(t *testing.T) {
 	cleanCalled := false
 	cleanCallback := func(id string) {
-		log.Warnf("Timeout cleanup callback called for key %s", id)
+		slog.Warn("Timeout cleanup callback called", "key", id)
 		cleanCalled = true
 	}
 
