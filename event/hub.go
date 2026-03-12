@@ -95,6 +95,55 @@ type Hub interface {
 	Terminate()
 }
 
+// HubOption Hub 配置项，用于控制内部缓冲和并发策略
+type HubOption func(*hubOptions)
+
+type hubOptions struct {
+	perDestinationChanSize int
+	hubActionChanSize      int
+	workerPoolSize         int
+}
+
+func defaultHubOptions(capacitySize int) *hubOptions {
+	if capacitySize <= 0 {
+		capacitySize = 1
+	}
+
+	return &hubOptions{
+		// 默认与传入的 capacitySize 一致，方便调用方按一个参数整体调节
+		perDestinationChanSize: capacitySize,
+		hubActionChanSize:      capacitySize,
+		workerPoolSize:         capacitySize,
+	}
+}
+
+// WithPerDestinationChanSize 配置每个目标的内部 actionChannel 缓冲大小
+func WithPerDestinationChanSize(size int) HubOption {
+	return func(o *hubOptions) {
+		if size > 0 {
+			o.perDestinationChanSize = size
+		}
+	}
+}
+
+// WithHubActionChanSize 配置 Hub 级别的 actionChannel 缓冲大小
+func WithHubActionChanSize(size int) HubOption {
+	return func(o *hubOptions) {
+		if size > 0 {
+			o.hubActionChanSize = size
+		}
+	}
+}
+
+// WithWorkerPoolSize 配置内部 Execute 的 worker 池大小
+func WithWorkerPoolSize(size int) HubOption {
+	return func(o *hubOptions) {
+		if size > 0 {
+			o.workerPoolSize = size
+		}
+	}
+}
+
 type ObserverList []Observer
 type ID2ObserverMap map[string]ObserverList
 type ObserverFunc func(Event, Result)
@@ -118,11 +167,25 @@ func notificationEvent(sv Observer, ev Event, re Result) {
 }
 
 func NewHub(capacitySize int) Hub {
+	return NewHubWithOptions(capacitySize)
+}
+
+// NewHubWithOptions 创建带可选配置的 Hub，实现更灵活的缓冲和并发控制
+func NewHubWithOptions(capacitySize int, opts ...HubOption) Hub {
+	hubOpts := defaultHubOptions(capacitySize)
+	for _, opt := range opts {
+		if opt != nil {
+			opt(hubOpts)
+		}
+	}
+
 	hub := &hubImpl{
-		Execute:                  execute.NewExecute(capacitySize),
+		Execute:                  execute.NewExecute(hubOpts.workerPoolSize),
 		event2Observer:           ID2ObserverMap{},
-		hubActionChannel:         make(chan action),
+		hubActionChannel:         make(chan action, hubOpts.hubActionChanSize),
 		observerID2ActionChannel: ID2ActionChanelMap{},
+		perDestinationChanSize:   hubOpts.perDestinationChanSize,
+		eventMatchCache:          map[string]ObserverList{},
 		terminateFlag:            false,
 	}
 	go hub.run()
@@ -278,8 +341,7 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 	for {
 		actionData, actionOK := <-s
 		if !actionOK {
-			// channel 被正常关闭，退出循环
-			break
+			return
 		}
 
 		// 所有操作都顺序执行，以保证同一个观察者的事件顺序
@@ -291,7 +353,7 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 			select {
 			case data.result <- true:
 				// 成功发送
-			case <-time.After(100 * time.Millisecond):
+			case <-time.After(10 * time.Millisecond):
 				slog.Warn("timeout sending subscribe result")
 			}
 		case unsubscribe:
@@ -300,7 +362,7 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 			select {
 			case data.result <- true:
 				// 成功发送
-			case <-time.After(100 * time.Millisecond):
+			case <-time.After(10 * time.Millisecond):
 				slog.Warn("timeout sending unsubscribe result")
 			}
 		case post:
@@ -322,8 +384,8 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 			select {
 			case data.result <- true:
 				// 成功发送
-			case <-time.After(100 * time.Millisecond):
-				slog.Warn("timeout sending terminate result")
+			default:
+				// 非阻塞发送，避免在 channel 关闭时 panic
 			}
 			terminateFlag = true
 		default:
@@ -345,6 +407,12 @@ type hubImpl struct {
 	observerID2ChanelLock    sync.RWMutex
 	observerID2ActionChannel ID2ActionChanelMap
 
+	perDestinationChanSize int
+
+	// eventMatchCache 以 eventID 为 key 缓存匹配到的 ObserverList
+	// 仅作为加速读路径使用，订阅关系变更时整体失效
+	eventMatchCache map[string]ObserverList
+
 	terminateFlag bool
 }
 
@@ -354,13 +422,16 @@ func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 	}
 
 	replay := make(chan bool)
-	defer close(replay)
 	s.Run(func() {
-		actionData := &subscribeData{eventID: eventID, observer: observer, result: replay}
-
-		s.hubActionChannel <- actionData
+		select {
+		case s.hubActionChannel <- &subscribeData{eventID: eventID, observer: observer, result: replay}:
+			// 成功发送
+		case <-time.After(10 * time.Millisecond):
+			// 超时，跳过发送，避免长期阻塞调用方
+		}
 	})
 	<-replay
+	close(replay)
 }
 
 func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
@@ -369,14 +440,17 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 	}
 
 	replay := make(chan bool)
-	defer close(replay)
 
 	s.Run(func() {
-		actionData := &unsubscribeData{eventID: eventID, observer: observer, result: replay}
-
-		s.hubActionChannel <- actionData
+		select {
+		case s.hubActionChannel <- &unsubscribeData{eventID: eventID, observer: observer, result: replay}:
+			// 成功发送
+		case <-time.After(10 * time.Millisecond):
+			// 超时，跳过发送，避免长期阻塞调用方
+		}
 	})
 	<-replay
+	close(replay)
 }
 
 func (s *hubImpl) Post(ev Event) {
@@ -391,7 +465,10 @@ func (s *hubImpl) Post(ev Event) {
 		defer s.observerID2ChanelLock.Unlock()
 		channelVal, channelOK := s.observerID2ActionChannel[ev.Destination()]
 		if !channelOK {
-			channelVal = make(actionChannel)
+			if s.perDestinationChanSize <= 0 {
+				s.perDestinationChanSize = 1
+			}
+			channelVal = make(actionChannel, s.perDestinationChanSize)
 			go channelVal.run(s)
 
 			s.observerID2ActionChannel[ev.Destination()] = channelVal
@@ -440,7 +517,10 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 		defer s.observerID2ChanelLock.Unlock()
 		channelVal, channelOK := s.observerID2ActionChannel[ev.Destination()]
 		if !channelOK {
-			channelVal = make(actionChannel)
+			if s.perDestinationChanSize <= 0 {
+				s.perDestinationChanSize = 1
+			}
+			channelVal = make(actionChannel, s.perDestinationChanSize)
 			go channelVal.run(s)
 
 			s.observerID2ActionChannel[ev.Destination()] = channelVal
@@ -496,11 +576,9 @@ func (s *hubImpl) Terminate() {
 			select {
 			case val <- actionData:
 				// 成功发送
-			default:
-				// channel 可能已满，等待一下再尝试
-				go func(ch actionChannel) {
-					ch <- actionData
-				}(val)
+			case <-time.After(100 * time.Millisecond):
+				// 超时，跳过
+				waitGroup.Done()
 			}
 		}
 	}()
@@ -509,16 +587,17 @@ func (s *hubImpl) Terminate() {
 	select {
 	case s.hubActionChannel <- actionData:
 		// 成功发送
-	default:
-		// hub action channel 可能已满
-		go func() {
-			s.hubActionChannel <- actionData
-		}()
+	case <-time.After(10 * time.Millisecond):
+		// 超时，跳过，避免终止时长时间阻塞
+		waitGroup.Done()
 	}
 
 	<-replay
 
 	waitGroup.Wait()
+
+	// 等待所有 Execute.Run 提交的任务完成
+	s.Wait()
 
 	// 等待所有 goroutine 完成处理
 	s.observerID2ChanelLock.Lock()
@@ -528,8 +607,6 @@ func (s *hubImpl) Terminate() {
 	}
 	s.event2Observer = ID2ObserverMap{}
 	s.observerID2ActionChannel = ID2ActionChanelMap{}
-
-	close(replay)
 }
 
 func (s *hubImpl) run() {
@@ -557,6 +634,9 @@ func (s *hubImpl) subscribeInternal(eventID string, observer Observer) {
 		observerList = append(observerList, observer)
 	}
 	s.event2Observer[eventID] = observerList
+
+	// 订阅关系变更，清空匹配缓存
+	s.eventMatchCache = map[string]ObserverList{}
 }
 
 func (s *hubImpl) unsubscribeInternal(eventID string, observer Observer) {
@@ -578,27 +658,49 @@ func (s *hubImpl) unsubscribeInternal(eventID string, observer Observer) {
 	}
 	if len(newList) > 0 {
 		s.event2Observer[eventID] = newList
-		return
+	} else {
+		delete(s.event2Observer, eventID)
 	}
 
-	delete(s.event2Observer, eventID)
+	// 订阅关系变更，清空匹配缓存
+	s.eventMatchCache = map[string]ObserverList{}
 }
 
 func (s *hubImpl) postInternal(ev Event) {
-	matchList := ObserverList{}
+	matchList := make(ObserverList, 0, 4)
 
 	func() {
 		s.event2ObserverlLock.RLock()
 		defer s.event2ObserverlLock.RUnlock()
+
+		// 先尝试从缓存中获取
+		if cached, ok := s.eventMatchCache[ev.ID()]; ok {
+			for _, sv := range cached {
+				if MatchValue(ev.Destination(), sv.ID()) {
+					matchList = append(matchList, sv)
+				}
+			}
+			return
+		}
+
+		// 未命中缓存，执行完整匹配
+		tmpMatch := make(ObserverList, 0, 4)
 		for key, value := range s.event2Observer {
 			if MatchValue(key, ev.ID()) {
 				for _, sv := range value {
 					if MatchValue(ev.Destination(), sv.ID()) {
 						matchList = append(matchList, sv)
+						tmpMatch = append(tmpMatch, sv)
 					}
 				}
 			}
 		}
+
+		// 将匹配结果写入缓存（即便为空也缓存，避免重复遍历）
+		if s.eventMatchCache == nil {
+			s.eventMatchCache = map[string]ObserverList{}
+		}
+		s.eventMatchCache[ev.ID()] = tmpMatch
 	}()
 
 	for _, sv := range matchList {
@@ -607,22 +709,42 @@ func (s *hubImpl) postInternal(ev Event) {
 }
 
 func (s *hubImpl) sendInternal(ev Event, re Result) {
-	matchList := ObserverList{}
+	matchList := make(ObserverList, 0, 4)
 	finalFlag := false
 
 	func() {
 		s.event2ObserverlLock.RLock()
 		defer s.event2ObserverlLock.RUnlock()
+
+		// 先尝试从缓存中获取
+		if cached, ok := s.eventMatchCache[ev.ID()]; ok {
+			for _, sv := range cached {
+				if MatchValue(ev.Destination(), sv.ID()) {
+					matchList = append(matchList, sv)
+					finalFlag = true
+				}
+			}
+			return
+		}
+
+		// 未命中缓存，执行完整匹配
+		tmpMatch := make(ObserverList, 0, 4)
 		for key, value := range s.event2Observer {
 			if MatchValue(key, ev.ID()) {
 				for _, sv := range value {
 					if MatchValue(ev.Destination(), sv.ID()) {
 						matchList = append(matchList, sv)
+						tmpMatch = append(tmpMatch, sv)
 						finalFlag = true
 					}
 				}
 			}
 		}
+
+		if s.eventMatchCache == nil {
+			s.eventMatchCache = map[string]ObserverList{}
+		}
+		s.eventMatchCache[ev.ID()] = tmpMatch
 	}()
 
 	for _, sv := range matchList {

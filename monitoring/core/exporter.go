@@ -493,10 +493,24 @@ func (e *Exporter) ExportSingleMetadata(metricName string) (string, *types.Error
 			e.mu.Unlock()
 			return cached, nil
 		}
-		// Cache expired, remove it
-		delete(e.cache.singleMetadata, metricName)
 	}
 	e.cache.mu.RUnlock()
+
+	// 如果缓存已过期，需要在写锁下安全地移除旧条目
+	e.cache.mu.Lock()
+	if cached, exists := e.cache.singleMetadata[metricName]; exists {
+		if !e.cache.metadataTime.IsZero() && time.Since(e.cache.metadataTime) < e.config.RefreshInterval {
+			// 在获取写锁期间缓存重新变为有效，直接返回
+			e.cache.mu.Unlock()
+			e.mu.Lock()
+			e.stats.CacheHits++
+			e.mu.Unlock()
+			return cached, nil
+		}
+		// 确认过期后再删除
+		delete(e.cache.singleMetadata, metricName)
+	}
+	e.cache.mu.Unlock()
 
 	// Cache miss, generate new export
 	e.mu.Lock()

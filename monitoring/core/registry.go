@@ -439,9 +439,8 @@ func (r *Registry) checkDependencies(provider types.MetricProvider) *types.Error
 // Global registry functions
 
 var (
-	globalRegistry     *Registry
-	globalRegistryOnce sync.Once
-	globalRegistryMu   sync.RWMutex
+	globalRegistry   *Registry
+	globalRegistryMu sync.RWMutex
 )
 
 // GetGlobalRegistry returns the global registry instance
@@ -449,21 +448,21 @@ func GetGlobalRegistry(collector *Collector, config *MonitoringConfig) (*Registr
 	globalRegistryMu.Lock()
 	defer globalRegistryMu.Unlock()
 
-	if globalRegistry == nil {
-		if collector == nil || config == nil {
-			return nil, types.NewRegistryNotInitializedError()
-		}
-
-		var err *types.Error
-		globalRegistryOnce.Do(func() {
-			globalRegistry, err = NewRegistry(collector, config)
-		})
-
-		if err != nil {
-			return nil, err
-		}
+	if globalRegistry != nil {
+		return globalRegistry, nil
 	}
 
+	// 首次初始化或在 Shutdown 后重新创建时，必须提供有效的 collector 和 config
+	if collector == nil || config == nil {
+		return nil, types.NewRegistryNotInitializedError()
+	}
+
+	reg, err := NewRegistry(collector, config)
+	if err != nil {
+		return nil, err
+	}
+
+	globalRegistry = reg
 	return globalRegistry, nil
 }
 
@@ -511,6 +510,7 @@ func ShutdownGlobalRegistry() *types.Error {
 	}
 
 	err := globalRegistry.ShutdownAll()
+	// 清理全局引用，允许后续通过 GetGlobalRegistry 重新初始化
 	globalRegistry = nil
 	return err
 }

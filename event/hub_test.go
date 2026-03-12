@@ -505,6 +505,7 @@ func TestBaseResult(t *testing.T) {
 }
 
 type testObserver struct {
+	mu           sync.Mutex
 	id           string
 	notifyCount  int
 	lastEvent    Event
@@ -524,12 +525,24 @@ func (t *testObserver) ID() string {
 }
 
 func (t *testObserver) Notify(event Event, result Result) {
+	t.mu.Lock()
 	t.notifyCount++
 	t.lastEvent = event
 	t.lastResult = result
+	t.mu.Unlock()
 	select {
 	case t.notifySignal <- struct{}{}:
 	default:
+	}
+}
+
+// waitForNotification waits for at least one notification or times out
+func waitForNotification(observer *testObserver, timeout time.Duration) bool {
+	select {
+	case <-observer.notifySignal:
+		return true
+	case <-time.After(timeout):
+		return false
 	}
 }
 
@@ -567,7 +580,6 @@ func (s *sequenceObserver) Notify(event Event, result Result) {
 func TestHubImpl(t *testing.T) {
 	hub := NewHub(10)
 
-	// Test Subscribe/Post/Unsubscribe
 	observer1 := newTestObserver("observer1")
 	observer2 := newTestObserver("observer2")
 
@@ -575,50 +587,64 @@ func TestHubImpl(t *testing.T) {
 	hub.Subscribe(eventID, observer1)
 	hub.Subscribe(eventID, observer2)
 
-	// Sleep a short time to ensure the subscription is processed
 	time.Sleep(100 * time.Millisecond)
 
-	// Test Post
 	event := NewEvent(eventID, "source", "#", NewValues(), "data")
 	hub.Post(event)
 
-	// Allow time for the event to be processed
-	time.Sleep(100 * time.Millisecond)
-
-	if observer1.notifyCount == 0 {
-		t.Errorf("Observer1 notify count = %d, want > 0", observer1.notifyCount)
+	if !waitForNotification(observer1, time.Second) {
+		t.Fatal("Timeout waiting for observer1 notification")
 	}
-	if observer2.notifyCount == 0 {
-		t.Errorf("Observer2 notify count = %d, want > 0", observer2.notifyCount)
+	if !waitForNotification(observer2, time.Second) {
+		t.Fatal("Timeout waiting for observer2 notification")
 	}
 
-	// Test Unsubscribe
+	observer1.mu.Lock()
+	count1 := observer1.notifyCount
+	observer1.mu.Unlock()
+	observer2.mu.Lock()
+	count2 := observer2.notifyCount
+	observer2.mu.Unlock()
+
+	if count1 == 0 {
+		t.Errorf("Observer1 notify count = %d, want > 0", count1)
+	}
+	if count2 == 0 {
+		t.Errorf("Observer2 notify count = %d, want > 0", count2)
+	}
+
 	hub.Unsubscribe(eventID, observer1)
 
-	// Sleep a short time to ensure the unsubscription is processed
 	time.Sleep(100 * time.Millisecond)
 
-	// Reset notification count
+	observer1.mu.Lock()
 	observer1.notifyCount = 0
+	observer1.mu.Unlock()
+	observer2.mu.Lock()
 	observer2.notifyCount = 0
+	observer2.mu.Unlock()
 
-	// Post again
 	hub.Post(event)
 
-	// Allow time for the event to be processed
-	time.Sleep(100 * time.Millisecond)
-
-	// Check that only observer2 was notified
-	if observer1.notifyCount != 0 {
-		t.Errorf("Observer1 notify count after unsubscribe = %d, want 0", observer1.notifyCount)
-	}
-	if observer2.notifyCount == 0 {
-		t.Errorf("Observer2 notify count = %d, want > 0", observer2.notifyCount)
+	if !waitForNotification(observer2, time.Second) {
+		t.Fatal("Timeout waiting for observer2 notification after unsubscribe")
 	}
 
-	// Clean up
+	observer1.mu.Lock()
+	count1 = observer1.notifyCount
+	observer1.mu.Unlock()
+	observer2.mu.Lock()
+	count2 = observer2.notifyCount
+	observer2.mu.Unlock()
+
+	if count1 != 0 {
+		t.Errorf("Observer1 notify count after unsubscribe = %d, want 0", count1)
+	}
+	if count2 == 0 {
+		t.Errorf("Observer2 notify count = %d, want > 0", count2)
+	}
+
 	hub.Terminate()
-	time.Sleep(100 * time.Millisecond)
 }
 
 func TestSimpleObserver(t *testing.T) {

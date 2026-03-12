@@ -102,7 +102,9 @@ func (c *Collector) RegisterDefinition(def types.MetricDefinition) *types.Error 
 // This method is thread-safe.
 func (c *Collector) Record(name string, value float64, labels map[string]string) *types.Error {
 	if !c.config.ShouldSample() {
+		c.mu.Lock()
 		c.stats.MetricsDropped++
+		c.mu.Unlock()
 		return nil
 	}
 
@@ -133,7 +135,9 @@ func (c *Collector) Record(name string, value float64, labels map[string]string)
 // RecordWithTimestamp records a metric with a specific timestamp
 func (c *Collector) RecordWithTimestamp(name string, value float64, labels map[string]string, timestamp time.Time) *types.Error {
 	if !c.config.ShouldSample() {
+		c.mu.Lock()
 		c.stats.MetricsDropped++
+		c.mu.Unlock()
 		return nil
 	}
 

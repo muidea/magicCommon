@@ -1,6 +1,8 @@
 package core
 
 import (
+	"crypto/sha1"
+	"encoding/binary"
 	"time"
 
 	"github.com/muidea/magicCommon/monitoring/types"
@@ -251,9 +253,21 @@ func (c *MonitoringConfig) ShouldSample() bool {
 	if c.SamplingRate <= 0 {
 		return false
 	}
-	// Simple deterministic sampling based on metric name hash
-	// In production, you might want to use a proper sampling algorithm
-	return true // Placeholder - will be implemented with proper sampling
+
+	// 对于 (0,1) 区间的采样率，使用确定性哈希进行采样决策。
+	// 这里使用当前时间片（秒级）和命名空间做哈希种子，避免性能开销过高的随机数。
+	now := time.Now().Unix()
+	h := sha1.New()
+	// 使用命名空间和当前秒作为输入，保证同一时间片内决策稳定
+	_, _ = h.Write([]byte(c.Namespace))
+	_ = binary.Write(h, binary.LittleEndian, now)
+	sum := h.Sum(nil)
+	// 取前 8 字节转为 uint64，再映射到 [0,1)
+	v := binary.LittleEndian.Uint64(sum[:8])
+	const maxUint64 = ^uint64(0)
+	ratio := float64(v) / float64(maxUint64)
+
+	return ratio < c.SamplingRate
 }
 
 // GetProviderConfig retrieves provider-specific configuration

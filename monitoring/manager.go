@@ -404,9 +404,8 @@ func NewHighLoadManager() (*Manager, *types.Error) {
 // Global manager instance (optional, for convenience)
 
 var (
-	globalManager     *Manager
-	globalManagerOnce sync.Once
-	globalManagerMu   sync.RWMutex
+	globalManager   *Manager
+	globalManagerMu sync.RWMutex
 )
 
 // GetGlobalManager returns the global manager instance
@@ -431,20 +430,22 @@ func InitializeGlobalManagerWithConfig(config *core.MonitoringConfig) *types.Err
 		return nil // Already initialized
 	}
 
-	var err *types.Error
-	globalManagerOnce.Do(func() {
-		if config == nil {
-			defaultConfig := core.DefaultMonitoringConfig()
-			config = &defaultConfig
-		}
-		globalManager, err = NewManager(config)
-		if err != nil {
-			return
-		}
-		err = globalManager.Start()
-	})
+	if config == nil {
+		defaultConfig := core.DefaultMonitoringConfig()
+		config = &defaultConfig
+	}
 
-	return err
+	manager, err := NewManager(config)
+	if err != nil {
+		return err
+	}
+
+	if err = manager.Start(); err != nil {
+		return err
+	}
+
+	globalManager = manager
+	return nil
 }
 
 // ShutdownGlobalManager shuts down the global manager
@@ -457,6 +458,7 @@ func ShutdownGlobalManager() *types.Error {
 	}
 
 	err := globalManager.Shutdown()
+	// 清理全局引用，允许后续重新 InitializeGlobalManager*
 	globalManager = nil
 	return err
 }

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"time"
 
 	cd "github.com/muidea/magicCommon/def"
@@ -119,49 +120,22 @@ func NewResourceExhaustedError(resource string) *cd.Error {
 // Helper functions for string conversion
 func stringify(v interface{}) string {
 	switch val := v.(type) {
-	case string:
-		return val
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return "number"
-	case float32, float64:
-		return stringifyFloat(val)
-	case bool:
-		if val {
-			return "true"
-		}
-		return "false"
 	case time.Duration:
 		return val.String()
 	default:
-		return "unknown"
+		return fmt.Sprintf("%v", v)
 	}
 }
 
 func stringifyFloat(v interface{}) string {
 	switch val := v.(type) {
 	case float32:
-		return stringifyFloat64(float64(val))
+		return fmt.Sprintf("%g", val)
 	case float64:
-		return stringifyFloat64(val)
+		return fmt.Sprintf("%g", val)
 	default:
-		return "unknown"
+		return fmt.Sprintf("%v", v)
 	}
-}
-
-func stringifyFloat64(v float64) string {
-	// Simple implementation - in production you'd use proper formatting
-	if v == float64(int64(v)) {
-		return stringifyInt64(int64(v))
-	}
-	return "float"
-}
-
-func stringifyInt64(v int64) string {
-	// Simple implementation
-	if v == 0 {
-		return "0"
-	}
-	return "number"
 }
 
 // IsMonitoringError checks if an error is a monitoring-specific error
