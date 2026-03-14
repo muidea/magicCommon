@@ -28,4 +28,3 @@ func TestNewHubWithOptions(t *testing.T) {
 		t.Fatalf("handler should be called")
 	}
 }
-

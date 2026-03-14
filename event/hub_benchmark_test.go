@@ -215,4 +215,3 @@ func BenchmarkHubPostHighConcurrencyPublishers(b *testing.B) {
 
 	wg.Wait()
 }
-

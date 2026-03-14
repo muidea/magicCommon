@@ -5,17 +5,23 @@ import (
 	"testing"
 )
 
-func TestGetValueFromContext(t *testing.T) {
-	ctx := context.WithValue(context.Background(), "key", "value")
+type contextKey string
 
-	val, ok := GetValueFromContext[string](ctx, "key")
+func TestGetValueFromContext(t *testing.T) {
+	key := contextKey("key")
+	ctx := context.WithValue(context.Background(), key, "value")
+
+	val, ok := GetValueFromContext[string](ctx, key)
 	if !ok || val != "value" {
 		t.Fatalf("expected context value to be returned")
 	}
 }
 
 func TestGetValueFromNilContext(t *testing.T) {
-	val, ok := GetValueFromContext[string](nil, "key")
+	key := contextKey("key")
+	var ctx context.Context
+
+	val, ok := GetValueFromContext[string](ctx, key)
 	if ok {
 		t.Fatalf("expected nil context to return not found")
 	}
