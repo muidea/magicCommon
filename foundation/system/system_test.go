@@ -24,6 +24,12 @@ func (s *MockEntity) TestResult() *cd.Error {
 	return cd.NewError(cd.InvalidAuthority, "test result")
 }
 
+type nilEntity struct{}
+
+func (s *nilEntity) TestResult() *cd.Error {
+	return nil
+}
+
 // TestInvokeEntityFuncNoMethod tests the scenario where the method does not exist on the entityVal
 func TestInvokeEntityFuncNoMethod(t *testing.T) {
 	entityVal := &MockEntity{}
@@ -73,6 +79,14 @@ func TestInvokeEntityFuncNilEntity(t *testing.T) {
 	params := []interface{}{1, "test"}
 
 	result := InvokeEntityFunc(nil, funcName, params...)
+	assert.NotNil(t, result)
+	assert.Equal(t, result.Code, cd.Code(cd.IllegalParam))
+}
+
+func TestInvokeEntityFuncTypedNilEntity(t *testing.T) {
+	var entityVal *nilEntity
+
+	result := InvokeEntityFunc(entityVal, "TestResult")
 	assert.NotNil(t, result)
 	assert.Equal(t, result.Code, cd.Code(cd.IllegalParam))
 }

@@ -11,9 +11,12 @@
 
 ### 基础工具 (Foundation)
 - **缓存系统**: 内存缓存、分布式缓存支持
+- **对象池**: 泛型资源池、预创建与复用控制
 - **数据访问层**: MySQL、PostgreSQL DAO 实现
 - **日志系统**: 结构化日志、多输出支持
 - **网络工具**: HTTP 客户端、服务器工具
+- **路径工具**: 路径遍历、目录复制与文件监控
+- **同步信号**: 进程内轻量信号协调
 - **系统工具**: 文件操作、进程管理
 - **工具函数**: 字符串、时间、加密等工具
 
@@ -25,6 +28,7 @@
 
 ### 其他模块
 - **事件系统**: 发布-订阅模式
+- **执行器**: 并发任务执行与等待控制
 - **监控系统**: 指标收集、监控集成
 - **会话管理**: 用户会话管理
 - **任务调度**: 定时任务、异步任务
@@ -176,11 +180,27 @@ magicCommon/
 │   ├── plugin/      # 插件系统
 │   └── service/     # 服务框架
 ├── event/           # 事件系统
+├── execute/         # 并发执行器
 ├── monitoring/      # 监控系统
 ├── session/         # 会话管理
 ├── task/            # 任务调度
 └── test/            # 测试工具
 ```
+
+## 核心基础设施文档
+
+- [technical-note-infra-hardening-2026-03.md](./technical-note-infra-hardening-2026-03.md): 本轮基础设施修复与稳定语义总结
+- [release-note-2026-03-lifecycle-cache-monitoring.md](./release-note-2026-03-lifecycle-cache-monitoring.md): 本轮 lifecycle、cache、monitoring 变化摘要
+- [event/README.md](./event/README.md): 事件中心、投递、关闭与匹配语义
+- [execute/README.md](./execute/README.md): 执行器并发限制与等待语义
+- [task/README.md](./task/README.md): 后台任务与超时等待语义
+- [foundation/cache/README.md](./foundation/cache/README.md): 内存缓存、过期清理与释放语义
+- [foundation/net/README.md](./foundation/net/README.md): HTTP helper、文件上传下载与 DNS client 语义
+- [foundation/pool/README.md](./foundation/pool/README.md): 泛型资源池、关闭与预创建语义
+- [foundation/path/README.md](./foundation/path/README.md): 路径工具与目录监控语义
+- [foundation/signal/README.md](./foundation/signal/README.md): 进程内信号协调与关闭语义
+- [framework/configuration/README.md](./framework/configuration/README.md): 配置框架与 watcher 行为
+- [monitoring/README.md](./monitoring/README.md): 监控系统入口说明
 
 ## 代码规范
 

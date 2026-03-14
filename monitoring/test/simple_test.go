@@ -81,7 +81,7 @@ func TestSimpleMonitoring(t *testing.T) {
 	}
 	defer func() { _ = manager.Shutdown() }()
 
-	// Register test provider (after starting, so global registry is initialized)
+	// Register test provider on the manager instance
 	if err := manager.RegisterProvider(
 		"test",
 		func() types.MetricProvider { return NewTestProvider() },

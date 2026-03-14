@@ -1,6 +1,7 @@
 package path
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -49,6 +50,10 @@ type Monitor struct {
 	watchedPaths fu.StringSet
 	fsWatcher    *fsnotify.Watcher
 	observer     []Observer
+	eventQueue   chan fsnotify.Event
+	started      bool
+	stopped      bool
+	workerWg     sync.WaitGroup
 }
 
 func NewMonitor(ignores fu.StringSet) (*Monitor, error) {
@@ -65,13 +70,31 @@ func NewMonitor(ignores fu.StringSet) (*Monitor, error) {
 }
 
 func (s *Monitor) Start() error {
-	eventQueue := make(chan fsnotify.Event, 1000)
+	s.syncMutex.Lock()
+	defer s.syncMutex.Unlock()
+
+	if s.started {
+		return nil
+	}
+	if s.stopped {
+		return errors.New("monitor already stopped")
+	}
+
+	s.eventQueue = make(chan fsnotify.Event, 1000)
+	s.started = true
+
+	s.workerWg.Add(1)
 	go func() {
-		for event := range eventQueue {
+		defer s.workerWg.Done()
+		for event := range s.eventQueue {
 			s.handleEvent(event)
 		}
 	}()
+
+	s.workerWg.Add(1)
 	go func() {
+		defer s.workerWg.Done()
+		defer close(s.eventQueue)
 		for {
 			select {
 			case event, ok := <-s.fsWatcher.Events:
@@ -79,7 +102,7 @@ func (s *Monitor) Start() error {
 					return
 				}
 				select {
-				case eventQueue <- event:
+				case s.eventQueue <- event:
 				default:
 					//log.Warnf("event queue full, dropping event：%v", event)
 				}
@@ -97,11 +120,20 @@ func (s *Monitor) Start() error {
 
 func (s *Monitor) Stop() error {
 	s.syncMutex.Lock()
-	defer s.syncMutex.Unlock()
+	if s.stopped {
+		s.syncMutex.Unlock()
+		return nil
+	}
 
 	s.observer = []Observer{}
 	s.watchedPaths = fu.StringSet{}
-	return s.fsWatcher.Close()
+	s.started = false
+	s.stopped = true
+	s.syncMutex.Unlock()
+
+	err := s.fsWatcher.Close()
+	s.workerWg.Wait()
+	return err
 }
 
 func (s *Monitor) AddObserver(observer Observer) {
@@ -205,9 +237,7 @@ func (s *Monitor) pathEvent(event fsnotify.Event) {
 			return nil
 		}
 
-		s.syncMutex.Lock()
-		defer s.syncMutex.Unlock()
-		for _, observer := range s.observer {
+		for _, observer := range s.snapshotObservers() {
 			observer.OnEvent(Event{
 				Path: path,
 				Op:   Create,
@@ -240,7 +270,7 @@ func (s *Monitor) fileEvent(event fsnotify.Event) {
 		return
 	}
 
-	for _, observer := range s.observer {
+	for _, observer := range s.snapshotObservers() {
 		observer.OnEvent(localEvent)
 	}
 }
@@ -313,9 +343,7 @@ func (s *Monitor) refresh(path string) {
 			return nil
 		}
 
-		s.syncMutex.Lock()
-		defer s.syncMutex.Unlock()
-		for _, observer := range s.observer {
+		for _, observer := range s.snapshotObservers() {
 			observer.OnEvent(Event{
 				Path: path,
 				Op:   Create,
@@ -323,4 +351,13 @@ func (s *Monitor) refresh(path string) {
 		}
 		return nil
 	})
+}
+
+func (s *Monitor) snapshotObservers() []Observer {
+	s.syncMutex.Lock()
+	defer s.syncMutex.Unlock()
+
+	observers := make([]Observer, len(s.observer))
+	copy(observers, s.observer)
+	return observers
 }

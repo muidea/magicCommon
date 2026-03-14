@@ -1,6 +1,7 @@
 package monitoring
 
 import (
+	"reflect"
 	"sync"
 	"time"
 
@@ -168,13 +169,19 @@ func (m *Manager) Stop() *types.Error {
 func (m *Manager) RegisterProvider(name string, factory types.ProviderFactory, autoInitialize bool, priority int) *types.Error {
 	m.mu.RLock()
 	initialized := m.initialized
+	registry := m.registry
 	m.mu.RUnlock()
 
 	if !initialized {
 		return types.NewRegistryNotInitializedError()
 	}
 
-	return core.RegisterGlobalProvider(name, factory, autoInitialize, priority)
+	if registry == nil {
+		return types.NewRegistryNotInitializedError()
+	}
+
+	entry := types.NewProviderRegistryEntry(factory, autoInitialize, priority)
+	return registry.Register(name, entry)
 }
 
 // GetCollector returns the collector instance
@@ -233,6 +240,8 @@ func (m *Manager) UpdateConfig(newConfig *core.MonitoringConfig) *types.Error {
 
 	// Apply configuration changes
 	if m.initialized {
+		exportConfigChanged := !reflect.DeepEqual(oldConfig.ExportConfig, newConfig.ExportConfig)
+
 		// Check if we need to restart exporter
 		if oldConfig.IsExportEnabled() != newConfig.IsExportEnabled() {
 			if m.exporter != nil && !newConfig.IsExportEnabled() {
@@ -248,6 +257,24 @@ func (m *Manager) UpdateConfig(newConfig *core.MonitoringConfig) *types.Error {
 					return err
 				}
 				m.exporter = exporter
+				if err := m.exporter.Start(); err != nil {
+					return err
+				}
+			}
+		} else if newConfig.IsExportEnabled() && exportConfigChanged {
+			wasRunning := m.running && m.exporter != nil
+			if wasRunning {
+				if err := m.exporter.Stop(); err != nil {
+					return err
+				}
+			}
+
+			exporter, err := core.NewExporter(m.collector, &newConfig.ExportConfig)
+			if err != nil {
+				return err
+			}
+			m.exporter = exporter
+			if wasRunning {
 				if err := m.exporter.Start(); err != nil {
 					return err
 				}

@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -41,6 +42,7 @@ type genericSearchKVData[V any] struct {
 // genericSearchKVResult 搜索结果
 type genericSearchKVResult[V any] struct {
 	value V
+	found bool
 }
 
 // genericGetAllKVResult 获取所有结果
@@ -68,17 +70,29 @@ type GenericKVCache[K comparable, V any] struct {
 	pool                 sync.Pool
 	expiredCleanCallBack ExpiredCleanCallBackFuncGeneric[K]
 	rwLock               *sync.RWMutex
+	releasing            atomic.Bool
+	released             atomic.Bool
+	capacity             int
+	cleanupInterval      time.Duration
+	metrics              cacheMetrics
 }
 
 // NewGenericKVCache 创建泛型Cache对象
 func NewGenericKVCache[K comparable, V any](cleanCallBack ExpiredCleanCallBackFuncGeneric[K]) KVCacheGeneric[K, V] {
+	return NewGenericKVCacheWithOptions[K, V](cleanCallBack, nil)
+}
+
+func NewGenericKVCacheWithOptions[K comparable, V any](cleanCallBack ExpiredCleanCallBackFuncGeneric[K], options *CacheOptions) KVCacheGeneric[K, V] {
 	cacheCtx, cacheCancel := context.WithCancel(context.Background())
+	cacheOptions := normalizeCacheOptions(options)
 
 	cache := &GenericKVCache[K, V]{
 		commandChannel:       make(chan commandData, 100),
 		cancelFunc:           cacheCancel,
 		expiredCleanCallBack: cleanCallBack,
 		rwLock:               new(sync.RWMutex),
+		capacity:             cacheOptions.Capacity,
+		cleanupInterval:      cacheOptions.CleanupInterval,
 	}
 
 	// 启动多个worker处理命令
@@ -108,21 +122,28 @@ func (s *GenericKVCache[K, V]) Put(key K, data V, maxAge int64) K {
 // Fetch 获取数据
 func (s *GenericKVCache[K, V]) Fetch(key K) V {
 	s.rwLock.RLock()
-	defer s.rwLock.RUnlock()
-
 	v, found := s.localCacheData.Load(key)
 	if !found {
+		s.rwLock.RUnlock()
+		s.metrics.misses.Add(1)
 		var zero V
 		return zero
 	}
 
 	dataPtr := v.(*genericCacheKVData[K, V])
 	if s.isExpired(dataPtr) {
+		s.rwLock.RUnlock()
+		s.rwLock.Lock()
 		s.localCacheData.Delete(key)
+		s.rwLock.Unlock()
+		s.metrics.expirations.Add(1)
+		s.metrics.misses.Add(1)
 		var zero V
 		return zero
 	}
 
+	s.rwLock.RUnlock()
+	s.metrics.hits.Add(1)
 	return dataPtr.cacheData.data
 }
 
@@ -135,6 +156,11 @@ func (s *GenericKVCache[K, V]) Search(opr func(V) bool) V {
 
 	dataPtr := &genericSearchKVData[V]{opr: opr}
 	result := s.sendCommand(commandData{action: search, value: dataPtr}).(*genericSearchKVResult[V])
+	if result.found {
+		s.metrics.hits.Add(1)
+	} else {
+		s.metrics.misses.Add(1)
+	}
 	return result.value
 }
 
@@ -157,6 +183,10 @@ func (s *GenericKVCache[K, V]) ClearAll() {
 
 // Release 释放Cache
 func (s *GenericKVCache[K, V]) Release() {
+	if !s.releasing.CompareAndSwap(false, true) {
+		return
+	}
+
 	s.cancelFunc()
 
 	// 为每个worker发送end命令
@@ -166,9 +196,14 @@ func (s *GenericKVCache[K, V]) Release() {
 
 	s.cacheWg.Wait()
 	close(s.commandChannel)
+	s.released.Store(true)
 }
 
 func (s *GenericKVCache[K, V]) sendCommand(command commandData) any {
+	if s.released.Load() {
+		return nil
+	}
+
 	var reply chan any
 	if v := s.pool.Get(); v != nil {
 		reply = v.(chan any)
@@ -189,12 +224,17 @@ func (s *GenericKVCache[K, V]) run() {
 		switch command.action {
 		case putIn:
 			s.rwLock.Lock()
+			key := command.value.(*genericPutInKVData[K, V]).key
+			if _, exists := s.localCacheData.Load(key); !exists {
+				s.enforceCapacityLocked()
+			}
 			dataPtr := &genericCacheKVData[K, V]{
 				cacheData: command.value.(*genericPutInKVData[K, V]),
 				cacheTime: time.Now(),
 			}
 			s.localCacheData.Store(dataPtr.cacheData.key, dataPtr)
 			s.rwLock.Unlock()
+			s.metrics.puts.Add(1)
 
 			result := &genericPutInKVResult[K]{value: dataPtr.cacheData.key}
 			command.result <- result
@@ -203,16 +243,19 @@ func (s *GenericKVCache[K, V]) run() {
 			opr := command.value.(*genericSearchKVData[V]).opr
 
 			result := &genericSearchKVResult[V]{}
+			s.rwLock.Lock()
 			s.localCacheData.Range(func(k, v any) bool {
 				dataPtr := v.(*genericCacheKVData[K, V])
 				if opr(dataPtr.cacheData.data) {
 					dataPtr.cacheTime = time.Now()
 					s.localCacheData.Store(k, dataPtr)
 					result.value = dataPtr.cacheData.data
+					result.found = true
 					return false
 				}
 				return true
 			})
+			s.rwLock.Unlock()
 
 			command.result <- result
 
@@ -223,34 +266,46 @@ func (s *GenericKVCache[K, V]) run() {
 
 		case getAll:
 			result := &genericGetAllKVResult[V]{value: []V{}}
+			s.rwLock.Lock()
 			s.localCacheData.Range(func(k, v any) bool {
 				dataPtr := v.(*genericCacheKVData[K, V])
 				dataPtr.cacheTime = time.Now()
 				result.value = append(result.value, dataPtr.cacheData.data)
 				return true
 			})
+			s.rwLock.Unlock()
 			command.result <- result
 
 		case clearAll:
+			s.rwLock.Lock()
 			s.localCacheData = sync.Map{}
+			s.rwLock.Unlock()
 			command.result <- true
 
 		case checkTimeOut:
+			s.rwLock.Lock()
 			keys := s.getExpiredKeys()
-			go func() {
-				for _, v := range keys {
-					if s.expiredCleanCallBack != nil {
-						s.expiredCleanCallBack(v)
-					}
-					s.Remove(v)
+			for _, v := range keys {
+				if s.expiredCleanCallBack != nil {
+					s.expiredCleanCallBack(v)
 				}
-			}()
+				s.localCacheData.Delete(v)
+				s.metrics.expirations.Add(1)
+			}
+			s.rwLock.Unlock()
 
 		case end:
 			command.result <- true
 			return
 		}
 	}
+}
+
+func (s *GenericKVCache[K, V]) Stats() CacheStats {
+	s.rwLock.RLock()
+	entries := countSyncMap(&s.localCacheData)
+	s.rwLock.RUnlock()
+	return s.metrics.snapshot(entries, s.capacity)
 }
 
 func (s *GenericKVCache[K, V]) getExpiredKeys() []K {
@@ -271,7 +326,7 @@ func (s *GenericKVCache[K, V]) getExpiredKeys() []K {
 func (s *GenericKVCache[K, V]) checkTimeOut(ctx context.Context) {
 	defer s.cacheWg.Done()
 
-	timeOutTimer := time.NewTicker(5 * time.Second)
+	timeOutTimer := time.NewTicker(s.cleanupInterval)
 	defer timeOutTimer.Stop()
 
 	for {
@@ -289,4 +344,28 @@ func (s *GenericKVCache[K, V]) isExpired(data *genericCacheKVData[K, V]) bool {
 		return int64(time.Since(data.cacheTime).Seconds()) > data.cacheData.maxAge
 	}
 	return false
+}
+
+func (s *GenericKVCache[K, V]) enforceCapacityLocked() {
+	if s.capacity <= 0 || countSyncMap(&s.localCacheData) < s.capacity {
+		return
+	}
+
+	var oldestKey K
+	var oldestTime time.Time
+	var found bool
+	s.localCacheData.Range(func(k, v any) bool {
+		dataPtr := v.(*genericCacheKVData[K, V])
+		if !found || dataPtr.cacheTime.Before(oldestTime) {
+			oldestKey = k.(K)
+			oldestTime = dataPtr.cacheTime
+			found = true
+		}
+		return true
+	})
+
+	if found {
+		s.localCacheData.Delete(oldestKey)
+		s.metrics.evictions.Add(1)
+	}
 }

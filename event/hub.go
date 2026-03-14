@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	cd "github.com/muidea/magicCommon/def"
@@ -186,7 +187,6 @@ func NewHubWithOptions(capacitySize int, opts ...HubOption) Hub {
 		observerID2ActionChannel: ID2ActionChanelMap{},
 		perDestinationChanSize:   hubOpts.perDestinationChanSize,
 		eventMatchCache:          map[string]ObserverList{},
-		terminateFlag:            false,
 	}
 	go hub.run()
 	return hub
@@ -402,6 +402,7 @@ type hubImpl struct {
 	execute.Execute
 	event2ObserverlLock sync.RWMutex
 	event2Observer      ID2ObserverMap
+	eventMatchCacheLock sync.RWMutex
 
 	hubActionChannel         actionChannel
 	observerID2ChanelLock    sync.RWMutex
@@ -413,21 +414,22 @@ type hubImpl struct {
 	// 仅作为加速读路径使用，订阅关系变更时整体失效
 	eventMatchCache map[string]ObserverList
 
-	terminateFlag bool
+	terminateFlag atomic.Bool
 }
 
 func (s *hubImpl) Subscribe(eventID string, observer Observer) {
-	if s.terminateFlag {
+	if s.terminateFlag.Load() {
 		return
 	}
 
-	replay := make(chan bool)
+	replay := make(chan bool, 1)
 	s.Run(func() {
 		select {
 		case s.hubActionChannel <- &subscribeData{eventID: eventID, observer: observer, result: replay}:
 			// 成功发送
 		case <-time.After(10 * time.Millisecond):
 			// 超时，跳过发送，避免长期阻塞调用方
+			replay <- false
 		}
 	})
 	<-replay
@@ -435,11 +437,11 @@ func (s *hubImpl) Subscribe(eventID string, observer Observer) {
 }
 
 func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
-	if s.terminateFlag {
+	if s.terminateFlag.Load() {
 		return
 	}
 
-	replay := make(chan bool)
+	replay := make(chan bool, 1)
 
 	s.Run(func() {
 		select {
@@ -447,6 +449,7 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 			// 成功发送
 		case <-time.After(10 * time.Millisecond):
 			// 超时，跳过发送，避免长期阻塞调用方
+			replay <- false
 		}
 	})
 	<-replay
@@ -454,7 +457,7 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) {
 }
 
 func (s *hubImpl) Post(ev Event) {
-	if s.terminateFlag {
+	if s.terminateFlag.Load() {
 		return
 	}
 
@@ -478,7 +481,7 @@ func (s *hubImpl) Post(ev Event) {
 	}()
 
 	// 再次检查 terminateFlag，防止竞态条件
-	if s.terminateFlag {
+	if s.terminateFlag.Load() {
 		return
 	}
 
@@ -502,11 +505,11 @@ func (s *hubImpl) Post(ev Event) {
 }
 
 func (s *hubImpl) Send(ev Event) (ret Result) {
-	if s.terminateFlag {
+	if s.terminateFlag.Load() {
 		return
 	}
 
-	replay := make(chan Result)
+	replay := make(chan Result, 1)
 	defer close(replay)
 
 	actionData := &sendData{event: ev, result: replay}
@@ -530,7 +533,7 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 	}()
 
 	// 再次检查 terminateFlag，防止竞态条件
-	if s.terminateFlag {
+	if s.terminateFlag.Load() {
 		return
 	}
 
@@ -541,6 +544,9 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 				// 成功发送
 			case <-time.After(100 * time.Millisecond):
 				slog.Warn("timeout sending data to channel")
+				timeoutResult := NewResult(ev.ID(), ev.Source(), ev.Destination())
+				timeoutResult.Set(nil, cd.NewError(cd.Timeout, "send timeout"))
+				replay <- timeoutResult
 			}
 		})
 	} else {
@@ -549,6 +555,9 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 			// 成功发送
 		case <-time.After(100 * time.Millisecond):
 			slog.Warn("timeout sending data to channel")
+			timeoutResult := NewResult(ev.ID(), ev.Source(), ev.Destination())
+			timeoutResult.Set(nil, cd.NewError(cd.Timeout, "send timeout"))
+			replay <- timeoutResult
 		}
 	}
 
@@ -557,13 +566,11 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 }
 
 func (s *hubImpl) Terminate() {
-	if s.terminateFlag {
+	if !s.terminateFlag.CompareAndSwap(false, true) {
 		return
 	}
-
-	s.terminateFlag = true
 	var waitGroup sync.WaitGroup
-	replay := make(chan bool)
+	replay := make(chan bool, 1)
 	actionData := &terminateData{result: replay, waitGroup: &waitGroup}
 
 	// 先发送终止信号到所有 channel
@@ -590,6 +597,10 @@ func (s *hubImpl) Terminate() {
 	case <-time.After(10 * time.Millisecond):
 		// 超时，跳过，避免终止时长时间阻塞
 		waitGroup.Done()
+		select {
+		case replay <- false:
+		default:
+		}
 	}
 
 	<-replay
@@ -597,7 +608,9 @@ func (s *hubImpl) Terminate() {
 	waitGroup.Wait()
 
 	// 等待所有 Execute.Run 提交的任务完成
-	s.Wait()
+	if !s.WaitTimeout(5 * time.Second) {
+		slog.Warn("hub execute tasks did not drain before timeout")
+	}
 
 	// 等待所有 goroutine 完成处理
 	s.observerID2ChanelLock.Lock()
@@ -636,7 +649,9 @@ func (s *hubImpl) subscribeInternal(eventID string, observer Observer) {
 	s.event2Observer[eventID] = observerList
 
 	// 订阅关系变更，清空匹配缓存
+	s.eventMatchCacheLock.Lock()
 	s.eventMatchCache = map[string]ObserverList{}
+	s.eventMatchCacheLock.Unlock()
 }
 
 func (s *hubImpl) unsubscribeInternal(eventID string, observer Observer) {
@@ -663,45 +678,21 @@ func (s *hubImpl) unsubscribeInternal(eventID string, observer Observer) {
 	}
 
 	// 订阅关系变更，清空匹配缓存
+	s.eventMatchCacheLock.Lock()
 	s.eventMatchCache = map[string]ObserverList{}
+	s.eventMatchCacheLock.Unlock()
 }
 
 func (s *hubImpl) postInternal(ev Event) {
 	matchList := make(ObserverList, 0, 4)
-
-	func() {
-		s.event2ObserverlLock.RLock()
-		defer s.event2ObserverlLock.RUnlock()
-
-		// 先尝试从缓存中获取
-		if cached, ok := s.eventMatchCache[ev.ID()]; ok {
-			for _, sv := range cached {
-				if MatchValue(ev.Destination(), sv.ID()) {
-					matchList = append(matchList, sv)
-				}
-			}
-			return
-		}
-
-		// 未命中缓存，执行完整匹配
-		tmpMatch := make(ObserverList, 0, 4)
-		for key, value := range s.event2Observer {
-			if MatchValue(key, ev.ID()) {
-				for _, sv := range value {
-					if MatchValue(ev.Destination(), sv.ID()) {
-						matchList = append(matchList, sv)
-						tmpMatch = append(tmpMatch, sv)
-					}
-				}
-			}
-		}
-
-		// 将匹配结果写入缓存（即便为空也缓存，避免重复遍历）
-		if s.eventMatchCache == nil {
-			s.eventMatchCache = map[string]ObserverList{}
-		}
-		s.eventMatchCache[ev.ID()] = tmpMatch
-	}()
+	cacheKey := matchCacheKey(ev.ID(), ev.Destination())
+	if cached, ok := s.getCachedObservers(cacheKey); ok {
+		matchList = append(matchList, cached...)
+	} else {
+		tmpMatch := s.findMatchingObservers(ev)
+		matchList = append(matchList, tmpMatch...)
+		s.setCachedObservers(cacheKey, tmpMatch)
+	}
 
 	for _, sv := range matchList {
 		notificationEvent(sv, ev, nil)
@@ -711,41 +702,16 @@ func (s *hubImpl) postInternal(ev Event) {
 func (s *hubImpl) sendInternal(ev Event, re Result) {
 	matchList := make(ObserverList, 0, 4)
 	finalFlag := false
-
-	func() {
-		s.event2ObserverlLock.RLock()
-		defer s.event2ObserverlLock.RUnlock()
-
-		// 先尝试从缓存中获取
-		if cached, ok := s.eventMatchCache[ev.ID()]; ok {
-			for _, sv := range cached {
-				if MatchValue(ev.Destination(), sv.ID()) {
-					matchList = append(matchList, sv)
-					finalFlag = true
-				}
-			}
-			return
-		}
-
-		// 未命中缓存，执行完整匹配
-		tmpMatch := make(ObserverList, 0, 4)
-		for key, value := range s.event2Observer {
-			if MatchValue(key, ev.ID()) {
-				for _, sv := range value {
-					if MatchValue(ev.Destination(), sv.ID()) {
-						matchList = append(matchList, sv)
-						tmpMatch = append(tmpMatch, sv)
-						finalFlag = true
-					}
-				}
-			}
-		}
-
-		if s.eventMatchCache == nil {
-			s.eventMatchCache = map[string]ObserverList{}
-		}
-		s.eventMatchCache[ev.ID()] = tmpMatch
-	}()
+	cacheKey := matchCacheKey(ev.ID(), ev.Destination())
+	if cached, ok := s.getCachedObservers(cacheKey); ok {
+		matchList = append(matchList, cached...)
+		finalFlag = len(cached) > 0
+	} else {
+		tmpMatch := s.findMatchingObservers(ev)
+		matchList = append(matchList, tmpMatch...)
+		finalFlag = len(tmpMatch) > 0
+		s.setCachedObservers(cacheKey, tmpMatch)
+	}
 
 	for _, sv := range matchList {
 		notificationEvent(sv, ev, re)
@@ -754,6 +720,55 @@ func (s *hubImpl) sendInternal(ev Event, re Result) {
 	if !finalFlag && re != nil {
 		re.Set(nil, cd.NewError(cd.Unexpected, fmt.Sprintf("missing observer, event:[id-%v, source-%s, destination-%s]", ev.ID(), ev.Source(), ev.Destination())))
 	}
+}
+
+func matchCacheKey(eventID, destination string) string {
+	return eventID + "\x00" + destination
+}
+
+func (s *hubImpl) getCachedObservers(cacheKey string) (ObserverList, bool) {
+	s.eventMatchCacheLock.RLock()
+	defer s.eventMatchCacheLock.RUnlock()
+
+	cached, ok := s.eventMatchCache[cacheKey]
+	if !ok {
+		return nil, false
+	}
+
+	result := make(ObserverList, len(cached))
+	copy(result, cached)
+	return result, true
+}
+
+func (s *hubImpl) setCachedObservers(cacheKey string, observers ObserverList) {
+	s.eventMatchCacheLock.Lock()
+	defer s.eventMatchCacheLock.Unlock()
+
+	if s.eventMatchCache == nil {
+		s.eventMatchCache = map[string]ObserverList{}
+	}
+	result := make(ObserverList, len(observers))
+	copy(result, observers)
+	s.eventMatchCache[cacheKey] = result
+}
+
+func (s *hubImpl) findMatchingObservers(ev Event) ObserverList {
+	matchList := make(ObserverList, 0, 4)
+
+	s.event2ObserverlLock.RLock()
+	defer s.event2ObserverlLock.RUnlock()
+
+	for key, value := range s.event2Observer {
+		if MatchValue(key, ev.ID()) {
+			for _, sv := range value {
+				if MatchValue(ev.Destination(), sv.ID()) {
+					matchList = append(matchList, sv)
+				}
+			}
+		}
+	}
+
+	return matchList
 }
 
 type simpleObserver struct {

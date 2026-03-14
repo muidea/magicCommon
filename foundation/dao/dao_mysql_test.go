@@ -18,19 +18,27 @@ const gPassword = "rootkit"
 const gSvrAddress = "localhost:3306"
 const gDBName = "testdb"
 
-func TestDatabase(t *testing.T) {
+func fetchOrSkip(t *testing.T) Dao {
+	t.Helper()
+
 	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
 	if err != nil {
-		t.Errorf("Fetch dao failed, err:%s", err.Error())
+		t.Skipf("MySQL not available, skipping DAO integration test: %v", err)
 	}
-	defer dao.Release()
 
-	err = dao.CreateDatabase("supetl")
+	return dao
+}
+
+func TestDatabase(t *testing.T) {
+	dao := fetchOrSkip(t)
+	defer func() { _ = dao.Release() }()
+
+	err := dao.CreateDatabase("supetl")
 	if err != nil {
 		t.Errorf("create database error:%s", err.Error())
 		return
 	}
-	defer dao.DropDatabase("supetl")
+	defer func() { _ = dao.DropDatabase("supetl") }()
 
 	err = dao.UseDatabase("supetl")
 	if err != nil {
@@ -40,16 +48,16 @@ func TestDatabase(t *testing.T) {
 
 	nDao, nErr := dao.Duplicate()
 	if nErr != nil {
-		t.Errorf("duplicate database error:%s", err.Error())
+		t.Errorf("duplicate database error:%s", nErr.Error())
 		return
 	}
-	defer nDao.Release()
+	defer func() { _ = nDao.Release() }()
 	err = nDao.CreateDatabase("A1000")
 	if err != nil {
 		t.Errorf("create database error:%s", err.Error())
 		return
 	}
-	defer nDao.DropDatabase("A1000")
+	defer func() { _ = nDao.DropDatabase("A1000") }()
 
 	defer func() {
 		dropDbSql := fmt.Sprintf("drop database if exists %s", gDBName)
@@ -82,14 +90,11 @@ CREATE TABLE IF NOT EXISTS user (
 }
 
 func TestInsert(t *testing.T) {
-	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
-	if err != nil {
-		t.Errorf("Fetch dao failed, err:%s", err.Error())
-	}
-	defer dao.Release()
+	dao := fetchOrSkip(t)
+	defer func() { _ = dao.Release() }()
 
 	initFunc(dao, gDBName)
-	defer dao.DropDatabase(gDBName)
+	defer func() { _ = dao.DropDatabase(gDBName) }()
 
 	insertSql := "insert into user (address) values(?),(?),(?),(?)"
 	num, _ := dao.Execute(insertSql, "abc", "bcd", "cde", "def")
@@ -115,7 +120,7 @@ func TestInsert(t *testing.T) {
 
 	querySql := "select * from user where address like ?"
 	param := "%a%"
-	err = dao.Query(querySql, param)
+	err := dao.Query(querySql, param)
 	if err != nil {
 		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
 		return
@@ -128,7 +133,7 @@ func TestInsert(t *testing.T) {
 		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
 		return
 	}
-	defer dao.Finish()
+	defer func() { _ = dao.Finish() }()
 	if dao.Next() {
 		u1 := User{}
 		err = dao.GetField(&u1.id, &u1.address)
@@ -144,22 +149,28 @@ func TestInsert(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
-	if err != nil {
-		t.Errorf("Fetch dao failed, err:%s", err.Error())
-	}
-	defer dao.Release()
+	dao := fetchOrSkip(t)
+	defer func() { _ = dao.Release() }()
 
 	initFunc(dao, gDBName)
-	defer dao.DropDatabase(gDBName)
+	defer func() { _ = dao.DropDatabase(gDBName) }()
 
 	selectSql := "select id,address from user"
 
-	dao.Query(selectSql)
+	err := dao.Query(selectSql)
+	if err != nil {
+		t.Errorf("dao.Query(selectSql) failed, error:%s", err.Error())
+		return
+	}
+	defer func() { _ = dao.Finish() }()
 
 	for dao.Next() {
 		user := User{}
 
-		dao.GetField(&user.id, &user.address)
+		err = dao.GetField(&user.id, &user.address)
+		if err != nil {
+			t.Errorf("dao.GetField(&user.id, &user.address) failed, error:%s", err.Error())
+			return
+		}
 	}
 }

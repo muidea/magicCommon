@@ -194,6 +194,7 @@ type SimpleFileWatcher struct {
 	mu           sync.RWMutex
 	stopChan     chan struct{}
 	interval     time.Duration
+	stopOnce     sync.Once
 }
 
 // NewSimpleFileWatcher 创建简单的文件监听器
@@ -250,7 +251,9 @@ func (sw *SimpleFileWatcher) Start() {
 
 // Stop 停止监听
 func (sw *SimpleFileWatcher) Stop() {
-	close(sw.stopChan)
+	sw.stopOnce.Do(func() {
+		close(sw.stopChan)
+	})
 }
 
 // Close 关闭文件监听器

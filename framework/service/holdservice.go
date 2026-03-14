@@ -28,8 +28,9 @@ func (s *holdService) Run() (err *cd.Error) {
 	sigChan := make(chan os.Signal, 1)
 	defer close(sigChan)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigChan)
 
 	<-sigChan
-	slog.Warn("s.serviceName shutdowning signal:%+v", "field", s.serviceName)
+	slog.Warn("service received shutdown signal", "service", s.serviceName)
 	return
 }

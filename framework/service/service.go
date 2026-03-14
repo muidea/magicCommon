@@ -28,13 +28,13 @@ func (s *defaultService) Startup(serviceName string, eventHub event.Hub, backgro
 
 	ret = initiator.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
-		slog.Error("s.serviceName startup failed, err:%+v", "field", s.serviceName)
+		slog.Error("service startup failed", "service", s.serviceName, "stage", "initiator.setup", "error", ret)
 		return
 	}
 
 	ret = module.Setup(eventHub, backgroundRoutine)
 	if ret != nil {
-		slog.Error("s.serviceName startup failed, err:%+v", "field", s.serviceName)
+		slog.Error("service startup failed", "service", s.serviceName, "stage", "module.setup", "error", ret)
 		return
 	}
 
@@ -43,18 +43,20 @@ func (s *defaultService) Startup(serviceName string, eventHub event.Hub, backgro
 }
 
 func (s *defaultService) Run() (ret *cd.Error) {
-	if errInfo := recover(); errInfo != nil {
-		slog.Error("s.serviceName run failed, err:%+v", "field", s.serviceName)
-	}
+	defer func() {
+		if errInfo := recover(); errInfo != nil {
+			slog.Error("service run panicked", "service", s.serviceName, "panic", errInfo)
+		}
+	}()
 
 	ret = initiator.Run()
 	if ret != nil {
-		slog.Error("s.serviceName run failed, err:%+v", "field", s.serviceName)
+		slog.Error("service run failed", "service", s.serviceName, "stage", "initiator.run", "error", ret)
 		return
 	}
 	ret = module.Run()
 	if ret != nil {
-		slog.Error("s.serviceName run failed, err:%+v", "field", s.serviceName)
+		slog.Error("service run failed", "service", s.serviceName, "stage", "module.run", "error", ret)
 		return
 	}
 
@@ -63,9 +65,11 @@ func (s *defaultService) Run() (ret *cd.Error) {
 }
 
 func (s *defaultService) Shutdown() {
-	if errInfo := recover(); errInfo != nil {
-		slog.Error("s.serviceName shutdown failed, err:%+v", "field", s.serviceName)
-	}
+	defer func() {
+		if errInfo := recover(); errInfo != nil {
+			slog.Error("service shutdown panicked", "service", s.serviceName, "panic", errInfo)
+		}
+	}()
 
 	module.Teardown()
 	initiator.Teardown()

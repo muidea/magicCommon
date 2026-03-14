@@ -104,46 +104,41 @@ func (s *sessionImpl) Signature() (string, error) {
 		mc[innerSessionID] = s.id
 	}
 
-	func() {
-		s.registry.sessionLock.RLock()
-		defer s.registry.sessionLock.RUnlock()
-		for k, v := range s.context {
-			if s.excludeKey(k) {
-				continue
-			}
-
-			mc[k] = v
+	s.registry.sessionLock.RLock()
+	defer s.registry.sessionLock.RUnlock()
+	for k, v := range s.context {
+		if s.excludeKey(k) {
+			continue
 		}
-	}()
+
+		mc[k] = v
+	}
 
 	return SignatureJWT(mc)
 }
 
 func (s *sessionImpl) Reset() {
 	expireValue := time.Now().Add(GetSessionTimeOutValue()).UTC().UnixMilli()
-	func() {
-		startTime := s.context[InnerStartTime]
-		remoteAccessAddr := s.context[InnerRemoteAccessAddr]
-		useAgent := s.context[InnerUseAgent]
-		s.registry.sessionLock.RLock()
-		defer s.registry.sessionLock.RUnlock()
-
-		s.context = map[string]any{
-			InnerStartTime:        startTime,
-			InnerRemoteAccessAddr: remoteAccessAddr,
-			InnerUseAgent:         useAgent,
-			innerExpireTime:       expireValue,
-		}
-		s.observer = map[string]Observer{}
-		s.status = sessionUpdate
-	}()
+	s.registry.sessionLock.Lock()
+	startTime := s.context[InnerStartTime]
+	remoteAccessAddr := s.context[InnerRemoteAccessAddr]
+	useAgent := s.context[InnerUseAgent]
+	s.context = map[string]any{
+		InnerStartTime:        startTime,
+		InnerRemoteAccessAddr: remoteAccessAddr,
+		InnerUseAgent:         useAgent,
+		innerExpireTime:       expireValue,
+	}
+	s.observer = map[string]Observer{}
+	s.status = sessionUpdate
+	s.registry.sessionLock.Unlock()
 
 	s.save()
 }
 
 func (s *sessionImpl) BindObserver(observer Observer) {
-	s.registry.sessionLock.RLock()
-	defer s.registry.sessionLock.RUnlock()
+	s.registry.sessionLock.Lock()
+	defer s.registry.sessionLock.Unlock()
 
 	_, ok := s.observer[observer.ID()]
 	if ok {
@@ -153,8 +148,8 @@ func (s *sessionImpl) BindObserver(observer Observer) {
 }
 
 func (s *sessionImpl) UnbindObserver(observer Observer) {
-	s.registry.sessionLock.RLock()
-	defer s.registry.sessionLock.RUnlock()
+	s.registry.sessionLock.Lock()
+	defer s.registry.sessionLock.Unlock()
 
 	_, ok := s.observer[observer.ID()]
 	if !ok {
@@ -241,12 +236,20 @@ func (s *sessionImpl) RemoveOption(key string) {
 }
 
 func (s *sessionImpl) SubmitOptions() {
+	s.registry.sessionLock.Lock()
 	if s.status != sessionUpdate {
+		s.registry.sessionLock.Unlock()
 		return
 	}
 
 	s.status = sessionActive
+	observers := make([]Observer, 0, len(s.observer))
 	for _, val := range s.observer {
+		observers = append(observers, val)
+	}
+	s.registry.sessionLock.Unlock()
+
+	for _, val := range observers {
 		go val.OnStatusChange(s, StatusUpdate)
 	}
 }
@@ -266,19 +269,18 @@ func (s *sessionImpl) refresh() {
 func (s *sessionImpl) timeout() (ret bool) {
 	var innerExpireTimeInt64 int64
 	nowTime := time.Now().UTC().UnixMilli()
-	defer func() {
-		if ret {
-			s.status = sessionTerminate
-		}
-	}()
 
 	s.registry.sessionLock.RLock()
-	defer s.registry.sessionLock.RUnlock()
-
 	innerExpireTimeInt64 = s.getExpireTime()
+	s.registry.sessionLock.RUnlock()
 
 	// 过期时间小于当前时间就说明已经过期
 	ret = innerExpireTimeInt64 < nowTime
+	if ret {
+		s.registry.sessionLock.Lock()
+		s.status = sessionTerminate
+		s.registry.sessionLock.Unlock()
+	}
 	return
 }
 
@@ -317,11 +319,15 @@ func (s *sessionImpl) getInt(key string) (int64, bool) {
 }
 
 func (s *sessionImpl) terminate() {
+	s.registry.sessionLock.Lock()
 	s.status = sessionTerminate
-	s.registry.sessionLock.RLock()
-	defer s.registry.sessionLock.RUnlock()
-
+	observers := make([]Observer, 0, len(s.observer))
 	for _, val := range s.observer {
+		observers = append(observers, val)
+	}
+	s.registry.sessionLock.Unlock()
+
+	for _, val := range observers {
 		go val.OnStatusChange(s, StatusTerminate)
 	}
 }

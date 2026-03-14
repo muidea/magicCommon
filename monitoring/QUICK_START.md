@@ -56,6 +56,10 @@ func main() {
         log.Fatalf("Failed to create manager: %v", err)
     }
 
+    if err := manager.Initialize(); err != nil {
+        log.Fatalf("Failed to initialize manager: %v", err)
+    }
+
     // 3. 启动监控
     if err := manager.Start(); err != nil {
         log.Fatalf("Failed to start monitoring: %v", err)
@@ -213,6 +217,8 @@ if err := config.Validate(); err != nil {
 
 ### 使用全局管理器
 
+除非确实需要全局单例，否则优先使用实例级 `Manager`。实例级路径更容易控制生命周期，也更适合测试。
+
 ```go
 package main
 
@@ -240,6 +246,12 @@ func main() {
     time.Sleep(5 * time.Minute)
 }
 ```
+
+## 运行环境说明
+
+- 监控 exporter 需要监听本地端口。
+- 在受限环境下，如果监听端口失败，依赖 HTTP exporter 的集成测试应该跳过。
+- 只验证核心采集链路时，优先运行 `go test ./monitoring ./monitoring/core`。
 
 ### 创建多种指标类型
 

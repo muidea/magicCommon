@@ -134,3 +134,15 @@ func TestPoolConcurrentAccess(t *testing.T) {
 		t.Errorf("Expected at most 5 creations, got %d", finalCreationCount)
 	}
 }
+
+func TestPoolCloseAllowsNilReleaseFunc(t *testing.T) {
+	pool, err := New(func() (int, error) {
+		return 1, nil
+	}, WithInitialCapacity(1), WithMaxSize(2))
+	if err != nil {
+		t.Fatalf("Failed to create pool: %v", err)
+	}
+
+	pool.Close(nil)
+	pool.Close(nil)
+}

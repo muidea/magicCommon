@@ -9,6 +9,40 @@ import (
 	"log/slog"
 )
 
+type signalEntry struct {
+	mu     sync.RWMutex
+	ch     chan interface{}
+	closed bool
+}
+
+func newSignalEntry() *signalEntry {
+	return &signalEntry{ch: make(chan interface{}, 1)}
+}
+
+func (s *signalEntry) close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return
+	}
+
+	close(s.ch)
+	s.closed = true
+}
+
+func (s *signalEntry) send(val interface{}) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.closed {
+		return errors.New("signal already closed")
+	}
+
+	s.ch <- val
+	return nil
+}
+
 type Gard struct {
 	signalChanMap sync.Map
 }
@@ -22,34 +56,21 @@ func (s *Gard) PutSignal(id int) (err error) {
 		return
 	}
 
-	signalChan := make(chan interface{}, 1)
-	s.signalChanMap.Store(id, signalChan)
+	s.signalChanMap.Store(id, newSignalEntry())
 	return
 }
 
 func (s *Gard) CleanSignal(id int) {
-	defer func() {
-		if errInfo := recover(); errInfo != nil {
-			slog.Error("clean signal id unexpected, err:errInfo", "field", id, "error", errInfo)
-		}
-	}()
-
 	signalChan, signalOK := s.signalChanMap.Load(id)
 	if !signalOK {
 		return
 	}
 
 	s.signalChanMap.Delete(id)
-	close(signalChan.(chan interface{}))
+	signalChan.(*signalEntry).close()
 }
 
 func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
-	defer func() {
-		if errInfo := recover(); errInfo != nil {
-			slog.Error("wait signal id unexpected, err:errInfo", "field", id, "error", errInfo)
-		}
-	}()
-
 	signalChan, signalOK := s.signalChanMap.Load(id)
 	if !signalOK {
 		msg := fmt.Sprintf("can't find signal %d", id)
@@ -57,9 +78,11 @@ func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 		slog.Error(msg)
 		return
 	}
+	entry := signalChan.(*signalEntry)
+
 	defer func() {
 		s.signalChanMap.Delete(id)
-		close(signalChan.(chan interface{}))
+		entry.close()
 	}()
 
 	if timeOut < 0 {
@@ -67,7 +90,7 @@ func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 	}
 	timeOutVal := time.Duration(timeOut) * time.Second
 	select {
-	case val, ok := <-signalChan.(chan interface{}):
+	case val, ok := <-entry.ch:
 		if ok {
 			ret = val
 		}
@@ -80,12 +103,6 @@ func (s *Gard) WaitSignal(id, timeOut int) (ret interface{}, err error) {
 }
 
 func (s *Gard) TriggerSignal(id int, val interface{}) (err error) {
-	defer func() {
-		if errInfo := recover(); errInfo != nil {
-			slog.Error("trigger signal id unexpected, err:errInfo", "field", id, "error", errInfo)
-		}
-	}()
-
 	signalChan, signalOK := s.signalChanMap.Load(id)
 	if !signalOK {
 		msg := fmt.Sprintf("can't find signal %d", id)
@@ -94,21 +111,17 @@ func (s *Gard) TriggerSignal(id int, val interface{}) (err error) {
 		return
 	}
 
-	signalChan.(chan interface{}) <- val
+	err = signalChan.(*signalEntry).send(val)
+	if err != nil {
+		slog.Error("trigger signal failed", "id", id, "error", err)
+	}
 	return
 }
 
 func (s *Gard) Reset() {
-	defer func() {
-		if errInfo := recover(); errInfo != nil {
-			slog.Error("reset signal chan map unexpected, err:%v", errInfo)
-		}
-	}()
-
 	s.signalChanMap.Range(func(key, value any) bool {
 		s.signalChanMap.Delete(key)
-		close(value.(chan interface{}))
+		value.(*signalEntry).close()
 		return true
 	})
-
 }

@@ -80,6 +80,7 @@ type sessionRegistryImpl struct {
 	sessionLock        sync.RWMutex
 	registryCancelFunc context.CancelFunc
 	sessionObserver    Observer
+	releaseOnce        sync.Once
 }
 
 // DefaultRegistry 创建Session仓库
@@ -111,8 +112,10 @@ func (s *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Requ
 }
 
 func (s *sessionRegistryImpl) Release() {
-	s.registryCancelFunc()
-	s.commandChan.end()
+	s.releaseOnce.Do(func() {
+		s.registryCancelFunc()
+		s.commandChan.end()
+	})
 }
 
 func (s *sessionRegistryImpl) CountSession(filter util.Filter) int {
@@ -358,10 +361,13 @@ func (right commandChanImpl) run() {
 				}
 			}()
 		case length:
-			filter := command.value.(util.Filter)
+			var filter util.Filter
+			if command.value != nil {
+				filter = command.value.(util.Filter)
+			}
 			if filter == nil {
 				command.result <- len(sessionContextMap)
-				return
+				break
 			}
 			count := 0
 			for _, val := range sessionContextMap {

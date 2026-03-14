@@ -60,6 +60,31 @@ func TestUnZipFile_ZipFileOpenError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestUnZipFile_RejectsZipSlip(t *testing.T) {
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+
+	fw, err := w.Create("../evil.txt")
+	assert.NoError(t, err)
+	_, err = fw.Write([]byte("evil"))
+	assert.NoError(t, err)
+	err = w.Close()
+	assert.NoError(t, err)
+
+	tmpfile, err := os.CreateTemp("", "zipslip")
+	assert.NoError(t, err)
+	defer func() { _ = tmpfile.Close() }()
+	defer func() { _ = os.Remove(tmpfile.Name()) }()
+
+	_, err = tmpfile.Write(buf.Bytes())
+	assert.NoError(t, err)
+
+	destDir := t.TempDir()
+	_, err = UnZipFile(tmpfile.Name(), destDir)
+	assert.Error(t, err)
+	assert.NoFileExists(t, filepath.Join(filepath.Dir(destDir), "evil.txt"))
+}
+
 func TestZipDir_SuccessfulCompression(t *testing.T) {
 	// 创建一个临时目录
 	dir, err := os.MkdirTemp("", "testdir")

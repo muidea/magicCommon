@@ -18,14 +18,22 @@ const gPassword = "rootkit"
 const gSvrAddress = "localhost:5432"
 const gDBName = "testdb001"
 
-func TestDatabase(t *testing.T) {
+func fetchOrSkip(t *testing.T) Dao {
+	t.Helper()
+
 	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
 	if err != nil {
-		t.Errorf("Fetch dao failed, err:%s", err.Error())
+		t.Skipf("PostgreSQL not available, skipping DAO integration test: %v", err)
 	}
+
+	return dao
+}
+
+func TestDatabase(t *testing.T) {
+	dao := fetchOrSkip(t)
 	defer func() { _ = dao.Release() }()
 
-	err = dao.CreateDatabase("supetl")
+	err := dao.CreateDatabase("supetl")
 	if err != nil {
 		t.Errorf("create database error:%s", err.Error())
 		return
@@ -69,10 +77,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 }
 
 func TestInsert(t *testing.T) {
-	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
-	if err != nil {
-		t.Errorf("Fetch dao failed, err:%s", err.Error())
-	}
+	dao := fetchOrSkip(t)
 	defer func() { _ = dao.Release() }()
 
 	initFunc(dao, gDBName)
@@ -102,7 +107,7 @@ func TestInsert(t *testing.T) {
 
 	querySql := "select * from \"user\" where address like $1"
 	param := "%a%"
-	err = dao.Query(querySql, param)
+	err := dao.Query(querySql, param)
 	if err != nil {
 		t.Errorf("dao.Query(querySql) failed, error:%s", err.Error())
 		return
@@ -131,10 +136,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	dao, err := Fetch(gUser, gPassword, gSvrAddress, "")
-	if err != nil {
-		t.Errorf("Fetch dao failed, err:%s", err.Error())
-	}
+	dao := fetchOrSkip(t)
 	defer func() { _ = dao.Release() }()
 
 	initFunc(dao, gDBName)
@@ -142,11 +144,20 @@ func TestQuery(t *testing.T) {
 
 	selectSql := "select id,address from \"user\""
 
-	_ = dao.Query(selectSql)
+	err := dao.Query(selectSql)
+	if err != nil {
+		t.Errorf("dao.Query(selectSql) failed, error:%s", err.Error())
+		return
+	}
+	defer func() { _ = dao.Finish() }()
 
 	for dao.Next() {
 		user := User{}
 
-		_ = dao.GetField(&user.id, &user.address)
+		err = dao.GetField(&user.id, &user.address)
+		if err != nil {
+			t.Errorf("dao.GetField(&user.id, &user.address) failed, error:%s", err.Error())
+			return
+		}
 	}
 }

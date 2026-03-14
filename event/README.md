@@ -124,6 +124,13 @@ func (s Values) GetBool(key string) bool
 3. **通道通信**：使用 action channel 处理订阅/发布操作
 4. **优雅关闭**：支持 `Terminate()` 方法安全关闭所有协程
 
+**运行语义**：
+- `Post()` 是异步投递，如果内部 channel 在超时窗口内无法接收，当前实现会记录告警并放弃这次投递，而不是无限阻塞调用方。
+- `Send()` 是同步投递，如果内部 channel 在超时窗口内无法接收，会返回超时结果。
+- `Terminate()` 是幂等且并发安全的；关闭阶段如果内部执行器在等待窗口内没有排空，会记录告警而不是无限等待。
+- 事件匹配缓存按 `eventID + destination` 维度缓存，避免不同 destination 间误复用观察者列表。
+- 默认应用关闭路径现在会先让 service 结束，再关闭 `BackgroundRoutine`，最后调用 `EventHub.Terminate()`，避免 hub 在 service 已经退出后继续接收新工作。
+
 **内部数据结构**：
 - `event2Observer`：事件ID到观察者列表的映射
 - `observerID2ActionChannel`：观察者ID到处理通道的映射
@@ -149,6 +156,9 @@ observer.Subscribe("/user/+", func(event Event, result Result) {
 ```go
 // 创建事件中心，capacitySize 指定执行器容量
 func NewHub(capacitySize int) Hub
+
+// 创建带可选内部缓冲和执行器配置的事件中心
+func NewHubWithOptions(capacitySize int, opts ...HubOption) Hub
 ```
 
 ### 创建事件

@@ -14,6 +14,10 @@ func InvokeEntityFunc(entityVal interface{}, funcName string, params ...interfac
 	}
 
 	vVal := reflect.ValueOf(entityVal)
+	if vVal.Kind() == reflect.Ptr && vVal.IsNil() {
+		return cd.NewError(cd.IllegalParam, "entityVal is nil")
+	}
+
 	funcVal := vVal.MethodByName(funcName)
 	if !isValidMethod(funcVal) {
 		return cd.NewError(cd.NotFound, fmt.Sprintf("no such method:%s", funcName))

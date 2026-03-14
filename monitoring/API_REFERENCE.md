@@ -98,7 +98,7 @@ func (m *Manager) RegisterProvider(
     priority int,
 ) *types.Error
 ```
-注册指标提供者。
+向当前 `Manager` 实例注册指标提供者。
 
 **参数：**
 - `name` - 提供者名称（唯一标识）

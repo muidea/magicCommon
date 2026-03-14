@@ -3,6 +3,7 @@ package cache
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -200,5 +201,52 @@ func TestGenericKVCache_EmptyKey(t *testing.T) {
 	val := cache.Fetch("")
 	if val != "value" {
 		t.Errorf("Fetch() empty key = %v, want value", val)
+	}
+}
+
+func TestGenericKVCache_ReleaseIsIdempotent(t *testing.T) {
+	cache := NewGenericKVCache[string, string](nil)
+
+	cache.Put("key", "value", 10)
+	cache.Release()
+	cache.Release()
+}
+
+func TestGenericKVCache_TimeoutCleanupDoesNotBreakRelease(t *testing.T) {
+	var cleanCalled atomic.Bool
+	cache := NewGenericKVCache[string, string](func(key string) {
+		cleanCalled.Store(true)
+	})
+
+	cache.Put("key", "value", 1)
+	time.Sleep(6 * time.Second)
+	cache.Release()
+
+	if !cleanCalled.Load() {
+		t.Error("expected timeout cleanup callback to run")
+	}
+}
+
+func TestGenericKVCacheOptionsCapacityAndStats(t *testing.T) {
+	cache := NewGenericKVCacheWithOptions[string, int](nil, &CacheOptions{
+		Capacity:        1,
+		CleanupInterval: 50 * time.Millisecond,
+	}).(*GenericKVCache[string, int])
+	defer cache.Release()
+
+	cache.Put("k1", 1, 10)
+	_ = cache.Fetch("k1")
+	cache.Put("k2", 2, 10)
+
+	if value := cache.Fetch("k1"); value != 0 {
+		t.Fatalf("expected k1 to be evicted, got %d", value)
+	}
+
+	stats := cache.Stats()
+	if stats.Capacity != 1 || stats.Entries != 1 {
+		t.Fatalf("unexpected stats: %+v", stats)
+	}
+	if stats.Evictions != 1 || stats.Hits != 1 || stats.Misses != 1 {
+		t.Fatalf("unexpected hit/miss stats: %+v", stats)
 	}
 }

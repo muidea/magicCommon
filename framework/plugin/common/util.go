@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"reflect"
+	"sync"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
@@ -15,6 +16,7 @@ type InvokeFunc func() *cd.Error
 type PluginMgr struct {
 	typeName   string
 	entityList []any
+	mu         sync.RWMutex
 }
 
 func NewPluginMgr(typeName string) *PluginMgr {
@@ -25,7 +27,7 @@ func NewPluginMgr(typeName string) *PluginMgr {
 	return ptr
 }
 
-func (s *PluginMgr) getWeight(ptr any) (int, error) {
+func (s *PluginMgr) getWeight(ptr any) (weight int, err error) {
 	vVal := reflect.ValueOf(ptr)
 	funcVal := vVal.MethodByName(weightTag)
 	if !funcVal.IsValid() {
@@ -35,6 +37,8 @@ func (s *PluginMgr) getWeight(ptr any) (int, error) {
 	defer func() {
 		if info := recover(); info != nil {
 			slog.Error("panic in getWeight", "recover", info)
+			weight = DefaultWeight
+			err = fmt.Errorf("panic invoking %s", weightTag)
 		}
 	}()
 
@@ -48,10 +52,11 @@ func (s *PluginMgr) getWeight(ptr any) (int, error) {
 		return DefaultWeight, fmt.Errorf("weight method must return int, got %s", funcVal.Type().Out(0).String())
 	}
 
-	return int(values[0].Int()), nil
+	weight = int(values[0].Int())
+	return weight, nil
 }
 
-func (s *PluginMgr) getID(ptr any) (string, error) {
+func (s *PluginMgr) getID(ptr any) (id string, err error) {
 	vVal := reflect.ValueOf(ptr)
 	funcVal := vVal.MethodByName(idTag)
 	if !funcVal.IsValid() {
@@ -61,6 +66,8 @@ func (s *PluginMgr) getID(ptr any) (string, error) {
 	defer func() {
 		if info := recover(); info != nil {
 			slog.Error("panic in getID", "recover", info)
+			id = ""
+			err = fmt.Errorf("panic invoking %s", idTag)
 		}
 	}()
 
@@ -74,13 +81,24 @@ func (s *PluginMgr) getID(ptr any) (string, error) {
 		return "", fmt.Errorf("method %s must return string, got %s", idTag, funcVal.Type().Out(0).String())
 	}
 
-	return values[0].String(), nil
+	id = values[0].String()
+	return id, nil
 }
 
 func (s *PluginMgr) validPlugin(ptr any) error {
+	if ptr == nil {
+		return fmt.Errorf("plugin is nil")
+	}
+
 	vType := reflect.TypeOf(ptr)
+	if vType == nil {
+		return fmt.Errorf("plugin type is nil")
+	}
 	if vType.Kind() != reflect.Ptr {
 		return fmt.Errorf("must be a pointer")
+	}
+	if reflect.ValueOf(ptr).IsNil() {
+		return fmt.Errorf("plugin pointer is nil")
 	}
 
 	_, idOK := vType.MethodByName(idTag)
@@ -103,6 +121,13 @@ func (s *PluginMgr) Register(ptr any) error {
 	if err != nil {
 		return err
 	}
+	curID, err := s.getID(ptr)
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	newList := []any{}
 	if len(s.entityList) == 0 {
@@ -110,6 +135,14 @@ func (s *PluginMgr) Register(ptr any) error {
 	} else {
 		ok := false
 		for idx, val := range s.entityList {
+			existID, err := s.getID(val)
+			if err != nil {
+				return err
+			}
+			if existID == curID {
+				return fmt.Errorf("duplicate plugin id: %s", curID)
+			}
+
 			preWeight, err := s.getWeight(val)
 			if err != nil {
 				return err
@@ -135,7 +168,11 @@ func (s *PluginMgr) Register(ptr any) error {
 }
 
 func (s *PluginMgr) GetEntity(id string) (ret any, err *cd.Error) {
-	for _, val := range s.entityList {
+	s.mu.RLock()
+	entityList := append([]any(nil), s.entityList...)
+	s.mu.RUnlock()
+
+	for _, val := range entityList {
 		idVal, idErr := s.getID(val)
 		if idErr != nil {
 			err = cd.NewError(cd.Unexpected, fmt.Sprintf("get ID failed: %v", idErr))
@@ -152,7 +189,11 @@ func (s *PluginMgr) GetEntity(id string) (ret any, err *cd.Error) {
 }
 
 func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err *cd.Error) {
-	for _, val := range s.entityList {
+	s.mu.RLock()
+	entityList := append([]any(nil), s.entityList...)
+	s.mu.RUnlock()
+
+	for _, val := range entityList {
 		err = system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
 		if err != nil && err.Code != cd.NotFound {
 			idVal, idErr := s.getID(val)
@@ -169,7 +210,11 @@ func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundR
 }
 
 func (s *PluginMgr) Run() (err *cd.Error) {
-	for _, val := range s.entityList {
+	s.mu.RLock()
+	entityList := append([]any(nil), s.entityList...)
+	s.mu.RUnlock()
+
+	for _, val := range entityList {
 		err = system.InvokeEntityFunc(val, runTag)
 		if err != nil && err.Code != cd.NotFound {
 			idVal, idErr := s.getID(val)
@@ -188,9 +233,13 @@ func (s *PluginMgr) Run() (err *cd.Error) {
 }
 
 func (s *PluginMgr) Teardown() {
-	totalSize := len(s.entityList)
-	for idx := range s.entityList {
-		val := s.entityList[totalSize-idx-1]
+	s.mu.RLock()
+	entityList := append([]any(nil), s.entityList...)
+	s.mu.RUnlock()
+
+	totalSize := len(entityList)
+	for idx := range entityList {
+		val := entityList[totalSize-idx-1]
 		err := system.InvokeEntityFunc(val, teardownTag)
 		if err != nil && err.Code != cd.NotFound {
 			idVal, idErr := s.getID(val)

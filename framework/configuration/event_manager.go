@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"reflect"
 	"sync"
 	"time"
 )
@@ -22,6 +23,10 @@ func NewEventManager() *EventManager {
 
 // RegisterGlobalWatcher 注册全局配置监听器
 func (em *EventManager) RegisterGlobalWatcher(key string, handler ConfigChangeHandler) {
+	if handler == nil {
+		return
+	}
+
 	em.mu.Lock()
 	defer em.mu.Unlock()
 
@@ -34,6 +39,10 @@ func (em *EventManager) RegisterGlobalWatcher(key string, handler ConfigChangeHa
 
 // RegisterModuleWatcher 注册模块配置监听器
 func (em *EventManager) RegisterModuleWatcher(moduleName, key string, handler ConfigChangeHandler) {
+	if handler == nil {
+		return
+	}
+
 	em.mu.Lock()
 	defer em.mu.Unlock()
 
@@ -78,10 +87,11 @@ func (em *EventManager) UnregisterGlobalWatcher(key string, handler ConfigChange
 // isSameHandler 检查两个处理器是否相同
 // 注意：这是一个简化的实现，在实际应用中可能需要更复杂的逻辑
 func isSameHandler(a, b ConfigChangeHandler) bool {
-	// 由于函数值不能直接比较，我们假设每次调用都是不同的处理器
-	// 在实际应用中，可能需要使用反射或其他方法来比较函数
-	// 这里我们返回false，让测试通过，但实际使用时需要更完善的实现
-	return false
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+
+	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
 }
 
 // UnregisterModuleWatcher 取消注册模块配置监听器
@@ -120,9 +130,11 @@ func (em *EventManager) UnregisterModuleWatcher(moduleName, key string, handler 
 // NotifyGlobalChange 通知全局配置变更
 func (em *EventManager) NotifyGlobalChange(key string, oldValue, newValue any) {
 	em.mu.RLock()
-	defer em.mu.RUnlock()
-
 	handlers, exists := em.globalWatchers[key]
+	if exists {
+		handlers = append([]ConfigChangeHandler(nil), handlers...)
+	}
+	em.mu.RUnlock()
 	if !exists {
 		return
 	}
@@ -137,6 +149,9 @@ func (em *EventManager) NotifyGlobalChange(key string, oldValue, newValue any) {
 	// 异步执行监听器，避免阻塞
 	go func() {
 		for _, handler := range handlers {
+			if handler == nil {
+				continue
+			}
 			handler(event)
 		}
 	}()
@@ -145,15 +160,21 @@ func (em *EventManager) NotifyGlobalChange(key string, oldValue, newValue any) {
 // NotifyModuleChange 通知模块配置变更
 func (em *EventManager) NotifyModuleChange(moduleName, key string, oldValue, newValue any) {
 	em.mu.RLock()
-	defer em.mu.RUnlock()
-
 	moduleWatchers, exists := em.moduleWatchers[moduleName]
 	if !exists {
+		em.mu.RUnlock()
 		return
 	}
 
 	handlers, exists := moduleWatchers[key]
 	if !exists {
+		em.mu.RUnlock()
+		return
+	}
+	handlers = append([]ConfigChangeHandler(nil), handlers...)
+	em.mu.RUnlock()
+
+	if len(handlers) == 0 {
 		return
 	}
 
@@ -167,6 +188,9 @@ func (em *EventManager) NotifyModuleChange(moduleName, key string, oldValue, new
 	// 异步执行监听器，避免阻塞
 	go func() {
 		for _, handler := range handlers {
+			if handler == nil {
+				continue
+			}
 			handler(event)
 		}
 	}()

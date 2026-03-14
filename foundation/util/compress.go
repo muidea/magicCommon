@@ -2,9 +2,11 @@ package util
 
 import (
 	"archive/zip"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"log/slog"
 )
@@ -22,49 +24,21 @@ func UnZipFile(zipFile, destDir string) (ret []string, err error) {
 		}
 	}()
 
+	destRoot, absErr := filepath.Abs(destDir)
+	if absErr != nil {
+		return nil, absErr
+	}
+
 	for _, f := range zipHandler.File {
-		zfHandle, zfErr := f.Open()
-		if zfErr != nil {
-			err = zfErr
-			slog.Error("getFieldReferenceValue failed", "file", f.Name, "error", zfErr.Error())
-			return
+		path, pathErr := safeZipPath(destRoot, f.Name)
+		if pathErr != nil {
+			return nil, pathErr
 		}
-		defer func() {
-			if closeErr := zfHandle.Close(); closeErr != nil {
-				slog.Warn("Failed to close zip file handle", "file", f.Name, "error", closeErr)
-			}
-		}()
 
-		path := filepath.Join(destDir, f.Name)
-		if f.FileInfo().IsDir() {
-			err = os.MkdirAll(path, 0755)
-			if err != nil {
-				slog.Error("getFieldReferenceValue failed", "path", path, "error", err.Error())
-				return
-			}
-		} else {
-			err = os.MkdirAll(filepath.Dir(path), 0755)
-			if err != nil {
-				slog.Error("getFieldReferenceValue failed", "path", filepath.Dir(path), "error", err.Error())
-				return
-			}
-			fHandle, fErr := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-			if fErr != nil {
-				err = fErr
-				return
-			}
-			defer func() {
-				if closeErr := fHandle.Close(); closeErr != nil {
-					slog.Warn("Failed to close file handle", "path", path, "error", closeErr)
-				}
-			}()
-
-			_, err = io.Copy(fHandle, zfHandle)
-			if err != nil {
-				slog.Error("UnZipFile failed", "error", err.Error())
-				return
-			}
+		if err = extractZipEntry(f, path); err != nil {
+			return nil, err
 		}
+
 		ret = append(ret, path)
 	}
 
@@ -110,14 +84,7 @@ func ZipDir(sourceDir, outputFile string) error {
 		}
 
 		if !info.IsDir() {
-			file, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer func() { _ = file.Close() }()
-
-			_, err = io.Copy(writer, file)
-			if err != nil {
+			if err = copyFileToZip(writer, path); err != nil {
 				return err
 			}
 		}
@@ -183,4 +150,73 @@ func addFileToZip(zw *zip.Writer, filename string) error {
 
 func ZipFile(file, outputFile string) (err error) {
 	return ZipFiles([]string{file}, outputFile)
+}
+
+func safeZipPath(destRoot, entryName string) (string, error) {
+	targetPath := filepath.Join(destRoot, entryName)
+	absTarget, err := filepath.Abs(targetPath)
+	if err != nil {
+		return "", err
+	}
+
+	prefix := destRoot + string(os.PathSeparator)
+	if absTarget != destRoot && !strings.HasPrefix(absTarget, prefix) {
+		return "", fmt.Errorf("illegal zip entry path: %s", entryName)
+	}
+
+	return absTarget, nil
+}
+
+func extractZipEntry(f *zip.File, path string) error {
+	if f.FileInfo().IsDir() {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			slog.Error("UnZipFile failed", "path", path, "error", err.Error())
+			return err
+		}
+		return nil
+	}
+
+	zfHandle, err := f.Open()
+	if err != nil {
+		slog.Error("getFieldReferenceValue failed", "file", f.Name, "error", err.Error())
+		return err
+	}
+	defer func() {
+		if closeErr := zfHandle.Close(); closeErr != nil {
+			slog.Warn("Failed to close zip file handle", "file", f.Name, "error", closeErr)
+		}
+	}()
+
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		slog.Error("getFieldReferenceValue failed", "path", filepath.Dir(path), "error", err.Error())
+		return err
+	}
+
+	fHandle, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := fHandle.Close(); closeErr != nil {
+			slog.Warn("Failed to close file handle", "path", path, "error", closeErr)
+		}
+	}()
+
+	if _, err := io.Copy(fHandle, zfHandle); err != nil {
+		slog.Error("UnZipFile failed", "error", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func copyFileToZip(writer io.Writer, path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = file.Close() }()
+
+	_, err = io.Copy(writer, file)
+	return err
 }

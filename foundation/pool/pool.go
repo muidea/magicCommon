@@ -249,7 +249,9 @@ func (s *Pool[T]) Close(releaseFunc func(T)) {
 		s.closed = true
 		// Release remaining resources
 		for _, tVal := range s.idleQueue {
-			releaseFunc(tVal)
+			if releaseFunc != nil {
+				releaseFunc(tVal)
+			}
 		}
 		// Log warning if not all resources were returned
 		if len(s.idleQueue) < s.totalSize {

@@ -50,6 +50,12 @@ func NewDNSCacheHttpClient() *http.Client {
 		return
 	}
 
-	http.DefaultTransport.(*http.Transport).DialContext = dialContext
-	return &http.Client{}
+	baseTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return &http.Client{}
+	}
+
+	transport := baseTransport.Clone()
+	transport.DialContext = dialContext
+	return &http.Client{Transport: transport}
 }

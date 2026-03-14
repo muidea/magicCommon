@@ -3,6 +3,7 @@ package cache
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -182,6 +183,52 @@ func TestKVCache(t *testing.T) {
 		key = cache.Put("negativeTimeoutKey", "value", -1)
 		if key != "negativeTimeoutKey" {
 			t.Error("Should handle negative timeout")
+		}
+	})
+
+	t.Run("Test Release Is Idempotent", func(t *testing.T) {
+		cache := NewKVCache(nil)
+		cache.Put("key", "value", 10)
+		cache.Release()
+		cache.Release()
+	})
+
+	t.Run("Test Timeout Cleanup Does Not Break Release", func(t *testing.T) {
+		var callbackCalled atomic.Bool
+		cache := NewKVCache(func(key string) {
+			callbackCalled.Store(true)
+		})
+
+		cache.Put("key", "value", 1)
+		time.Sleep(6 * time.Second)
+		cache.Release()
+
+		if !callbackCalled.Load() {
+			t.Error("Timeout cleanup callback not called")
+		}
+	})
+
+	t.Run("Test Options Capacity And Stats", func(t *testing.T) {
+		cache := NewKVCacheWithOptions(nil, &CacheOptions{
+			Capacity:        1,
+			CleanupInterval: 50 * time.Millisecond,
+		}).(*MemoryKVCache)
+		defer cache.Release()
+
+		cache.Put("k1", "v1", 10)
+		_ = cache.Fetch("k1")
+		cache.Put("k2", "v2", 10)
+
+		if value := cache.Fetch("k1"); value != nil {
+			t.Fatalf("expected k1 to be evicted, got %v", value)
+		}
+
+		stats := cache.Stats()
+		if stats.Capacity != 1 || stats.Entries != 1 {
+			t.Fatalf("unexpected stats: %+v", stats)
+		}
+		if stats.Evictions != 1 || stats.Hits != 1 || stats.Misses != 1 {
+			t.Fatalf("unexpected hit/miss stats: %+v", stats)
 		}
 	})
 }

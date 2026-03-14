@@ -1,6 +1,7 @@
 package execute
 
 import (
+	"context"
 	"log/slog"
 	"math"
 	"sync"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/muidea/magicCommon/foundation/util"
 )
+
+const defaultWaitTimeout = 5 * time.Second
 
 type Execute struct {
 	mu            sync.Mutex
@@ -68,14 +71,53 @@ func (s *Execute) Run(funcPtr func()) {
 }
 
 func (s *Execute) Wait() {
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
+	_ = s.WaitTimeout(defaultWaitTimeout)
+}
+
+func (s *Execute) Idle() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.activeCount == 0
+}
+
+// WaitTimeout waits until all submitted tasks drain or the timeout expires.
+// It returns true when the queue becomes idle before the timeout.
+// A non-positive timeout means wait indefinitely.
+func (s *Execute) WaitTimeout(timeout time.Duration) bool {
+	var deadline time.Time
+	if timeout > 0 {
+		deadline = time.Now().Add(timeout)
+	}
+
+	for {
 		s.mu.Lock()
 		if s.activeCount == 0 {
 			s.mu.Unlock()
-			return
+			return true
 		}
 		s.mu.Unlock()
+
+		if !deadline.IsZero() && time.Now().After(deadline) {
+			return false
+		}
+
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// WaitContext waits until all submitted tasks drain or the context is canceled.
+// It returns true when the queue becomes idle before the context finishes.
+func (s *Execute) WaitContext(ctx context.Context) bool {
+	for {
+		if s.Idle() {
+			return true
+		}
+
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(10 * time.Millisecond):
+		}
 	}
 }

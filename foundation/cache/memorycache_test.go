@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -98,4 +99,49 @@ func TestMemoryCache_Timeout(t *testing.T) {
 
 	// 验证清理回调被调用
 	assert.True(t, cleanCalled)
+}
+
+func TestMemoryCache_ReleaseIsIdempotent(t *testing.T) {
+	cache := NewCache(nil).(*MemoryCache)
+
+	cache.Put("test data", 10)
+	cache.Release()
+	cache.Release()
+}
+
+func TestMemoryCache_TimeoutCleanupDoesNotBreakRelease(t *testing.T) {
+	var cleanCalled atomic.Bool
+	cache := NewCache(func(id string) {
+		cleanCalled.Store(true)
+	}).(*MemoryCache)
+
+	cache.Put("test data", 1)
+	time.Sleep(6 * time.Second)
+	cache.Release()
+
+	assert.True(t, cleanCalled.Load())
+}
+
+func TestMemoryCacheOptionsCapacityAndStats(t *testing.T) {
+	cache := NewCacheWithOptions(nil, &CacheOptions{
+		Capacity:        1,
+		CleanupInterval: 50 * time.Millisecond,
+	}).(*MemoryCache)
+	defer cache.Release()
+
+	firstID := cache.Put("first", 10)
+	_ = cache.Fetch(firstID)
+	cache.Put("second", 10)
+
+	if got := cache.Fetch(firstID); got != nil {
+		t.Fatalf("expected oldest entry to be evicted, got %v", got)
+	}
+
+	stats := cache.Stats()
+	assert.Equal(t, 1, stats.Capacity)
+	assert.Equal(t, 1, stats.Entries)
+	assert.Equal(t, int64(2), stats.Puts)
+	assert.Equal(t, int64(1), stats.Hits)
+	assert.Equal(t, int64(1), stats.Evictions)
+	assert.Equal(t, int64(1), stats.Misses)
 }

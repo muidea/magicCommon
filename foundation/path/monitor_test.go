@@ -197,3 +197,31 @@ func TestMonitor_Concurrent(t *testing.T) {
 		assert.Equal(t, testFile, events[0].Path)
 	}
 }
+
+func TestMonitor_StopIsIdempotent(t *testing.T) {
+	monitor, err := NewMonitor(nil)
+	assert.NoError(t, err)
+
+	err = monitor.Start()
+	assert.NoError(t, err)
+
+	err = monitor.Stop()
+	assert.NoError(t, err)
+
+	err = monitor.Stop()
+	assert.NoError(t, err)
+}
+
+func TestMonitor_StartAfterStopFails(t *testing.T) {
+	monitor, err := NewMonitor(nil)
+	assert.NoError(t, err)
+
+	err = monitor.Start()
+	assert.NoError(t, err)
+
+	err = monitor.Stop()
+	assert.NoError(t, err)
+
+	err = monitor.Start()
+	assert.Error(t, err)
+}

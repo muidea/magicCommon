@@ -7,6 +7,18 @@
 
 一个高性能、可扩展的通用监控框架，用于收集、管理和导出应用程序指标。支持Prometheus和JSON格式导出，提供完整的生命周期管理和线程安全保证。
 
+## 推荐入口
+
+优先使用实例级 `Manager`，推荐顺序如下：
+
+1. `NewManager(config)`
+2. `Initialize()`
+3. `RegisterProvider(...)`
+4. `Start()`
+5. 退出时 `Shutdown()`
+
+全局 manager 主要用于简单程序或历史兼容场景，不建议和多个实例 manager 混用。
+
 ## ✨ 特性
 
 - **多种指标类型**: 支持Counter、Gauge、Histogram、Summary四种标准指标类型
@@ -47,6 +59,10 @@ func main() {
     manager, err := monitoring.NewManager(&config)
     if err != nil {
         log.Fatalf("Failed to create monitoring manager: %v", err)
+    }
+
+    if err := manager.Initialize(); err != nil {
+        log.Fatalf("Failed to initialize monitoring manager: %v", err)
     }
 
     // 启动监控
@@ -119,12 +135,12 @@ func (p *MyMetricsProvider) Collect() ([]types.Metric, *types.Error) {
 }
 
 // 注册提供者
-func init() {
-    monitoring.RegisterGlobalProvider(
+func registerProvider(manager *monitoring.Manager) error {
+    return manager.RegisterProvider(
         "myapp",
         func() types.MetricProvider { return NewMyMetricsProvider() },
-        true,  // 自动初始化
-        100,   // 优先级
+        true,
+        100,
     )
 }
 ```
@@ -200,13 +216,16 @@ curl http://localhost:9090/health
 // 创建管理器
 manager, err := monitoring.NewManager(config)
 
+// 初始化管理器
+err = manager.Initialize()
+
 // 启动监控
 err := manager.Start()
 
 // 停止监控
 err := manager.Shutdown()
 
-// 注册提供者
+// 在 manager 实例上注册提供者
 err := manager.RegisterProvider(name, factory, autoInit, priority)
 
 // 收集指标
@@ -260,6 +279,17 @@ go test -bench=. ./test/benchmark_test.go
 
 # 运行并发测试
 go test -v ./test/concurrency_test.go
+```
+
+### 受限环境说明
+
+- exporter 需要监听本地端口。
+- 如果当前环境不允许监听端口，依赖 HTTP exporter 的测试应当跳过，而不是误报功能失败。
+- 只验证采集和 registry 逻辑时，优先运行：
+
+```bash
+GOCACHE=/tmp/magiccommon-gocache GOFLAGS=-mod=vendor \
+go test ./monitoring ./monitoring/core -count 1
 ```
 
 ### 测试覆盖率
@@ -332,7 +362,7 @@ config.BufferSize = 1000    // 缓冲区大小1000
 
 3. **导出失败**
    - 检查端口占用：`config.ExportConfig.Port`
-   - 检查网络连接
+   - 检查当前环境是否允许监听本地端口
 
 ### 调试工具
 

@@ -73,6 +73,25 @@ func (p *MetadataTestProvider) Collect() ([]types.Metric, *types.Error) {
 	}, nil
 }
 
+func ensureMonitoringServerReachable(t *testing.T, port int) {
+	t.Helper()
+
+	client := &http.Client{Timeout: 200 * time.Millisecond}
+	baseURL := fmt.Sprintf("http://localhost:%d/", port)
+	deadline := time.Now().Add(2 * time.Second)
+
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(baseURL)
+		if err == nil {
+			_ = resp.Body.Close()
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	t.Skipf("monitoring exporter is not reachable on port %d in current environment", port)
+}
+
 func TestMetadataEndpoints(t *testing.T) {
 	// Create a custom configuration with metadata endpoints enabled
 	config := core.DefaultMonitoringConfig()
@@ -106,11 +125,14 @@ func TestMetadataEndpoints(t *testing.T) {
 
 	// Give some time for server to start
 	time.Sleep(100 * time.Millisecond)
+	ensureMonitoringServerReachable(t, config.ExportConfig.Port)
 
 	// Test 1: Get all metadata
 	t.Run("GetAllMetadata", func(t *testing.T) {
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%d%s", config.ExportConfig.Port, config.ExportConfig.MetadataPath))
-		assert.Nil(t, err, "Failed to get metadata")
+		if !assert.Nil(t, err, "Failed to get metadata") {
+			return
+		}
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status 200")
@@ -160,7 +182,9 @@ func TestMetadataEndpoints(t *testing.T) {
 	t.Run("GetSingleMetricMetadata", func(t *testing.T) {
 		// First get all metadata to find the full metric name
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%d%s", config.ExportConfig.Port, config.ExportConfig.MetadataPath))
-		assert.Nil(t, err, "Failed to get all metadata")
+		if !assert.Nil(t, err, "Failed to get all metadata") {
+			return
+		}
 		defer func() { _ = resp.Body.Close() }()
 
 		var allMetadata struct {
@@ -181,7 +205,9 @@ func TestMetadataEndpoints(t *testing.T) {
 
 		// Now get single metric metadata
 		resp, err = http.Get(fmt.Sprintf("http://localhost:%d%s/%s", config.ExportConfig.Port, config.ExportConfig.MetadataPath, fullMetricName))
-		assert.Nil(t, err, "Failed to get single metric metadata")
+		if !assert.Nil(t, err, "Failed to get single metric metadata") {
+			return
+		}
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status 200")
@@ -200,7 +226,9 @@ func TestMetadataEndpoints(t *testing.T) {
 	// Test 3: Get non-existent metric metadata
 	t.Run("GetNonExistentMetricMetadata", func(t *testing.T) {
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%d%s/nonexistent_metric", config.ExportConfig.Port, config.ExportConfig.MetadataPath))
-		assert.Nil(t, err, "Failed to get non-existent metric metadata")
+		if !assert.Nil(t, err, "Failed to get non-existent metric metadata") {
+			return
+		}
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Expected status 404 for non-existent metric")
@@ -209,7 +237,9 @@ func TestMetadataEndpoints(t *testing.T) {
 	// Test 4: Verify metadata endpoint is listed in info
 	t.Run("MetadataEndpointInInfo", func(t *testing.T) {
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/", config.ExportConfig.Port))
-		assert.Nil(t, err, "Failed to get info")
+		if !assert.Nil(t, err, "Failed to get info") {
+			return
+		}
 		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status 200")

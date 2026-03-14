@@ -307,6 +307,9 @@ func (m *ConfigManagerImpl) GetSection(sectionPath string, target any) error {
 
 // Watch 监听配置变更
 func (m *ConfigManagerImpl) Watch(key string, handler ConfigChangeHandler) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.closed {
 		return fmt.Errorf("config manager is closed")
 	}
@@ -317,6 +320,9 @@ func (m *ConfigManagerImpl) Watch(key string, handler ConfigChangeHandler) error
 
 // WatchModule 监听模块配置变更
 func (m *ConfigManagerImpl) WatchModule(moduleName, key string, handler ConfigChangeHandler) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.closed {
 		return fmt.Errorf("config manager is closed")
 	}
@@ -327,6 +333,9 @@ func (m *ConfigManagerImpl) WatchModule(moduleName, key string, handler ConfigCh
 
 // Unwatch 取消监听
 func (m *ConfigManagerImpl) Unwatch(key string, handler ConfigChangeHandler) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.closed {
 		return fmt.Errorf("config manager is closed")
 	}
@@ -337,6 +346,9 @@ func (m *ConfigManagerImpl) Unwatch(key string, handler ConfigChangeHandler) err
 
 // UnwatchModule 取消模块配置监听
 func (m *ConfigManagerImpl) UnwatchModule(moduleName, key string, handler ConfigChangeHandler) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.closed {
 		return fmt.Errorf("config manager is closed")
 	}
@@ -347,6 +359,9 @@ func (m *ConfigManagerImpl) UnwatchModule(moduleName, key string, handler Config
 
 // WatchSection 监听section配置变更
 func (m *ConfigManagerImpl) WatchSection(sectionPath string, handler ConfigChangeHandler) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.closed {
 		return fmt.Errorf("config manager is closed")
 	}
@@ -358,6 +373,9 @@ func (m *ConfigManagerImpl) WatchSection(sectionPath string, handler ConfigChang
 
 // UnwatchSection 取消section配置监听
 func (m *ConfigManagerImpl) UnwatchSection(sectionPath string, handler ConfigChangeHandler) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	if m.closed {
 		return fmt.Errorf("config manager is closed")
 	}

@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	_ "log/slog"
 
@@ -112,6 +113,15 @@ func (s *appImpl) Shutdown() {
 	}
 
 	s.service.Shutdown()
+	if s.backgroundRoutine != nil {
+		s.backgroundRoutine.Shutdown(5 * time.Second)
+	}
+	if s.eventHub != nil {
+		s.eventHub.Terminate()
+	}
+	s.service = nil
+	s.backgroundRoutine = task.NewBackgroundRoutine(defaultBackTaskQueueSize)
+	s.eventHub = event.NewHub(defaultEventHubQueueSize)
 	_ = configuration.CloseConfigManager()
 }
 

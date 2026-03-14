@@ -96,26 +96,43 @@ func TestEventManager(t *testing.T) {
 		t.Error("Timeout waiting for event")
 	}
 
-	// 测试取消注册 - 由于Go中函数值不能直接比较，取消注册功能难以正确实现
-	// 这里我们跳过取消注册测试，或者使用不同的测试策略
-	// eventManager.UnregisterGlobalWatcher("test.key", handler)
+	eventManager.UnregisterGlobalWatcher("test.key", handler)
 
-	// 重置事件接收状态
+	if count := eventManager.GetGlobalWatcherCount("test.key"); count != 0 {
+		t.Fatalf("Expected watcher count 0 after unregister, got %d", count)
+	}
+
 	receivedEvent = ConfigChangeEvent{}
-
-	// 再次触发事件，由于取消注册功能限制，我们期望事件仍然会被接收
-	// 在实际应用中，可能需要使用不同的取消注册策略
 	eventManager.NotifyGlobalChange("test.key", "value1", "value2")
 
-	// 等待事件
 	select {
 	case <-eventReceived:
-		// 事件被接收是预期的，因为取消注册功能有限制
-		if receivedEvent.Key != "test.key" {
-			t.Errorf("Expected event key 'test.key', got '%s'", receivedEvent.Key)
-		}
-	case <-time.After(time.Second * 1):
-		// 超时也是可能的，取决于事件处理速度
+		t.Fatal("unexpected event after unregister")
+	case <-time.After(200 * time.Millisecond):
+	}
+}
+
+func TestEventManager_NotifyUsesSnapshot(t *testing.T) {
+	eventManager := NewEventManager()
+	done := make(chan struct{}, 1)
+
+	var handler ConfigChangeHandler
+	handler = func(event ConfigChangeEvent) {
+		eventManager.UnregisterGlobalWatcher("test.key", handler)
+		done <- struct{}{}
+	}
+
+	eventManager.RegisterGlobalWatcher("test.key", handler)
+	eventManager.NotifyGlobalChange("test.key", "old", "new")
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for watcher")
+	}
+
+	if count := eventManager.GetGlobalWatcherCount("test.key"); count != 0 {
+		t.Fatalf("Expected watcher count 0 after self-unregister, got %d", count)
 	}
 }
 
