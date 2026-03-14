@@ -3,7 +3,7 @@ name: Release Build Pipeline
 on:
   push:
     tags:
-      - 'v*'  # 只在打标签时触发发布构建
+      - "v*" # 只在打标签时触发发布构建
 
 jobs:
   release:
@@ -38,7 +38,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.24'
+          go-version: "1.24"
 
       - name: Run full validation
         run: |
@@ -54,42 +54,3 @@ jobs:
           VERSION="${GITHUB_REF#refs/tags/v}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Extracted version: ${VERSION}"
-
-      - name: Build release binaries
-        run: |
-          echo "=== Building release binaries for version ${{ steps.get_version.outputs.version }} ==="
-          mkdir -p dist
-          
-          # Build for Linux
-          GOOS=linux GOARCH=amd64 go build -ldflags="-X main.Version=${{ steps.get_version.outputs.version }}" -o dist/magicCommon-linux-amd64 ./...
-          GOOS=linux GOARCH=arm64 go build -ldflags="-X main.Version=${{ steps.get_version.outputs.version }}" -o dist/magicCommon-linux-arm64 ./...
-          
-          # Build for macOS
-          GOOS=darwin GOARCH=amd64 go build -ldflags="-X main.Version=${{ steps.get_version.outputs.version }}" -o dist/magicCommon-darwin-amd64 ./...
-          GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.Version=${{ steps.get_version.outputs.version }}" -o dist/magicCommon-darwin-arm64 ./...
-          
-          # Build for Windows
-          GOOS=windows GOARCH=amd64 go build -ldflags="-X main.Version=${{ steps.get_version.outputs.version }}" -o dist/magicCommon-windows-amd64.exe ./...
-          
-          echo "Build artifacts:"
-          ls -la dist/
-
-      - name: Create checksums
-        run: |
-          cd dist
-          sha256sum * > checksums.txt
-          echo "Checksums:"
-          cat checksums.txt
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            dist/magicCommon-linux-amd64
-            dist/magicCommon-linux-arm64
-            dist/magicCommon-darwin-amd64
-            dist/magicCommon-darwin-arm64
-            dist/magicCommon-windows-amd64.exe
-            dist/checksums.txt
-          generate_release_notes: true
-          prerelease: false
