@@ -13,6 +13,7 @@ import (
 	"github.com/muidea/magicCommon/task"
 
 	"github.com/muidea/magicCommon/framework/configuration"
+	"github.com/muidea/magicCommon/framework/health"
 	"github.com/muidea/magicCommon/framework/service"
 )
 
@@ -76,6 +77,7 @@ func Get() Application {
 func ResetForTesting() {
 	application = nil
 	applicationOnce = sync.Once{}
+	health.ResetDefaultManager()
 }
 
 type appImpl struct {
@@ -123,6 +125,7 @@ func (s *appImpl) Shutdown() {
 	s.backgroundRoutine = task.NewBackgroundRoutine(defaultBackTaskQueueSize)
 	s.eventHub = event.NewHub(defaultEventHubQueueSize)
 	_ = configuration.CloseConfigManager()
+	health.ResetDefaultManager()
 }
 
 func (s *appImpl) EventHub() event.Hub {

@@ -2,10 +2,13 @@ package service
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 
 	"github.com/muidea/magicCommon/event"
+	"github.com/muidea/magicCommon/framework/configuration"
 	"github.com/muidea/magicCommon/framework/plugin/initiator"
 	"github.com/muidea/magicCommon/framework/plugin/module"
 	"github.com/muidea/magicCommon/task"
@@ -157,4 +160,70 @@ func TestModule(t *testing.T) {
 		break
 	}
 	assert.True(t, ok)
+}
+
+func TestLoadConfiguredDependencies(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "service_dep_config")
+	if err != nil {
+		t.Fatalf("mkdir temp failed: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(tempDir) }()
+
+	configContent := `
+[serviceDependencies.magicCas]
+kind = "required"
+target = "http://magiccas:8080"
+
+[serviceDependencies.magicFile]
+kind = "optional"
+target = "http://magicfile:8080"
+`
+
+	configPath := filepath.Join(tempDir, "application.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("write config failed: %v", err)
+	}
+
+	if err := configuration.InitDefaultConfigManager(tempDir); err != nil {
+		t.Fatalf("init config manager failed: %v", err)
+	}
+	defer func() { _ = configuration.CloseConfigManager() }()
+
+	dependencies, err := loadConfiguredDependencies()
+	if err != nil {
+		t.Fatalf("loadConfiguredDependencies failed: %v", err)
+	}
+	if len(dependencies) != 2 {
+		t.Fatalf("expected 2 dependencies, got %d", len(dependencies))
+	}
+}
+
+func TestDefaultServiceStartupFailsOnRequiredDependency(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "service_dep_startup")
+	if err != nil {
+		t.Fatalf("mkdir temp failed: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(tempDir) }()
+
+	configContent := fmt.Sprintf(`
+[serviceDependencies.magicCas]
+kind = "required"
+target = "%s"
+`, "http://127.0.0.1:1")
+
+	configPath := filepath.Join(tempDir, "application.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		t.Fatalf("write config failed: %v", err)
+	}
+
+	if err := configuration.InitDefaultConfigManager(tempDir); err != nil {
+		t.Fatalf("init config manager failed: %v", err)
+	}
+	defer func() { _ = configuration.CloseConfigManager() }()
+
+	service := DefaultService()
+	startupErr := service.Startup("test", nil, nil)
+	if startupErr == nil {
+		t.Fatalf("expected startup failure when required dependency is not ready")
+	}
 }
