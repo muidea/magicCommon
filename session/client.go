@@ -118,12 +118,63 @@ type BaseClient struct {
 	headerContext        Context
 }
 
+func cloneContext(ctx Context) Context {
+	if ctx == nil {
+		return nil
+	}
+
+	cloned := NewDefaultHeaderContext()
+	values := ctx.Encode(url.Values{})
+	for key, items := range values {
+		for _, item := range items {
+			cloned.Set(key, item)
+		}
+	}
+
+	return cloned
+}
+
 func (s *BaseClient) GetServerURL() string {
 	return s.serverURL
 }
 
 func (s *BaseClient) GetHTTPClient() *http.Client {
 	return s.httpClient
+}
+
+func (s *BaseClient) Clone() BaseClient {
+	clone := *s
+	clone.headerContext = cloneContext(s.headerContext)
+	if s.sessionAuthSecret != nil {
+		authSecret := *s.sessionAuthSecret
+		clone.sessionAuthSecret = &authSecret
+	}
+
+	return clone
+}
+
+func (s *BaseClient) WithContext(ctx Context) BaseClient {
+	clone := s.Clone()
+	clone.headerContext = cloneContext(ctx)
+	return clone
+}
+
+func (s *BaseClient) WithAuthorization(authorization string) BaseClient {
+	clone := s.Clone()
+	clone.sessionAuthorization = authorization
+	return clone
+}
+
+func (s *BaseClient) WithAuthSecret(authSecret *AuthSecret) BaseClient {
+	clone := s.Clone()
+	if authSecret == nil {
+		clone.sessionAuthSecret = nil
+		return clone
+	}
+
+	secretCopy := *authSecret
+	clone.sessionAuthSecret = &secretCopy
+	return clone
 }
 
 func (s *BaseClient) AttachContext(ctx Context) {
