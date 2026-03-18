@@ -71,6 +71,19 @@ type Registry interface {
 	Release()
 }
 
+func LookupSession(reg Registry, req *http.Request) Session {
+	if reg == nil || req == nil {
+		return nil
+	}
+
+	impl, ok := reg.(*sessionRegistryImpl)
+	if !ok {
+		return nil
+	}
+
+	return impl.getSession(req)
+}
+
 func createUUID() string {
 	return util.RandomAlphanumeric(32)
 }

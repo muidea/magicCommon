@@ -1,6 +1,7 @@
 package session
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -118,6 +119,36 @@ func TestRegistryCountDoesNotTerminateWorker(t *testing.T) {
 
 	if got := registry.CountSession(nil); got != 2 {
 		t.Fatalf("expected count 2 after second session, got %d", got)
+	}
+}
+
+func TestAnonymousSessionSignatureCanBeLoadedIntoRegistry(t *testing.T) {
+	registry := NewRegistry(nil)
+	defer registry.Release()
+
+	sessionPtr := NewAnonymousSession("127.0.0.1", "ua")
+	sessionPtr.SetOption("custom", "value")
+
+	token, err := sessionPtr.Signature()
+	if err != nil {
+		t.Fatalf("Signature() failed: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+	req.AddCookie(&http.Cookie{Name: SessionToken, Value: token})
+
+	loaded := LookupSession(registry, req)
+	if loaded == nil {
+		t.Fatal("expected session to be loaded from signed anonymous session")
+	}
+	if loaded.ID() != sessionPtr.ID() {
+		t.Fatalf("session ID = %s, want %s", loaded.ID(), sessionPtr.ID())
+	}
+	if val, ok := loaded.GetString("custom"); !ok || val != "value" {
+		t.Fatalf("custom value = %q, %v, want value, true", val, ok)
+	}
+	if got := registry.CountSession(nil); got != 1 {
+		t.Fatalf("registry count = %d, want 1", got)
 	}
 }
 
