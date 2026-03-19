@@ -45,8 +45,12 @@ func TestQuickCollector(t *testing.T) {
 		t.Fatalf("Failed to get metrics: %v", err)
 	}
 
-	if len(metrics) != 5 {
-		t.Errorf("Expected 5 metrics, got %d", len(metrics))
+	if len(metrics) != 1 {
+		t.Errorf("Expected 1 stored series, got %d", len(metrics))
+	}
+
+	if len(metrics) == 1 && metrics[0].Value != 4 {
+		t.Errorf("Expected latest metric value 4, got %v", metrics[0].Value)
 	}
 
 	// Test stats
@@ -55,7 +59,7 @@ func TestQuickCollector(t *testing.T) {
 		t.Errorf("Expected 5 metrics collected, got %d", stats.MetricsCollected)
 	}
 
-	t.Logf("Test passed: collected %d metrics", stats.MetricsCollected)
+	t.Logf("Test passed: recorded %d samples and retained %d series", stats.MetricsCollected, len(metrics))
 }
 
 // TestQuickRegistry tests basic registry functionality

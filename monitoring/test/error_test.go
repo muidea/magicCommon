@@ -618,8 +618,17 @@ func TestRecoveryFromErrors(t *testing.T) {
 		t.Fatalf("Failed to get metrics: %v", err)
 	}
 
-	if len(metrics) != 5 {
-		t.Errorf("Expected 5 metrics after recovery, got %d", len(metrics))
+	if len(metrics) != 1 {
+		t.Errorf("Expected 1 stored series after recovery, got %d", len(metrics))
+	}
+
+	if len(metrics) == 1 && metrics[0].Value != 4 {
+		t.Errorf("Expected latest recovered value 4, got %v", metrics[0].Value)
+	}
+
+	stats := collector.GetStats()
+	if stats.MetricsCollected != 15 {
+		t.Errorf("Expected 15 total recorded samples after recovery, got %d", stats.MetricsCollected)
 	}
 }
 

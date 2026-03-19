@@ -16,7 +16,7 @@ func TestBaseClientCloneSnapshotsContextAndAuthSecret(t *testing.T) {
 	ctx.Set("X-Mp-Namespace", "beta")
 	secret.Endpoint = "changed"
 
-	if got, _ := clone.GetContextValues()["X-Mp-Namespace"]; len(got) == 0 || got[0] != "alpha" {
+	if got := clone.GetContextValues()["X-Mp-Namespace"]; len(got) == 0 || got[0] != "alpha" {
 		t.Fatalf("clone should snapshot header context, got %#v", got)
 	}
 	if clone.sessionAuthSecret == nil || clone.sessionAuthSecret.Endpoint != "service" {

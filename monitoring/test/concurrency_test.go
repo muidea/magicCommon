@@ -78,9 +78,8 @@ func TestConcurrentMetricRecording(t *testing.T) {
 		t.Fatalf("Failed to get metrics: %v", err)
 	}
 
-	expectedCount := numWorkers * iterations
-	if len(metrics) != expectedCount {
-		t.Errorf("Expected %d metrics, got %d", expectedCount, len(metrics))
+	if len(metrics) != numWorkers {
+		t.Errorf("Expected %d stored series, got %d", numWorkers, len(metrics))
 	}
 
 	// Check for data races by verifying all worker labels are present
@@ -93,6 +92,12 @@ func TestConcurrentMetricRecording(t *testing.T) {
 
 	if len(workerLabels) != numWorkers {
 		t.Errorf("Expected metrics from %d workers, got %d", numWorkers, len(workerLabels))
+	}
+
+	stats := collector.GetStats()
+	expectedSamples := int64(numWorkers * iterations)
+	if stats.MetricsCollected != expectedSamples {
+		t.Errorf("Expected %d recorded samples, got %d", expectedSamples, stats.MetricsCollected)
 	}
 }
 
