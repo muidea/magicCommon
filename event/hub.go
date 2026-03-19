@@ -105,14 +105,22 @@ type hubOptions struct {
 	workerPoolSize         int
 }
 
+const defaultMaxPerDestinationChanSize = 64
+
 func defaultHubOptions(capacitySize int) *hubOptions {
 	if capacitySize <= 0 {
 		capacitySize = 1
 	}
 
+	perDestinationChanSize := capacitySize
+	if perDestinationChanSize > defaultMaxPerDestinationChanSize {
+		perDestinationChanSize = defaultMaxPerDestinationChanSize
+	}
+
 	return &hubOptions{
-		// 默认与传入的 capacitySize 一致，方便调用方按一个参数整体调节
-		perDestinationChanSize: capacitySize,
+		// hubActionChannel 仍然沿用外部配置的大容量。
+		// per-destination channel 若跟随 500000 之类的容量，会在每个新 destination 上常驻数 MB 内存。
+		perDestinationChanSize: perDestinationChanSize,
 		hubActionChanSize:      capacitySize,
 		workerPoolSize:         capacitySize,
 	}

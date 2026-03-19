@@ -1,18 +1,22 @@
 package core
 
 import (
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/muidea/magicCommon/monitoring/types"
 )
 
+type metricSeries map[string]types.Metric
+
 // Collector collects and manages metrics
 type Collector struct {
 	mu sync.RWMutex
 
 	config      *MonitoringConfig
-	metrics     map[string][]types.Metric
+	metrics     map[string]metricSeries
 	definitions map[string]types.MetricDefinition
 
 	// Performance optimization
@@ -54,7 +58,7 @@ func NewCollector(config *MonitoringConfig) (*Collector, *types.Error) {
 
 	collector := &Collector{
 		config:      config,
-		metrics:     make(map[string][]types.Metric),
+		metrics:     make(map[string]metricSeries),
 		definitions: make(map[string]types.MetricDefinition),
 		batchBuffer: make([]types.Metric, 0, config.BufferSize),
 		batchSize:   config.BatchSize,
@@ -188,10 +192,9 @@ func (c *Collector) GetMetrics() map[string][]types.Metric {
 	defer c.mu.RUnlock()
 
 	// Return a copy to avoid concurrent modification
-	result := make(map[string][]types.Metric)
-	for name, metrics := range c.metrics {
-		result[name] = make([]types.Metric, len(metrics))
-		copy(result[name], metrics)
+	result := make(map[string][]types.Metric, len(c.metrics))
+	for name, series := range c.metrics {
+		result[name] = copyMetricSeries(series)
 	}
 	return result
 }
@@ -201,15 +204,12 @@ func (c *Collector) GetMetricsByName(name string) ([]types.Metric, *types.Error)
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	metrics, exists := c.metrics[name]
+	series, exists := c.metrics[name]
 	if !exists {
 		return nil, types.NewMetricNotFoundError(name)
 	}
 
-	// Return a copy
-	result := make([]types.Metric, len(metrics))
-	copy(result, metrics)
-	return result, nil
+	return copyMetricSeries(series), nil
 }
 
 // GetDefinitions returns all metric definitions
@@ -243,7 +243,7 @@ func (c *Collector) ClearMetrics() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.metrics = make(map[string][]types.Metric)
+	c.metrics = make(map[string]metricSeries)
 	c.batchBuffer = make([]types.Metric, 0, c.config.BufferSize)
 }
 
@@ -432,7 +432,7 @@ func (c *Collector) recordSync(metric types.Metric) *types.Error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.metrics[metric.Name] = append(c.metrics[metric.Name], metric)
+	c.upsertMetricLocked(metric)
 	c.stats.MetricsCollected++
 	c.stats.LastCollection = time.Now()
 
@@ -461,7 +461,7 @@ func (c *Collector) flushBatch() *types.Error {
 	defer c.mu.Unlock()
 
 	for _, metric := range c.batchBuffer {
-		c.metrics[metric.Name] = append(c.metrics[metric.Name], metric)
+		c.upsertMetricLocked(metric)
 		c.stats.MetricsCollected++
 	}
 
@@ -483,20 +483,17 @@ func (c *Collector) cleanupOldMetrics() int {
 	cutoffTime := time.Now().Add(-c.config.RetentionPeriod)
 	totalRemoved := 0
 
-	for name, metrics := range c.metrics {
-		// Filter out old metrics
-		filtered := make([]types.Metric, 0, len(metrics))
-		for _, metric := range metrics {
+	for name, series := range c.metrics {
+		for seriesKey, metric := range series {
 			if metric.Timestamp.After(cutoffTime) {
-				filtered = append(filtered, metric)
-			} else {
-				totalRemoved++
+				continue
 			}
-		}
-		c.metrics[name] = filtered
 
-		// Remove empty metric lists
-		if len(filtered) == 0 {
+			delete(series, seriesKey)
+			totalRemoved++
+		}
+
+		if len(series) == 0 {
 			delete(c.metrics, name)
 		}
 	}
@@ -596,7 +593,7 @@ func (c *Collector) Shutdown() *types.Error {
 	}
 
 	// Clear all metrics
-	c.metrics = make(map[string][]types.Metric)
+	c.metrics = make(map[string]metricSeries)
 	c.batchBuffer = nil
 	c.definitions = make(map[string]types.MetricDefinition)
 
@@ -669,8 +666,8 @@ func (c *Collector) GetMetricCount() int {
 	defer c.mu.RUnlock()
 
 	total := 0
-	for _, metrics := range c.metrics {
-		total += len(metrics)
+	for _, series := range c.metrics {
+		total += len(series)
 	}
 	return total
 }
@@ -681,4 +678,65 @@ func (c *Collector) GetProviderCount() int {
 	defer c.mu.RUnlock()
 
 	return len(c.providers)
+}
+
+func (c *Collector) upsertMetricLocked(metric types.Metric) {
+	if metric.Timestamp.IsZero() {
+		metric.Timestamp = time.Now()
+	}
+
+	series, exists := c.metrics[metric.Name]
+	if !exists {
+		series = make(metricSeries)
+		c.metrics[metric.Name] = series
+	}
+
+	series[labelSetKey(metric.Labels)] = cloneMetric(metric)
+}
+
+func copyMetricSeries(series metricSeries) []types.Metric {
+	result := make([]types.Metric, 0, len(series))
+	for _, metric := range series {
+		result = append(result, cloneMetric(metric))
+	}
+	return result
+}
+
+func cloneMetric(metric types.Metric) types.Metric {
+	metric.Labels = cloneLabels(metric.Labels)
+	return metric
+}
+
+func cloneLabels(labels map[string]string) map[string]string {
+	if len(labels) == 0 {
+		return nil
+	}
+
+	result := make(map[string]string, len(labels))
+	for k, v := range labels {
+		result[k] = v
+	}
+	return result
+}
+
+func labelSetKey(labels map[string]string) string {
+	if len(labels) == 0 {
+		return ""
+	}
+
+	keys := make([]string, 0, len(labels))
+	for k := range labels {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var builder strings.Builder
+	for _, key := range keys {
+		builder.WriteString(key)
+		builder.WriteByte('=')
+		builder.WriteString(labels[key])
+		builder.WriteByte(0)
+	}
+
+	return builder.String()
 }
