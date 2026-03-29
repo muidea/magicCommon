@@ -64,6 +64,10 @@ type Error struct {
 }
 
 func (e *Error) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+
 	var builder strings.Builder
 	fmt.Fprintf(&builder, "code:%d, message:%s", e.Code, e.Message)
 
@@ -81,7 +85,20 @@ func (e *Error) Error() string {
 
 // Unwrap 支持错误链解包
 func (e *Error) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+
 	return e.Cause
+}
+
+// ToStdError safely converts a custom error pointer to the standard error interface.
+func ToStdError(err *Error) error {
+	if err == nil {
+		return nil
+	}
+
+	return err
 }
 
 // NewError 创建新错误（不包含堆栈跟踪）
@@ -165,11 +182,19 @@ func captureStackTrace(skip int) string {
 
 // HasStackTrace 检查错误是否有堆栈跟踪
 func (e *Error) HasStackTrace() bool {
+	if e == nil {
+		return false
+	}
+
 	return e.StackTrace != ""
 }
 
 // GetFullStackTrace 获取完整的堆栈跟踪（包括原因链）
 func (e *Error) GetFullStackTrace() string {
+	if e == nil {
+		return ""
+	}
+
 	var builder strings.Builder
 
 	// 添加当前错误的堆栈跟踪
