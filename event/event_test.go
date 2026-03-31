@@ -64,6 +64,9 @@ func TestNewEventAndBaseEvent(t *testing.T) {
 	if event.Destination() != destination {
 		t.Errorf("event.Destination() = %s, want %s", event.Destination(), destination)
 	}
+	if event.LaneKey() != destination {
+		t.Errorf("event.LaneKey() = %s, want %s", event.LaneKey(), destination)
+	}
 	if event.Header().GetString("headerKey") != "headerValue" {
 		t.Errorf("event.Header().GetString() = %s, want %s", event.Header().GetString("headerKey"), "headerValue")
 	}
@@ -77,8 +80,12 @@ func TestNewEventAndBaseEvent(t *testing.T) {
 		t.Errorf("event.Context() = %v, want nil", event.Context())
 	}
 	event.BindContext(ctx)
+	event.BindLaneKey("lane/test")
 	if event.Context() != ctx {
 		t.Errorf("event.Context() = %v, want %v", event.Context(), ctx)
+	}
+	if event.LaneKey() != "lane/test" {
+		t.Errorf("event.LaneKey() = %s, want %s", event.LaneKey(), "lane/test")
 	}
 
 	// Test setting and getting data
@@ -114,6 +121,9 @@ func TestNewEventWitchContext(t *testing.T) {
 
 	if event.Context() != ctx {
 		t.Errorf("event.Context() = %v, want %v", event.Context(), ctx)
+	}
+	if event.LaneKey() != destination {
+		t.Errorf("event.LaneKey() = %v, want %v", event.LaneKey(), destination)
 	}
 }
 

@@ -60,9 +60,11 @@ type Event interface {
 	ID() string
 	Source() string
 	Destination() string
+	LaneKey() string
 	Header() Values
 	Context() context.Context
 	BindContext(ctx context.Context)
+	BindLaneKey(laneKey string)
 	Data() any
 	SetData(key string, val any)
 	GetData(key string) any
@@ -100,37 +102,42 @@ type Hub interface {
 type HubOption func(*hubOptions)
 
 type hubOptions struct {
-	perDestinationChanSize int
-	hubActionChanSize      int
-	workerPoolSize         int
+	perLaneChanSize   int
+	hubActionChanSize int
+	workerPoolSize    int
 }
 
-const defaultMaxPerDestinationChanSize = 64
+const defaultMaxPerLaneChanSize = 64
 
 func defaultHubOptions(capacitySize int) *hubOptions {
 	if capacitySize <= 0 {
 		capacitySize = 1
 	}
 
-	perDestinationChanSize := capacitySize
-	if perDestinationChanSize > defaultMaxPerDestinationChanSize {
-		perDestinationChanSize = defaultMaxPerDestinationChanSize
+	perLaneChanSize := capacitySize
+	if perLaneChanSize > defaultMaxPerLaneChanSize {
+		perLaneChanSize = defaultMaxPerLaneChanSize
 	}
 
 	return &hubOptions{
 		// hubActionChannel 仍然沿用外部配置的大容量。
-		// per-destination channel 若跟随 500000 之类的容量，会在每个新 destination 上常驻数 MB 内存。
-		perDestinationChanSize: perDestinationChanSize,
-		hubActionChanSize:      capacitySize,
-		workerPoolSize:         capacitySize,
+		// per-lane channel 若跟随 500000 之类的容量，会在每个新 lane 上常驻数 MB 内存。
+		perLaneChanSize:   perLaneChanSize,
+		hubActionChanSize: capacitySize,
+		workerPoolSize:    capacitySize,
 	}
 }
 
-// WithPerDestinationChanSize 配置每个目标的内部 actionChannel 缓冲大小
+// WithPerDestinationChanSize 兼容旧命名，配置每个 lane 的内部 actionChannel 缓冲大小。
 func WithPerDestinationChanSize(size int) HubOption {
+	return WithPerLaneChanSize(size)
+}
+
+// WithPerLaneChanSize 配置每个顺序 lane 的内部 actionChannel 缓冲大小。
+func WithPerLaneChanSize(size int) HubOption {
 	return func(o *hubOptions) {
 		if size > 0 {
-			o.perDestinationChanSize = size
+			o.perLaneChanSize = size
 		}
 	}
 }
@@ -158,7 +165,7 @@ type ID2ObserverMap map[string]ObserverList
 type ObserverFunc func(Event, Result)
 type ID2ObserverFuncMap map[string]ObserverFunc
 type actionChannel chan action
-type ID2ActionChanelMap map[string]actionChannel
+type LaneKey2ActionChannelMap map[string]actionChannel
 
 func notificationEvent(sv Observer, ev Event, re Result) {
 	defer func() {
@@ -189,19 +196,28 @@ func NewHubWithOptions(capacitySize int, opts ...HubOption) Hub {
 	}
 
 	hub := &hubImpl{
-		Execute:                  execute.NewExecute(hubOpts.workerPoolSize),
-		event2Observer:           ID2ObserverMap{},
-		hubActionChannel:         make(chan action, hubOpts.hubActionChanSize),
-		observerID2ActionChannel: ID2ActionChanelMap{},
-		perDestinationChanSize:   hubOpts.perDestinationChanSize,
-		eventMatchCache:          map[string]ObserverList{},
+		Execute:               execute.NewExecute(hubOpts.workerPoolSize),
+		event2Observer:        ID2ObserverMap{},
+		hubActionChannel:      make(chan action, hubOpts.hubActionChanSize),
+		laneKey2ActionChannel: LaneKey2ActionChannelMap{},
+		perLaneChanSize:       hubOpts.perLaneChanSize,
+		eventMatchCache:       map[string]ObserverList{},
 	}
 	go hub.run()
 	return hub
 }
 
 func NewSimpleObserver(id string, hub Hub) SimpleObserver {
-	return &simpleObserver{id: id, eventHub: hub, eventID2ObserverFunc: ID2ObserverFuncMap{}}
+	return &simpleObserver{id: id, matchID: id, eventHub: hub, eventID2ObserverFunc: ID2ObserverFuncMap{}}
+}
+
+// NewSimpleObserverWithMatchID 允许将观察者的逻辑标识与 destination 匹配模式分离。
+func NewSimpleObserverWithMatchID(id, matchID string, hub Hub) SimpleObserver {
+	if matchID == "" {
+		matchID = id
+	}
+
+	return &simpleObserver{id: id, matchID: matchID, eventHub: hub, eventID2ObserverFunc: ID2ObserverFuncMap{}}
 }
 
 func MatchValue(pattern, val string) bool {
@@ -352,8 +368,8 @@ func (s actionChannel) run(hubPtr *hubImpl) {
 			return
 		}
 
-		// 所有操作都顺序执行，以保证同一个观察者的事件顺序
-		// 包括 post 和 send 操作都需要顺序执行
+		// 同一个 lane 上的所有操作都顺序执行。
+		// 包括 post 和 send 操作都需要顺序执行，以保证 lane 内事件顺序。
 		switch actionData.Code() {
 		case subscribe:
 			data := actionData.(*subscribeData)
@@ -412,17 +428,30 @@ type hubImpl struct {
 	event2Observer      ID2ObserverMap
 	eventMatchCacheLock sync.RWMutex
 
-	hubActionChannel         actionChannel
-	observerID2ChanelLock    sync.RWMutex
-	observerID2ActionChannel ID2ActionChanelMap
+	hubActionChannel      actionChannel
+	laneKey2ChannelLock   sync.RWMutex
+	laneKey2ActionChannel LaneKey2ActionChannelMap
 
-	perDestinationChanSize int
+	perLaneChanSize int
 
 	// eventMatchCache 以 eventID 为 key 缓存匹配到的 ObserverList
 	// 仅作为加速读路径使用，订阅关系变更时整体失效
 	eventMatchCache map[string]ObserverList
 
 	terminateFlag atomic.Bool
+}
+
+func eventLaneKey(ev Event) string {
+	if ev == nil {
+		return ""
+	}
+
+	laneKey := ev.LaneKey()
+	if laneKey != "" {
+		return laneKey
+	}
+
+	return ev.Destination()
 }
 
 func (s *hubImpl) Subscribe(eventID string, observer Observer) {
@@ -470,19 +499,20 @@ func (s *hubImpl) Post(ev Event) {
 	}
 
 	actionData := &postData{event: ev}
+	laneKey := eventLaneKey(ev)
 	var eventChannel actionChannel
 	func() {
-		s.observerID2ChanelLock.Lock()
-		defer s.observerID2ChanelLock.Unlock()
-		channelVal, channelOK := s.observerID2ActionChannel[ev.Destination()]
+		s.laneKey2ChannelLock.Lock()
+		defer s.laneKey2ChannelLock.Unlock()
+		channelVal, channelOK := s.laneKey2ActionChannel[laneKey]
 		if !channelOK {
-			if s.perDestinationChanSize <= 0 {
-				s.perDestinationChanSize = 1
+			if s.perLaneChanSize <= 0 {
+				s.perLaneChanSize = 1
 			}
-			channelVal = make(actionChannel, s.perDestinationChanSize)
+			channelVal = make(actionChannel, s.perLaneChanSize)
 			go channelVal.run(s)
 
-			s.observerID2ActionChannel[ev.Destination()] = channelVal
+			s.laneKey2ActionChannel[laneKey] = channelVal
 		}
 
 		eventChannel = channelVal
@@ -522,19 +552,20 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 
 	actionData := &sendData{event: ev, result: replay}
 
+	laneKey := eventLaneKey(ev)
 	var eventChannel actionChannel
 	func() {
-		s.observerID2ChanelLock.Lock()
-		defer s.observerID2ChanelLock.Unlock()
-		channelVal, channelOK := s.observerID2ActionChannel[ev.Destination()]
+		s.laneKey2ChannelLock.Lock()
+		defer s.laneKey2ChannelLock.Unlock()
+		channelVal, channelOK := s.laneKey2ActionChannel[laneKey]
 		if !channelOK {
-			if s.perDestinationChanSize <= 0 {
-				s.perDestinationChanSize = 1
+			if s.perLaneChanSize <= 0 {
+				s.perLaneChanSize = 1
 			}
-			channelVal = make(actionChannel, s.perDestinationChanSize)
+			channelVal = make(actionChannel, s.perLaneChanSize)
 			go channelVal.run(s)
 
-			s.observerID2ActionChannel[ev.Destination()] = channelVal
+			s.laneKey2ActionChannel[laneKey] = channelVal
 		}
 
 		eventChannel = channelVal
@@ -583,10 +614,10 @@ func (s *hubImpl) Terminate() {
 
 	// 先发送终止信号到所有 channel
 	go func() {
-		s.observerID2ChanelLock.Lock()
-		defer s.observerID2ChanelLock.Unlock()
+		s.laneKey2ChannelLock.Lock()
+		defer s.laneKey2ChannelLock.Unlock()
 
-		for _, val := range s.observerID2ActionChannel {
+		for _, val := range s.laneKey2ActionChannel {
 			waitGroup.Add(1)
 			select {
 			case val <- actionData:
@@ -621,13 +652,13 @@ func (s *hubImpl) Terminate() {
 	}
 
 	// 等待所有 goroutine 完成处理
-	s.observerID2ChanelLock.Lock()
-	defer s.observerID2ChanelLock.Unlock()
-	for _, val := range s.observerID2ActionChannel {
+	s.laneKey2ChannelLock.Lock()
+	defer s.laneKey2ChannelLock.Unlock()
+	for _, val := range s.laneKey2ActionChannel {
 		close(val)
 	}
 	s.event2Observer = ID2ObserverMap{}
-	s.observerID2ActionChannel = ID2ActionChanelMap{}
+	s.laneKey2ActionChannel = LaneKey2ActionChannelMap{}
 }
 
 func (s *hubImpl) run() {
@@ -769,7 +800,7 @@ func (s *hubImpl) findMatchingObservers(ev Event) ObserverList {
 	for key, value := range s.event2Observer {
 		if MatchValue(key, ev.ID()) {
 			for _, sv := range value {
-				if MatchValue(ev.Destination(), sv.ID()) {
+				if matchDestination(ev.Destination(), sv.ID()) {
 					matchList = append(matchList, sv)
 				}
 			}
@@ -779,14 +810,23 @@ func (s *hubImpl) findMatchingObservers(ev Event) ObserverList {
 	return matchList
 }
 
+func matchDestination(destination, observerID string) bool {
+	return MatchValue(destination, observerID) || MatchValue(observerID, destination)
+}
+
 type simpleObserver struct {
 	id                   string
+	matchID              string
 	eventHub             Hub
 	eventID2ObserverFunc ID2ObserverFuncMap
 	eventIDLock          sync.RWMutex
 }
 
 func (s *simpleObserver) ID() string {
+	if s.matchID != "" {
+		return s.matchID
+	}
+
 	return s.id
 }
 

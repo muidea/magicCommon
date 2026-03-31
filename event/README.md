@@ -2,12 +2,12 @@
 
 ## 概述
 
-`magicCommon/event` 是一个基于 Go 语言实现的高性能、线程安全的事件发布-订阅系统。该模块提供了灵活的事件匹配机制、异步处理能力、上下文传递支持以及类型安全的泛型辅助函数，适用于微服务架构中的事件驱动通信。
+`magicCommon/event` 是一个基于 Go 语言实现的高性能、线程安全的事件发布-订阅系统。该模块提供了灵活的事件匹配机制、同步/异步投递能力、上下文传递支持以及类型安全的泛型辅助函数，适用于微服务架构中的事件驱动通信。
 
 ## 核心设计理念
 
 1. **发布-订阅模式**：解耦事件生产者与消费者
-2. **异步处理**：通过通道和协程实现非阻塞事件分发
+2. **有序分 lane 调度**：保持同步事件语义，同时将串行边界收敛到 lane
 3. **通配符匹配**：支持灵活的事件路由规则
 4. **类型安全**：提供泛型辅助函数确保编译时类型检查
 5. **错误恢复**：内置 panic 恢复机制，保证系统稳定性
@@ -31,9 +31,11 @@ type Event interface {
     ID() string                    // 事件ID
     Source() string                // 事件源标识
     Destination() string           // 事件目标标识
+    LaneKey() string               // 事件顺序 lane 标识，默认等于 Destination
     Header() Values                // 事件头部（元数据）
     Context() context.Context      // 事件上下文
     BindContext(ctx context.Context) // 绑定上下文
+    BindLaneKey(laneKey string)    // 绑定顺序 lane
     Data() any                     // 事件数据
     SetData(key string, val any)   // 设置附加数据
     GetData(key string) any        // 获取附加数据
@@ -127,13 +129,17 @@ func (s Values) GetBool(key string) bool
 **运行语义**：
 - `Post()` 是异步投递，如果内部 channel 在超时窗口内无法接收，当前实现会记录告警并放弃这次投递，而不是无限阻塞调用方。
 - `Send()` 是同步投递，如果内部 channel 在超时窗口内无法接收，会返回超时结果。
+- `Send()` 和 `Post()` 都按 `LaneKey()` 做顺序调度；同一个 lane 内严格顺序，不同 lane 之间允许并行。
+- `LaneKey()` 默认等于 `Destination()`，因此旧代码在不显式设置 lane 时行为保持不变。
 - `Terminate()` 是幂等且并发安全的；关闭阶段如果内部执行器在等待窗口内没有排空，会记录告警而不是无限等待。
 - 事件匹配缓存按 `eventID + destination` 维度缓存，避免不同 destination 间误复用观察者列表。
 - 默认应用关闭路径现在会先让 service 结束，再关闭 `BackgroundRoutine`，最后调用 `EventHub.Terminate()`，避免 hub 在 service 已经退出后继续接收新工作。
+- 观察者匹配仍按 `destination` 完成，`lane` 只决定调度顺序域，不参与 observer 路由。
+- `lane` 建议使用有界 key，不要把每次请求的随机 ID 直接作为 lane，避免长期累积过多内部 channel。
 
 **内部数据结构**：
 - `event2Observer`：事件ID到观察者列表的映射
-- `observerID2ActionChannel`：观察者ID到处理通道的映射
+- `laneKey2ActionChannel`：lane 到处理通道的映射
 - `hubActionChannel`：中心操作通道
 
 ### simpleObserver 实现
@@ -147,6 +153,16 @@ observer := NewSimpleObserver("my-observer", hub)
 observer.Subscribe("/user/+", func(event Event, result Result) {
     // 处理事件
 })
+```
+
+如果需要把“观察者逻辑名称”和“destination 匹配模式”分开，可以使用：
+
+```go
+observer := NewSimpleObserverWithMatchID(
+    "base-observer",
+    "/internal/modules/kernel/base/#",
+    hub,
+)
 ```
 
 ## 工厂函数
@@ -183,6 +199,19 @@ func NewResult(id, source, destination string) Result
 ```go
 // 创建简化观察者
 func NewSimpleObserver(id string, hub Hub) SimpleObserver
+
+// 创建带独立 destination 匹配模式的简化观察者
+func NewSimpleObserverWithMatchID(id, matchID string, hub Hub) SimpleObserver
+```
+
+### 顺序 lane 示例
+
+```go
+ev := NewEvent("/value/filter", "public", "/internal/modules/kernel/base", nil, payload)
+ev.BindLaneKey("/internal/modules/kernel/base/app-1/goods")
+
+// 同一个 lane 内保持顺序；不同 lane 可并行
+result := hub.Send(ev)
 ```
 
 ## 泛型辅助函数

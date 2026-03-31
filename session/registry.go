@@ -89,9 +89,9 @@ func createUUID() string {
 }
 
 type sessionRegistryImpl struct {
-	commandChan        commandChanImpl
-	sessionLock        sync.RWMutex
 	registryCancelFunc context.CancelFunc
+	registryLock       sync.RWMutex
+	sessionMap         map[string]*sessionImpl
 	sessionObserver    Observer
 	releaseOnce        sync.Once
 }
@@ -105,10 +105,9 @@ func NewRegistry(obSvr Observer) Registry {
 	registryCtx, registryCancel := context.WithCancel(context.Background())
 	impl := sessionRegistryImpl{
 		sessionObserver: obSvr,
+		sessionMap:      map[string]*sessionImpl{},
 	}
 	impl.registryCancelFunc = registryCancel
-	impl.commandChan = make(commandChanImpl)
-	go impl.commandChan.run()
 	go impl.checkTimer(registryCtx)
 
 	return &impl
@@ -127,7 +126,6 @@ func (s *sessionRegistryImpl) GetSession(res http.ResponseWriter, req *http.Requ
 func (s *sessionRegistryImpl) Release() {
 	s.releaseOnce.Do(func() {
 		s.registryCancelFunc()
-		s.commandChan.end()
 	})
 }
 
@@ -147,8 +145,6 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		}()
 
 		nowTime := time.Now().UTC().UnixMilli()
-		s.sessionLock.Lock()
-		defer s.sessionLock.Unlock()
 
 		sessionToken := ReadSessionTokenFromCookie(req)
 		if sessionToken != "" {
@@ -170,8 +166,9 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		}
 
 		if sessionPtr != nil {
-			// 到这里说明session已经失效了，
+			sessionPtr.mu.RLock()
 			expireTime := sessionPtr.getExpireTime()
+			sessionPtr.mu.RUnlock()
 			if expireTime < nowTime {
 				sessionPtr = nil
 			}
@@ -179,9 +176,6 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}()
 
 	if sessionPtr != nil {
-		sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
-		sessionPtr.context[InnerUseAgent] = req.UserAgent()
-
 		curSession := s.findSession(sessionPtr.id)
 		if curSession != nil {
 			// 到这里说明当前会话失效了。需要重新认证
@@ -192,6 +186,11 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		} else {
 			sessionPtr = s.insertSession(sessionPtr)
 		}
+
+		sessionPtr.mu.Lock()
+		sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
+		sessionPtr.context[InnerUseAgent] = req.UserAgent()
+		sessionPtr.mu.Unlock()
 	}
 
 	return sessionPtr
@@ -203,31 +202,79 @@ func (s *sessionRegistryImpl) createSession(req *http.Request, sessionID string)
 	sessionPtr := &sessionImpl{id: sessionID, context: map[string]any{innerExpireTime: expireValue}, observer: map[string]Observer{}, registry: s}
 	sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
 	sessionPtr.context[InnerUseAgent] = req.UserAgent()
-	sessionPtr = s.commandChan.insert(sessionPtr)
+	sessionPtr = s.insertSession(sessionPtr)
 	if s.sessionObserver != nil {
+		sessionPtr.mu.Lock()
 		sessionPtr.observer[s.sessionObserver.ID()] = s.sessionObserver
+		sessionPtr.mu.Unlock()
 	}
 
 	return sessionPtr
 }
 
 func (s *sessionRegistryImpl) findSession(sessionID string) *sessionImpl {
-	sessionPtr := s.commandChan.find(sessionID)
-	if sessionPtr != nil {
-		return sessionPtr
-	}
-
-	return nil
+	s.registryLock.RLock()
+	sessionPtr := s.sessionMap[sessionID]
+	s.registryLock.RUnlock()
+	return sessionPtr
 }
 
 func (s *sessionRegistryImpl) insertSession(sessionPtr *sessionImpl) *sessionImpl {
 	sessionPtr.registry = s
-	return s.commandChan.insert(sessionPtr)
+	s.registryLock.Lock()
+	defer s.registryLock.Unlock()
+
+	curSession, curOK := s.sessionMap[sessionPtr.id]
+	if !curOK {
+		curSession = &sessionImpl{
+			id:       sessionPtr.id,
+			context:  sessionPtr.context,
+			observer: sessionPtr.observer,
+			registry: sessionPtr.registry,
+			status:   sessionPtr.status,
+		}
+		curSession.context[InnerStartTime] = time.Now().UTC().UnixMilli()
+		s.sessionMap[sessionPtr.id] = curSession
+	}
+	curSession.refresh()
+	return curSession
 }
 
 // UpdateSession 更新Session
 func (s *sessionRegistryImpl) updateSession(sessionPtr *sessionImpl) bool {
-	return s.commandChan.update(sessionPtr)
+	if s == nil || sessionPtr == nil {
+		return false
+	}
+
+	s.registryLock.RLock()
+	curSession, curOK := s.sessionMap[sessionPtr.id]
+	s.registryLock.RUnlock()
+	if !curOK {
+		return false
+	}
+
+	if curSession == sessionPtr {
+		return true
+	}
+
+	sessionPtr.mu.RLock()
+	contextCopy := make(map[string]any, len(sessionPtr.context))
+	for k, v := range sessionPtr.context {
+		contextCopy[k] = v
+	}
+	observerCopy := make(map[string]Observer, len(sessionPtr.observer))
+	for k, v := range sessionPtr.observer {
+		observerCopy[k] = v
+	}
+	statusVal := sessionPtr.status
+	sessionPtr.mu.RUnlock()
+
+	curSession.mu.Lock()
+	curSession.context = contextCopy
+	curSession.observer = observerCopy
+	curSession.status = statusVal
+	curSession.mu.Unlock()
+	return true
 }
 
 func (s *sessionRegistryImpl) checkTimer(ctx context.Context) {
@@ -239,165 +286,43 @@ func (s *sessionRegistryImpl) checkTimer(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-timeOutTimer.C:
-			s.commandChan.checkTimeOut()
+			var removeList []*sessionImpl
+
+			s.registryLock.Lock()
+			for id, val := range s.sessionMap {
+				if val.timeout() {
+					removeList = append(removeList, val)
+					delete(s.sessionMap, id)
+				}
+			}
+			s.registryLock.Unlock()
+
+			for _, val := range removeList {
+				go val.terminate()
+			}
 		}
 	}
 }
 
 func (s *sessionRegistryImpl) count(filter util.Filter) int {
-	return s.commandChan.count(filter)
-}
+	s.registryLock.RLock()
+	defer s.registryLock.RUnlock()
 
-type commandData struct {
-	action commandAction
-	value  any
-	result chan<- any
-}
-
-type commandAction int
-
-const (
-	insert commandAction = iota
-	remove
-	update
-	find
-	checkTimeOut
-	length
-	end
-)
-
-type commandChanImpl chan commandData
-
-func (right commandChanImpl) insert(session *sessionImpl) *sessionImpl {
-	reply := make(chan any)
-	defer close(reply)
-	right <- commandData{action: insert, value: session, result: reply}
-
-	result := (<-reply).(*sessionImpl)
-
-	return result
-}
-
-func (right commandChanImpl) update(session *sessionImpl) bool {
-	reply := make(chan any)
-	defer close(reply)
-	right <- commandData{action: update, value: session, result: reply}
-
-	result := (<-reply).(bool)
-	return result
-}
-
-func (right commandChanImpl) find(id string) *sessionImpl {
-	reply := make(chan any)
-	defer close(reply)
-
-	right <- commandData{action: find, value: id, result: reply}
-
-	result := <-reply
-	if result == nil {
-		return nil
+	if filter == nil {
+		return len(s.sessionMap)
 	}
-	return result.(*sessionImpl)
-}
 
-func (right commandChanImpl) count(filter util.Filter) int {
-	reply := make(chan any)
-	defer close(reply)
-	right <- commandData{action: length, value: filter, result: reply}
-
-	result := (<-reply).(int)
-	return result
-}
-
-func (right commandChanImpl) end() {
-	result := make(chan any)
-	defer close(result)
-	right <- commandData{action: end, result: result}
-	<-result
-}
-
-func (right commandChanImpl) run() {
-	sessionContextMap := make(map[string]*sessionImpl)
-	for command := range right {
-		switch command.action {
-		case insert:
-			session := command.value.(*sessionImpl)
-			curSession, curOK := sessionContextMap[session.id]
-			if !curOK {
-				curSession = &sessionImpl{
-					id:      session.id,
-					context: session.context, observer: session.observer, registry: session.registry}
-				curSession.context[InnerStartTime] = time.Now().UTC().UnixMilli()
-				sessionContextMap[session.id] = curSession
-			}
-			curSession.refresh()
-			command.result <- curSession
-		case remove:
-			id := command.value.(string)
-			delete(sessionContextMap, id)
-		case update:
-			session := command.value.(*sessionImpl)
-			curSession, curOK := sessionContextMap[session.id]
-			if curOK {
-				curSession.context = session.context
-			}
-
-			command.result <- curOK
-		case find:
-			id := command.value.(string)
-			var session *sessionImpl
-			cur, found := sessionContextMap[id]
-			if found {
-				if !cur.timeout() {
-					cur.refresh()
-				}
-				session = cur
-				command.result <- session
-			} else {
-				command.result <- nil
-			}
-		case checkTimeOut:
-			removeList := make(map[string]*sessionImpl)
-			for k, v := range sessionContextMap {
-				if v.timeout() {
-					removeList[k] = v
-				}
-			}
-
-			for k := range removeList {
-				delete(sessionContextMap, k)
-			}
-
-			go func() {
-				for _, v := range removeList {
-					v.terminate()
-				}
-			}()
-		case length:
-			var filter util.Filter
-			if command.value != nil {
-				filter = command.value.(util.Filter)
-			}
-			if filter == nil {
-				command.result <- len(sessionContextMap)
-				break
-			}
-			count := 0
-			for _, val := range sessionContextMap {
-				if filter.Filter(val) {
-					count++
-				}
-			}
-			command.result <- count
-		case end:
-			command.result <- true
-			close(right)
+	count := 0
+	for _, val := range s.sessionMap {
+		if filter.Filter(val) {
+			count++
 		}
 	}
-
-	slog.Info("session manager sessionImpl exit")
+	return count
 }
 
-func (right commandChanImpl) checkTimeOut() {
-	right <- commandData{action: checkTimeOut}
+func (s *sessionRegistryImpl) removeSession(sessionID string) {
+	s.registryLock.Lock()
+	delete(s.sessionMap, sessionID)
+	s.registryLock.Unlock()
 }

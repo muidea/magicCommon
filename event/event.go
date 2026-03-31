@@ -23,6 +23,7 @@ type baseEvent struct {
 	eventID          string
 	eventSource      string
 	eventDestination string
+	eventLaneKey     string
 	eventHeader      Values
 	eventContext     context.Context
 	eventData        map[string]any
@@ -80,6 +81,14 @@ func (s *baseEvent) Destination() string {
 	return s.eventDestination
 }
 
+func (s *baseEvent) LaneKey() string {
+	if s.eventLaneKey != "" {
+		return s.eventLaneKey
+	}
+
+	return s.eventDestination
+}
+
 func (s *baseEvent) Header() Values {
 	if s.eventHeader == nil {
 		s.eventHeader = NewHeader()
@@ -97,6 +106,10 @@ func (s *baseEvent) Context() context.Context {
 
 func (s *baseEvent) BindContext(ctx context.Context) {
 	s.eventContext = ctx
+}
+
+func (s *baseEvent) BindLaneKey(laneKey string) {
+	s.eventLaneKey = laneKey
 }
 
 func (s *baseEvent) Data() any {
