@@ -95,9 +95,13 @@ func (s *sessionImpl) ID() string {
 	return s.id
 }
 
-func (s *sessionImpl) excludeKey(key string) bool {
+func excludeSessionSignatureKey(key string) bool {
 	// 以下划线开头的key也要进行排除
 	return strings.HasPrefix(key, "_")
+}
+
+func (s *sessionImpl) excludeKey(key string) bool {
+	return excludeSessionSignatureKey(key)
 }
 
 func (s *sessionImpl) Signature() (string, error) {

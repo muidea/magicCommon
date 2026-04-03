@@ -81,7 +81,21 @@ func LookupSession(reg Registry, req *http.Request) Session {
 		return nil
 	}
 
-	return impl.getSession(req)
+	curSession := impl.getSession(req)
+	if curSession == nil {
+		return nil
+	}
+	return curSession
+}
+
+func ResolveSession(reg Registry, req *http.Request) Session {
+	if req == nil {
+		return nil
+	}
+	if curSession := LookupSession(reg, req); curSession != nil {
+		return curSession
+	}
+	return NewAnonymousSession(fn.GetHTTPRemoteAddress(req), req.UserAgent())
 }
 
 func createUUID() string {
@@ -175,17 +189,22 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		}
 	}()
 
-	if sessionPtr != nil {
-		curSession := s.findSession(sessionPtr.id)
-		if curSession != nil {
-			// 到这里说明当前会话失效了。需要重新认证
-			if curSession.isFinal() {
-				return nil
+		if sessionPtr != nil {
+			curSession := s.findSession(sessionPtr.id)
+			if curSession != nil {
+				// 本地运行态 session 已终态，但 JWT 仍合法时，允许按 JWT 重建认证 session。
+				if curSession.isFinal() {
+					s.removeSession(curSession.id)
+					curSession = nil
+				}
 			}
-			sessionPtr = curSession
-		} else {
-			sessionPtr = s.insertSession(sessionPtr)
-		}
+			if curSession != nil {
+				s.refreshSessionClaims(curSession, sessionPtr)
+				curSession.refresh()
+				sessionPtr = curSession
+			} else {
+				sessionPtr = s.insertSession(sessionPtr)
+			}
 
 		sessionPtr.mu.Lock()
 		sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
@@ -194,6 +213,42 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 	}
 
 	return sessionPtr
+}
+
+func (s *sessionRegistryImpl) refreshSessionClaims(target, source *sessionImpl) {
+	if target == nil || source == nil || target == source {
+		return
+	}
+
+	source.mu.RLock()
+	contextCopy := make(map[string]any, len(source.context))
+	for k, v := range source.context {
+		contextCopy[k] = v
+	}
+	source.mu.RUnlock()
+
+	target.mu.Lock()
+	remoteAccessAddr := target.context[InnerRemoteAccessAddr]
+	useAgent := target.context[InnerUseAgent]
+	startTime := target.context[InnerStartTime]
+	for k, v := range target.context {
+		if excludeSessionSignatureKey(k) {
+			if _, ok := contextCopy[k]; !ok {
+				contextCopy[k] = v
+			}
+		}
+	}
+	target.context = contextCopy
+	if _, ok := target.context[InnerStartTime]; !ok && startTime != nil {
+		target.context[InnerStartTime] = startTime
+	}
+	if remoteAccessAddr != nil {
+		target.context[InnerRemoteAccessAddr] = remoteAccessAddr
+	}
+	if useAgent != nil {
+		target.context[InnerUseAgent] = useAgent
+	}
+	target.mu.Unlock()
 }
 
 // createSession 新建Session
