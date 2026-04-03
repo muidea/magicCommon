@@ -189,22 +189,22 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 		}
 	}()
 
-		if sessionPtr != nil {
-			curSession := s.findSession(sessionPtr.id)
-			if curSession != nil {
-				// 本地运行态 session 已终态，但 JWT 仍合法时，允许按 JWT 重建认证 session。
-				if curSession.isFinal() {
-					s.removeSession(curSession.id)
-					curSession = nil
-				}
+	if sessionPtr != nil {
+		curSession := s.findSession(sessionPtr.id)
+		if curSession != nil {
+			// 本地运行态 session 已终态，但 JWT 仍合法时，允许按 JWT 重建认证 session。
+			if curSession.isFinal() {
+				s.removeSession(curSession.id)
+				curSession = nil
 			}
-			if curSession != nil {
-				s.refreshSessionClaims(curSession, sessionPtr)
-				curSession.refresh()
-				sessionPtr = curSession
-			} else {
-				sessionPtr = s.insertSession(sessionPtr)
-			}
+		}
+		if curSession != nil {
+			s.refreshSessionClaims(curSession, sessionPtr)
+			curSession.refresh()
+			sessionPtr = curSession
+		} else {
+			sessionPtr = s.insertSession(sessionPtr)
+		}
 
 		sessionPtr.mu.Lock()
 		sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)

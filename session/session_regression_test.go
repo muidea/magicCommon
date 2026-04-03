@@ -185,10 +185,10 @@ func TestLookupSessionRefreshesExistingSessionClaimsFromNewJWT(t *testing.T) {
 	initialSession := &sessionImpl{
 		id: "shared-session-id",
 		context: map[string]any{
-			InnerStartTime:        time.Now().Add(-time.Minute).UTC().UnixMilli(),
-			innerExpireTime:       time.Now().Add(time.Minute).UTC().UnixMilli(),
-			authScopeKey:          "autotest:read",
-			authEntityKey:         map[string]any{"id": float64(1), "eID": float64(7), "eType": "account", "eName": "demo", "status": float64(1)},
+			InnerStartTime:  time.Now().Add(-time.Minute).UTC().UnixMilli(),
+			innerExpireTime: time.Now().Add(time.Minute).UTC().UnixMilli(),
+			authScopeKey:    "autotest:read",
+			authEntityKey:   map[string]any{"id": float64(1), "eID": float64(7), "eType": "account", "eName": "demo", "status": float64(1)},
 		},
 		observer: map[string]Observer{},
 		status:   sessionActive,
@@ -208,10 +208,10 @@ func TestLookupSessionRefreshesExistingSessionClaimsFromNewJWT(t *testing.T) {
 	refreshedSession := &sessionImpl{
 		id: "shared-session-id",
 		context: map[string]any{
-			InnerStartTime:        time.Now().UTC().UnixMilli(),
-			innerExpireTime:       time.Now().Add(9 * time.Minute).UTC().UnixMilli(),
-			authScopeKey:          "autotest:*;panel:*",
-			authEntityKey:         map[string]any{"id": float64(2), "eID": float64(9), "eType": "account", "eName": "refreshed", "status": float64(1)},
+			InnerStartTime:  time.Now().UTC().UnixMilli(),
+			innerExpireTime: time.Now().Add(9 * time.Minute).UTC().UnixMilli(),
+			authScopeKey:    "autotest:*;panel:*",
+			authEntityKey:   map[string]any{"id": float64(2), "eID": float64(9), "eType": "account", "eName": "refreshed", "status": float64(1)},
 		},
 		observer: map[string]Observer{},
 		status:   sessionActive,
@@ -262,13 +262,13 @@ func TestLookupSessionRefreshKeepsLocalUnsignedContext(t *testing.T) {
 	initialSession := &sessionImpl{
 		id: "shared-session-id",
 		context: map[string]any{
-			InnerStartTime:        time.Now().Add(-time.Minute).UTC().UnixMilli(),
-			innerExpireTime:       time.Now().Add(time.Minute).UTC().UnixMilli(),
-			"X-Mp-Auth-Entity":    map[string]any{"id": float64(1), "eID": float64(7), "eType": "account", "eName": "demo", "status": float64(1)},
-			"_AuthRole":           "cached-role",
-			"_authType":           AuthJWTSession,
-			"_verifiedNamespace":  "example",
-			"_verifiedAt":         int64(1234567890),
+			InnerStartTime:       time.Now().Add(-time.Minute).UTC().UnixMilli(),
+			innerExpireTime:      time.Now().Add(time.Minute).UTC().UnixMilli(),
+			"X-Mp-Auth-Entity":   map[string]any{"id": float64(1), "eID": float64(7), "eType": "account", "eName": "demo", "status": float64(1)},
+			"_AuthRole":          "cached-role",
+			"_authType":          AuthJWTSession,
+			"_verifiedNamespace": "example",
+			"_verifiedAt":        int64(1234567890),
 		},
 		observer: map[string]Observer{},
 		status:   sessionActive,
@@ -281,9 +281,9 @@ func TestLookupSessionRefreshKeepsLocalUnsignedContext(t *testing.T) {
 	refreshedSession := &sessionImpl{
 		id: "shared-session-id",
 		context: map[string]any{
-			InnerStartTime:      time.Now().UTC().UnixMilli(),
-			innerExpireTime:     time.Now().Add(9 * time.Minute).UTC().UnixMilli(),
-			"X-Mp-Auth-Entity":  map[string]any{"id": float64(2), "eID": float64(9), "eType": "account", "eName": "refreshed", "status": float64(1)},
+			InnerStartTime:     time.Now().UTC().UnixMilli(),
+			innerExpireTime:    time.Now().Add(9 * time.Minute).UTC().UnixMilli(),
+			"X-Mp-Auth-Entity": map[string]any{"id": float64(2), "eID": float64(9), "eType": "account", "eName": "refreshed", "status": float64(1)},
 		},
 		observer: map[string]Observer{},
 		status:   sessionActive,
