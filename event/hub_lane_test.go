@@ -5,6 +5,20 @@ import (
 	"time"
 )
 
+func waitForLaneCount(hubPtr *hubImpl, want int, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		hubPtr.laneKey2ChannelLock.RLock()
+		count := len(hubPtr.laneKey2ActionChannel)
+		hubPtr.laneKey2ChannelLock.RUnlock()
+		if count == want {
+			return true
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return false
+}
+
 type laneAwareObserver struct {
 	id        string
 	started   chan string
@@ -109,5 +123,58 @@ func TestSimpleObserverWithMatchID(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("observer with custom match ID did not receive event")
+	}
+}
+
+func TestHubReclaimsIdleLaneWorkers(t *testing.T) {
+	hub := NewHubWithOptions(1, WithPerLaneChanSize(1), WithLaneIdleTimeout(20*time.Millisecond))
+	defer hub.Terminate()
+
+	hubPtr := hub.(*hubImpl)
+	observer := &laneAwareObserver{id: "/lane/reclaim", releaseCh: map[string]chan struct{}{}}
+	hub.Subscribe("/lane/reclaim", observer)
+	time.Sleep(20 * time.Millisecond)
+
+	ev := NewEvent("/lane/reclaim", "source", observer.ID(), NewValues(), nil)
+	ev.BindLaneKey("lane/reclaim/object/1")
+	result := hub.Send(ev)
+	if result == nil || result.Error() != nil {
+		t.Fatalf("expected successful result, got error %v", result.Error())
+	}
+
+	if !waitForLaneCount(hubPtr, 0, time.Second) {
+		hubPtr.laneKey2ChannelLock.RLock()
+		count := len(hubPtr.laneKey2ActionChannel)
+		hubPtr.laneKey2ChannelLock.RUnlock()
+		t.Fatalf("idle lane was not reclaimed, laneCount=%d", count)
+	}
+}
+
+func TestHubRecreatesLaneAfterIdleReclaim(t *testing.T) {
+	hub := NewHubWithOptions(1, WithPerLaneChanSize(1), WithLaneIdleTimeout(20*time.Millisecond))
+	defer hub.Terminate()
+
+	hubPtr := hub.(*hubImpl)
+	observer := &laneAwareObserver{id: "/lane/recreate", releaseCh: map[string]chan struct{}{}}
+	hub.Subscribe("/lane/recreate", observer)
+	time.Sleep(20 * time.Millisecond)
+
+	send := func() {
+		ev := NewEvent("/lane/recreate", "source", observer.ID(), NewValues(), nil)
+		ev.BindLaneKey("lane/recreate/object/1")
+		result := hub.Send(ev)
+		if result == nil || result.Error() != nil {
+			t.Fatalf("expected successful result, got error %v", result.Error())
+		}
+	}
+
+	send()
+	if !waitForLaneCount(hubPtr, 0, time.Second) {
+		t.Fatal("lane was not reclaimed after first send")
+	}
+
+	send()
+	if !waitForLaneCount(hubPtr, 0, time.Second) {
+		t.Fatal("recreated lane was not reclaimed")
 	}
 }

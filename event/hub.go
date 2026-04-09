@@ -105,9 +105,13 @@ type hubOptions struct {
 	perLaneChanSize   int
 	hubActionChanSize int
 	workerPoolSize    int
+	laneIdleTimeout   time.Duration
 }
 
 const defaultMaxPerLaneChanSize = 64
+const defaultMaxHubActionChanSize = 1024
+const defaultMaxWorkerPoolSize = 256
+const defaultLaneIdleTimeout = 30 * time.Second
 
 func defaultHubOptions(capacitySize int) *hubOptions {
 	if capacitySize <= 0 {
@@ -120,12 +124,22 @@ func defaultHubOptions(capacitySize int) *hubOptions {
 	}
 
 	return &hubOptions{
-		// hubActionChannel 仍然沿用外部配置的大容量。
+		// hubActionChannel 仅承担订阅控制面，不应跟随 500000 之类的大容量配置常驻扩张。
 		// per-lane channel 若跟随 500000 之类的容量，会在每个新 lane 上常驻数 MB 内存。
+		// workerPoolSize 控制同源事件异步投递的 goroutine 并发上限，需要与 hub 总队列容量解耦。
 		perLaneChanSize:   perLaneChanSize,
-		hubActionChanSize: capacitySize,
-		workerPoolSize:    capacitySize,
+		hubActionChanSize: minInt(capacitySize, defaultMaxHubActionChanSize),
+		workerPoolSize:    minInt(capacitySize, defaultMaxWorkerPoolSize),
+		laneIdleTimeout:   defaultLaneIdleTimeout,
 	}
+}
+
+func minInt(left, right int) int {
+	if left < right {
+		return left
+	}
+
+	return right
 }
 
 // WithPerDestinationChanSize 兼容旧命名，配置每个 lane 的内部 actionChannel 缓冲大小。
@@ -160,12 +174,39 @@ func WithWorkerPoolSize(size int) HubOption {
 	}
 }
 
+// WithLaneIdleTimeout 配置每个 lane 空闲多久后自动回收。
+func WithLaneIdleTimeout(timeout time.Duration) HubOption {
+	return func(o *hubOptions) {
+		if timeout > 0 {
+			o.laneIdleTimeout = timeout
+		}
+	}
+}
+
 type ObserverList []Observer
 type ID2ObserverMap map[string]ObserverList
 type ObserverFunc func(Event, Result)
 type ID2ObserverFuncMap map[string]ObserverFunc
 type actionChannel chan action
-type LaneKey2ActionChannelMap map[string]actionChannel
+type LaneKey2ActionChannelMap map[string]*laneActionChannel
+
+type laneEnqueueResult int
+
+const (
+	laneEnqueueOK laneEnqueueResult = iota
+	laneEnqueueClosed
+	laneEnqueueTimeout
+)
+
+type laneActionChannel struct {
+	key        string
+	ch         actionChannel
+	mu         sync.Mutex
+	closed     bool
+	lastActive atomic.Int64
+}
+
+type laneExecutionContextKey struct{}
 
 func notificationEvent(sv Observer, ev Event, re Result) {
 	defer func() {
@@ -201,6 +242,7 @@ func NewHubWithOptions(capacitySize int, opts ...HubOption) Hub {
 		hubActionChannel:      make(chan action, hubOpts.hubActionChanSize),
 		laneKey2ActionChannel: LaneKey2ActionChannelMap{},
 		perLaneChanSize:       hubOpts.perLaneChanSize,
+		laneIdleTimeout:       hubOpts.laneIdleTimeout,
 		eventMatchCache:       map[string]ObserverList{},
 	}
 	go hub.run()
@@ -361,63 +403,55 @@ func (s *terminateData) Code() int {
 }
 
 func (s actionChannel) run(hubPtr *hubImpl) {
-	terminateFlag := false
 	for {
 		actionData, actionOK := <-s
 		if !actionOK {
 			return
 		}
 
-		// 同一个 lane 上的所有操作都顺序执行。
-		// 包括 post 和 send 操作都需要顺序执行，以保证 lane 内事件顺序。
-		switch actionData.Code() {
-		case subscribe:
-			data := actionData.(*subscribeData)
-			hubPtr.subscribeInternal(data.eventID, data.observer)
-			select {
-			case data.result <- true:
-				// 成功发送
-			case <-time.After(10 * time.Millisecond):
-				slog.Warn("timeout sending subscribe result")
-			}
-		case unsubscribe:
-			data := actionData.(*unsubscribeData)
-			hubPtr.unsubscribeInternal(data.eventID, data.observer)
-			select {
-			case data.result <- true:
-				// 成功发送
-			case <-time.After(10 * time.Millisecond):
-				slog.Warn("timeout sending unsubscribe result")
-			}
-		case post:
-			data := actionData.(*postData)
-			hubPtr.postInternal(data.event)
-		case send:
-			data := actionData.(*sendData)
-			result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
-			hubPtr.sendInternal(data.event, result)
-			select {
-			case data.result <- result:
-				// 成功发送
-			case <-time.After(100 * time.Millisecond):
-				slog.Warn("timeout sending result")
-			}
-		case terminate:
-			data := actionData.(*terminateData)
-			data.waitGroup.Done()
-			select {
-			case data.result <- true:
-				// 成功发送
-			default:
-				// 非阻塞发送，避免在 channel 关闭时 panic
-			}
-			terminateFlag = true
-		default:
-			slog.Error("unknown action code", "code", actionData.Code())
+		if hubPtr.handleAction(actionData) {
+			return
 		}
+	}
+}
 
-		if terminateFlag {
-			break
+func (s *laneActionChannel) run(hubPtr *hubImpl) {
+	if hubPtr.laneIdleTimeout <= 0 {
+		for {
+			actionData, actionOK := <-s.ch
+			if !actionOK {
+				return
+			}
+			if hubPtr.handleAction(actionData) {
+				return
+			}
+		}
+	}
+
+	timer := time.NewTimer(hubPtr.laneIdleTimeout)
+	defer timer.Stop()
+	for {
+		select {
+		case actionData, actionOK := <-s.ch:
+			if !actionOK {
+				return
+			}
+			if hubPtr.handleAction(actionData) {
+				return
+			}
+			s.touch()
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			timer.Reset(hubPtr.laneIdleTimeout)
+		case <-timer.C:
+			if s.retireIfIdle(hubPtr) {
+				return
+			}
+			timer.Reset(hubPtr.laneIdleTimeout)
 		}
 	}
 }
@@ -433,12 +467,84 @@ type hubImpl struct {
 	laneKey2ActionChannel LaneKey2ActionChannelMap
 
 	perLaneChanSize int
+	laneIdleTimeout time.Duration
 
 	// eventMatchCache 以 eventID 为 key 缓存匹配到的 ObserverList
 	// 仅作为加速读路径使用，订阅关系变更时整体失效
 	eventMatchCache map[string]ObserverList
 
 	terminateFlag atomic.Bool
+}
+
+func newLaneActionChannel(key string, size int) *laneActionChannel {
+	if size <= 0 {
+		size = 1
+	}
+
+	ret := &laneActionChannel{
+		key: key,
+		ch:  make(actionChannel, size),
+	}
+	ret.touch()
+	return ret
+}
+
+func (s *laneActionChannel) touch() {
+	s.lastActive.Store(time.Now().UnixNano())
+}
+
+func (s *laneActionChannel) enqueue(actionData action, timeout time.Duration) laneEnqueueResult {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return laneEnqueueClosed
+	}
+
+	select {
+	case s.ch <- actionData:
+		s.touch()
+		return laneEnqueueOK
+	case <-time.After(timeout):
+		return laneEnqueueTimeout
+	}
+}
+
+func (s *laneActionChannel) retireIfIdle(hubPtr *hubImpl) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return true
+	}
+	if len(s.ch) > 0 {
+		return false
+	}
+	if time.Since(time.Unix(0, s.lastActive.Load())) < hubPtr.laneIdleTimeout {
+		return false
+	}
+
+	s.closed = true
+	hubPtr.laneKey2ChannelLock.Lock()
+	if currentPtr, currentOK := hubPtr.laneKey2ActionChannel[s.key]; currentOK && currentPtr == s {
+		delete(hubPtr.laneKey2ActionChannel, s.key)
+	}
+	hubPtr.laneKey2ChannelLock.Unlock()
+
+	close(s.ch)
+	return true
+}
+
+func (s *laneActionChannel) close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.closed {
+		return
+	}
+
+	s.closed = true
+	close(s.ch)
 }
 
 func eventLaneKey(ev Event) string {
@@ -452,6 +558,98 @@ func eventLaneKey(ev Event) string {
 	}
 
 	return ev.Destination()
+}
+
+func bindEventLaneContext(ev Event) func() {
+	if ev == nil {
+		return func() {}
+	}
+
+	originCtx := ev.Context()
+	ev.BindContext(context.WithValue(originCtx, laneExecutionContextKey{}, eventLaneKey(ev)))
+	return func() {
+		ev.BindContext(originCtx)
+	}
+}
+
+func isReentrantLaneExecution(ev Event, laneKey string) bool {
+	if ev == nil || laneKey == "" {
+		return false
+	}
+
+	currentLaneKey, ok := ev.Context().Value(laneExecutionContextKey{}).(string)
+	return ok && currentLaneKey == laneKey
+}
+
+func (s *hubImpl) getOrCreateLaneActionChannel(laneKey string) *laneActionChannel {
+	s.laneKey2ChannelLock.Lock()
+	defer s.laneKey2ChannelLock.Unlock()
+
+	channelVal, channelOK := s.laneKey2ActionChannel[laneKey]
+	if channelOK {
+		return channelVal
+	}
+
+	channelVal = newLaneActionChannel(laneKey, s.perLaneChanSize)
+	go channelVal.run(s)
+	s.laneKey2ActionChannel[laneKey] = channelVal
+	return channelVal
+}
+
+func (s *hubImpl) handleAction(actionData action) bool {
+	// 同一个 lane 上的所有操作都顺序执行。
+	// 包括 post 和 send 操作都需要顺序执行，以保证 lane 内事件顺序。
+	switch actionData.Code() {
+	case subscribe:
+		data := actionData.(*subscribeData)
+		s.subscribeInternal(data.eventID, data.observer)
+		select {
+		case data.result <- true:
+			// 成功发送
+		case <-time.After(10 * time.Millisecond):
+			slog.Warn("timeout sending subscribe result")
+		}
+	case unsubscribe:
+		data := actionData.(*unsubscribeData)
+		s.unsubscribeInternal(data.eventID, data.observer)
+		select {
+		case data.result <- true:
+			// 成功发送
+		case <-time.After(10 * time.Millisecond):
+			slog.Warn("timeout sending unsubscribe result")
+		}
+	case post:
+		data := actionData.(*postData)
+		restore := bindEventLaneContext(data.event)
+		s.postInternal(data.event)
+		restore()
+	case send:
+		data := actionData.(*sendData)
+		restore := bindEventLaneContext(data.event)
+		result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
+		s.sendInternal(data.event, result)
+		restore()
+		select {
+		case data.result <- result:
+			// 成功发送
+		case <-time.After(100 * time.Millisecond):
+			slog.Warn("timeout sending result")
+		}
+	case terminate:
+		data := actionData.(*terminateData)
+		data.waitGroup.Done()
+		select {
+		case data.result <- true:
+			// 成功发送
+		default:
+			// 非阻塞发送，避免在 channel 关闭时 panic
+		}
+		return true
+	default:
+		slog.Error("unknown action code", "code", actionData.Code())
+	}
+
+	return false
 }
 
 func (s *hubImpl) Subscribe(eventID string, observer Observer) {
@@ -498,46 +696,31 @@ func (s *hubImpl) Post(ev Event) {
 		return
 	}
 
-	actionData := &postData{event: ev}
 	laneKey := eventLaneKey(ev)
-	var eventChannel actionChannel
-	func() {
-		s.laneKey2ChannelLock.Lock()
-		defer s.laneKey2ChannelLock.Unlock()
-		channelVal, channelOK := s.laneKey2ActionChannel[laneKey]
-		if !channelOK {
-			if s.perLaneChanSize <= 0 {
-				s.perLaneChanSize = 1
-			}
-			channelVal = make(actionChannel, s.perLaneChanSize)
-			go channelVal.run(s)
-
-			s.laneKey2ActionChannel[laneKey] = channelVal
-		}
-
-		eventChannel = channelVal
-	}()
-
-	// 再次检查 terminateFlag，防止竞态条件
-	if s.terminateFlag.Load() {
+	if isReentrantLaneExecution(ev, laneKey) {
+		restore := bindEventLaneContext(ev)
+		s.postInternal(ev)
+		restore()
 		return
 	}
 
-	if ev.Source() == ev.Destination() {
-		s.Run(func() {
-			select {
-			case eventChannel <- actionData:
-				// 成功发送
-			case <-time.After(100 * time.Millisecond):
-				slog.Warn("timeout sending post data to channel")
-			}
-		})
-	} else {
-		select {
-		case eventChannel <- actionData:
-			// 成功发送
-		case <-time.After(100 * time.Millisecond):
+	actionData := &postData{event: ev}
+	for {
+		laneChannel := s.getOrCreateLaneActionChannel(laneKey)
+
+		// 再次检查 terminateFlag，防止竞态条件
+		if s.terminateFlag.Load() {
+			return
+		}
+
+		switch laneChannel.enqueue(actionData, 100*time.Millisecond) {
+		case laneEnqueueOK:
+			return
+		case laneEnqueueClosed:
+			continue
+		case laneEnqueueTimeout:
 			slog.Warn("timeout sending post data to channel")
+			return
 		}
 	}
 }
@@ -550,58 +733,40 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 	replay := make(chan Result, 1)
 	defer close(replay)
 
-	actionData := &sendData{event: ev, result: replay}
-
 	laneKey := eventLaneKey(ev)
-	var eventChannel actionChannel
-	func() {
-		s.laneKey2ChannelLock.Lock()
-		defer s.laneKey2ChannelLock.Unlock()
-		channelVal, channelOK := s.laneKey2ActionChannel[laneKey]
-		if !channelOK {
-			if s.perLaneChanSize <= 0 {
-				s.perLaneChanSize = 1
-			}
-			channelVal = make(actionChannel, s.perLaneChanSize)
-			go channelVal.run(s)
-
-			s.laneKey2ActionChannel[laneKey] = channelVal
-		}
-
-		eventChannel = channelVal
-	}()
-
-	// 再次检查 terminateFlag，防止竞态条件
-	if s.terminateFlag.Load() {
+	if isReentrantLaneExecution(ev, laneKey) {
+		restore := bindEventLaneContext(ev)
+		result := NewResult(ev.ID(), ev.Source(), ev.Destination())
+		s.sendInternal(ev, result)
+		restore()
+		ret = result
 		return
 	}
 
-	if ev.Source() == ev.Destination() {
-		s.Run(func() {
-			select {
-			case eventChannel <- actionData:
-				// 成功发送
-			case <-time.After(100 * time.Millisecond):
-				slog.Warn("timeout sending data to channel")
-				timeoutResult := NewResult(ev.ID(), ev.Source(), ev.Destination())
-				timeoutResult.Set(nil, cd.NewError(cd.Timeout, "send timeout"))
-				replay <- timeoutResult
-			}
-		})
-	} else {
-		select {
-		case eventChannel <- actionData:
-			// 成功发送
-		case <-time.After(100 * time.Millisecond):
+	actionData := &sendData{event: ev, result: replay}
+	for {
+		laneChannel := s.getOrCreateLaneActionChannel(laneKey)
+
+		// 再次检查 terminateFlag，防止竞态条件
+		if s.terminateFlag.Load() {
+			return
+		}
+
+		switch laneChannel.enqueue(actionData, 100*time.Millisecond) {
+		case laneEnqueueOK:
+			ret = <-replay
+			return
+		case laneEnqueueClosed:
+			continue
+		case laneEnqueueTimeout:
 			slog.Warn("timeout sending data to channel")
 			timeoutResult := NewResult(ev.ID(), ev.Source(), ev.Destination())
 			timeoutResult.Set(nil, cd.NewError(cd.Timeout, "send timeout"))
 			replay <- timeoutResult
+			ret = <-replay
+			return
 		}
 	}
-
-	ret = <-replay
-	return
 }
 
 func (s *hubImpl) Terminate() {
@@ -615,14 +780,18 @@ func (s *hubImpl) Terminate() {
 	// 先发送终止信号到所有 channel
 	go func() {
 		s.laneKey2ChannelLock.Lock()
-		defer s.laneKey2ChannelLock.Unlock()
-
+		laneChannels := []*laneActionChannel{}
 		for _, val := range s.laneKey2ActionChannel {
+			laneChannels = append(laneChannels, val)
+		}
+		s.laneKey2ChannelLock.Unlock()
+
+		for _, val := range laneChannels {
 			waitGroup.Add(1)
-			select {
-			case val <- actionData:
+			switch val.enqueue(actionData, 100*time.Millisecond) {
+			case laneEnqueueOK:
 				// 成功发送
-			case <-time.After(100 * time.Millisecond):
+			default:
 				// 超时，跳过
 				waitGroup.Done()
 			}
@@ -653,12 +822,16 @@ func (s *hubImpl) Terminate() {
 
 	// 等待所有 goroutine 完成处理
 	s.laneKey2ChannelLock.Lock()
-	defer s.laneKey2ChannelLock.Unlock()
+	laneChannels := []*laneActionChannel{}
 	for _, val := range s.laneKey2ActionChannel {
-		close(val)
+		laneChannels = append(laneChannels, val)
+	}
+	s.laneKey2ActionChannel = LaneKey2ActionChannelMap{}
+	s.laneKey2ChannelLock.Unlock()
+	for _, val := range laneChannels {
+		val.close()
 	}
 	s.event2Observer = ID2ObserverMap{}
-	s.laneKey2ActionChannel = LaneKey2ActionChannelMap{}
 }
 
 func (s *hubImpl) run() {

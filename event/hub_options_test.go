@@ -2,6 +2,19 @@ package event
 
 import "testing"
 
+func TestDefaultHubOptionsCapControlPlaneBuffers(t *testing.T) {
+	opts := defaultHubOptions(500000)
+	if opts.perLaneChanSize != defaultMaxPerLaneChanSize {
+		t.Fatalf("perLaneChanSize=%d want=%d", opts.perLaneChanSize, defaultMaxPerLaneChanSize)
+	}
+	if opts.hubActionChanSize != defaultMaxHubActionChanSize {
+		t.Fatalf("hubActionChanSize=%d want=%d", opts.hubActionChanSize, defaultMaxHubActionChanSize)
+	}
+	if opts.workerPoolSize != defaultMaxWorkerPoolSize {
+		t.Fatalf("workerPoolSize=%d want=%d", opts.workerPoolSize, defaultMaxWorkerPoolSize)
+	}
+}
+
 // TestNewHubWithOptions 验证 NewHubWithOptions 不改变语义
 func TestNewHubWithOptions(t *testing.T) {
 	hub := NewHubWithOptions(10,

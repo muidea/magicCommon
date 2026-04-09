@@ -3,6 +3,8 @@ package event
 import (
 	"testing"
 	"time"
+
+	cd "github.com/muidea/magicCommon/def"
 )
 
 type blockingObserver struct {
@@ -33,6 +35,48 @@ func (b *blockingIDObserver) ID() string {
 }
 
 func (b *blockingIDObserver) Notify(event Event, result Result) {}
+
+type reentrantSendObserver struct {
+	id      string
+	eventID string
+	hub     Hub
+	errCh   chan error
+}
+
+func (s *reentrantSendObserver) ID() string {
+	return s.id
+}
+
+func (s *reentrantSendObserver) Notify(event Event, result Result) {
+	depth, _ := event.Data().(int)
+	if depth > 0 {
+		nestedEvent := NewEvent(s.eventID, s.id, s.id, NewValues(), depth-1)
+		nestedEvent.BindContext(event.Context())
+		nestedResult := s.hub.Send(nestedEvent)
+		if nestedResult == nil {
+			s.errCh <- cd.NewError(cd.Unexpected, "nested result is nil")
+			return
+		}
+
+		nestedValue, nestedErr := nestedResult.Get()
+		if nestedErr != nil {
+			s.errCh <- nestedErr
+			return
+		}
+		if nestedValue != depth-1 {
+			s.errCh <- cd.NewError(cd.Unexpected, "nested value mismatch")
+			return
+		}
+	}
+
+	if result != nil {
+		result.Set(depth, nil)
+	}
+	select {
+	case s.errCh <- nil:
+	default:
+	}
+}
 
 func TestHubCacheRespectsDestination(t *testing.T) {
 	hub := NewHubWithOptions(4)
@@ -147,5 +191,46 @@ func TestHubTerminateDoesNotBlockWhenHubActionChannelIsBusy(t *testing.T) {
 	select {
 	case <-firstResult:
 	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestHubSendDoesNotDeadlockOnReentrantSameLane(t *testing.T) {
+	hub := NewHubWithOptions(1, WithPerLaneChanSize(1))
+	defer hub.Terminate()
+
+	eventID := "/send/reentrant"
+	observer := &reentrantSendObserver{
+		id:      "/dest/reentrant",
+		eventID: eventID,
+		hub:     hub,
+		errCh:   make(chan error, 4),
+	}
+	hub.Subscribe(eventID, observer)
+	time.Sleep(20 * time.Millisecond)
+
+	done := make(chan Result, 1)
+	go func() {
+		done <- hub.Send(NewEvent(eventID, "external", observer.id, NewValues(), 1))
+	}()
+
+	select {
+	case result := <-done:
+		if result == nil || result.Error() != nil {
+			t.Fatalf("expected successful result, got error %v", result.Error())
+		}
+		value, err := result.Get()
+		if err != nil || value != 1 {
+			t.Fatalf("unexpected result, value=%v err=%v", value, err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("reentrant send blocked on same lane")
+	}
+
+	select {
+	case err := <-observer.errCh:
+		if err != nil {
+			t.Fatalf("observer reported error: %v", err)
+		}
+	default:
 	}
 }
