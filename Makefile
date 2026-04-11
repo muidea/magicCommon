@@ -51,9 +51,9 @@ vet:
 # 格式化代码
 fmt:
 	@echo "Formatting code..."
-	go fmt ./...
+	@find . -name "*.go" -not -path "./vendor/*" -exec gofmt -w {} +
 	@if command -v goimports >/dev/null 2>&1; then \
-		goimports -w .; \
+		find . -name "*.go" -not -path "./vendor/*" -exec goimports -w {} +; \
 		echo "goimports completed."; \
 	else \
 		echo "goimports not found, skipping..."; \
