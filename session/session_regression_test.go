@@ -58,6 +58,27 @@ func TestSessionResetClearsOptionsAndObservers(t *testing.T) {
 	}
 }
 
+func TestClearSessionTokenCookieExpiresCookie(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	ClearSessionTokenCookie(recorder)
+
+	cookies := recorder.Result().Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("expected one cookie, got %d", len(cookies))
+	}
+	cookie := cookies[0]
+	if cookie.Name != SessionToken {
+		t.Fatalf("cookie name=%q want=%q", cookie.Name, SessionToken)
+	}
+	if cookie.Value != "" || cookie.MaxAge >= 0 || cookie.Expires.After(time.Unix(1, 0)) {
+		t.Fatalf("expected expired empty cookie, got %+v", cookie)
+	}
+	if cookie.Path != "/" || !cookie.HttpOnly || !cookie.Secure || cookie.SameSite != http.SameSiteStrictMode {
+		t.Fatalf("unexpected cookie attributes: %+v", cookie)
+	}
+}
+
 func TestSessionSubmitOptionsAndTerminateNotifyObservers(t *testing.T) {
 	registry := NewRegistry(nil).(*sessionRegistryImpl)
 	defer registry.Release()

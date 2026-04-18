@@ -50,6 +50,20 @@ func WriteSessionTokenToCookie(res http.ResponseWriter, sessionToken string) {
 	http.SetCookie(res, &cookie)
 }
 
+func ClearSessionTokenCookie(res http.ResponseWriter) {
+	cookie := http.Cookie{
+		Name:     SessionToken,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+	}
+	http.SetCookie(res, &cookie)
+}
+
 func GetSessionTimeOutValue() time.Duration {
 	sessionTimeoutVal := os.Getenv(SESSION_TIMEOUT_VALUE_KEY)
 	if sessionTimeoutVal != "" {
