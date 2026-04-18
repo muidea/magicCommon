@@ -3,14 +3,8 @@ package session
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/muidea/magicCommon/foundation/util"
-)
-
-const (
-	Credential = "Credential"
-	Signature  = "Signature"
 )
 
 type Endpoint struct {
@@ -34,89 +28,30 @@ func EncryptEndpoint(endpoint *Endpoint) (string, error) {
 	return valStr, nil
 }
 
-func SignatureEndpoint(endpoint string, authToken string) (string, error) {
-	credentialVal := fmt.Sprintf("%s=%s", Credential, endpoint)
-	signatureVal := fmt.Sprintf("%s=%s", Signature, authToken)
-	return strings.Join([]string{credentialVal, signatureVal}, ","), nil
-}
-
-func decodeEndpoint(sigVal string) *sessionImpl {
-	offset := strings.Index(sigVal, ",")
-	if offset == -1 {
-		return nil
-	}
-	endpointVal, valErr := decodeCredential(sigVal[:offset])
-	if valErr != nil {
-		return nil
-	}
-
-	endpointPtr, ptrErr := decodeSignature(sigVal[offset+1:])
-	if ptrErr != nil {
-		return nil
-	}
-	if endpointVal != endpointPtr.Endpoint {
-		return nil
-	}
-
-	sessionPtr := &sessionImpl{context: map[string]any{}, observer: map[string]Observer{}}
-	sessionPtr.context[InnerAuthType] = AuthEndpointSession
-	for k, v := range endpointPtr.Context {
-		if k == innerSessionID {
-			sessionPtr.id = v.(string)
-			continue
-		}
-
-		sessionPtr.context[k] = v
-	}
-
-	return sessionPtr
-}
-
-func decodeCredential(val string) (ret string, err error) {
-	offset := strings.Index(val, "=")
-	if offset == -1 {
-		err = fmt.Errorf("illegal Credential")
-		return
-	}
-
-	if val[:offset] != Credential {
-		err = fmt.Errorf("illegal Credential head")
-		return
-	}
-
-	ret = val[offset+1:]
-	return
-}
-
-func decodeSignature(val string) (ret *Endpoint, err error) {
-	offset := strings.Index(val, "=")
-	if offset == -1 {
-		err = fmt.Errorf("illegal Signature")
-		return
-	}
-
-	if val[:offset] != Signature {
-		err = fmt.Errorf("illegal Signature head")
-		return
-	}
-
+func decodeEndpointTokenValue(val string) (ret *Endpoint, err error) {
 	secretVal := getSecret()
-	strVal, strErr := util.DecryptByAes(val[offset+1:], secretVal)
+	strVal, strErr := util.DecryptByAes(val, secretVal)
 	if strErr != nil {
 		err = strErr
 		return
 	}
 
-	offset = strings.Index(strVal, "/")
+	offset := -1
+	for idx, ch := range strVal {
+		if ch == '/' {
+			offset = idx
+			break
+		}
+	}
 	if offset == -1 {
-		err = fmt.Errorf("illegal Signature value")
+		err = fmt.Errorf("illegal endpoint token value")
 		return
 	}
 
 	ctx := map[string]any{}
 	err = json.Unmarshal([]byte(strVal[offset+1:]), &ctx)
 	if err != nil {
-		err = fmt.Errorf("illegal Signature value")
+		err = fmt.Errorf("illegal endpoint token value")
 		return
 	}
 
@@ -125,4 +60,25 @@ func decodeSignature(val string) (ret *Endpoint, err error) {
 		Context:  ctx,
 	}
 	return
+}
+
+func decodeEndpointToken(val string) *sessionImpl {
+	endpointPtr, err := decodeEndpointTokenValue(val)
+	if err != nil || endpointPtr == nil {
+		return nil
+	}
+
+	sessionPtr := &sessionImpl{context: map[string]any{}, observer: map[string]Observer{}}
+	sessionPtr.context[InnerAuthType] = AuthEndpointSession
+	for k, v := range endpointPtr.Context {
+		if k == innerSessionID {
+			if idVal, ok := v.(string); ok {
+				sessionPtr.id = idVal
+			}
+			continue
+		}
+		sessionPtr.context[k] = v
+	}
+
+	return sessionPtr
 }

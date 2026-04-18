@@ -192,8 +192,7 @@ func (s *BaseClient) GetContextValues() url.Values {
 	}
 
 	if s.sessionAuthSecret != nil {
-		tokenVal, _ := SignatureEndpoint(s.sessionAuthSecret.Endpoint, s.sessionAuthSecret.AuthToken)
-		ret.Set(Authorization, fmt.Sprintf("%s %s", sigToken, tokenVal))
+		ret.Set(Authorization, fmt.Sprintf("%s %s", sigToken, s.sessionAuthSecret.AuthToken))
 	}
 	if s.sessionAuthorization != "" {
 		ret.Set(Authorization, s.sessionAuthorization)

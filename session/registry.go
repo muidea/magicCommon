@@ -175,7 +175,7 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 			}
 
 			if authorizationValue[:offset] == sigToken {
-				sessionPtr = decodeEndpoint(authorizationValue[offset+1:])
+				sessionPtr = decodeEndpointToken(authorizationValue[offset+1:])
 			}
 		}
 

@@ -31,23 +31,7 @@ func TestEncryptEndpoint(t *testing.T) {
 	fmt.Printf("%s\n", val)
 }
 
-func TestSignatureEndpoint(t *testing.T) {
-	ptr.Context[AuthExpireTime] = time.Now().Add(time.Hour).UTC().UnixMilli()
-	val, err := EncryptEndpoint(ptr)
-	if err != nil {
-		t.Errorf("encrypt endpoint failed, err:%s", err.Error())
-		return
-	}
-
-	token, err := SignatureEndpoint(ptr.Endpoint, val)
-	if err != nil {
-		t.Errorf("signature endpoint failed, err:%s", err.Error())
-		return
-	}
-	fmt.Printf("%s\n", token)
-}
-
-func TestDecodeEndpoint(t *testing.T) {
+func TestDecodeEndpointToken(t *testing.T) {
 	register := DefaultRegistry()
 	defer register.Release()
 
@@ -58,15 +42,9 @@ func TestDecodeEndpoint(t *testing.T) {
 		return
 	}
 
-	token, err := SignatureEndpoint(ptr.Endpoint, val)
-	if err != nil {
-		t.Errorf("signature endpoint failed, err:%s", err.Error())
-		return
-	}
-
 	req := &http.Request{Header: http.Header{}}
 	var res http.ResponseWriter
-	req.Header.Set(Authorization, fmt.Sprintf("%s %s", sigToken, token))
+	req.Header.Set(Authorization, fmt.Sprintf("%s %s", sigToken, val))
 
 	sessionPtr := register.GetSession(res, req)
 	assert.NotEqual(t, nil, sessionPtr)
@@ -81,10 +59,53 @@ func TestDecodeEndpoint(t *testing.T) {
 	assert.Equal(t, true, enableVal)
 }
 
-func TestDecodeEndpointWithoutSignature(t *testing.T) {
+func TestDecodeEndpointTokenThroughSig(t *testing.T) {
+	register := DefaultRegistry()
+	defer register.Release()
+
+	ptr.Context[AuthExpireTime] = time.Now().Add(time.Hour).UTC().UnixMilli()
+	val, err := EncryptEndpoint(ptr)
+	if err != nil {
+		t.Errorf("encrypt endpoint failed, err:%s", err.Error())
+		return
+	}
+
+	req := &http.Request{Header: http.Header{}}
+	var res http.ResponseWriter
+	req.Header.Set(Authorization, fmt.Sprintf("%s %s", sigToken, val))
+
+	sessionPtr := register.GetSession(res, req)
+	assert.NotEqual(t, nil, sessionPtr)
+	authType, authTypeOK := sessionPtr.GetString(InnerAuthType)
+	assert.Equal(t, true, authTypeOK)
+	assert.Equal(t, AuthEndpointSession, authType)
+	nameVal, nameOK := sessionPtr.GetString("name")
+	assert.Equal(t, true, nameOK)
+	assert.Equal(t, "test", nameVal)
+}
+
+func TestBearerDoesNotDecodeEndpointToken(t *testing.T) {
+	register := DefaultRegistry()
+	defer register.Release()
+
+	ptr.Context[AuthExpireTime] = time.Now().Add(time.Hour).UTC().UnixMilli()
+	val, err := EncryptEndpoint(ptr)
+	if err != nil {
+		t.Errorf("encrypt endpoint failed, err:%s", err.Error())
+		return
+	}
+
+	req := &http.Request{Header: http.Header{}}
+	req.Header.Set(Authorization, fmt.Sprintf("%s %s", jwtToken, val))
+
+	sessionPtr := LookupSession(register, req)
+	assert.Nil(t, sessionPtr)
+}
+
+func TestDecodeEndpointTokenValue(t *testing.T) {
 	_ = os.Setenv("HMAC_SECRET", "e3bcbe908a384d9ba8e7ac7028a21f75")
 
-	endpointPtr, endpointErr := decodeSignature("Signature=ZnFdJ5CDfo3ICa55HhsDUkS6ybowwcg6x0PBnAIWqqeozooW/tyqT+utejzvHcuxl6vOPq8qezhbaPw9NoRb2d3n6jsf7gQ+xuKV3ZUNGswHrI4mWaFImxhDx1MMK0okueA4gf0cvvOgGPZljFoANbaPu7cvTUa3Ezi6p8S2M8w3jCnOsouWlE1cbY0YF9Lb4cyIc5Jx69aCG8+Mc2Egr9gtgyRoXBMTBsWVVXPweC24u0sWgPwogaVyNb2sxwLtOoaRR3wbl8zEPTnnExDrbZcJs3bdBdc72CdbyeIV6es=")
+	endpointPtr, endpointErr := decodeEndpointTokenValue("ZnFdJ5CDfo3ICa55HhsDUkS6ybowwcg6x0PBnAIWqqeozooW/tyqT+utejzvHcuxl6vOPq8qezhbaPw9NoRb2d3n6jsf7gQ+xuKV3ZUNGswHrI4mWaFImxhDx1MMK0okueA4gf0cvvOgGPZljFoANbaPu7cvTUa3Ezi6p8S2M8w3jCnOsouWlE1cbY0YF9Lb4cyIc5Jx69aCG8+Mc2Egr9gtgyRoXBMTBsWVVXPweC24u0sWgPwogaVyNb2sxwLtOoaRR3wbl8zEPTnnExDrbZcJs3bdBdc72CdbyeIV6es=")
 	assert.Equal(t, nil, endpointErr)
 	assert.Equal(t, "defaultEndpoint", endpointPtr.Endpoint)
 }
