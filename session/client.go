@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	fnet "github.com/muidea/magicCommon/foundation/net"
 )
 
 type AuthSecret struct {
@@ -106,7 +108,7 @@ func (c *defaultHeaderContext) GetAll() url.Values {
 }
 
 func NewBaseClient(serverUrl string) BaseClient {
-	return BaseClient{serverURL: serverUrl, httpClient: &http.Client{}}
+	return BaseClient{serverURL: serverUrl, httpClient: fnet.NewDNSCacheHttpClient()}
 }
 
 type BaseClient struct {
