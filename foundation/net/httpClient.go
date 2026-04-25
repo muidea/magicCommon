@@ -12,13 +12,13 @@ var resolver *Resolver
 var initOnce sync.Once
 
 const (
-	defaultHTTPClientTimeout          = 15 * time.Second
-	defaultHTTPDialTimeout            = 5 * time.Second
-	defaultHTTPKeepAlive              = 30 * time.Second
-	defaultHTTPResponseHeaderTimeout  = 10 * time.Second
-	defaultHTTPTLSHandshakeTimeout    = 5 * time.Second
-	defaultHTTPExpectContinueTimeout  = 1 * time.Second
-	defaultHTTPIdleConnTimeout        = 90 * time.Second
+	defaultHTTPClientTimeout         = 15 * time.Second
+	defaultHTTPDialTimeout           = 5 * time.Second
+	defaultHTTPKeepAlive             = 30 * time.Second
+	defaultHTTPResponseHeaderTimeout = 10 * time.Second
+	defaultHTTPTLSHandshakeTimeout   = 5 * time.Second
+	defaultHTTPExpectContinueTimeout = 1 * time.Second
+	defaultHTTPIdleConnTimeout       = 90 * time.Second
 )
 
 func init() {
