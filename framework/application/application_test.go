@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"testing"
 
 	cd "github.com/muidea/magicCommon/def"
@@ -21,7 +22,7 @@ type MockService struct {
 	backgroundRoutine task.BackgroundRoutine
 }
 
-func (m *MockService) Startup(name string, hub event.Hub, routine task.BackgroundRoutine) *cd.Error {
+func (m *MockService) Startup(_ context.Context, name string, hub event.Hub, routine task.BackgroundRoutine) *cd.Error {
 	m.startupCalled = true
 	m.startupName = name
 	m.eventHub = hub
@@ -29,12 +30,12 @@ func (m *MockService) Startup(name string, hub event.Hub, routine task.Backgroun
 	return m.startupError
 }
 
-func (m *MockService) Run() *cd.Error {
+func (m *MockService) Run(_ context.Context) *cd.Error {
 	m.runCalled = true
 	return m.runError
 }
 
-func (m *MockService) Shutdown() {
+func (m *MockService) Shutdown(_ context.Context) {
 	m.shutdownCalled = true
 }
 
@@ -63,7 +64,7 @@ func TestApplicationStartupSuccess(t *testing.T) {
 	mockService := &MockService{}
 
 	// 测试正常启动
-	err := Startup(mockService)
+	err := Startup(context.Background(), mockService)
 
 	assert.Nil(t, err, "Startup should succeed without error")
 	assert.True(t, mockService.startupCalled, "Service Startup should be called")
@@ -76,7 +77,7 @@ func TestApplicationStartupWithError(t *testing.T) {
 	}
 
 	// 测试启动失败
-	err := Startup(mockService)
+	err := Startup(context.Background(), mockService)
 
 	assert.NotNil(t, err, "Startup should return error")
 	assert.Equal(t, cd.Code(cd.Unexpected), err.Code, "Error code should match")
@@ -87,11 +88,11 @@ func TestApplicationRunSuccess(t *testing.T) {
 	mockService := &MockService{}
 
 	// 先启动服务
-	_ = Startup(mockService)
+	_ = Startup(context.Background(), mockService)
 	mockService.Reset()
 
 	// 测试运行
-	err := Run()
+	err := Run(context.Background())
 
 	assert.Nil(t, err, "Run should succeed without error")
 	assert.True(t, mockService.runCalled, "Service Run should be called")
@@ -104,7 +105,7 @@ func TestApplicationRunWithoutStartup(t *testing.T) {
 	app := Get()
 
 	// 测试未启动直接运行
-	err := app.Run()
+	err := app.Run(context.Background())
 
 	assert.NotNil(t, err, "Run should return error when service is nil")
 	assert.Equal(t, cd.Code(cd.IllegalParam), err.Code, "Error code should be IllegalParam")
@@ -116,12 +117,12 @@ func TestApplicationRunWithError(t *testing.T) {
 	}
 
 	// 先启动服务
-	_ = Startup(mockService)
+	_ = Startup(context.Background(), mockService)
 	mockService.Reset()
 	mockService.runError = cd.NewError(cd.Unexpected, "run failed")
 
 	// 测试运行失败
-	err := Run()
+	err := Run(context.Background())
 
 	assert.NotNil(t, err, "Run should return error")
 	assert.Equal(t, cd.Code(cd.Unexpected), err.Code, "Error code should match")
@@ -132,18 +133,18 @@ func TestApplicationShutdown(t *testing.T) {
 	mockService := &MockService{}
 
 	// 先启动服务
-	_ = Startup(mockService)
+	_ = Startup(context.Background(), mockService)
 	mockService.Reset()
 
 	// 测试关闭
-	Shutdown()
+	Shutdown(context.Background())
 
 	assert.True(t, mockService.shutdownCalled, "Service Shutdown should be called")
 }
 
 func TestApplicationShutdownWithoutStartup(t *testing.T) {
 	// 测试未启动直接关闭（应该不会panic）
-	Shutdown()
+	Shutdown(context.Background())
 
 	// 如果没有panic，测试通过
 	assert.True(t, true, "Shutdown should not panic when service is nil")
@@ -168,19 +169,19 @@ func TestApplicationInterfaceMethods(t *testing.T) {
 	mockService := &MockService{}
 
 	// 测试接口方法
-	err := app.Startup(mockService)
+	err := app.Startup(context.Background(), mockService)
 	assert.Nil(t, err, "Startup should succeed")
 	assert.True(t, mockService.startupCalled, "Service Startup should be called")
 
 	// 重置并测试Run
 	mockService.Reset()
-	err = app.Run()
+	err = app.Run(context.Background())
 	assert.Nil(t, err, "Run should succeed")
 	assert.True(t, mockService.runCalled, "Service Run should be called")
 
 	// 测试Shutdown
 	mockService.Reset()
-	app.Shutdown()
+	app.Shutdown(context.Background())
 	assert.True(t, mockService.shutdownCalled, "Service Shutdown should be called")
 
 	// 测试获取EventHub和BackgroundRoutine

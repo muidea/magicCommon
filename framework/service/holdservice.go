@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
 
-	cd "github.com/muidea/magicCommon/def"
 	"log/slog"
+
+	cd "github.com/muidea/magicCommon/def"
 )
 
 func HoldService() Service {
@@ -19,8 +21,11 @@ type holdService struct {
 	defaultService
 }
 
-func (s *holdService) Run() (err *cd.Error) {
-	err = s.defaultService.Run()
+func (s *holdService) Run(ctx context.Context) (err *cd.Error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	err = s.defaultService.Run(ctx)
 	if err != nil {
 		return
 	}
@@ -30,7 +35,11 @@ func (s *holdService) Run() (err *cd.Error) {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigChan)
 
-	<-sigChan
-	slog.Warn("service received shutdown signal", "service", s.serviceName)
+	select {
+	case sig := <-sigChan:
+		slog.Warn("service received shutdown signal", "service", s.serviceName, "signal", sig)
+	case <-ctx.Done():
+		slog.Warn("service context done", "service", s.serviceName, "err", ctx.Err())
+	}
 	return
 }

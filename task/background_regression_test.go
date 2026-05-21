@@ -21,7 +21,7 @@ func (s *slowTask) Run() {
 
 func TestSyncTaskWithTimeOutDoesNotPanicAfterTimeout(t *testing.T) {
 	taskRoutine := NewBackgroundRoutine(8)
-	defer taskRoutine.Shutdown(time.Second)
+	defer taskRoutine.Shutdown(context.Background())
 	taskPtr := &slowTask{delay: 20 * time.Millisecond}
 
 	_ = taskRoutine.SyncTaskWithTimeOut(taskPtr, 1*time.Millisecond)
@@ -37,13 +37,13 @@ func TestSyncTaskWithTimeOutDoesNotPanicAfterTimeout(t *testing.T) {
 
 func TestBackgroundRoutineTimerWithContextStopsAfterCancel(t *testing.T) {
 	taskRoutine := NewBackgroundRoutine(8)
-	defer taskRoutine.Shutdown(time.Second)
+	defer taskRoutine.Shutdown(context.Background())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	var count atomic.Int32
-	err := taskRoutine.TimerWithContext(ctx, Task(&routineTask{funcPtr: func() {
+	err := taskRoutine.Timer(ctx, Task(&routineTask{funcPtr: func() {
 		count.Add(1)
 	}}), 50*time.Millisecond, 0)
 	if err != nil {
@@ -67,10 +67,10 @@ func TestBackgroundRoutineTimerWithContextStopsAfterCancel(t *testing.T) {
 func TestBackgroundRoutineShutdownRejectsNewTasks(t *testing.T) {
 	taskRoutine := NewBackgroundRoutine(8)
 
-	if !taskRoutine.Shutdown(time.Second) {
+	if !taskRoutine.Shutdown(context.Background()) {
 		t.Fatalf("expected shutdown to drain")
 	}
-	if taskRoutine.Shutdown(time.Second) != true {
+	if taskRoutine.Shutdown(context.Background()) != true {
 		t.Fatalf("expected repeated shutdown to stay successful")
 	}
 	if err := taskRoutine.AsyncFunction(func() {}); err == nil {

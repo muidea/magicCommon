@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"testing"
@@ -41,7 +42,7 @@ func (h *benchHeavyObserver) Notify(ev Event, re Result) {
 // BenchmarkHubPostHighThroughput 基准：单 Observer，多 goroutine 并发 Post 事件
 func BenchmarkHubPostHighThroughput(b *testing.B) {
 	hub := NewHub(1024)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	observer := newSequenceObserver("bench-post-observer")
 	eventID := "/bench/post"
@@ -63,7 +64,7 @@ func BenchmarkHubPostHighThroughput(b *testing.B) {
 // BenchmarkHubSendHighThroughput 基准：单 Observer，多 goroutine 并发 Send 事件（同步）
 func BenchmarkHubSendHighThroughput(b *testing.B) {
 	hub := NewHub(1024)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	handler := &eventHandler{handlerID: "/bench-send-observer"}
 	eventID := "/bench/send"
@@ -89,7 +90,7 @@ func BenchmarkHubSendNoLog(b *testing.B) {
 		WithHubActionChanSize(512),
 		WithWorkerPoolSize(256),
 	)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	// 自定义 Observer，不做日志，只设置结果
 	observer := &benchNoLogObserver{id: "/bench-send-nolog"}
@@ -113,7 +114,7 @@ func BenchmarkHubSendLightHandler(b *testing.B) {
 		WithHubActionChanSize(512),
 		WithWorkerPoolSize(256),
 	)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	type lightHandler struct {
 		eventHandler
@@ -146,7 +147,7 @@ func BenchmarkHubSendHeavyHandler(b *testing.B) {
 		WithHubActionChanSize(512),
 		WithWorkerPoolSize(256),
 	)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	// 使用自定义 Observer，在 Notify 中模拟较重的 CPU 逻辑
 	handler := &benchHeavyObserver{id: "/bench-send-heavy"}
@@ -167,7 +168,7 @@ func BenchmarkHubPostManySubscribers(b *testing.B) {
 	const subscriberCount = 64
 
 	hub := NewHub(2048)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	eventID := "/bench/many"
 
@@ -192,7 +193,7 @@ func BenchmarkHubPostManySubscribers(b *testing.B) {
 // BenchmarkHubPostHighConcurrencyPublishers 基准：多个发布者 + 单订阅者场景
 func BenchmarkHubPostHighConcurrencyPublishers(b *testing.B) {
 	hub := NewHub(1024)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	observer := newSequenceObserver("bench-concurrent-observer")
 	eventID := "/bench/concurrent"

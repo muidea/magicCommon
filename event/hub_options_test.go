@@ -1,6 +1,9 @@
 package event
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestDefaultHubOptionsCapControlPlaneBuffers(t *testing.T) {
 	opts := defaultHubOptions(500000)
@@ -22,7 +25,7 @@ func TestNewHubWithOptions(t *testing.T) {
 		WithHubActionChanSize(64),
 		WithWorkerPoolSize(16),
 	)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	handler := &eventHandler{handlerID: "/opt-handler"}
 	hub.Subscribe("/opt-event", handler)

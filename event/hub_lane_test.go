@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -49,7 +50,7 @@ func (s *laneAwareObserver) Notify(ev Event, re Result) {
 
 func TestHubSendUsesLaneKeyForScheduling(t *testing.T) {
 	hub := NewHubWithOptions(1, WithPerLaneChanSize(1))
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	observer := &laneAwareObserver{
 		id:      "/lane/test",
@@ -99,7 +100,7 @@ func TestHubSendUsesLaneKeyForScheduling(t *testing.T) {
 
 func TestSimpleObserverWithMatchID(t *testing.T) {
 	hub := NewHubWithOptions(2)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	done := make(chan Event, 1)
 	observer := NewSimpleObserverWithMatchID("base-observer", "/internal/modules/kernel/base/#", hub)
@@ -128,7 +129,7 @@ func TestSimpleObserverWithMatchID(t *testing.T) {
 
 func TestHubReclaimsIdleLaneWorkers(t *testing.T) {
 	hub := NewHubWithOptions(1, WithPerLaneChanSize(1), WithLaneIdleTimeout(20*time.Millisecond))
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	hubPtr := hub.(*hubImpl)
 	observer := &laneAwareObserver{id: "/lane/reclaim", releaseCh: map[string]chan struct{}{}}
@@ -152,7 +153,7 @@ func TestHubReclaimsIdleLaneWorkers(t *testing.T) {
 
 func TestHubRecreatesLaneAfterIdleReclaim(t *testing.T) {
 	hub := NewHubWithOptions(1, WithPerLaneChanSize(1), WithLaneIdleTimeout(20*time.Millisecond))
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	hubPtr := hub.(*hubImpl)
 	observer := &laneAwareObserver{id: "/lane/recreate", releaseCh: map[string]chan struct{}{}}

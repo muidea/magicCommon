@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	cd "github.com/muidea/magicCommon/def"
 	"log/slog"
+
+	cd "github.com/muidea/magicCommon/def"
 )
 
 func TestMatchID(t *testing.T) {
@@ -644,7 +645,7 @@ func TestHubImpl(t *testing.T) {
 		t.Errorf("Observer2 notify count = %d, want > 0", count2)
 	}
 
-	hub.Terminate()
+	hub.Terminate(context.Background())
 }
 
 func TestSimpleObserver(t *testing.T) {
@@ -699,7 +700,7 @@ func TestSimpleObserver(t *testing.T) {
 
 	// Clean up
 	simpleObserver.Unsubscribe(eventID)
-	hub.Terminate()
+	hub.Terminate(context.Background())
 	time.Sleep(100 * time.Millisecond)
 }
 
@@ -752,7 +753,7 @@ func TestEventHub(t *testing.T) {
 	}
 
 	// Clean up
-	hub.Terminate()
+	hub.Terminate(context.Background())
 	time.Sleep(100 * time.Millisecond)
 }
 
@@ -761,7 +762,7 @@ func TestEventHub(t *testing.T) {
 // Send 方法（同步）也保证事件顺序
 func TestEventOrderConsistency(t *testing.T) {
 	hub := NewHub(10)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	// 创建顺序验证观察者
 	observer := newSequenceObserver("sequence-observer")
@@ -940,7 +941,7 @@ func TestEventOrderConsistency(t *testing.T) {
 // TestHighConcurrency 测试高并发场景：多个发布者同时发送事件
 func TestHighConcurrency(t *testing.T) {
 	hub := NewHub(200) // 使用较大的容量
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	// 创建观察者
 	observer := newSequenceObserver("concurrent-observer")
@@ -1033,7 +1034,7 @@ func TestHighConcurrency(t *testing.T) {
 // TestHighThroughput 测试大吞吐场景：快速发送大量事件
 func TestHighThroughput(t *testing.T) {
 	hub := NewHub(500) // 使用更大的容量
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	// 创建观察者
 	observer := newSequenceObserver("throughput-observer")
@@ -1099,7 +1100,7 @@ func TestHighThroughput(t *testing.T) {
 // TestManySubscribers 测试大量订阅者场景：多个观察者订阅相同事件
 func TestManySubscribers(t *testing.T) {
 	hub := NewHub(200)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	// 测试参数 - 减少订阅者数量以避免超时
 	const subscriberCount = 30 // 订阅者数量
@@ -1170,7 +1171,7 @@ func TestManySubscribers(t *testing.T) {
 // TestMixedScenario 测试混合场景：并发发布 + 大量订阅
 func TestMixedScenario(t *testing.T) {
 	hub := NewHub(300)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	// 测试参数 - 减少参数以避免超时
 	const subscriberCount = 20    // 订阅者数量

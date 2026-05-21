@@ -1,6 +1,8 @@
 package module
 
 import (
+	"context"
+
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/task"
@@ -14,14 +16,14 @@ func Register(module any) {
 	_ = moduleMgr.Register(module)
 }
 
-func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {
-	return moduleMgr.Setup(eventHub, backgroundRoutine)
+func Setup(ctx context.Context, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {
+	return moduleMgr.Setup(ctx, eventHub, backgroundRoutine)
 }
 
-func Run() *cd.Error {
-	return moduleMgr.Run()
+func Run(ctx context.Context) *cd.Error {
+	return moduleMgr.Run(ctx)
 }
 
-func Teardown() {
-	moduleMgr.Teardown()
+func Teardown(ctx context.Context) {
+	moduleMgr.Teardown(ctx)
 }

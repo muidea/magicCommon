@@ -1,15 +1,17 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
+
+	"log/slog"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/foundation/system"
 	"github.com/muidea/magicCommon/task"
-	"log/slog"
 )
 
 type InvokeFunc func() *cd.Error
@@ -188,13 +190,16 @@ func (s *PluginMgr) GetEntity(id string) (ret any, err *cd.Error) {
 	return
 }
 
-func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err *cd.Error) {
+func (s *PluginMgr) Setup(ctx context.Context, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (err *cd.Error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	s.mu.RLock()
 	entityList := append([]any(nil), s.entityList...)
 	s.mu.RUnlock()
 
 	for _, val := range entityList {
-		err = system.InvokeEntityFunc(val, setupTag, eventHub, backgroundRoutine)
+		err = system.InvokeEntityFunc(val, setupTag, ctx, eventHub, backgroundRoutine)
 		if err != nil && err.Code != cd.NotFound {
 			idVal, idErr := s.getID(val)
 			if idErr != nil {
@@ -209,13 +214,16 @@ func (s *PluginMgr) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundR
 	return
 }
 
-func (s *PluginMgr) Run() (err *cd.Error) {
+func (s *PluginMgr) Run(ctx context.Context) (err *cd.Error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	s.mu.RLock()
 	entityList := append([]any(nil), s.entityList...)
 	s.mu.RUnlock()
 
 	for _, val := range entityList {
-		err = system.InvokeEntityFunc(val, runTag)
+		err = system.InvokeEntityFunc(val, runTag, ctx)
 		if err != nil && err.Code != cd.NotFound {
 			idVal, idErr := s.getID(val)
 			if idErr != nil {
@@ -232,7 +240,10 @@ func (s *PluginMgr) Run() (err *cd.Error) {
 	return
 }
 
-func (s *PluginMgr) Teardown() {
+func (s *PluginMgr) Teardown(ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	s.mu.RLock()
 	entityList := append([]any(nil), s.entityList...)
 	s.mu.RUnlock()
@@ -240,7 +251,7 @@ func (s *PluginMgr) Teardown() {
 	totalSize := len(entityList)
 	for idx := range entityList {
 		val := entityList[totalSize-idx-1]
-		err := system.InvokeEntityFunc(val, teardownTag)
+		err := system.InvokeEntityFunc(val, teardownTag, ctx)
 		if err != nil && err.Code != cd.NotFound {
 			idVal, idErr := s.getID(val)
 			if idErr != nil {

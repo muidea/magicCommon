@@ -1,6 +1,7 @@
 package initiator
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -32,15 +33,15 @@ func (s *demo) Weight() int {
 	return s.weight
 }
 
-func (s *demo) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+func (s *demo) Setup(_ context.Context, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
 	fmt.Printf("Setup:%s, weight:%v\n", s.id, s.weight)
 }
 
-func (s *demo) Run() {
+func (s *demo) Run(_ context.Context) {
 	fmt.Printf("Run:%s\n", s.id)
 }
 
-func (s *demo) Teardown() {
+func (s *demo) Teardown(_ context.Context) {
 	fmt.Printf("Teardown:%s\n", s.id)
 }
 
@@ -72,11 +73,11 @@ func Test_Initiator(t *testing.T) {
 	eventHub := event.NewHub(100)
 	backgroundRoutine := task.NewBackgroundRoutine(100)
 
-	defer eventHub.Terminate()
+	defer eventHub.Terminate(context.Background())
 
-	err := Setup(eventHub, backgroundRoutine)
+	err := Setup(context.Background(), eventHub, backgroundRoutine)
 	assert.Nil(t, err)
-	err = Run()
+	err = Run(context.Background())
 	assert.Nil(t, err)
 
 	var demoPtr Demo
@@ -91,5 +92,5 @@ func Test_Initiator(t *testing.T) {
 
 	demoPtr.HelloWorkd()
 
-	Teardown()
+	Teardown(context.Background())
 }

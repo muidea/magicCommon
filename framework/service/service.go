@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"log/slog"
+
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
 	"github.com/muidea/magicCommon/framework/configuration"
@@ -12,13 +14,12 @@ import (
 	"github.com/muidea/magicCommon/framework/plugin/initiator"
 	"github.com/muidea/magicCommon/framework/plugin/module"
 	"github.com/muidea/magicCommon/task"
-	"log/slog"
 )
 
 type Service interface {
-	Startup(serviceName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error
-	Run() *cd.Error
-	Shutdown()
+	Startup(ctx context.Context, serviceName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error
+	Run(ctx context.Context) *cd.Error
+	Shutdown(ctx context.Context)
 }
 
 func DefaultService() Service {
@@ -29,13 +30,16 @@ type defaultService struct {
 	serviceName string
 }
 
-func (s *defaultService) Startup(serviceName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Error) {
+func (s *defaultService) Startup(ctx context.Context, serviceName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	s.serviceName = serviceName
 	manager := health.DefaultManager()
 	manager.SetService(serviceName)
 	manager.MarkStarting()
 
-	ret = initiator.Setup(eventHub, backgroundRoutine)
+	ret = initiator.Setup(ctx, eventHub, backgroundRoutine)
 	if ret != nil {
 		manager.MarkFailed(ret)
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "initiator.setup", "error", ret)
@@ -46,23 +50,23 @@ func (s *defaultService) Startup(serviceName string, eventHub event.Hub, backgro
 	if depErr != nil {
 		ret = cd.NewError(cd.Unexpected, depErr.Error())
 		manager.MarkFailed(ret)
-		initiator.Teardown()
+		initiator.Teardown(ctx)
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "dependency.config", "error", ret)
 		return
 	}
-	ret = manager.CheckDependencies(context.Background(), dependencies)
+	ret = manager.CheckDependencies(ctx, dependencies)
 	if ret != nil {
 		manager.MarkFailed(ret)
-		initiator.Teardown()
+		initiator.Teardown(ctx)
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "dependency.check", "error", ret)
 		return
 	}
 
-	ret = module.Setup(eventHub, backgroundRoutine)
+	ret = module.Setup(ctx, eventHub, backgroundRoutine)
 	if ret != nil {
 		manager.MarkFailed(ret)
-		module.Teardown()
-		initiator.Teardown()
+		module.Teardown(ctx)
+		initiator.Teardown(ctx)
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "module.setup", "error", ret)
 		return
 	}
@@ -71,7 +75,10 @@ func (s *defaultService) Startup(serviceName string, eventHub event.Hub, backgro
 	return
 }
 
-func (s *defaultService) Run() (ret *cd.Error) {
+func (s *defaultService) Run(ctx context.Context) (ret *cd.Error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	manager := health.DefaultManager()
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
@@ -80,18 +87,18 @@ func (s *defaultService) Run() (ret *cd.Error) {
 		}
 	}()
 
-	ret = initiator.Run()
+	ret = initiator.Run(ctx)
 	if ret != nil {
 		manager.MarkFailed(ret)
-		initiator.Teardown()
+		initiator.Teardown(ctx)
 		slog.Error("service run failed", "service", s.serviceName, "stage", "initiator.run", "error", ret)
 		return
 	}
-	ret = module.Run()
+	ret = module.Run(ctx)
 	if ret != nil {
 		manager.MarkFailed(ret)
-		module.Teardown()
-		initiator.Teardown()
+		module.Teardown(ctx)
+		initiator.Teardown(ctx)
 		slog.Error("service run failed", "service", s.serviceName, "stage", "module.run", "error", ret)
 		return
 	}
@@ -150,14 +157,17 @@ func loadConfiguredDependencies() ([]health.Dependency, error) {
 	return ret, nil
 }
 
-func (s *defaultService) Shutdown() {
+func (s *defaultService) Shutdown(ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
 			slog.Error("service shutdown panicked", "service", s.serviceName, "panic", errInfo)
 		}
 	}()
 
-	module.Teardown()
-	initiator.Teardown()
+	module.Teardown(ctx)
+	initiator.Teardown(ctx)
 	//slog.Info("s.serviceName shutdown success", "field", s.serviceName)
 }

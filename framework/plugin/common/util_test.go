@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -36,11 +37,11 @@ func (s *Demo) Weight() int {
 	return 123
 }
 
-func (s *Demo) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+func (s *Demo) Setup(_ context.Context, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
 	fmt.Printf("Setup")
 }
 
-func (s *Demo) Teardown() {
+func (s *Demo) Teardown(_ context.Context) {
 	fmt.Printf("Teardown")
 }
 

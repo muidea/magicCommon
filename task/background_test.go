@@ -1,14 +1,16 @@
 package task
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"log/slog"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func calcOffset(intervalValue, offsetValue time.Duration) time.Duration {
@@ -103,7 +105,7 @@ func (s *timerTask) Run() {
 func TestTimer(t *testing.T) {
 	timerTaskPtr := &timerTask{}
 	taskRoutine := NewBackgroundRoutine(300)
-	_ = taskRoutine.Timer(timerTaskPtr, 1*time.Second, 0)
+	_ = taskRoutine.Timer(context.Background(), timerTaskPtr, 1*time.Second, 0)
 
 	time.Sleep(10 * time.Second)
 	assert.True(t, timerTaskPtr.timerCount > 8, "timerTaskPtr.timerCount>8")

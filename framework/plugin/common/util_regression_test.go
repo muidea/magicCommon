@@ -1,29 +1,32 @@
 package common
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 type panicIDPlugin struct{}
 
-func (s *panicIDPlugin) ID() string { panic("boom") }
-func (s *panicIDPlugin) Run()       {}
+func (s *panicIDPlugin) ID() string            { panic("boom") }
+func (s *panicIDPlugin) Run(_ context.Context) {}
 
 type panicWeightPlugin struct{}
 
-func (s *panicWeightPlugin) ID() string  { return "panic-weight" }
-func (s *panicWeightPlugin) Weight() int { panic("boom") }
-func (s *panicWeightPlugin) Run()        {}
+func (s *panicWeightPlugin) ID() string            { return "panic-weight" }
+func (s *panicWeightPlugin) Weight() int           { panic("boom") }
+func (s *panicWeightPlugin) Run(_ context.Context) {}
 
 type nilPlugin struct{}
 
-func (s *nilPlugin) ID() string { return "nil-plugin" }
-func (s *nilPlugin) Run()       {}
+func (s *nilPlugin) ID() string            { return "nil-plugin" }
+func (s *nilPlugin) Run(_ context.Context) {}
 
 type duplicatePlugin struct {
 	id string
 }
 
-func (s *duplicatePlugin) ID() string { return s.id }
-func (s *duplicatePlugin) Run()       {}
+func (s *duplicatePlugin) ID() string            { return s.id }
+func (s *duplicatePlugin) Run(_ context.Context) {}
 
 func TestPluginMgrRejectsNilPlugin(t *testing.T) {
 	pluginMgr := NewPluginMgr("abc")

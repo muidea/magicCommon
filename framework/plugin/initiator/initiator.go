@@ -1,6 +1,7 @@
 package initiator
 
 import (
+	"context"
 	"fmt"
 
 	cd "github.com/muidea/magicCommon/def"
@@ -33,14 +34,14 @@ func GetEntity[T any](id string, maskType T) (ret T, err *cd.Error) {
 	return
 }
 
-func Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {
-	return initiatorMgr.Setup(eventHub, backgroundRoutine)
+func Setup(ctx context.Context, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {
+	return initiatorMgr.Setup(ctx, eventHub, backgroundRoutine)
 }
 
-func Run() *cd.Error {
-	return initiatorMgr.Run()
+func Run(ctx context.Context) *cd.Error {
+	return initiatorMgr.Run(ctx)
 }
 
-func Teardown() {
-	initiatorMgr.Teardown()
+func Teardown(ctx context.Context) {
+	initiatorMgr.Teardown(ctx)
 }

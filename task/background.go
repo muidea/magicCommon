@@ -30,9 +30,8 @@ type BackgroundRoutine interface {
 	AsyncFunction(function func()) error
 	SyncFunction(function func()) error
 	SyncFunctionWithTimeOut(function func(), timeout time.Duration) error
-	Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) error
-	TimerWithContext(ctx context.Context, task Task, intervalValue time.Duration, offsetValue time.Duration) error
-	Shutdown(timeout time.Duration) bool
+	Timer(ctx context.Context, task Task, intervalValue time.Duration, offsetValue time.Duration) error
+	Shutdown(ctx context.Context) bool
 }
 
 type syncTask struct {
@@ -143,12 +142,7 @@ func (s *backgroundRoutine) SyncFunctionWithTimeOut(function func(), timeout tim
 
 const onDayDuration = 24 * time.Hour
 
-// Timer exec timer task
-func (s *backgroundRoutine) Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) error {
-	return s.TimerWithContext(context.Background(), task, intervalValue, offsetValue)
-}
-
-func (s *backgroundRoutine) TimerWithContext(ctx context.Context, task Task, intervalValue time.Duration, offsetValue time.Duration) error {
+func (s *backgroundRoutine) Timer(ctx context.Context, task Task, intervalValue time.Duration, offsetValue time.Duration) error {
 	if ctx == nil {
 		return fmt.Errorf("context is nil")
 	}
@@ -200,7 +194,10 @@ func (s *backgroundRoutine) TimerWithContext(ctx context.Context, task Task, int
 	return nil
 }
 
-func (s *backgroundRoutine) Shutdown(timeout time.Duration) bool {
+func (s *backgroundRoutine) Shutdown(ctx context.Context) bool {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	s.closeOnce.Do(func() {
 		s.submitMu.Lock()
 		s.closed = true
@@ -208,8 +205,12 @@ func (s *backgroundRoutine) Shutdown(timeout time.Duration) bool {
 		s.submitMu.Unlock()
 	})
 
-	<-s.loopDone
-	return s.WaitTimeout(timeout)
+	select {
+	case <-s.loopDone:
+	case <-ctx.Done():
+		return false
+	}
+	return s.WaitContext(ctx)
 }
 
 func (s *backgroundRoutine) submitTask(task Task) error {

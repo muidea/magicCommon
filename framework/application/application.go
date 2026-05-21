@@ -1,10 +1,10 @@
 package application
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"sync"
-	"time"
 
 	_ "log/slog"
 
@@ -39,9 +39,9 @@ func init() {
 }
 
 type Application interface {
-	Startup(service service.Service) *cd.Error
-	Run() *cd.Error
-	Shutdown()
+	Startup(ctx context.Context, service service.Service) *cd.Error
+	Run(ctx context.Context) *cd.Error
+	Shutdown(ctx context.Context)
 	EventHub() event.Hub
 	BackgroundRoutine() task.BackgroundRoutine
 }
@@ -49,16 +49,16 @@ type Application interface {
 var application Application
 var applicationOnce sync.Once
 
-func Startup(service service.Service) *cd.Error {
-	return Get().Startup(service)
+func Startup(ctx context.Context, service service.Service) *cd.Error {
+	return Get().Startup(ctx, service)
 }
 
-func Run() *cd.Error {
-	return Get().Run()
+func Run(ctx context.Context) *cd.Error {
+	return Get().Run(ctx)
 }
 
-func Shutdown() {
-	Get().Shutdown()
+func Shutdown(ctx context.Context) {
+	Get().Shutdown(ctx)
 }
 
 func Get() Application {
@@ -86,7 +86,10 @@ type appImpl struct {
 	service           service.Service
 }
 
-func (s *appImpl) Startup(service service.Service) *cd.Error {
+func (s *appImpl) Startup(ctx context.Context, service service.Service) *cd.Error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	err := configuration.InitDefaultConfigManager("")
 	if err != nil {
 		return cd.NewError(cd.Unexpected, err.Error())
@@ -98,28 +101,34 @@ func (s *appImpl) Startup(service service.Service) *cd.Error {
 	}
 
 	s.service = service
-	return s.service.Startup(nameVal, s.eventHub, s.backgroundRoutine)
+	return s.service.Startup(ctx, nameVal, s.eventHub, s.backgroundRoutine)
 }
 
-func (s *appImpl) Run() *cd.Error {
+func (s *appImpl) Run(ctx context.Context) *cd.Error {
 	if s.service == nil {
 		return cd.NewError(cd.IllegalParam, "service is nil")
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
-	return s.service.Run()
+	return s.service.Run(ctx)
 }
 
-func (s *appImpl) Shutdown() {
+func (s *appImpl) Shutdown(ctx context.Context) {
 	if s.service == nil {
 		return
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
-	s.service.Shutdown()
+	s.service.Shutdown(ctx)
 	if s.backgroundRoutine != nil {
-		s.backgroundRoutine.Shutdown(5 * time.Second)
+		s.backgroundRoutine.Shutdown(ctx)
 	}
 	if s.eventHub != nil {
-		s.eventHub.Terminate()
+		s.eventHub.Terminate(ctx)
 	}
 	s.service = nil
 	s.backgroundRoutine = task.NewBackgroundRoutine(defaultBackTaskQueueSize)

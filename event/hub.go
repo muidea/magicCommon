@@ -8,10 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"log/slog"
+
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/execute"
 	"github.com/muidea/magicCommon/foundation/util"
-	"log/slog"
 )
 
 type Values map[string]any
@@ -95,7 +96,7 @@ type Hub interface {
 	Unsubscribe(eventID string, observer Observer)
 	Post(event Event)
 	Send(event Event) Result
-	Terminate()
+	Terminate(ctx context.Context)
 }
 
 // HubOption Hub 配置项，用于控制内部缓冲和并发策略
@@ -769,60 +770,56 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 	}
 }
 
-func (s *hubImpl) Terminate() {
+func (s *hubImpl) Terminate(ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if !s.terminateFlag.CompareAndSwap(false, true) {
 		return
 	}
+
 	var waitGroup sync.WaitGroup
-	replay := make(chan bool, 1)
-	actionData := &terminateData{result: replay, waitGroup: &waitGroup}
+	actionData := &terminateData{result: make(chan bool, 1), waitGroup: &waitGroup}
 
-	// 先发送终止信号到所有 channel
-	go func() {
-		s.laneKey2ChannelLock.Lock()
-		laneChannels := []*laneActionChannel{}
-		for _, val := range s.laneKey2ActionChannel {
-			laneChannels = append(laneChannels, val)
-		}
-		s.laneKey2ChannelLock.Unlock()
+	s.laneKey2ChannelLock.RLock()
+	laneChannels := make([]*laneActionChannel, 0, len(s.laneKey2ActionChannel))
+	for _, val := range s.laneKey2ActionChannel {
+		laneChannels = append(laneChannels, val)
+	}
+	s.laneKey2ChannelLock.RUnlock()
 
-		for _, val := range laneChannels {
-			waitGroup.Add(1)
-			switch val.enqueue(actionData, 100*time.Millisecond) {
-			case laneEnqueueOK:
-				// 成功发送
-			default:
-				// 超时，跳过
-				waitGroup.Done()
-			}
+	// 先发送终止信号到所有 lane channel。终止不再使用无界等待，
+	// 调用方传入的 shutdown context 是唯一等待预算。
+	for _, val := range laneChannels {
+		waitGroup.Add(1)
+		switch val.enqueue(actionData, 100*time.Millisecond) {
+		case laneEnqueueOK:
+			// 成功发送
+		default:
+			waitGroup.Done()
 		}
-	}()
+	}
 
 	waitGroup.Add(1)
 	select {
 	case s.hubActionChannel <- actionData:
 		// 成功发送
-	case <-time.After(10 * time.Millisecond):
-		// 超时，跳过，避免终止时长时间阻塞
+	case <-ctx.Done():
 		waitGroup.Done()
-		select {
-		case replay <- false:
-		default:
-		}
 	}
 
-	<-replay
-
-	waitGroup.Wait()
+	if !waitGroupContext(&waitGroup, ctx) {
+		slog.Warn("hub action channels did not terminate before context done", "err", ctx.Err())
+	}
 
 	// 等待所有 Execute.Run 提交的任务完成
-	if !s.WaitTimeout(5 * time.Second) {
-		slog.Warn("hub execute tasks did not drain before timeout")
+	if !s.WaitContext(ctx) {
+		slog.Warn("hub execute tasks did not drain before context done", "err", ctx.Err())
 	}
 
 	// 等待所有 goroutine 完成处理
 	s.laneKey2ChannelLock.Lock()
-	laneChannels := []*laneActionChannel{}
+	laneChannels = []*laneActionChannel{}
 	for _, val := range s.laneKey2ActionChannel {
 		laneChannels = append(laneChannels, val)
 	}
@@ -832,6 +829,21 @@ func (s *hubImpl) Terminate() {
 		val.close()
 	}
 	s.event2Observer = ID2ObserverMap{}
+}
+
+func waitGroupContext(waitGroup *sync.WaitGroup, ctx context.Context) bool {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		waitGroup.Wait()
+	}()
+
+	select {
+	case <-done:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 func (s *hubImpl) run() {

@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -80,7 +81,7 @@ func (s *reentrantSendObserver) Notify(event Event, result Result) {
 
 func TestHubCacheRespectsDestination(t *testing.T) {
 	hub := NewHubWithOptions(4)
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	eventID := "/cache/destination"
 	observerA := newTestObserver("/dest/a")
@@ -104,7 +105,7 @@ func TestHubCacheRespectsDestination(t *testing.T) {
 
 func TestHubSendTimeoutDoesNotBlock(t *testing.T) {
 	hub := NewHubWithOptions(1, WithPerDestinationChanSize(1))
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	eventID := "/send/timeout"
 	observer := &blockingObserver{
@@ -148,7 +149,7 @@ func TestHubTerminateIsConcurrentSafe(t *testing.T) {
 	done := make(chan struct{}, 2)
 	for i := 0; i < 2; i++ {
 		go func() {
-			hub.Terminate()
+			hub.Terminate(context.Background())
 			done <- struct{}{}
 		}()
 	}
@@ -177,7 +178,7 @@ func TestHubTerminateDoesNotBlockWhenHubActionChannelIsBusy(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		hub.Terminate()
+		hub.Terminate(context.Background())
 		close(done)
 	}()
 
@@ -196,7 +197,7 @@ func TestHubTerminateDoesNotBlockWhenHubActionChannelIsBusy(t *testing.T) {
 
 func TestHubSendDoesNotDeadlockOnReentrantSameLane(t *testing.T) {
 	hub := NewHubWithOptions(1, WithPerLaneChanSize(1))
-	defer hub.Terminate()
+	defer hub.Terminate(context.Background())
 
 	eventID := "/send/reentrant"
 	observer := &reentrantSendObserver{

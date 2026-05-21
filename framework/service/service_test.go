@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,19 +31,19 @@ func (s *MockIndex) ID() string {
 	return fmt.Sprintf("%02d", s.Index)
 }
 
-func (s *MockIndex) Setup(eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
+func (s *MockIndex) Setup(_ context.Context, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) {
 	sliceLock.Lock()
 	defer sliceLock.Unlock()
 	*s.SetupIndexList = append(*s.SetupIndexList, s.Index)
 }
 
-func (s *MockIndex) Run() {
+func (s *MockIndex) Run(_ context.Context) {
 	sliceLock.Lock()
 	defer sliceLock.Unlock()
 	*s.RunIndexList = append(*s.RunIndexList, s.Index)
 }
 
-func (s *MockIndex) Teardown() {
+func (s *MockIndex) Teardown(_ context.Context) {
 	sliceLock.Lock()
 	defer sliceLock.Unlock()
 	*s.TeardownIndexList = append(*s.TeardownIndexList, s.Index)
@@ -64,9 +65,9 @@ func TestInitiator(t *testing.T) {
 	}
 
 	service := DefaultService()
-	_ = service.Startup("test", nil, nil)
-	_ = service.Run()
-	service.Shutdown()
+	_ = service.Startup(context.Background(), "test", nil, nil)
+	_ = service.Run(context.Background())
+	service.Shutdown(context.Background())
 
 	ok := true
 	sVal := 0
@@ -121,9 +122,9 @@ func TestModule(t *testing.T) {
 	}
 
 	service := DefaultService()
-	_ = service.Startup("test", nil, nil)
-	_ = service.Run()
-	service.Shutdown()
+	_ = service.Startup(context.Background(), "test", nil, nil)
+	_ = service.Run(context.Background())
+	service.Shutdown(context.Background())
 
 	ok := true
 	sVal := 0
@@ -222,7 +223,7 @@ target = "%s"
 	defer func() { _ = configuration.CloseConfigManager() }()
 
 	service := DefaultService()
-	startupErr := service.Startup("test", nil, nil)
+	startupErr := service.Startup(context.Background(), "test", nil, nil)
 	if startupErr == nil {
 		t.Fatalf("expected startup failure when required dependency is not ready")
 	}
