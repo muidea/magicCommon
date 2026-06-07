@@ -15,6 +15,28 @@ import (
 )
 
 type InvokeFunc func() *cd.Error
+
+type Plugin interface {
+	ID() string
+	Run(context.Context) *cd.Error
+}
+
+type Weighted interface {
+	Weight() int
+}
+
+type Setupper interface {
+	Setup(context.Context, event.Hub, task.BackgroundRoutine) *cd.Error
+}
+
+type Teardowner interface {
+	Teardown(context.Context)
+}
+
+type identifier interface {
+	ID() string
+}
+
 type PluginMgr struct {
 	typeName   string
 	entityList []any
@@ -30,6 +52,17 @@ func NewPluginMgr(typeName string) *PluginMgr {
 }
 
 func (s *PluginMgr) getWeight(ptr any) (weight int, err error) {
+	if typed, ok := ptr.(Weighted); ok {
+		defer func() {
+			if info := recover(); info != nil {
+				slog.Error("panic in getWeight", "recover", info)
+				weight = DefaultWeight
+				err = fmt.Errorf("panic invoking %s", weightTag)
+			}
+		}()
+		return typed.Weight(), nil
+	}
+
 	vVal := reflect.ValueOf(ptr)
 	funcVal := vVal.MethodByName(weightTag)
 	if !funcVal.IsValid() {
@@ -59,6 +92,17 @@ func (s *PluginMgr) getWeight(ptr any) (weight int, err error) {
 }
 
 func (s *PluginMgr) getID(ptr any) (id string, err error) {
+	if typed, ok := ptr.(identifier); ok {
+		defer func() {
+			if info := recover(); info != nil {
+				slog.Error("panic in getID", "recover", info)
+				id = ""
+				err = fmt.Errorf("panic invoking %s", idTag)
+			}
+		}()
+		return typed.ID(), nil
+	}
+
 	vVal := reflect.ValueOf(ptr)
 	funcVal := vVal.MethodByName(idTag)
 	if !funcVal.IsValid() {
@@ -103,15 +147,106 @@ func (s *PluginMgr) validPlugin(ptr any) error {
 		return fmt.Errorf("plugin pointer is nil")
 	}
 
-	_, idOK := vType.MethodByName(idTag)
-	//_, setupOK := vType.MethodByName(setupTag)
-	_, runOK := vType.MethodByName(runTag)
-	//_, teardownOK := vType.MethodByName(teardownTag)
-	if !idOK || !runOK {
-		return fmt.Errorf("invalid plugin value: missing required methods (ID, Run)")
+	if err := validateIDMethod(vType); err != nil {
+		return err
+	}
+	if err := validateRunMethod(vType); err != nil {
+		return err
+	}
+	if err := validateWeightMethod(vType); err != nil {
+		return err
+	}
+	if err := validateSetupMethod(vType); err != nil {
+		return err
+	}
+	if err := validateTeardownMethod(vType); err != nil {
+		return err
 	}
 
 	return nil
+}
+
+func validateIDMethod(vType reflect.Type) error {
+	method, ok := vType.MethodByName(idTag)
+	if !ok {
+		return fmt.Errorf("invalid plugin value: missing required method %s", idTag)
+	}
+
+	methodType := method.Type
+	if methodType.NumIn() != 1 || methodType.NumOut() != 1 || methodType.Out(0).Kind() != reflect.String {
+		return fmt.Errorf("method %s must have signature %s() string", idTag, idTag)
+	}
+	return nil
+}
+
+func validateRunMethod(vType reflect.Type) error {
+	method, ok := vType.MethodByName(runTag)
+	if !ok {
+		return fmt.Errorf("invalid plugin value: missing required method %s", runTag)
+	}
+
+	methodType := method.Type
+	if methodType.NumIn() != 2 || !methodType.In(1).AssignableTo(reflect.TypeOf((*context.Context)(nil)).Elem()) {
+		return fmt.Errorf("method %s must accept context.Context", runTag)
+	}
+	return validateOptionalCDErrorReturn(runTag, methodType)
+}
+
+func validateWeightMethod(vType reflect.Type) error {
+	method, ok := vType.MethodByName(weightTag)
+	if !ok {
+		return nil
+	}
+
+	methodType := method.Type
+	if methodType.NumIn() != 1 || methodType.NumOut() != 1 || methodType.Out(0).Kind() != reflect.Int {
+		return fmt.Errorf("method %s must have signature %s() int", weightTag, weightTag)
+	}
+	return nil
+}
+
+func validateSetupMethod(vType reflect.Type) error {
+	method, ok := vType.MethodByName(setupTag)
+	if !ok {
+		return nil
+	}
+
+	methodType := method.Type
+	if methodType.NumIn() != 4 {
+		return fmt.Errorf("method %s must accept context.Context, event.Hub, task.BackgroundRoutine", setupTag)
+	}
+	if !methodType.In(1).AssignableTo(reflect.TypeOf((*context.Context)(nil)).Elem()) ||
+		!methodType.In(2).AssignableTo(reflect.TypeOf((*event.Hub)(nil)).Elem()) ||
+		!methodType.In(3).AssignableTo(reflect.TypeOf((*task.BackgroundRoutine)(nil)).Elem()) {
+		return fmt.Errorf("method %s must accept context.Context, event.Hub, task.BackgroundRoutine", setupTag)
+	}
+	return validateOptionalCDErrorReturn(setupTag, methodType)
+}
+
+func validateTeardownMethod(vType reflect.Type) error {
+	method, ok := vType.MethodByName(teardownTag)
+	if !ok {
+		return nil
+	}
+
+	methodType := method.Type
+	if methodType.NumIn() != 2 || !methodType.In(1).AssignableTo(reflect.TypeOf((*context.Context)(nil)).Elem()) {
+		return fmt.Errorf("method %s must accept context.Context", teardownTag)
+	}
+	if methodType.NumOut() != 0 {
+		return fmt.Errorf("method %s must not return values", teardownTag)
+	}
+	return nil
+}
+
+func validateOptionalCDErrorReturn(methodName string, methodType reflect.Type) error {
+	if methodType.NumOut() == 0 {
+		return nil
+	}
+	if methodType.NumOut() == 1 && methodType.Out(0).AssignableTo(reflect.TypeOf((*cd.Error)(nil))) {
+		return nil
+	}
+	return fmt.Errorf("method %s must return no values or *def.Error", methodName)
 }
 
 func (s *PluginMgr) Register(ptr any) error {
@@ -198,16 +333,22 @@ func (s *PluginMgr) Setup(ctx context.Context, eventHub event.Hub, backgroundRou
 	entityList := append([]any(nil), s.entityList...)
 	s.mu.RUnlock()
 
+	setupList := []any{}
 	for _, val := range entityList {
-		err = system.InvokeEntityFunc(val, setupTag, ctx, eventHub, backgroundRoutine)
-		if err != nil && err.Code != cd.NotFound {
+		setupCalled := false
+		err, setupCalled = s.invokeSetup(val, ctx, eventHub, backgroundRoutine)
+		if err != nil {
 			idVal, idErr := s.getID(val)
 			if idErr != nil {
 				slog.Error("invoke setup failed, get ID error", "type", s.typeName, "error", idErr)
 			} else {
 				slog.Error("invoke setup failed", "type", s.typeName, "id", idVal, "error", err)
 			}
+			s.rollbackSetup(ctx, setupList)
 			return
+		}
+		if setupCalled {
+			setupList = append(setupList, val)
 		}
 	}
 
@@ -223,8 +364,8 @@ func (s *PluginMgr) Run(ctx context.Context) (err *cd.Error) {
 	s.mu.RUnlock()
 
 	for _, val := range entityList {
-		err = system.InvokeEntityFunc(val, runTag, ctx)
-		if err != nil && err.Code != cd.NotFound {
+		err = s.invokeRun(val, ctx)
+		if err != nil {
 			idVal, idErr := s.getID(val)
 			if idErr != nil {
 				slog.Error("invoke run failed, get ID error", "type", s.typeName, "error", idErr)
@@ -251,8 +392,8 @@ func (s *PluginMgr) Teardown(ctx context.Context) {
 	totalSize := len(entityList)
 	for idx := range entityList {
 		val := entityList[totalSize-idx-1]
-		err := system.InvokeEntityFunc(val, teardownTag, ctx)
-		if err != nil && err.Code != cd.NotFound {
+		err := s.invokeTeardown(val, ctx)
+		if err != nil {
 			idVal, idErr := s.getID(val)
 			if idErr != nil {
 				slog.Error("invoke teardown failed, get ID error", "type", s.typeName, "error", idErr)
@@ -262,5 +403,57 @@ func (s *PluginMgr) Teardown(ctx context.Context) {
 		}
 
 		//slog.Info("invoke teardown success", "type", s.typeName, "id", idVal)
+	}
+}
+
+func (s *PluginMgr) invokeSetup(ptr any, ctx context.Context, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (*cd.Error, bool) {
+	if typed, ok := ptr.(Setupper); ok {
+		return typed.Setup(ctx, eventHub, backgroundRoutine), true
+	}
+
+	err := system.InvokeEntityFunc(ptr, setupTag, ctx, eventHub, backgroundRoutine)
+	if err != nil && err.Code == cd.NotFound {
+		return nil, false
+	}
+	return err, true
+}
+
+func (s *PluginMgr) invokeRun(ptr any, ctx context.Context) *cd.Error {
+	if typed, ok := ptr.(Plugin); ok {
+		return typed.Run(ctx)
+	}
+
+	err := system.InvokeEntityFunc(ptr, runTag, ctx)
+	if err != nil && err.Code == cd.NotFound {
+		return cd.NewError(cd.Unexpected, fmt.Sprintf("method %s not found", runTag))
+	}
+	return err
+}
+
+func (s *PluginMgr) invokeTeardown(ptr any, ctx context.Context) *cd.Error {
+	if typed, ok := ptr.(Teardowner); ok {
+		typed.Teardown(ctx)
+		return nil
+	}
+
+	err := system.InvokeEntityFunc(ptr, teardownTag, ctx)
+	if err != nil && err.Code == cd.NotFound {
+		return nil
+	}
+	return err
+}
+
+func (s *PluginMgr) rollbackSetup(ctx context.Context, setupList []any) {
+	for idx := len(setupList) - 1; idx >= 0; idx-- {
+		val := setupList[idx]
+		err := s.invokeTeardown(val, ctx)
+		if err != nil {
+			idVal, idErr := s.getID(val)
+			if idErr != nil {
+				slog.Error("rollback teardown failed, get ID error", "type", s.typeName, "error", idErr)
+			} else {
+				slog.Error("rollback teardown failed", "type", s.typeName, "id", idVal, "error", err)
+			}
+		}
 	}
 }

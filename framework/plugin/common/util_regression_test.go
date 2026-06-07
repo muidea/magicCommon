@@ -2,7 +2,12 @@ package common
 
 import (
 	"context"
+	"reflect"
 	"testing"
+
+	cd "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/event"
+	"github.com/muidea/magicCommon/task"
 )
 
 type panicIDPlugin struct{}
@@ -74,5 +79,122 @@ func TestPluginMgrRejectsDuplicatePluginID(t *testing.T) {
 	}
 	if err := pluginMgr.Register(&duplicatePlugin{id: "dup"}); err == nil {
 		t.Fatalf("expected duplicate plugin registration to fail")
+	}
+}
+
+type invalidRunPlugin struct{}
+
+func (s *invalidRunPlugin) ID() string   { return "invalid-run" }
+func (s *invalidRunPlugin) Run(_ string) {}
+
+func TestPluginMgrRejectsInvalidRunSignature(t *testing.T) {
+	pluginMgr := NewPluginMgr("abc")
+
+	if err := pluginMgr.Register(&invalidRunPlugin{}); err == nil {
+		t.Fatalf("expected invalid run signature to fail")
+	}
+}
+
+type explicitLifecyclePlugin struct {
+	id      string
+	setup   []string
+	run     []string
+	tear    []string
+	failSet bool
+}
+
+func (s *explicitLifecyclePlugin) ID() string {
+	return s.id
+}
+
+func (s *explicitLifecyclePlugin) Run(_ context.Context) *cd.Error {
+	s.run = append(s.run, s.id)
+	return nil
+}
+
+func (s *explicitLifecyclePlugin) Setup(_ context.Context, _ event.Hub, _ task.BackgroundRoutine) *cd.Error {
+	s.setup = append(s.setup, s.id)
+	if s.failSet {
+		return cd.NewError(cd.Unexpected, "setup failed")
+	}
+	return nil
+}
+
+func (s *explicitLifecyclePlugin) Teardown(_ context.Context) {
+	s.tear = append(s.tear, s.id)
+}
+
+func TestPluginMgrExplicitInterfaces(t *testing.T) {
+	pluginMgr := NewPluginMgr("abc")
+	plugin := &explicitLifecyclePlugin{id: "typed"}
+
+	if err := pluginMgr.Register(plugin); err != nil {
+		t.Fatalf("register failed: %v", err)
+	}
+	if err := pluginMgr.Setup(context.Background(), nil, nil); err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+	if err := pluginMgr.Run(context.Background()); err != nil {
+		t.Fatalf("run failed: %v", err)
+	}
+	pluginMgr.Teardown(context.Background())
+
+	if !reflect.DeepEqual(plugin.setup, []string{"typed"}) {
+		t.Fatalf("unexpected setup calls: %#v", plugin.setup)
+	}
+	if !reflect.DeepEqual(plugin.run, []string{"typed"}) {
+		t.Fatalf("unexpected run calls: %#v", plugin.run)
+	}
+	if !reflect.DeepEqual(plugin.tear, []string{"typed"}) {
+		t.Fatalf("unexpected teardown calls: %#v", plugin.tear)
+	}
+}
+
+type rollbackPlugin struct {
+	id      string
+	order   *[]string
+	failSet bool
+}
+
+func (s *rollbackPlugin) ID() string { return s.id }
+func (s *rollbackPlugin) Run(_ context.Context) {
+	*s.order = append(*s.order, "run:"+s.id)
+}
+func (s *rollbackPlugin) Setup(_ context.Context, _ event.Hub, _ task.BackgroundRoutine) *cd.Error {
+	*s.order = append(*s.order, "setup:"+s.id)
+	if s.failSet {
+		return cd.NewError(cd.Unexpected, "setup failed")
+	}
+	return nil
+}
+func (s *rollbackPlugin) Teardown(_ context.Context) {
+	*s.order = append(*s.order, "teardown:"+s.id)
+}
+
+func TestPluginMgrSetupRollbackOnlyCompletedPlugins(t *testing.T) {
+	pluginMgr := NewPluginMgr("abc")
+	order := []string{}
+
+	if err := pluginMgr.Register(&rollbackPlugin{id: "01", order: &order}); err != nil {
+		t.Fatalf("register first failed: %v", err)
+	}
+	if err := pluginMgr.Register(&rollbackPlugin{id: "02", order: &order}); err != nil {
+		t.Fatalf("register second failed: %v", err)
+	}
+	if err := pluginMgr.Register(&rollbackPlugin{id: "03", order: &order, failSet: true}); err != nil {
+		t.Fatalf("register failing failed: %v", err)
+	}
+	if err := pluginMgr.Register(&rollbackPlugin{id: "04", order: &order}); err != nil {
+		t.Fatalf("register fourth failed: %v", err)
+	}
+
+	err := pluginMgr.Setup(context.Background(), nil, nil)
+	if err == nil {
+		t.Fatalf("expected setup failure")
+	}
+
+	expected := []string{"setup:01", "setup:02", "setup:03", "teardown:02", "teardown:01"}
+	if !reflect.DeepEqual(order, expected) {
+		t.Fatalf("unexpected rollback order: %#v", order)
 	}
 }

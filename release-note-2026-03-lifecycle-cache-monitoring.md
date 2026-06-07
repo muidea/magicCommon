@@ -9,6 +9,13 @@
 3. 刷新 `monitoring` 的接入和测试说明
 4. 补齐面向知识库和发布沟通的文档
 
+2026-06-07 追加完成了 `framework` lifecycle 收口：
+
+1. 增加 plugin 注册错误 API、显式 plugin 接口和 Setup 回滚
+2. 增加 Application startup options、内部状态守卫和 runtime ownership
+3. 增加 foreground `LifecycleService` 到 `service.Service` 的 adapter
+4. 同步 framework lifecycle 文档与对应 skill
+
 ## 核心变化
 
 ### 1. execute / task / event
@@ -17,8 +24,8 @@
   - `Idle()`
   - `WaitContext(ctx)`
 - `task.BackgroundRoutine` 新增：
-  - `TimerWithContext(ctx, ...)`
-  - `Shutdown(timeout)`
+  - `Timer(ctx, ...)`
+  - `Shutdown(ctx)`
 - `framework/application.Shutdown()` 现在会：
   - 先执行 service shutdown
   - 再关闭默认 `BackgroundRoutine`
@@ -70,6 +77,35 @@
 - `monitoring/README.md`
 - `monitoring/QUICK_START.md`
 - `technical-note-infra-hardening-2026-03.md`
+
+### 5. framework lifecycle
+
+- `initiator` 和 `module` 新增：
+  - `RegisterE`
+  - `MustRegister`
+- 原有 `Register` 保持兼容签名，并记录注册错误。
+- Plugin manager 新增显式接口优先路径：
+  - `common.Plugin`
+  - `common.Weighted`
+  - `common.Setupper`
+  - `common.Teardowner`
+- 反射兼容路径仍保留，但注册时会校验 `ID`、`Run`、`Weight`、
+  `Setup`、`Teardown` 的方法形态。
+- `PluginMgr.Setup` 会记录已成功 setup 的插件；后续 setup 失败时，
+  只对已完成 setup 的插件按反序执行 rollback teardown。
+- `framework/application` 新增：
+  - `Options`
+  - `RuntimeOwnership`
+  - `StartupWithOptions`
+  - `NewApplication`
+  - 内部状态：`new`、`starting`、`running`、`failed`、`shutdown`
+- 注入的 `EventHub` / `BackgroundRoutine` 默认外部拥有；只有显式
+  `Options.Ownership` 声明后，Application 才会负责关闭。
+- `framework/service` 新增：
+  - `LifecycleService`
+  - `AdaptLifecycle`
+- `AdaptLifecycle` 用于将本地 foreground lifecycle 适配为
+  `service.Service`，从而复用 Application startup / run / shutdown。
 
 ## 验证
 

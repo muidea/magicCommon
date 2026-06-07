@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"log/slog"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
@@ -13,7 +14,19 @@ import (
 var moduleMgr = common.NewPluginMgr("module")
 
 func Register(module any) {
-	_ = moduleMgr.Register(module)
+	if err := RegisterE(module); err != nil {
+		slog.Error("register module failed", "error", err)
+	}
+}
+
+func RegisterE(module any) error {
+	return moduleMgr.Register(module)
+}
+
+func MustRegister(module any) {
+	if err := RegisterE(module); err != nil {
+		panic(err)
+	}
 }
 
 func Setup(ctx context.Context, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) *cd.Error {

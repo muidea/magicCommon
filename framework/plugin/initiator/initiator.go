@@ -3,6 +3,7 @@ package initiator
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
@@ -14,7 +15,19 @@ import (
 var initiatorMgr = common.NewPluginMgr("initiator")
 
 func Register(initiator any) {
-	_ = initiatorMgr.Register(initiator)
+	if err := RegisterE(initiator); err != nil {
+		slog.Error("register initiator failed", "error", err)
+	}
+}
+
+func RegisterE(initiator any) error {
+	return initiatorMgr.Register(initiator)
+}
+
+func MustRegister(initiator any) {
+	if err := RegisterE(initiator); err != nil {
+		panic(err)
+	}
 }
 
 func GetEntity[T any](id string, maskType T) (ret T, err *cd.Error) {

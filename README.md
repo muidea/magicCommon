@@ -79,6 +79,75 @@ func main() {
 
 ## 开发指南
 
+### Framework 生命周期
+
+`framework/application` 负责进程级 runtime 容器，包括默认
+`event.Hub`、`task.BackgroundRoutine`、配置管理器和注入的
+`service.Service`。
+
+兼容入口保持不变：
+
+```go
+err := application.Startup(ctx, service.DefaultService())
+if err != nil {
+    return err
+}
+defer application.Shutdown(ctx)
+
+err = application.Run(ctx)
+```
+
+需要显式配置目录、服务名、队列大小或外部 runtime 组件时，使用
+`StartupWithOptions` 或 `NewApplication`：
+
+```go
+opts := application.Options{
+    ConfigDir:           "./config",
+    ServiceName:         "example-service",
+    EventHubQueueSize:   1024,
+    BackgroundQueueSize: 1024,
+}
+
+err := application.StartupWithOptions(ctx, service.DefaultService(), opts)
+```
+
+如果注入外部 `EventHub` 或 `BackgroundRoutine`，默认由调用方拥有；
+只有在 `Options.Ownership` 中显式声明后，Application 才会在
+`Shutdown` 或启动失败清理时终止对应组件。
+
+Application 内部维护 `new`、`starting`、`running`、`failed`、
+`shutdown` 状态：
+
+- `Run` 必须在成功 `Startup` 后调用。
+- 重复 `Startup` 会返回错误，除非前一次生命周期已经 `Shutdown`。
+- `Shutdown` 幂等，并会重建默认 runtime 组件以支持后续启动。
+- 启动失败会进入 `failed` 状态并执行 best-effort cleanup；调用方需要
+  `Shutdown` 后再重试启动。
+
+`framework/service` 还提供 foreground lifecycle adapter：
+
+```go
+type localService struct{}
+
+func (s *localService) Startup(ctx context.Context) error { return nil }
+func (s *localService) Run(ctx context.Context) error     { return nil }
+func (s *localService) Shutdown(ctx context.Context) error { return nil }
+
+svc := service.AdaptLifecycle("local", &localService{})
+err := application.Startup(ctx, svc)
+```
+
+Plugin 注册建议优先使用可观测 API：
+
+```go
+err := initiator.RegisterE(plugin)
+module.MustRegister(plugin)
+```
+
+`Register` 仍保留原签名并记录注册错误；`RegisterE` 返回重复 ID、nil、
+非指针、缺失 `ID` / `Run` 或方法签名不匹配等错误。新插件可实现
+`framework/plugin/common` 中的显式接口，旧插件的反射兼容路径仍可用。
+
 ### 环境要求
 - Go 1.24+
 - MySQL 5.7+ (用于测试)
@@ -191,6 +260,7 @@ magicCommon/
 
 - [technical-note-infra-hardening-2026-03.md](./technical-note-infra-hardening-2026-03.md): 本轮基础设施修复与稳定语义总结
 - [release-note-2026-03-lifecycle-cache-monitoring.md](./release-note-2026-03-lifecycle-cache-monitoring.md): 本轮 lifecycle、cache、monitoring 变化摘要
+- [framework-lifecycle-improvement-plan.md](./framework-lifecycle-improvement-plan.md): framework lifecycle、plugin 注册安全、Application options 与 lifecycle adapter 收口记录
 - [event/README.md](./event/README.md): 事件中心、投递、关闭与匹配语义
 - [execute/README.md](./execute/README.md): 执行器并发限制与等待语义
 - [task/README.md](./task/README.md): 后台任务与超时等待语义

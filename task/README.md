@@ -25,9 +25,8 @@ type BackgroundRoutine interface {
     AsyncFunction(function func()) error
     SyncFunction(function func()) error
     SyncFunctionWithTimeOut(function func(), timeout time.Duration) error
-    Timer(task Task, intervalValue time.Duration, offsetValue time.Duration) error
-    TimerWithContext(ctx context.Context, task Task, intervalValue time.Duration, offsetValue time.Duration) error
-    Shutdown(timeout time.Duration) bool
+    Timer(ctx context.Context, task Task, intervalValue time.Duration, offsetValue time.Duration) error
+    Shutdown(ctx context.Context) bool
 }
 ```
 
@@ -51,21 +50,17 @@ type BackgroundRoutine interface {
 
 ### Timer
 
-- `Timer()` 会启动一个独立 goroutine。
+- `Timer(ctx, ...)` 会启动一个独立 goroutine。
 - 首次执行时间按 `intervalValue` 和 `offsetValue` 计算。
 - 之后使用 `Ticker` 按固定周期触发。
-
-### TimerWithContext
-
-- `TimerWithContext()` 提供显式取消能力。
 - 当 `ctx.Done()` 触发时，后续定时触发会停止。
 - 定时触发通过 `AsyncTask()` 进入后台队列，而不是直接在 timer goroutine 中执行。
 
 ### Shutdown
 
-- `Shutdown(timeout)` 会停止接收新任务、关闭内部任务队列，并等待已提交任务排空。
-- 返回 `true` 表示在超时前成功排空。
-- 返回 `false` 表示超时返回，此时可能仍有任务在内部执行器中运行。
+- `Shutdown(ctx)` 会停止接收新任务、关闭内部任务队列，并等待已提交任务排空。
+- 返回 `true` 表示在 `ctx` 结束前成功排空。
+- 返回 `false` 表示 `ctx` 结束后返回，此时可能仍有任务在内部执行器中运行。
 - `Shutdown()` 是幂等的。
 
 ## 与 execute 的关系
@@ -104,15 +99,17 @@ ctx, cancel := context.WithCancel(context.Background())
 defer cancel()
 
 routine := task.NewBackgroundRoutine(32)
-_ = routine.TimerWithContext(ctx, myTask, time.Minute, 0)
+_ = routine.Timer(ctx, myTask, time.Minute, 0)
 
 // 在组件关闭时停止定时任务
 cancel()
-ok := routine.Shutdown(2 * time.Second)
+shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
+defer shutdownCancel()
+ok := routine.Shutdown(shutdownCtx)
 _ = ok
 ```
 
 ## 当前限制
 
 - 任务超时等待不会传播取消信号到任务本身。
-- `Timer()` 仍是兼容接口；如果需要生命周期控制，优先使用 `TimerWithContext()`。
+- `Timer(ctx, ...)` 依赖调用方传入的 context 控制定时任务退出。
