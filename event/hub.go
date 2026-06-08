@@ -209,6 +209,23 @@ type laneActionChannel struct {
 
 type laneExecutionContextKey struct{}
 
+type laneContextEvent struct {
+	Event
+	ctx context.Context
+}
+
+func (s *laneContextEvent) Context() context.Context {
+	if s.ctx == nil {
+		return context.Background()
+	}
+
+	return s.ctx
+}
+
+func (s *laneContextEvent) BindContext(ctx context.Context) {
+	s.ctx = ctx
+}
+
 func notificationEvent(sv Observer, ev Event, re Result) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -561,15 +578,14 @@ func eventLaneKey(ev Event) string {
 	return ev.Destination()
 }
 
-func bindEventLaneContext(ev Event) func() {
+func eventWithLaneContext(ev Event) Event {
 	if ev == nil {
-		return func() {}
+		return nil
 	}
 
-	originCtx := ev.Context()
-	ev.BindContext(context.WithValue(originCtx, laneExecutionContextKey{}, eventLaneKey(ev)))
-	return func() {
-		ev.BindContext(originCtx)
+	return &laneContextEvent{
+		Event: ev,
+		ctx:   context.WithValue(ev.Context(), laneExecutionContextKey{}, eventLaneKey(ev)),
 	}
 }
 
@@ -621,15 +637,12 @@ func (s *hubImpl) handleAction(actionData action) bool {
 		}
 	case post:
 		data := actionData.(*postData)
-		restore := bindEventLaneContext(data.event)
-		s.postInternal(data.event)
-		restore()
+		s.postInternal(eventWithLaneContext(data.event))
 	case send:
 		data := actionData.(*sendData)
-		restore := bindEventLaneContext(data.event)
+		eventWithContext := eventWithLaneContext(data.event)
 		result := NewResult(data.event.ID(), data.event.Source(), data.event.Destination())
-		s.sendInternal(data.event, result)
-		restore()
+		s.sendInternal(eventWithContext, result)
 		select {
 		case data.result <- result:
 			// 成功发送
@@ -696,12 +709,13 @@ func (s *hubImpl) Post(ev Event) {
 	if s.terminateFlag.Load() {
 		return
 	}
+	if ev == nil {
+		return
+	}
 
 	laneKey := eventLaneKey(ev)
 	if isReentrantLaneExecution(ev, laneKey) {
-		restore := bindEventLaneContext(ev)
-		s.postInternal(ev)
-		restore()
+		s.postInternal(eventWithLaneContext(ev))
 		return
 	}
 
@@ -730,16 +744,20 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 	if s.terminateFlag.Load() {
 		return
 	}
+	if ev == nil {
+		result := NewResult("", "", "")
+		result.Set(nil, cd.NewError(cd.IllegalParam, "event is nil"))
+		return result
+	}
 
 	replay := make(chan Result, 1)
 	defer close(replay)
 
 	laneKey := eventLaneKey(ev)
 	if isReentrantLaneExecution(ev, laneKey) {
-		restore := bindEventLaneContext(ev)
+		eventWithContext := eventWithLaneContext(ev)
 		result := NewResult(ev.ID(), ev.Source(), ev.Destination())
-		s.sendInternal(ev, result)
-		restore()
+		s.sendInternal(eventWithContext, result)
 		ret = result
 		return
 	}

@@ -44,8 +44,29 @@ type reentrantSendObserver struct {
 	errCh   chan error
 }
 
+type laneContextProbeObserver struct {
+	id        string
+	started   chan context.Context
+	releaseCh chan struct{}
+}
+
 func (s *reentrantSendObserver) ID() string {
 	return s.id
+}
+
+func (s *laneContextProbeObserver) ID() string {
+	return s.id
+}
+
+func (s *laneContextProbeObserver) Notify(event Event, result Result) {
+	select {
+	case s.started <- event.Context():
+	default:
+	}
+	<-s.releaseCh
+	if result != nil {
+		result.Set(nil, nil)
+	}
 }
 
 func (s *reentrantSendObserver) Notify(event Event, result Result) {
@@ -76,6 +97,52 @@ func (s *reentrantSendObserver) Notify(event Event, result Result) {
 	select {
 	case s.errCh <- nil:
 	default:
+	}
+}
+
+func TestHubLaneContextDoesNotMutateOriginalEvent(t *testing.T) {
+	hub := NewHubWithOptions(1, WithPerLaneChanSize(1))
+	defer hub.Terminate(context.Background())
+
+	eventID := "/lane/context"
+	observer := &laneContextProbeObserver{
+		id:        "/dest/lane-context",
+		started:   make(chan context.Context, 1),
+		releaseCh: make(chan struct{}),
+	}
+	hub.Subscribe(eventID, observer)
+	time.Sleep(20 * time.Millisecond)
+
+	ev := NewEvent(eventID, "source", observer.id, NewValues(), nil)
+	hub.Post(ev)
+
+	var observerCtx context.Context
+	select {
+	case observerCtx = <-observer.started:
+	case <-time.After(time.Second):
+		t.Fatal("observer did not start")
+	}
+
+	if got, ok := observerCtx.Value(laneExecutionContextKey{}).(string); !ok || got != observer.id {
+		t.Fatalf("observer context missing lane key, got=%v ok=%v", got, ok)
+	}
+	if got := ev.Context().Value(laneExecutionContextKey{}); got != nil {
+		t.Fatalf("hub mutated original event context, got lane key %v", got)
+	}
+
+	close(observer.releaseCh)
+}
+
+func TestHubSendNilEventReturnsError(t *testing.T) {
+	hub := NewHubWithOptions(1)
+	defer hub.Terminate(context.Background())
+
+	result := hub.Send(nil)
+	if result == nil || result.Error() == nil {
+		t.Fatal("expected nil event error")
+	}
+	if result.Error().Code != cd.IllegalParam {
+		t.Fatalf("error code=%d want=%d", result.Error().Code, cd.IllegalParam)
 	}
 }
 
