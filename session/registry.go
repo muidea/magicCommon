@@ -15,54 +15,8 @@ import (
 )
 
 const (
-	hmacSecretDefault         = "rangh@foxmail.com"
-	HMAC_SECRET_KEY           = "HMAC_SECRET"
 	SESSION_TIMEOUT_VALUE_KEY = "SESSION_TIMEOUT_VALUE"
 )
-
-func getSecret() string {
-	secretVal := os.Getenv(HMAC_SECRET_KEY)
-	if secretVal != "" {
-		return secretVal
-	}
-
-	return hmacSecretDefault
-}
-
-func ReadSessionTokenFromCookie(req *http.Request) string {
-	cookie, err := req.Cookie(SessionToken)
-	if err != nil {
-		return ""
-	}
-
-	return cookie.Value
-}
-
-func WriteSessionTokenToCookie(res http.ResponseWriter, sessionToken string) {
-	cookie := http.Cookie{
-		Name:     SessionToken,
-		Value:    sessionToken,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	}
-	http.SetCookie(res, &cookie)
-}
-
-func ClearSessionTokenCookie(res http.ResponseWriter) {
-	cookie := http.Cookie{
-		Name:     SessionToken,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   -1,
-		Expires:  time.Unix(0, 0),
-	}
-	http.SetCookie(res, &cookie)
-}
 
 func GetSessionTimeOutValue() time.Duration {
 	sessionTimeoutVal := os.Getenv(SESSION_TIMEOUT_VALUE_KEY)
@@ -162,6 +116,11 @@ func (s *sessionRegistryImpl) CountSession(filter util.Filter) int {
 }
 
 func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
+	// Phase-1 auth authority is CAS OAuth/OIDC (JWKS-verified access tokens).
+	// Registry is only an in-process opaque session container:
+	// - Cookie value is an opaque session id (never JWT claims material).
+	// - Authorization: Sig is rejected (Endpoint AES tokens are retired).
+	// - Authorization: Bearer is NOT decoded here; resource services verify JWT via JWKS.
 	var sessionPtr *sessionImpl
 	func() {
 		defer func() {
@@ -172,97 +131,52 @@ func (s *sessionRegistryImpl) getSession(req *http.Request) *sessionImpl {
 			}
 		}()
 
-		nowTime := time.Now().UTC().UnixMilli()
-
-		sessionToken := ReadSessionTokenFromCookie(req)
-		if sessionToken != "" {
-			sessionPtr = decodeJWT(sessionToken)
-		} else {
-			authorizationValue := req.Header.Get(Authorization)
-			offset := strings.Index(authorizationValue, " ")
-			if offset == -1 {
-				return
-			}
-
-			if authorizationValue[:offset] == jwtToken {
-				sessionPtr = decodeJWT(authorizationValue[offset+1:])
-			}
-
-			if authorizationValue[:offset] == sigToken {
-				sessionPtr = decodeEndpointToken(authorizationValue[offset+1:])
-			}
+		// Explicitly refuse the retired Endpoint Sig scheme. This is a
+		// fail-closed parser branch, not a public authentication API.
+		scheme, _ := ParseAuthorizationScheme(req.Header.Get(Authorization))
+		if strings.EqualFold(scheme, "Sig") {
+			return
 		}
 
-		if sessionPtr != nil {
-			sessionPtr.mu.RLock()
-			expireTime := sessionPtr.getExpireTime()
-			sessionPtr.mu.RUnlock()
-			if expireTime < nowTime {
-				sessionPtr = nil
-			}
+		sessionID := strings.TrimSpace(ReadSessionTokenFromCookie(req))
+		if sessionID == "" {
+			return
 		}
-	}()
+		// Opaque id only: never decode legacy JWT or Endpoint tokens from cookie.
+		// Reject values that look like JWTs (three base64url segments).
+		if looksLikeJWT(sessionID) {
+			return
+		}
 
-	if sessionPtr != nil {
-		curSession := s.findSession(sessionPtr.id)
-		if curSession != nil {
-			// 本地运行态 session 已终态，但 JWT 仍合法时，允许按 JWT 重建认证 session。
-			if curSession.isFinal() {
+		curSession := s.findSession(sessionID)
+		if curSession == nil || curSession.isFinal() {
+			if curSession != nil && curSession.isFinal() {
 				s.removeSession(curSession.id)
-				curSession = nil
 			}
+			return
 		}
-		if curSession != nil {
-			s.refreshSessionClaims(curSession, sessionPtr)
-			curSession.refresh()
-			sessionPtr = curSession
-		} else {
-			sessionPtr = s.insertSession(sessionPtr)
+		if curSession.timeout() {
+			s.removeSession(curSession.id)
+			return
 		}
-
-		sessionPtr.mu.Lock()
-		sessionPtr.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
-		sessionPtr.context[InnerUseAgent] = req.UserAgent()
-		sessionPtr.mu.Unlock()
-	}
+		curSession.refresh()
+		curSession.mu.Lock()
+		curSession.context[InnerRemoteAccessAddr] = fn.GetHTTPRemoteAddress(req)
+		curSession.context[InnerUseAgent] = req.UserAgent()
+		curSession.mu.Unlock()
+		sessionPtr = curSession
+	}()
 
 	return sessionPtr
 }
 
-func (s *sessionRegistryImpl) refreshSessionClaims(target, source *sessionImpl) {
-	if target == nil || source == nil || target == source {
-		return
+// looksLikeJWT reports compact JWS shape (header.payload.signature).
+func looksLikeJWT(val string) bool {
+	if val == "" {
+		return false
 	}
-
-	source.mu.RLock()
-	contextCopy := make(map[string]any, len(source.context))
-	for k, v := range source.context {
-		contextCopy[k] = v
-	}
-	source.mu.RUnlock()
-
-	target.mu.Lock()
-	remoteAccessAddr := target.context[InnerRemoteAccessAddr]
-	useAgent := target.context[InnerUseAgent]
-	startTime := target.context[InnerStartTime]
-	for k, v := range target.context {
-		if excludeSessionSignatureKey(k) {
-			if _, ok := contextCopy[k]; !ok {
-				contextCopy[k] = v
-			}
-		}
-	}
-	target.context = contextCopy
-	if _, ok := target.context[InnerStartTime]; !ok && startTime != nil {
-		target.context[InnerStartTime] = startTime
-	}
-	if remoteAccessAddr != nil {
-		target.context[InnerRemoteAccessAddr] = remoteAccessAddr
-	}
-	if useAgent != nil {
-		target.context[InnerUseAgent] = useAgent
-	}
-	target.mu.Unlock()
+	parts := strings.Split(val, ".")
+	return len(parts) == 3 && parts[0] != "" && parts[1] != "" && parts[2] != ""
 }
 
 // createSession 新建Session

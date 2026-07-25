@@ -10,11 +10,6 @@ import (
 	fnet "github.com/muidea/magicCommon/foundation/net"
 )
 
-type AuthSecret struct {
-	Endpoint  string `json:"endpoint"`
-	AuthToken string `json:"authToken"`
-}
-
 type Client interface {
 	GetServerURL() string
 	GetHTTPClient() *http.Client
@@ -25,10 +20,6 @@ type Client interface {
 
 	AttachAuthorization(authorization string)
 	DetachAuthorization()
-
-	// for endpoint
-	BindAuthSecret(authSecret *AuthSecret)
-	UnBindAuthSecret()
 
 	Release()
 }
@@ -116,7 +107,6 @@ type BaseClient struct {
 	httpClient *http.Client
 
 	sessionAuthorization string
-	sessionAuthSecret    *AuthSecret
 	headerContext        Context
 }
 
@@ -147,11 +137,6 @@ func (s *BaseClient) GetHTTPClient() *http.Client {
 func (s *BaseClient) Clone() BaseClient {
 	clone := *s
 	clone.headerContext = cloneContext(s.headerContext)
-	if s.sessionAuthSecret != nil {
-		authSecret := *s.sessionAuthSecret
-		clone.sessionAuthSecret = &authSecret
-	}
-
 	return clone
 }
 
@@ -164,18 +149,6 @@ func (s *BaseClient) WithContext(ctx Context) BaseClient {
 func (s *BaseClient) WithAuthorization(authorization string) BaseClient {
 	clone := s.Clone()
 	clone.sessionAuthorization = authorization
-	return clone
-}
-
-func (s *BaseClient) WithAuthSecret(authSecret *AuthSecret) BaseClient {
-	clone := s.Clone()
-	if authSecret == nil {
-		clone.sessionAuthSecret = nil
-		return clone
-	}
-
-	secretCopy := *authSecret
-	clone.sessionAuthSecret = &secretCopy
 	return clone
 }
 
@@ -193,9 +166,6 @@ func (s *BaseClient) GetContextValues() url.Values {
 		ret = s.headerContext.Encode(ret)
 	}
 
-	if s.sessionAuthSecret != nil {
-		ret.Set(Authorization, fmt.Sprintf("%s %s", sigToken, s.sessionAuthSecret.AuthToken))
-	}
 	if s.sessionAuthorization != "" {
 		ret.Set(Authorization, s.sessionAuthorization)
 	}
@@ -211,12 +181,48 @@ func (s *BaseClient) DetachAuthorization() {
 	s.sessionAuthorization = ""
 }
 
-func (s *BaseClient) BindAuthSecret(authSecret *AuthSecret) {
-	s.sessionAuthSecret = authSecret
+// AttachBearer sets Authorization to an explicit Bearer access token.
+// Prefer this over constructing the header string at call sites.
+func (s *BaseClient) AttachBearer(accessToken string) {
+	s.sessionAuthorization = FormatBearerAuthorization(accessToken)
 }
 
-func (s *BaseClient) UnBindAuthSecret() {
-	s.sessionAuthSecret = nil
+// WithBearer returns a clone that injects Authorization: Bearer <accessToken>.
+func (s *BaseClient) WithBearer(accessToken string) BaseClient {
+	return s.WithAuthorization(FormatBearerAuthorization(accessToken))
+}
+
+// FormatBearerAuthorization builds a Bearer Authorization header value.
+// Empty accessToken yields an empty string (no header).
+func FormatBearerAuthorization(accessToken string) string {
+	accessToken = strings.TrimSpace(accessToken)
+	if accessToken == "" {
+		return ""
+	}
+	if strings.HasPrefix(strings.ToLower(accessToken), "bearer ") {
+		return accessToken
+	}
+	return fmt.Sprintf("%s %s", jwtToken, accessToken)
+}
+
+// ParseAuthorizationScheme splits "Scheme credentials" Authorization values.
+// Unknown or empty input returns empty scheme/credentials.
+func ParseAuthorizationScheme(authorization string) (scheme, credentials string) {
+	authorization = strings.TrimSpace(authorization)
+	if authorization == "" {
+		return "", ""
+	}
+	scheme, credentials, ok := strings.Cut(authorization, " ")
+	if !ok {
+		return "", ""
+	}
+	return scheme, strings.TrimSpace(credentials)
+}
+
+// IsBearerAuthorization reports whether the header uses the Bearer scheme.
+func IsBearerAuthorization(authorization string) bool {
+	scheme, _ := ParseAuthorizationScheme(authorization)
+	return strings.EqualFold(scheme, jwtToken)
 }
 
 func (s *BaseClient) Release() {

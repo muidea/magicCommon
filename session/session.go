@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	"log/slog"
 )
 
@@ -26,8 +25,6 @@ const (
 	InnerRemoteAccessAddr = "_remoteAccessAddr"
 	// InnerUseAgent 会话来源UA
 	InnerUseAgent = "_userAgent"
-	// account/endpoint 认证方式
-	InnerAuthType = "_authType"
 	// innserSessionStartTime 会话开始时间
 	InnerStartTime = "innerSessionStartTime"
 	// innerExpireTime 会话有效期，该有效性必须要定期刷新，否则就会在超过该有效期时失效
@@ -39,14 +36,11 @@ const (
 )
 
 const (
-	SessionToken        = "session_token"
-	AuthJWTSession      = "jwt"
-	AuthEndpointSession = "endpoint"
+	SessionToken = "session_token"
 )
 
 const (
 	jwtToken = "Bearer"
-	sigToken = "Sig"
 
 	DefaultSessionTimeOutValue = 10 * time.Minute // 10 minute
 )
@@ -66,7 +60,6 @@ type Observer interface {
 // Session 会话
 type Session interface {
 	ID() string
-	Signature() (string, error)
 	Reset()
 	BindObserver(observer Observer)
 	UnbindObserver(observer Observer)
@@ -95,32 +88,13 @@ func (s *sessionImpl) ID() string {
 	return s.id
 }
 
-func excludeSessionSignatureKey(key string) bool {
+func excludeSessionInternalKey(key string) bool {
 	// 以下划线开头的key也要进行排除
 	return strings.HasPrefix(key, "_")
 }
 
 func (s *sessionImpl) excludeKey(key string) bool {
-	return excludeSessionSignatureKey(key)
-}
-
-func (s *sessionImpl) Signature() (string, error) {
-	mc := jwt.MapClaims{}
-	if s.id != "" {
-		mc[innerSessionID] = s.id
-	}
-
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for k, v := range s.context {
-		if s.excludeKey(k) {
-			continue
-		}
-
-		mc[k] = v
-	}
-
-	return SignatureJWT(mc)
+	return excludeSessionInternalKey(key)
 }
 
 func (s *sessionImpl) Reset() {

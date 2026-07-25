@@ -2,25 +2,17 @@ package session
 
 import "testing"
 
-func TestBaseClientCloneSnapshotsContextAndAuthSecret(t *testing.T) {
+func TestBaseClientCloneSnapshotsContext(t *testing.T) {
 	base := NewBaseClient("http://example.com")
 	ctx := NewDefaultHeaderContext()
 	ctx.Set("X-Mp-Namespace", "alpha")
 	base.AttachContext(ctx)
 
-	secret := &AuthSecret{Endpoint: "service", AuthToken: "token-a"}
-	base.BindAuthSecret(secret)
-
 	clone := base.Clone()
 
 	ctx.Set("X-Mp-Namespace", "beta")
-	secret.Endpoint = "changed"
-
 	if got := clone.GetContextValues()["X-Mp-Namespace"]; len(got) == 0 || got[0] != "alpha" {
 		t.Fatalf("clone should snapshot header context, got %#v", got)
-	}
-	if clone.sessionAuthSecret == nil || clone.sessionAuthSecret.Endpoint != "service" {
-		t.Fatalf("clone should copy auth secret, got %#v", clone.sessionAuthSecret)
 	}
 }
 

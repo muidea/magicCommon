@@ -58,27 +58,6 @@ func TestSessionResetClearsOptionsAndObservers(t *testing.T) {
 	}
 }
 
-func TestClearSessionTokenCookieExpiresCookie(t *testing.T) {
-	recorder := httptest.NewRecorder()
-
-	ClearSessionTokenCookie(recorder)
-
-	cookies := recorder.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("expected one cookie, got %d", len(cookies))
-	}
-	cookie := cookies[0]
-	if cookie.Name != SessionToken {
-		t.Fatalf("cookie name=%q want=%q", cookie.Name, SessionToken)
-	}
-	if cookie.Value != "" || cookie.MaxAge >= 0 || cookie.Expires.After(time.Unix(1, 0)) {
-		t.Fatalf("expected expired empty cookie, got %+v", cookie)
-	}
-	if cookie.Path != "/" || !cookie.HttpOnly || !cookie.Secure || cookie.SameSite != http.SameSiteStrictMode {
-		t.Fatalf("unexpected cookie attributes: %+v", cookie)
-	}
-}
-
 func TestSessionSubmitOptionsAndTerminateNotifyObservers(t *testing.T) {
 	registry := NewRegistry(nil).(*sessionRegistryImpl)
 	defer registry.Release()
@@ -101,7 +80,7 @@ func TestSessionSubmitOptionsAndTerminateNotifyObservers(t *testing.T) {
 	select {
 	case status := <-observer.statusCh:
 		if status != StatusUpdate {
-			t.Fatalf("expected update status, got %v", status)
+			t.Fatalf("expected StatusUpdate, got %v", status)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("timeout waiting for update notification")
@@ -111,7 +90,7 @@ func TestSessionSubmitOptionsAndTerminateNotifyObservers(t *testing.T) {
 	select {
 	case status := <-observer.statusCh:
 		if status != StatusTerminate {
-			t.Fatalf("expected terminate status, got %v", status)
+			t.Fatalf("expected StatusTerminate, got %v", status)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("timeout waiting for terminate notification")
@@ -143,33 +122,61 @@ func TestRegistryCountDoesNotTerminateWorker(t *testing.T) {
 	}
 }
 
-func TestAnonymousSessionSignatureCanBeLoadedIntoRegistry(t *testing.T) {
+func TestOpaqueCookieRestoresLocalSessionOnly(t *testing.T) {
 	registry := NewRegistry(nil)
 	defer registry.Release()
 
-	sessionPtr := NewAnonymousSession("127.0.0.1", "ua")
-	sessionPtr.SetOption("custom", "value")
-
-	token, err := sessionPtr.Signature()
-	if err != nil {
-		t.Fatalf("Signature() failed: %v", err)
-	}
-
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-	req.AddCookie(&http.Cookie{Name: SessionToken, Value: token})
-
-	loaded := LookupSession(registry, req)
-	if loaded == nil {
-		t.Fatal("expected session to be loaded from signed anonymous session")
+	created := registry.GetSession(httptest.NewRecorder(), req)
+	if created == nil {
+		t.Fatal("expected created session")
 	}
-	if loaded.ID() != sessionPtr.ID() {
-		t.Fatalf("session ID = %s, want %s", loaded.ID(), sessionPtr.ID())
+	created.SetOption("custom", "value")
+	id := created.ID()
+
+	// Opaque cookie (session id) restores local container — not JWT claims.
+	req2 := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+	req2.AddCookie(&http.Cookie{Name: SessionToken, Value: id})
+	loaded := LookupSession(registry, req2)
+	if loaded == nil {
+		t.Fatal("expected local session restore via opaque cookie")
+	}
+	if loaded.ID() != id {
+		t.Fatalf("session ID = %s, want %s", loaded.ID(), id)
 	}
 	if val, ok := loaded.GetString("custom"); !ok || val != "value" {
 		t.Fatalf("custom value = %q, %v, want value, true", val, ok)
 	}
-	if got := registry.CountSession(nil); got != 1 {
-		t.Fatalf("registry count = %d, want 1", got)
+}
+
+func TestJWTCookieDoesNotRestoreAuthIdentity(t *testing.T) {
+	registry := NewRegistry(nil)
+	defer registry.Release()
+
+	// A compact JWT-shaped value must never be decoded by Registry.
+	token := "legacy.header.signature"
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+	req.AddCookie(&http.Cookie{Name: SessionToken, Value: token})
+	if loaded := LookupSession(registry, req); loaded != nil {
+		t.Fatal("JWT cookie must not restore session identity into Registry")
+	}
+	if got := registry.CountSession(nil); got != 0 {
+		t.Fatalf("registry count = %d, want 0", got)
+	}
+}
+
+func TestBearerJWTDoesNotRestoreAuthIdentity(t *testing.T) {
+	registry := NewRegistry(nil)
+	defer registry.Release()
+
+	// Bearer access tokens belong to resource-service JWKS validation, not Registry.
+	token := "access.header.signature"
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+	req.Header.Set(Authorization, "Bearer "+token)
+	if loaded := LookupSession(registry, req); loaded != nil {
+		t.Fatal("Bearer JWT must not restore session identity into Registry")
 	}
 }
 
@@ -194,219 +201,40 @@ func TestRegistryReleaseIsIdempotent(t *testing.T) {
 	registry.Release()
 }
 
-func TestLookupSessionRefreshesExistingSessionClaimsFromNewJWT(t *testing.T) {
-	const (
-		authScopeKey  = "X-Mp-Auth-Scope"
-		authEntityKey = "X-Mp-Auth-Entity"
-	)
-
+func TestOpaqueCookieRefreshUpdatesLocalExpiry(t *testing.T) {
 	registry := NewRegistry(nil)
 	defer registry.Release()
 
-	initialSession := &sessionImpl{
-		id: "shared-session-id",
-		context: map[string]any{
-			InnerStartTime:  time.Now().Add(-time.Minute).UTC().UnixMilli(),
-			innerExpireTime: time.Now().Add(time.Minute).UTC().UnixMilli(),
-			authScopeKey:    "autotest:read",
-			authEntityKey:   map[string]any{"id": float64(1), "eID": float64(7), "eType": "account", "eName": "demo", "status": float64(1)},
-		},
-		observer: map[string]Observer{},
-		status:   sessionActive,
+	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+	created := registry.GetSession(httptest.NewRecorder(), req)
+	if created == nil {
+		t.Fatal("expected created session")
 	}
-	initialToken, err := initialSession.Signature()
-	if err != nil {
-		t.Fatalf("initial Signature() failed: %v", err)
-	}
-
-	initialReq := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-	initialReq.Header.Set(Authorization, "Bearer "+initialToken)
-	loadedInitial := LookupSession(registry, initialReq)
-	if loadedInitial == nil {
-		t.Fatal("expected initial session to load")
-	}
-
-	refreshedSession := &sessionImpl{
-		id: "shared-session-id",
-		context: map[string]any{
-			InnerStartTime:  time.Now().UTC().UnixMilli(),
-			innerExpireTime: time.Now().Add(9 * time.Minute).UTC().UnixMilli(),
-			authScopeKey:    "autotest:*;panel:*",
-			authEntityKey:   map[string]any{"id": float64(2), "eID": float64(9), "eType": "account", "eName": "refreshed", "status": float64(1)},
-		},
-		observer: map[string]Observer{},
-		status:   sessionActive,
-	}
-	refreshedToken, err := refreshedSession.Signature()
-	if err != nil {
-		t.Fatalf("refreshed Signature() failed: %v", err)
-	}
-
-	refreshedReq := httptest.NewRequest(http.MethodGet, "http://example.com/refreshed", nil)
-	refreshedReq.Header.Set(Authorization, "Bearer "+refreshedToken)
-	loadedRefreshed := LookupSession(registry, refreshedReq)
-	if loadedRefreshed == nil {
-		t.Fatal("expected refreshed session to load")
-	}
-	if loadedRefreshed.ID() != "shared-session-id" {
-		t.Fatalf("session ID = %s, want shared-session-id", loadedRefreshed.ID())
-	}
-
-	scopeVal, ok := loadedRefreshed.GetString(authScopeKey)
-	if !ok || scopeVal != "autotest:*;panel:*" {
-		t.Fatalf("scope=%q, ok=%v, want autotest:*;panel:*", scopeVal, ok)
-	}
-
-	entityVal, ok := loadedRefreshed.GetOption(authEntityKey)
+	id := created.ID()
+	created.SetOption(innerExpireTime, time.Now().Add(time.Second).UTC().UnixMilli())
+	oldExpire, ok := created.GetInt(innerExpireTime)
 	if !ok {
-		t.Fatal("expected refreshed auth entity")
-	}
-	entityMap, ok := entityVal.(map[string]any)
-	if !ok {
-		t.Fatalf("entity type = %T, want map[string]any", entityVal)
-	}
-	if got := entityMap["eName"]; got != "refreshed" {
-		t.Fatalf("entity name = %v, want refreshed", got)
+		t.Fatal("expected innerExpireTime")
 	}
 
-	expireVal, ok := loadedRefreshed.GetInt(innerExpireTime)
-	if !ok || expireVal < time.Now().Add(8*time.Minute).UTC().UnixMilli() {
-		t.Fatalf("expire=%d, ok=%v, expected refreshed expiry", expireVal, ok)
+	req2 := httptest.NewRequest(http.MethodGet, "http://example.com/next", nil)
+	req2.AddCookie(&http.Cookie{Name: SessionToken, Value: id})
+	loaded := LookupSession(registry, req2)
+	if loaded == nil {
+		t.Fatal("expected opaque cookie lookup")
 	}
-}
-
-func TestLookupSessionRefreshKeepsLocalUnsignedContext(t *testing.T) {
-	registry := NewRegistry(nil)
-	defer registry.Release()
-	registryImpl := registry.(*sessionRegistryImpl)
-
-	initialSession := &sessionImpl{
-		id: "shared-session-id",
-		context: map[string]any{
-			InnerStartTime:       time.Now().Add(-time.Minute).UTC().UnixMilli(),
-			innerExpireTime:      time.Now().Add(time.Minute).UTC().UnixMilli(),
-			"X-Mp-Auth-Entity":   map[string]any{"id": float64(1), "eID": float64(7), "eType": "account", "eName": "demo", "status": float64(1)},
-			"_AuthRole":          "cached-role",
-			"_authType":          AuthJWTSession,
-			"_verifiedNamespace": "example",
-			"_verifiedAt":        int64(1234567890),
-		},
-		observer: map[string]Observer{},
-		status:   sessionActive,
-	}
-	loadedInitial := registryImpl.insertSession(initialSession)
-	if loadedInitial == nil {
-		t.Fatal("expected initial session to load")
-	}
-
-	refreshedSession := &sessionImpl{
-		id: "shared-session-id",
-		context: map[string]any{
-			InnerStartTime:     time.Now().UTC().UnixMilli(),
-			innerExpireTime:    time.Now().Add(9 * time.Minute).UTC().UnixMilli(),
-			"X-Mp-Auth-Entity": map[string]any{"id": float64(2), "eID": float64(9), "eType": "account", "eName": "refreshed", "status": float64(1)},
-		},
-		observer: map[string]Observer{},
-		status:   sessionActive,
-	}
-	refreshedToken, err := refreshedSession.Signature()
-	if err != nil {
-		t.Fatalf("refreshed Signature() failed: %v", err)
-	}
-
-	refreshedReq := httptest.NewRequest(http.MethodGet, "http://example.com/refreshed", nil)
-	refreshedReq.Header.Set(Authorization, "Bearer "+refreshedToken)
-	loadedRefreshed := LookupSession(registry, refreshedReq)
-	if loadedRefreshed == nil {
-		t.Fatal("expected refreshed session to load")
-	}
-
-	if roleVal, ok := loadedRefreshed.GetOption("_AuthRole"); !ok || roleVal != "cached-role" {
-		t.Fatalf("unsigned role cache = %#v, %v, want cached-role, true", roleVal, ok)
-	}
-	if authType, ok := loadedRefreshed.GetString("_authType"); !ok || authType != AuthJWTSession {
-		t.Fatalf("unsigned authType = %q, %v, want %q, true", authType, ok, AuthJWTSession)
-	}
-	if verifiedNamespace, ok := loadedRefreshed.GetString("_verifiedNamespace"); !ok || verifiedNamespace != "example" {
-		t.Fatalf("unsigned verified namespace = %q, %v, want example, true", verifiedNamespace, ok)
-	}
-	if verifiedAt, ok := loadedRefreshed.GetInt("_verifiedAt"); !ok || verifiedAt != 1234567890 {
-		t.Fatalf("unsigned verifiedAt = %d, %v, want 1234567890, true", verifiedAt, ok)
-	}
-}
-
-func TestLookupSessionValidJWTAccessRefreshesExistingSessionExpiry(t *testing.T) {
-	registry := NewRegistry(nil)
-	defer registry.Release()
-
-	initialSession := &sessionImpl{
-		id: "shared-session-id",
-		context: map[string]any{
-			InnerStartTime:  time.Now().Add(-time.Minute).UTC().UnixMilli(),
-			innerExpireTime: time.Now().Add(time.Minute).UTC().UnixMilli(),
-			"scope":         "demo:*",
-		},
-		observer: map[string]Observer{},
-		status:   sessionActive,
-	}
-	initialToken, err := initialSession.Signature()
-	if err != nil {
-		t.Fatalf("initial Signature() failed: %v", err)
-	}
-
-	initialReq := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-	initialReq.Header.Set(Authorization, "Bearer "+initialToken)
-	loadedInitial := LookupSession(registry, initialReq)
-	if loadedInitial == nil {
-		t.Fatal("expected initial session to load")
-	}
-
-	loadedInitial.SetOption(innerExpireTime, time.Now().Add(time.Second).UTC().UnixMilli())
-	oldExpire, ok := loadedInitial.GetInt(innerExpireTime)
-	if !ok {
-		t.Fatal("expected innerExpireTime on initial session")
-	}
-
-	// 再次使用同一合法 JWT 访问时，应刷新本地 session 有效期，而不是继续沿用旧的 innerExpireTime。
-	secondReq := httptest.NewRequest(http.MethodGet, "http://example.com/next", nil)
-	secondReq.Header.Set(Authorization, "Bearer "+initialToken)
-	loadedAgain := LookupSession(registry, secondReq)
-	if loadedAgain == nil {
-		t.Fatal("expected refreshed session to load")
-	}
-
-	newExpire, ok := loadedAgain.GetInt(innerExpireTime)
+	newExpire, ok := loaded.GetInt(innerExpireTime)
 	if !ok {
 		t.Fatal("expected refreshed innerExpireTime")
 	}
 	if newExpire <= oldExpire {
 		t.Fatalf("innerExpireTime=%d want > %d", newExpire, oldExpire)
 	}
-	if newExpire < time.Now().Add(9*time.Minute).UTC().UnixMilli() {
-		t.Fatalf("innerExpireTime=%d expected local session to be refreshed", newExpire)
-	}
 }
 
-func TestLookupSessionValidJWTRecreatesSessionAfterLocalFinal(t *testing.T) {
-	registry := NewRegistry(nil)
+func TestFinalLocalSessionNotRestoredByOpaqueCookie(t *testing.T) {
+	registry := NewRegistry(nil).(*sessionRegistryImpl)
 	defer registry.Release()
-	registryImpl := registry.(*sessionRegistryImpl)
-
-	validSession := &sessionImpl{
-		id: "shared-session-id",
-		context: map[string]any{
-			InnerStartTime:  time.Now().Add(-time.Minute).UTC().UnixMilli(),
-			innerExpireTime: time.Now().Add(time.Minute).UTC().UnixMilli(),
-			AuthExpireTime:  time.Now().Add(9 * time.Minute).UTC().UnixMilli(),
-			"scope":         "demo:*",
-		},
-		observer: map[string]Observer{},
-		status:   sessionActive,
-	}
-	validToken, err := validSession.Signature()
-	if err != nil {
-		t.Fatalf("Signature() failed: %v", err)
-	}
 
 	staleLocal := &sessionImpl{
 		id: "shared-session-id",
@@ -416,21 +244,13 @@ func TestLookupSessionValidJWTRecreatesSessionAfterLocalFinal(t *testing.T) {
 		},
 		observer: map[string]Observer{},
 		status:   sessionTerminate,
-		registry: registryImpl,
+		registry: registry,
 	}
-	registryImpl.sessionMap[staleLocal.id] = staleLocal
+	registry.sessionMap[staleLocal.id] = staleLocal
 
 	req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
-	req.Header.Set(Authorization, "Bearer "+validToken)
-	loaded := LookupSession(registry, req)
-	if loaded == nil {
-		t.Fatal("expected valid JWT to recreate session from local final state")
-	}
-	if loaded.ID() != "shared-session-id" {
-		t.Fatalf("session ID = %s, want shared-session-id", loaded.ID())
-	}
-	expireVal, ok := loaded.GetInt(AuthExpireTime)
-	if !ok || expireVal < time.Now().Add(8*time.Minute).UTC().UnixMilli() {
-		t.Fatalf("authExpireTime=%d ok=%v expected valid recreated auth session", expireVal, ok)
+	req.AddCookie(&http.Cookie{Name: SessionToken, Value: "shared-session-id"})
+	if loaded := LookupSession(registry, req); loaded != nil {
+		t.Fatal("final local session must not be restored")
 	}
 }
