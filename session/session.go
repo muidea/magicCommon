@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -19,8 +18,6 @@ const (
 )
 
 const (
-	// innerSessionID 会话ID
-	innerSessionID = "_sessionID"
 	// InnerRemoteAccessAddr 会话来源地址
 	InnerRemoteAccessAddr = "_remoteAccessAddr"
 	// InnerUseAgent 会话来源UA
@@ -86,15 +83,6 @@ type sessionImpl struct {
 
 func (s *sessionImpl) ID() string {
 	return s.id
-}
-
-func excludeSessionInternalKey(key string) bool {
-	// 以下划线开头的key也要进行排除
-	return strings.HasPrefix(key, "_")
-}
-
-func (s *sessionImpl) excludeKey(key string) bool {
-	return excludeSessionInternalKey(key)
 }
 
 func (s *sessionImpl) Reset() {
