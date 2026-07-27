@@ -59,11 +59,38 @@ jobs:
           go install golang.org/x/tools/cmd/goimports@latest
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
-      - name: Run make all (build, test, lint)
-        run: make all
+      - name: Run build and lint
+        run: make build && make lint
+
+      - name: Run Go tests
+        run: |
+          run_test() {
+            local output
+            output="$(mktemp)"
+            if "$@" >"$output" 2>&1; then
+              rm -f "$output"
+              return 0
+            fi
+            cat "$output"
+            rm -f "$output"
+            return 1
+          }
+          run_test go test ./... --count=1
 
       - name: Run MySQL specific tests
-        run: go test -tags=mysql -count 1 ./...
+        run: |
+          run_test() {
+            local output
+            output="$(mktemp)"
+            if "$@" >"$output" 2>&1; then
+              rm -f "$output"
+              return 0
+            fi
+            cat "$output"
+            rm -f "$output"
+            return 1
+          }
+          run_test go test -tags=mysql -count 1 ./...
 
       - name: Upload test results
         if: always()
