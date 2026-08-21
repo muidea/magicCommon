@@ -1,6 +1,6 @@
 # magicCommon 通用监控框架
 
-[![Go Version](https://img.shields.io/badge/go-1.24+-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/go-1.26+-blue.svg)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Test Status](https://img.shields.io/badge/tests-passing-brightgreen.svg)](test/)
 [![Production Ready](https://img.shields.io/badge/production-ready-success.svg)](IMPLEMENTATION_COMPLIANCE_REPORT.md)

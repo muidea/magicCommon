@@ -9,7 +9,7 @@ echo "=== magicCommon 开发环境设置 ==="
 # 检查 Go 版本
 echo "1. 检查 Go 版本..."
 GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//')
-REQUIRED_VERSION="1.24"
+REQUIRED_VERSION="1.26"
 
 if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$GO_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
     echo "错误: 需要 Go $REQUIRED_VERSION 或更高版本，当前版本: $GO_VERSION"

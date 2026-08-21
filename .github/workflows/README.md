@@ -11,7 +11,7 @@
 
 **工作流程**:
 1. **build-and-test** 任务:
-   - 设置 Go 1.24 环境
+   - 设置 Go 1.26 环境
    - 启动 MySQL 和 PostgreSQL 测试数据库
    - 安装依赖和开发工具
    - 运行构建和代码检查
@@ -142,7 +142,7 @@ go mod download
 - `make clean`: 清理构建文件
 
 ### 环境变量
-- `GO_VERSION`: Go 版本 (默认: 1.24)
+- `GO_VERSION`: Go 版本 (默认: 1.26.7)
 - `MYSQL_VERSION`: MySQL 版本 (默认: 5.7)
 - `POSTGRES_VERSION`: PostgreSQL 版本 (默认: 17.2-alpine)
 

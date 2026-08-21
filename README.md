@@ -2,7 +2,7 @@
 
 [![CI Pipeline](https://github.com/muidea/magicCommon/actions/workflows/ci.yml/badge.svg)](https://github.com/muidea/magicCommon/actions/workflows/ci.yml)
 [![Release Build](https://github.com/muidea/magicCommon/actions/workflows/release-build.yml/badge.svg)](https://github.com/muidea/magicCommon/actions/workflows/release-build.yml)
-[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 一个 Go 语言库，提供通用的工具、基础框架和应用构建模块。
@@ -149,7 +149,7 @@ module.MustRegister(plugin)
 `framework/plugin/common` 中的显式接口，旧插件的反射兼容路径仍可用。
 
 ### 环境要求
-- Go 1.24+
+- Go 1.26+
 - MySQL 5.7+ (用于测试)
 - PostgreSQL 17.2+ (用于测试)
 

@@ -4,7 +4,7 @@ This document provides guidelines for agentic coding agents working in the magic
 
 ## Project Overview
 
-magicCommon is a Go library providing common utilities, foundations, and frameworks for building applications. The project uses Go 1.24+ and follows standard Go conventions.
+magicCommon is a Go library providing common utilities, foundations, and frameworks for building applications. The project uses Go 1.26+ and follows standard Go conventions.
 
 ## Build Commands
 
@@ -94,7 +94,7 @@ import (
 
 ### Types and Interfaces
 - Define interfaces for abstraction
-- Use generics where appropriate (Go 1.24+)
+- Use generics where appropriate (Go 1.26+)
 - Prefer composition over inheritance
 - Use type aliases for clarity when needed
 
@@ -177,7 +177,7 @@ magicCommon/
 
 - Tests run on push to master, feature/*, and bugfix/* branches
 - MySQL and PostgreSQL services are provisioned for testing
-- Go 1.24 is used for builds and tests
+- Go 1.26 is used for builds and tests
 - CI workflow: `.github/workflows/ci.yml`
 - MySQL test database: `testdb` with root password `rootkit`
 - PostgreSQL test database: `testdb` with user `postgres` and password `rootkit`
