@@ -1,6 +1,7 @@
 package util
 
 import (
+	"reflect"
 	"testing"
 
 	"log/slog"
@@ -100,7 +101,9 @@ func TestUnmarshalString(t *testing.T) {
 		input    string
 		expected interface{}
 	}{
-		{"Integer", "1234", float64(1234)},
+		{"Integer", "1234", int64(1234)},
+		{"Snowflake integer", "1024819115208704", int64(1024819115208704)},
+		{"Integer array", "[1024819115208704,1024819115208705]", []int64{1024819115208704, 1024819115208705}},
 		{"String", "a1234", "a1234"},
 		{"Float", "12.34", float64(12.34)},
 		{"Bool false", "false", false},
@@ -116,7 +119,7 @@ func TestUnmarshalString(t *testing.T) {
 				if result == nil {
 					t.Errorf("UnmarshalString failed for JSON object, got nil")
 				}
-			} else if result != tt.expected {
+			} else if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("UnmarshalString failed, got: %v, want: %v", result, tt.expected)
 			}
 		})

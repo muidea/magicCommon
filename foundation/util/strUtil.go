@@ -33,6 +33,19 @@ func UnmarshalString(val string) interface{} {
 		return mVal
 	}
 
+	// JSON numbers are decoded into float64 by default. Preserve integral
+	// values first so identifiers (for example Snowflake IDs) keep their exact
+	// decimal representation while passing through query filters.
+	var iVal int64
+	if err := json.Unmarshal([]byte(val), &iVal); err == nil {
+		return iVal
+	}
+
+	var uVal uint64
+	if err := json.Unmarshal([]byte(val), &uVal); err == nil {
+		return uVal
+	}
+
 	// 尝试解析为 float64
 	var fVal float64
 	if err := json.Unmarshal([]byte(val), &fVal); err == nil {
@@ -43,6 +56,18 @@ func UnmarshalString(val string) interface{} {
 	var bVal bool
 	if err := json.Unmarshal([]byte(val), &bVal); err == nil {
 		return bVal
+	}
+
+	// Preserve homogeneous integer arrays before attempting floating point
+	// arrays for the same identifier-safety reason as scalar values above.
+	var iArr []int64
+	if err := json.Unmarshal([]byte(val), &iArr); err == nil {
+		return iArr
+	}
+
+	var uArr []uint64
+	if err := json.Unmarshal([]byte(val), &uArr); err == nil {
+		return uArr
 	}
 
 	// 尝试解析为 []float64
