@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -104,6 +105,9 @@ func TestSimpleObserverWithMatchID(t *testing.T) {
 
 	done := make(chan Event, 1)
 	observer := NewSimpleObserverWithMatchID("base-observer", "/internal/modules/kernel/base/#", hub)
+	if got := observer.ID(); got != "base-observer" {
+		t.Fatalf("observer identity mismatch, got %q want %q", got, "base-observer")
+	}
 	observer.Subscribe("/value/query", func(ev Event, re Result) {
 		done <- ev
 		if re != nil {
@@ -124,6 +128,67 @@ func TestSimpleObserverWithMatchID(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("observer with custom match ID did not receive event")
+	}
+}
+
+func TestSimpleObserversWithSharedMatchIDRemainIndependent(t *testing.T) {
+	hub := NewHubWithOptions(2)
+	defer hub.Terminate(context.Background())
+
+	const (
+		eventID = "/shared/event"
+		matchID = "/destination/shared/#"
+	)
+
+	var firstCount atomic.Int32
+	var secondCount atomic.Int32
+	first := NewSimpleObserverWithMatchID("observer-first", matchID, hub)
+	second := NewSimpleObserverWithMatchID("observer-second", matchID, hub)
+
+	first.Subscribe(eventID, func(_ Event, result Result) {
+		firstCount.Add(1)
+		result.Set("first", nil)
+	})
+	second.Subscribe(eventID, func(_ Event, result Result) {
+		secondCount.Add(1)
+		result.Set("second", nil)
+	})
+
+	send := func() {
+		t.Helper()
+		result := hub.Send(NewEvent(eventID, "source", "/destination/shared/item", NewValues(), nil))
+		if result == nil || result.Error() != nil {
+			t.Fatalf("expected matched result, got %v", result)
+		}
+	}
+
+	send()
+	if got := firstCount.Load(); got != 1 {
+		t.Fatalf("first observer delivery count = %d, want 1", got)
+	}
+	if got := secondCount.Load(); got != 1 {
+		t.Fatalf("second observer delivery count = %d, want 1", got)
+	}
+
+	first.Unsubscribe(eventID)
+	send()
+	if got := firstCount.Load(); got != 1 {
+		t.Fatalf("unsubscribed first observer delivery count = %d, want 1", got)
+	}
+	if got := secondCount.Load(); got != 2 {
+		t.Fatalf("remaining second observer delivery count = %d, want 2", got)
+	}
+
+	second.Unsubscribe(eventID)
+	result := hub.Send(NewEvent(eventID, "source", "/destination/shared/item", NewValues(), nil))
+	if result == nil || result.Error() == nil {
+		t.Fatal("expected missing observer error after both observers unsubscribe")
+	}
+	if got := firstCount.Load(); got != 1 {
+		t.Fatalf("first observer received after unsubscribe, count = %d", got)
+	}
+	if got := secondCount.Load(); got != 2 {
+		t.Fatalf("second observer received after unsubscribe, count = %d", got)
 	}
 }
 

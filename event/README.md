@@ -59,7 +59,7 @@ type Result interface {
 
 ```go
 type Observer interface {
-    ID() string                    // 观察者ID
+    ID() string                    // 观察者唯一订阅身份
     Notify(event Event, result Result) // 事件通知回调
 }
 ```
@@ -134,6 +134,8 @@ func (s Values) GetBool(key string) bool
 - `Terminate()` 是幂等且并发安全的；关闭阶段如果内部执行器在等待窗口内没有排空，会记录告警而不是无限等待。
 - 事件匹配缓存按 `eventID + destination` 维度缓存，避免不同 destination 间误复用观察者列表。
 - 默认应用关闭路径现在会先让 service 结束，再关闭 `BackgroundRoutine`，最后调用 `EventHub.Terminate()`，避免 hub 在 service 已经退出后继续接收新工作。
+- 事件订阅模式只与 `Event.ID()` 匹配；观察者的 destination matcher 只与 `Event.Destination()` 匹配。
+- `Observer.ID()` 只作为订阅去重和取消订阅的唯一身份，绝不作为已显式配置 matcher 的替代值。
 - 观察者匹配仍按 `destination` 完成，`lane` 只决定调度顺序域，不参与 observer 路由。
 - `lane` 建议使用有界 key，不要把每次请求的随机 ID 直接作为 lane，避免长期累积过多内部 channel。
 
@@ -164,6 +166,14 @@ observer := NewSimpleObserverWithMatchID(
     hub,
 )
 ```
+
+这里的两个参数具有独立且不可互换的语义：
+
+- `id` 是观察者的唯一订阅身份，由 `Observer.ID()` 返回，Hub 仅使用它完成同一事件模式下的订阅去重和取消订阅。
+- `matchID` 是 destination 匹配模式，仅用于匹配 `Event.Destination()`；为空时回退为 `id`，以保持 `NewSimpleObserver` 的默认行为。
+- 多个观察者可以共享同一个 `matchID`，但必须使用不同的 `id`。它们会分别收到匹配事件，也可以互不影响地取消订阅。
+
+因此，禁止将 destination matcher 用作观察者身份。新增 Observer 实现时，如果需要独立的 destination 路由规则，应实现内部可识别的 `MatchID() string` 合同；未实现时 Hub 才会使用 `Observer.ID()` 作为默认 matcher。
 
 ## 工厂函数
 

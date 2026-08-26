@@ -81,8 +81,16 @@ type Result interface {
 }
 
 type Observer interface {
+	// ID returns the observer's unique subscription identity. The hub uses it
+	// only for subscription de-duplication and independent unsubscription.
 	ID() string
 	Notify(event Event, result Result)
+}
+
+// destinationMatcher is an optional internal routing contract. It keeps an
+// observer's destination pattern independent from its subscription identity.
+type destinationMatcher interface {
+	MatchID() string
 }
 
 type SimpleObserver interface {
@@ -271,7 +279,7 @@ func NewSimpleObserver(id string, hub Hub) SimpleObserver {
 	return &simpleObserver{id: id, matchID: id, eventHub: hub, eventID2ObserverFunc: ID2ObserverFuncMap{}}
 }
 
-// NewSimpleObserverWithMatchID 允许将观察者的逻辑标识与 destination 匹配模式分离。
+// NewSimpleObserverWithMatchID 允许将观察者的唯一订阅标识与 destination 匹配模式分离。
 func NewSimpleObserverWithMatchID(id, matchID string, hub Hub) SimpleObserver {
 	if matchID == "" {
 		matchID = id
@@ -1003,7 +1011,7 @@ func (s *hubImpl) findMatchingObservers(ev Event) ObserverList {
 	for key, value := range s.event2Observer {
 		if MatchValue(key, ev.ID()) {
 			for _, sv := range value {
-				if matchDestination(ev.Destination(), sv.ID()) {
+				if matchDestination(ev.Destination(), observerMatchID(sv)) {
 					matchList = append(matchList, sv)
 				}
 			}
@@ -1013,8 +1021,18 @@ func (s *hubImpl) findMatchingObservers(ev Event) ObserverList {
 	return matchList
 }
 
-func matchDestination(destination, observerID string) bool {
-	return MatchValue(destination, observerID) || MatchValue(observerID, destination)
+func matchDestination(destination, matchID string) bool {
+	return MatchValue(destination, matchID) || MatchValue(matchID, destination)
+}
+
+func observerMatchID(observer Observer) string {
+	if matcher, ok := observer.(destinationMatcher); ok {
+		if matchID := matcher.MatchID(); matchID != "" {
+			return matchID
+		}
+	}
+
+	return observer.ID()
 }
 
 type simpleObserver struct {
@@ -1025,12 +1043,14 @@ type simpleObserver struct {
 	eventIDLock          sync.RWMutex
 }
 
-func (s *simpleObserver) ID() string {
-	if s.matchID != "" {
-		return s.matchID
-	}
+var _ destinationMatcher = (*simpleObserver)(nil)
 
+func (s *simpleObserver) ID() string {
 	return s.id
+}
+
+func (s *simpleObserver) MatchID() string {
+	return s.matchID
 }
 
 func (s *simpleObserver) Notify(ev Event, re Result) {
