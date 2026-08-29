@@ -55,9 +55,10 @@ func FetchWithDriver(driverName, user, password, address, dbName string) (Dao, *
 	}
 
 	connectStr := driver.DefaultConnectionString(user, password, address, dbName)
+	connectionTarget := redactedConnectionTarget(address, dbName)
 	db, err := driver.Open(connectStr)
 	if err != nil {
-		return nil, logDatabaseError("open database", connectStr, err)
+		return nil, logDatabaseError("open database", connectionTarget, err)
 	}
 
 	// 配置连接池优化参数
@@ -73,11 +74,16 @@ func FetchWithDriver(driverName, user, password, address, dbName string) (Dao, *
 
 	err = db.Ping()
 	if err != nil {
-		return nil, logDatabaseError("ping database", connectStr, err)
+		_ = db.Close()
+		return nil, logDatabaseError("ping database", connectionTarget, err)
 	}
 
 	baseDao := NewBaseDaoLegacy(db, user, password, address, dbName)
 	return &impl{BaseDao: baseDao}, nil
+}
+
+func redactedConnectionTarget(address, dbName string) string {
+	return fmt.Sprintf("%s/%s", address, dbName)
 }
 
 // CreateDatabase 创建数据库

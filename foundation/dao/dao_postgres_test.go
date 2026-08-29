@@ -5,6 +5,7 @@ package dao
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -17,6 +18,18 @@ const gUser = "postgres"
 const gPassword = "rootkit"
 const gSvrAddress = "localhost:5432"
 const gDBName = "testdb001"
+
+func TestRedactedConnectionTargetDoesNotContainCredentials(t *testing.T) {
+	target := redactedConnectionTarget("postgres:5432", "application")
+	if target != "postgres:5432/application" {
+		t.Fatalf("connection target = %q", target)
+	}
+	for _, secret := range []string{"database-user", "database-password"} {
+		if strings.Contains(target, secret) {
+			t.Fatalf("connection target contains credential %q", secret)
+		}
+	}
+}
 
 func fetchOrSkip(t *testing.T) Dao {
 	t.Helper()
