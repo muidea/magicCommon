@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 	"sync"
 
 	"log/slog"
@@ -23,6 +24,13 @@ type Plugin interface {
 
 type Weighted interface {
 	Weight() int
+}
+
+// TeardownWeighted optionally decouples dependency-safe startup ordering from
+// shutdown quiescence ordering. Plugins that do not implement it retain the
+// historical reverse-Weight teardown order.
+type TeardownWeighted interface {
+	TeardownWeight() int
 }
 
 type Setupper interface {
@@ -89,6 +97,20 @@ func (s *PluginMgr) getWeight(ptr any) (weight int, err error) {
 
 	weight = int(values[0].Int())
 	return weight, nil
+}
+
+func (s *PluginMgr) getTeardownWeight(ptr any) (weight int, err error) {
+	if typed, ok := ptr.(TeardownWeighted); ok {
+		defer func() {
+			if info := recover(); info != nil {
+				slog.Error("panic in getTeardownWeight", "recover", info)
+				weight = DefaultWeight
+				err = fmt.Errorf("panic invoking TeardownWeight")
+			}
+		}()
+		return typed.TeardownWeight(), nil
+	}
+	return s.getWeight(ptr)
 }
 
 func (s *PluginMgr) getID(ptr any) (id string, err error) {
@@ -389,9 +411,30 @@ func (s *PluginMgr) Teardown(ctx context.Context) {
 	entityList := append([]any(nil), s.entityList...)
 	s.mu.RUnlock()
 
-	totalSize := len(entityList)
-	for idx := range entityList {
-		val := entityList[totalSize-idx-1]
+	type teardownEntry struct {
+		value  any
+		weight int
+	}
+	entries := make([]teardownEntry, 0, len(entityList))
+	for idx := len(entityList) - 1; idx >= 0; idx-- {
+		val := entityList[idx]
+		weight, weightErr := s.getTeardownWeight(val)
+		if weightErr != nil {
+			idVal, idErr := s.getID(val)
+			if idErr != nil {
+				slog.Error("get teardown weight failed, get ID error", "type", s.typeName, "error", idErr)
+			} else {
+				slog.Error("get teardown weight failed", "type", s.typeName, "id", idVal, "error", weightErr)
+			}
+		}
+		entries = append(entries, teardownEntry{value: val, weight: weight})
+	}
+	sort.SliceStable(entries, func(left, right int) bool {
+		return entries[left].weight > entries[right].weight
+	})
+
+	for _, entry := range entries {
+		val := entry.value
 		err := s.invokeTeardown(val, ctx)
 		if err != nil {
 			idVal, idErr := s.getID(val)

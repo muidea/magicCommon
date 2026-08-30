@@ -150,6 +150,61 @@ func TestPluginMgrExplicitInterfaces(t *testing.T) {
 	}
 }
 
+type independentlyWeightedLifecyclePlugin struct {
+	id             string
+	weight         int
+	teardownWeight int
+	order          *[]string
+}
+
+func (s *independentlyWeightedLifecyclePlugin) ID() string          { return s.id }
+func (s *independentlyWeightedLifecyclePlugin) Weight() int         { return s.weight }
+func (s *independentlyWeightedLifecyclePlugin) TeardownWeight() int { return s.teardownWeight }
+func (s *independentlyWeightedLifecyclePlugin) Run(context.Context) *cd.Error {
+	return nil
+}
+func (s *independentlyWeightedLifecyclePlugin) Teardown(context.Context) {
+	*s.order = append(*s.order, s.id)
+}
+
+func TestPluginMgrTeardownWeightIsIndependentFromStartupWeight(t *testing.T) {
+	pluginMgr := NewPluginMgr("abc")
+	order := []string{}
+	plugins := []*independentlyWeightedLifecyclePlugin{
+		{id: "orchestrator", weight: 30, teardownWeight: 90, order: &order},
+		{id: "run", weight: 40, teardownWeight: 40, order: &order},
+		{id: "workorchd", weight: 100, teardownWeight: 100, order: &order},
+		{id: "governance", weight: 45, teardownWeight: 45, order: &order},
+	}
+	for _, plugin := range plugins {
+		if err := pluginMgr.Register(plugin); err != nil {
+			t.Fatalf("register %s failed: %v", plugin.id, err)
+		}
+	}
+	pluginMgr.Teardown(context.Background())
+
+	want := []string{"workorchd", "orchestrator", "governance", "run"}
+	if !reflect.DeepEqual(order, want) {
+		t.Fatalf("teardown order = %#v, want %#v", order, want)
+	}
+}
+
+func TestPluginMgrTeardownWeightDefaultsToReverseStartupWeight(t *testing.T) {
+	pluginMgr := NewPluginMgr("abc")
+	order := []string{}
+	for _, id := range []string{"first", "second", "third"} {
+		if err := pluginMgr.Register(&rollbackPlugin{id: id, order: &order}); err != nil {
+			t.Fatalf("register %s failed: %v", id, err)
+		}
+	}
+	pluginMgr.Teardown(context.Background())
+
+	want := []string{"teardown:third", "teardown:second", "teardown:first"}
+	if !reflect.DeepEqual(order, want) {
+		t.Fatalf("default teardown order = %#v, want %#v", order, want)
+	}
+}
+
 type rollbackPlugin struct {
 	id      string
 	order   *[]string
