@@ -28,7 +28,9 @@ func TestNewHubWithOptions(t *testing.T) {
 	defer hub.Terminate(context.Background())
 
 	handler := &eventHandler{handlerID: "/opt-handler"}
-	hub.Subscribe("/opt-event", handler)
+	if err := hub.Subscribe("/opt-event", handler); err != nil {
+		t.Fatal(err)
+	}
 
 	ev := NewEvent("/opt-event", "/", handler.ID(), NewValues(), "data")
 	result := hub.Send(ev)

@@ -22,7 +22,9 @@ func TestRuntimeDrainPrecedesFinalServiceTeardown(t *testing.T) {
 				t.Fatal(err)
 			}
 			observer := event.NewSimpleObserver("owner", hub)
-			observer.Subscribe("probe", func(_ event.Event, result event.Result) { result.Set(true, nil) })
+			if err := observer.Subscribe("probe", func(_ event.Event, result event.Result) { result.Set(true, nil) }); err != nil {
+				t.Fatal(err)
+			}
 			entered, release, done := make(chan struct{}), make(chan struct{}), make(chan event.Result, 1)
 			work := func() { close(entered); <-release; done <- hub.Send(event.NewEvent("probe", "job", "owner", nil, nil)) }
 			if mode == "queue" {
@@ -31,7 +33,9 @@ func TestRuntimeDrainPrecedesFinalServiceTeardown(t *testing.T) {
 				}
 			} else {
 				other := event.NewSimpleObserver("other", hub)
-				other.Subscribe("work", func(_ event.Event, result event.Result) { work(); result.Set(nil, nil) })
+				if err := other.Subscribe("work", func(_ event.Event, result event.Result) { work(); result.Set(nil, nil) }); err != nil {
+					t.Fatal(err)
+				}
 				go hub.Send(event.NewEvent("work", "caller", "other", nil, nil))
 			}
 			<-entered

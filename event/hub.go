@@ -712,7 +712,7 @@ func (s *hubImpl) changeSubscription(eventID string, observer Observer, add bool
 	if eventID == "" || observer == nil {
 		return cd.NewError(cd.IllegalParam, "event ID and observer are required")
 	}
-	if !s.beginOperation(nil) {
+	if !s.beginOperation(context.TODO()) {
 		return cd.NewError(cd.InvalidOperation, "event hub is stopping")
 	}
 	defer s.endOperation()

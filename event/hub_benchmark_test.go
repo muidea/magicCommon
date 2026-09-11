@@ -46,7 +46,9 @@ func BenchmarkHubPostHighThroughput(b *testing.B) {
 
 	observer := newSequenceObserver("bench-post-observer")
 	eventID := "/bench/post"
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		b.Fatal(err)
+	}
 
 	// 等待订阅完成
 	b.ResetTimer()
@@ -68,7 +70,9 @@ func BenchmarkHubSendHighThroughput(b *testing.B) {
 
 	handler := &eventHandler{handlerID: "/bench-send-observer"}
 	eventID := "/bench/send"
-	hub.Subscribe(eventID, handler)
+	if err := hub.Subscribe(eventID, handler); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -95,7 +99,9 @@ func BenchmarkHubSendNoLog(b *testing.B) {
 	// 自定义 Observer，不做日志，只设置结果
 	observer := &benchNoLogObserver{id: "/bench-send-nolog"}
 	eventID := "/bench/send/nolog"
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -122,7 +128,9 @@ func BenchmarkHubSendLightHandler(b *testing.B) {
 
 	handler := &lightHandler{eventHandler{handlerID: "/bench-send-light"}}
 	eventID := "/bench/send/light"
-	hub.Subscribe(eventID, handler)
+	if err := hub.Subscribe(eventID, handler); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -152,7 +160,9 @@ func BenchmarkHubSendHeavyHandler(b *testing.B) {
 	// 使用自定义 Observer，在 Notify 中模拟较重的 CPU 逻辑
 	handler := &benchHeavyObserver{id: "/bench-send-heavy"}
 	eventID := "/bench/send/heavy"
-	hub.Subscribe(eventID, handler)
+	if err := hub.Subscribe(eventID, handler); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -175,7 +185,9 @@ func BenchmarkHubPostManySubscribers(b *testing.B) {
 	subs := make([]*sequenceObserver, subscriberCount)
 	for i := 0; i < subscriberCount; i++ {
 		subs[i] = newSequenceObserver(fmt.Sprintf("bench-sub-%d", i))
-		hub.Subscribe(eventID, subs[i])
+		if err := hub.Subscribe(eventID, subs[i]); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	b.ResetTimer()
@@ -197,7 +209,9 @@ func BenchmarkHubPostHighConcurrencyPublishers(b *testing.B) {
 
 	observer := newSequenceObserver("bench-concurrent-observer")
 	eventID := "/bench/concurrent"
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 

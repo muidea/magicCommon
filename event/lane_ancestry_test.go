@@ -10,17 +10,23 @@ func TestSynchronousSendCanRevisitActiveAncestorLane(t *testing.T) {
 	hub := NewHub(8)
 	t.Cleanup(func() { hub.Terminate(context.Background()) })
 	a, b := NewSimpleObserver("a", hub), NewSimpleObserver("b", hub)
-	a.Subscribe("read", func(ev Event, result Result) { result.Set("ok", nil) })
-	b.Subscribe("middle", func(ev Event, result Result) {
+	if err := a.Subscribe("read", func(ev Event, result Result) { result.Set("ok", nil) }); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Subscribe("middle", func(ev Event, result Result) {
 		r := hub.Send(NewEventWithContext("read", "b", "a", nil, ev.Context(), nil))
 		v, err := r.Get()
 		result.Set(v, err)
-	})
-	a.Subscribe("outer", func(ev Event, result Result) {
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Subscribe("outer", func(ev Event, result Result) {
 		r := hub.Send(NewEventWithContext("middle", "a", "b", nil, ev.Context(), nil))
 		v, err := r.Get()
 		result.Set(v, err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	done := make(chan Result, 1)
 	go func() { done <- hub.Send(NewEvent("outer", "caller", "a", nil, nil)) }()
 	select {

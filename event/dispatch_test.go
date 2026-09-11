@@ -13,9 +13,13 @@ func TestQueuedSendCancellationDoesNotInvokeHandler(t *testing.T) {
 	hub := NewHub(8).(*hubImpl)
 	observer := NewSimpleObserver("lane", hub)
 	entered, release := make(chan struct{}), make(chan struct{})
-	observer.Subscribe("hold", func(_ Event, result Result) { close(entered); <-release; result.Set(nil, nil) })
+	if err := observer.Subscribe("hold", func(_ Event, result Result) { close(entered); <-release; result.Set(nil, nil) }); err != nil {
+		t.Fatal(err)
+	}
 	var called atomic.Bool
-	observer.Subscribe("write", func(_ Event, result Result) { called.Store(true); result.Set(nil, nil) })
+	if err := observer.Subscribe("write", func(_ Event, result Result) { called.Store(true); result.Set(nil, nil) }); err != nil {
+		t.Fatal(err)
+	}
 	held := make(chan Result, 1)
 	go func() { held <- hub.Send(NewEvent("hold", "caller", "lane", nil, nil)) }()
 	<-entered
@@ -46,7 +50,9 @@ func TestExecutingSendRetainsCallerUntilCallbackReturns(t *testing.T) {
 	defer hub.Terminate(context.Background())
 	observer := NewSimpleObserver("lane", hub)
 	entered, release := make(chan struct{}), make(chan struct{})
-	observer.Subscribe("hold", func(_ Event, result Result) { close(entered); <-release; result.Set("completed", nil) })
+	if err := observer.Subscribe("hold", func(_ Event, result Result) { close(entered); <-release; result.Set("completed", nil) }); err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	done := make(chan Result, 1)
@@ -78,13 +84,17 @@ func TestIndependentRootLaneCyclesFailWithoutDeadline(t *testing.T) {
 			for idx, lane := range lanes {
 				target := lanes[(idx+1)%len(lanes)]
 				observer := NewSimpleObserver(lane, hub)
-				observer.Subscribe("leaf", func(_ Event, result Result) { result.Set(true, nil) })
-				observer.Subscribe("outer", func(ev Event, result Result) {
+				if err := observer.Subscribe("leaf", func(_ Event, result Result) { result.Set(true, nil) }); err != nil {
+					t.Fatal(err)
+				}
+				if err := observer.Subscribe("outer", func(ev Event, result Result) {
 					entered <- struct{}{}
 					<-barrier
 					value, err := hub.Send(NewEventWithContext("leaf", lane, target, nil, ev.Context(), nil)).Get()
 					result.Set(value, err)
-				})
+				}); err != nil {
+					t.Fatal(err)
+				}
 			}
 			done := make(chan Result, len(lanes))
 			for _, lane := range lanes {
@@ -125,8 +135,10 @@ func TestCheckedHubShutdownRetainsNestedDependenciesAndRetries(t *testing.T) {
 	hub := NewHub(8).(*hubImpl)
 	a, b := NewSimpleObserver("a", hub), NewSimpleObserver("b", hub)
 	entered, release := make(chan struct{}), make(chan struct{})
-	b.Subscribe("leaf", func(_ Event, result Result) { result.Set(true, nil) })
-	a.Subscribe("outer", func(ev Event, result Result) {
+	if err := b.Subscribe("leaf", func(_ Event, result Result) { result.Set(true, nil) }); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Subscribe("outer", func(ev Event, result Result) {
 		close(entered)
 		<-release
 		r := hub.Send(NewEventWithContext("leaf", "a", "b", nil, ev.Context(), nil))
@@ -136,7 +148,9 @@ func TestCheckedHubShutdownRetainsNestedDependenciesAndRetries(t *testing.T) {
 		}
 		value, err := r.Get()
 		result.Set(value, err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	done := make(chan Result, 1)
 	go func() { done <- hub.Send(NewEvent("outer", "caller", "a", nil, nil)) }()
 	<-entered
@@ -170,24 +184,32 @@ func TestPostQueuesBehindActiveAncestorWithoutInheritingItsAuthority(t *testing.
 	a, b := NewSimpleObserver("a", hub), NewSimpleObserver("b", hub)
 	var returned atomic.Bool
 	done := make(chan *cd.Error, 1)
-	b.Subscribe("leaf", func(_ Event, result Result) { result.Set(true, nil) })
-	a.Subscribe("posted", func(ev Event, _ Result) {
+	if err := b.Subscribe("leaf", func(_ Event, result Result) { result.Set(true, nil) }); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Subscribe("posted", func(ev Event, _ Result) {
 		if !returned.Load() {
 			done <- cd.NewError(cd.Unexpected, "Post ran inline before its ancestor returned")
 			return
 		}
 		result := hub.Send(NewEventWithContext("leaf", "a", "b", nil, ev.Context(), nil))
 		done <- result.Error()
-	})
-	b.Subscribe("middle", func(ev Event, result Result) {
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Subscribe("middle", func(ev Event, result Result) {
 		hub.Post(NewEventWithContext("posted", "b", "a", nil, ev.Context(), nil))
 		result.Set(nil, nil)
-	})
-	a.Subscribe("outer", func(ev Event, result Result) {
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Subscribe("outer", func(ev Event, result Result) {
 		value, err := hub.Send(NewEventWithContext("middle", "a", "b", nil, ev.Context(), nil)).Get()
 		returned.Store(true)
 		result.Set(value, err)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 	root := make(chan Result, 1)
 	go func() { root <- hub.Send(NewEvent("outer", "caller", "a", nil, nil)) }()
 	select {

@@ -41,7 +41,7 @@ func Read(path string) ([]byte, error) {
 // WriteOnce creates an owner-only secret file without replacing an existing
 // credential. Callers must create the parent directory with their desired
 // ownership before invoking this function.
-func WriteOnce(path string, payload []byte) error {
+func WriteOnce(path string, payload []byte) (err error) {
 	if strings.TrimSpace(path) == "" {
 		return errors.New("secret file path is required")
 	}
@@ -60,7 +60,11 @@ func WriteOnce(path string, payload []byte) error {
 	if err != nil {
 		return fmt.Errorf("create secret file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("close secret file: %w", closeErr))
+		}
+	}()
 	if _, err := file.Write(payload); err != nil {
 		return fmt.Errorf("write secret file: %w", err)
 	}
@@ -76,7 +80,7 @@ func WriteOnce(path string, payload []byte) error {
 // Replace atomically replaces an existing owner-only secret file. It refuses
 // symlinks and unsafe existing files so deployment reconciliation cannot turn
 // a credential refresh into an arbitrary file write.
-func Replace(path string, payload []byte) error {
+func Replace(path string, payload []byte) (err error) {
 	if strings.TrimSpace(path) == "" {
 		return errors.New("secret file path is required")
 	}
@@ -111,22 +115,31 @@ func Replace(path string, payload []byte) error {
 	if err != nil {
 		return fmt.Errorf("create replacement secret file: %w", err)
 	}
-	defer os.Remove(temporaryPath)
+	fileClosed := false
+	defer func() {
+		if !fileClosed {
+			if closeErr := file.Close(); closeErr != nil {
+				err = errors.Join(err, fmt.Errorf("close replacement secret file: %w", closeErr))
+			}
+		}
+		if removeErr := os.Remove(temporaryPath); removeErr != nil && !os.IsNotExist(removeErr) {
+			err = errors.Join(err, fmt.Errorf("remove replacement secret file: %w", removeErr))
+		}
+	}()
 	if _, err := file.Write(payload); err != nil {
-		file.Close()
 		return fmt.Errorf("write replacement secret file: %w", err)
 	}
 	if _, err := file.Write([]byte("\n")); err != nil {
-		file.Close()
 		return fmt.Errorf("finalize replacement secret file: %w", err)
 	}
 	if err := file.Sync(); err != nil {
-		file.Close()
 		return fmt.Errorf("sync replacement secret file: %w", err)
 	}
 	if err := file.Close(); err != nil {
+		fileClosed = true
 		return fmt.Errorf("close replacement secret file: %w", err)
 	}
+	fileClosed = true
 	if err := os.Rename(temporaryPath, path); err != nil {
 		return fmt.Errorf("replace secret file: %w", err)
 	}
@@ -134,7 +147,11 @@ func Replace(path string, payload []byte) error {
 	if err != nil {
 		return fmt.Errorf("open secret directory for sync: %w", err)
 	}
-	defer directory.Close()
+	defer func() {
+		if closeErr := directory.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("close secret directory: %w", closeErr))
+		}
+	}()
 	if err := directory.Sync(); err != nil {
 		return fmt.Errorf("sync secret directory: %w", err)
 	}

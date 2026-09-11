@@ -60,7 +60,9 @@ func TestHubSendUsesLaneKeyForScheduling(t *testing.T) {
 			"lane/a": make(chan struct{}),
 		},
 	}
-	hub.Subscribe("/lane/event", observer)
+	if err := hub.Subscribe("/lane/event", observer); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(20 * time.Millisecond)
 
 	blockedEvent := NewEvent("/lane/event", "source-a", observer.ID(), NewValues(), nil)
@@ -108,12 +110,14 @@ func TestSimpleObserverWithMatchID(t *testing.T) {
 	if got := observer.ID(); got != "base-observer" {
 		t.Fatalf("observer identity mismatch, got %q want %q", got, "base-observer")
 	}
-	observer.Subscribe("/value/query", func(ev Event, re Result) {
+	if err := observer.Subscribe("/value/query", func(ev Event, re Result) {
 		done <- ev
 		if re != nil {
 			re.Set("ok", nil)
 		}
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	ev := NewEvent("/value/query", "source", "/internal/modules/kernel/base/read/app/entity", NewValues(), nil)
 	result := hub.Send(ev)
@@ -145,14 +149,18 @@ func TestSimpleObserversWithSharedMatchIDRemainIndependent(t *testing.T) {
 	first := NewSimpleObserverWithMatchID("observer-first", matchID, hub)
 	second := NewSimpleObserverWithMatchID("observer-second", matchID, hub)
 
-	first.Subscribe(eventID, func(_ Event, result Result) {
+	if err := first.Subscribe(eventID, func(_ Event, result Result) {
 		firstCount.Add(1)
 		result.Set("first", nil)
-	})
-	second.Subscribe(eventID, func(_ Event, result Result) {
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := second.Subscribe(eventID, func(_ Event, result Result) {
 		secondCount.Add(1)
 		result.Set("second", nil)
-	})
+	}); err != nil {
+		t.Fatal(err)
+	}
 
 	send := func() {
 		t.Helper()
@@ -170,7 +178,9 @@ func TestSimpleObserversWithSharedMatchIDRemainIndependent(t *testing.T) {
 		t.Fatalf("second observer delivery count = %d, want 1", got)
 	}
 
-	first.Unsubscribe(eventID)
+	if err := first.Unsubscribe(eventID); err != nil {
+		t.Fatal(err)
+	}
 	send()
 	if got := firstCount.Load(); got != 1 {
 		t.Fatalf("unsubscribed first observer delivery count = %d, want 1", got)
@@ -179,7 +189,9 @@ func TestSimpleObserversWithSharedMatchIDRemainIndependent(t *testing.T) {
 		t.Fatalf("remaining second observer delivery count = %d, want 2", got)
 	}
 
-	second.Unsubscribe(eventID)
+	if err := second.Unsubscribe(eventID); err != nil {
+		t.Fatal(err)
+	}
 	result := hub.Send(NewEvent(eventID, "source", "/destination/shared/item", NewValues(), nil))
 	if result == nil || result.Error() == nil {
 		t.Fatal("expected missing observer error after both observers unsubscribe")
@@ -198,7 +210,9 @@ func TestHubReclaimsIdleLaneWorkers(t *testing.T) {
 
 	hubPtr := hub.(*hubImpl)
 	observer := &laneAwareObserver{id: "/lane/reclaim", releaseCh: map[string]chan struct{}{}}
-	hub.Subscribe("/lane/reclaim", observer)
+	if err := hub.Subscribe("/lane/reclaim", observer); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(20 * time.Millisecond)
 
 	ev := NewEvent("/lane/reclaim", "source", observer.ID(), NewValues(), nil)
@@ -222,7 +236,9 @@ func TestHubRecreatesLaneAfterIdleReclaim(t *testing.T) {
 
 	hubPtr := hub.(*hubImpl)
 	observer := &laneAwareObserver{id: "/lane/recreate", releaseCh: map[string]chan struct{}{}}
-	hub.Subscribe("/lane/recreate", observer)
+	if err := hub.Subscribe("/lane/recreate", observer); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(20 * time.Millisecond)
 
 	send := func() {

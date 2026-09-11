@@ -585,8 +585,12 @@ func TestHubImpl(t *testing.T) {
 	observer2 := newTestObserver("observer2")
 
 	eventID := "test/event"
-	hub.Subscribe(eventID, observer1)
-	hub.Subscribe(eventID, observer2)
+	if err := hub.Subscribe(eventID, observer1); err != nil {
+		t.Fatal(err)
+	}
+	if err := hub.Subscribe(eventID, observer2); err != nil {
+		t.Fatal(err)
+	}
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -614,7 +618,9 @@ func TestHubImpl(t *testing.T) {
 		t.Errorf("Observer2 notify count = %d, want > 0", count2)
 	}
 
-	hub.Unsubscribe(eventID, observer1)
+	if err := hub.Unsubscribe(eventID, observer1); err != nil {
+		t.Fatal(err)
+	}
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -670,7 +676,9 @@ func TestSimpleObserver(t *testing.T) {
 	}
 
 	eventID := "test/simple"
-	simpleObserver.Subscribe(eventID, observerFunc)
+	if err := simpleObserver.Subscribe(eventID, observerFunc); err != nil {
+		t.Fatal(err)
+	}
 
 	// Sleep a short time to ensure the subscription is processed
 	time.Sleep(100 * time.Millisecond)
@@ -699,7 +707,9 @@ func TestSimpleObserver(t *testing.T) {
 	}
 
 	// Clean up
-	simpleObserver.Unsubscribe(eventID)
+	if err := simpleObserver.Unsubscribe(eventID); err != nil {
+		t.Fatal(err)
+	}
 	hub.Terminate(context.Background())
 	time.Sleep(100 * time.Millisecond)
 }
@@ -729,7 +739,9 @@ func TestEventHub(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Subscribe to an event
-	hub.Subscribe("/e001", handler)
+	if err := hub.Subscribe("/e001", handler); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(100 * time.Millisecond)
 
 	// Create and send an event
@@ -769,7 +781,9 @@ func TestEventOrderConsistency(t *testing.T) {
 
 	// 订阅事件
 	eventID := "/test/order"
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		t.Fatal(err)
+	}
 
 	// 等待订阅完成
 	time.Sleep(100 * time.Millisecond)
@@ -873,8 +887,12 @@ func TestEventOrderConsistency(t *testing.T) {
 		observer1 := newSequenceObserver("observer1")
 		observer2 := newSequenceObserver("observer2")
 
-		hub.Subscribe(eventID, observer1)
-		hub.Subscribe(eventID, observer2)
+		if err := hub.Subscribe(eventID, observer1); err != nil {
+			t.Fatal(err)
+		}
+		if err := hub.Subscribe(eventID, observer2); err != nil {
+			t.Fatal(err)
+		}
 
 		// 等待订阅完成
 		time.Sleep(100 * time.Millisecond)
@@ -933,8 +951,12 @@ func TestEventOrderConsistency(t *testing.T) {
 		}
 
 		// 清理
-		hub.Unsubscribe(eventID, observer1)
-		hub.Unsubscribe(eventID, observer2)
+		if err := hub.Unsubscribe(eventID, observer1); err != nil {
+			t.Fatal(err)
+		}
+		if err := hub.Unsubscribe(eventID, observer2); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
@@ -946,7 +968,9 @@ func TestHighConcurrency(t *testing.T) {
 	// 创建观察者
 	observer := newSequenceObserver("concurrent-observer")
 	eventID := "/test/concurrent"
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		t.Fatal(err)
+	}
 
 	// 等待订阅完成
 	time.Sleep(100 * time.Millisecond)
@@ -1039,7 +1063,9 @@ func TestHighThroughput(t *testing.T) {
 	// 创建观察者
 	observer := newSequenceObserver("throughput-observer")
 	eventID := "/test/throughput"
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		t.Fatal(err)
+	}
 
 	// 等待订阅完成
 	time.Sleep(100 * time.Millisecond)
@@ -1110,7 +1136,9 @@ func TestManySubscribers(t *testing.T) {
 	subscribers := make([]*sequenceObserver, subscriberCount)
 	for i := 0; i < subscriberCount; i++ {
 		subscribers[i] = newSequenceObserver(fmt.Sprintf("subscriber-%d", i))
-		hub.Subscribe("/test/many", subscribers[i])
+		if err := hub.Subscribe("/test/many", subscribers[i]); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// 等待订阅完成
@@ -1164,7 +1192,9 @@ func TestManySubscribers(t *testing.T) {
 
 	// 清理
 	for _, sub := range subscribers {
-		hub.Unsubscribe("/test/many", sub)
+		if err := hub.Unsubscribe("/test/many", sub); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -1182,7 +1212,9 @@ func TestMixedScenario(t *testing.T) {
 	subscribers := make([]*sequenceObserver, subscriberCount)
 	for i := 0; i < subscriberCount; i++ {
 		subscribers[i] = newSequenceObserver(fmt.Sprintf("mixed-sub-%d", i))
-		hub.Subscribe("/test/mixed", subscribers[i])
+		if err := hub.Subscribe("/test/mixed", subscribers[i]); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// 等待订阅完成
@@ -1259,6 +1291,8 @@ func TestMixedScenario(t *testing.T) {
 
 	// 清理
 	for _, sub := range subscribers {
-		hub.Unsubscribe("/test/mixed", sub)
+		if err := hub.Unsubscribe("/test/mixed", sub); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

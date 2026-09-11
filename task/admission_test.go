@@ -12,10 +12,14 @@ func TestCanceledAdmissionAndShutdownWakeSaturatedSubmitter(t *testing.T) {
 			q := NewBackgroundRoutine(1)
 			entered, release := make(chan struct{}), make(chan struct{})
 			t.Cleanup(func() { close(release); q.Shutdown(context.Background()) })
-			q.AsyncFunction(func() { close(entered); <-release })
+			if err := q.AsyncFunction(func() { close(entered); <-release }); err != nil {
+				t.Fatal(err)
+			}
 			<-entered
 			for range 2 {
-				q.AsyncFunction(func() {})
+				if err := q.AsyncFunction(func() {}); err != nil {
+					t.Fatal(err)
+				}
 			}
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()

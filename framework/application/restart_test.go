@@ -13,7 +13,11 @@ func TestStoppedApplicationOnlyRecreatesRuntimeOnStartup(t *testing.T) {
 	app := NewApplication(Options{ConfigDir: t.TempDir(), BackgroundQueueSize: 1, EventHubQueueSize: 2})
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	t.Cleanup(func() { app.ShutdownChecked(ctx) })
+	t.Cleanup(func() {
+		if err := app.ShutdownChecked(ctx); err != nil {
+			t.Error(err)
+		}
+	})
 	for range 2 {
 		if err := app.Startup(ctx, &MockService{}); err != nil {
 			t.Fatal(err)

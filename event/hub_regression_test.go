@@ -114,7 +114,9 @@ func TestHubLaneContextDoesNotMutateOriginalEvent(t *testing.T) {
 		started:   make(chan context.Context, 1),
 		releaseCh: make(chan struct{}),
 	}
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		t.Fatal(err)
+	}
 	defer close(observer.releaseCh)
 	time.Sleep(20 * time.Millisecond)
 
@@ -158,8 +160,12 @@ func TestHubCacheRespectsDestination(t *testing.T) {
 	observerA := newTestObserver("/dest/a")
 	observerB := newTestObserver("/dest/b")
 
-	hub.Subscribe(eventID, observerA)
-	hub.Subscribe(eventID, observerB)
+	if err := hub.Subscribe(eventID, observerA); err != nil {
+		t.Fatal(err)
+	}
+	if err := hub.Subscribe(eventID, observerB); err != nil {
+		t.Fatal(err)
+	}
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -184,7 +190,9 @@ func TestHubSendTimeoutDoesNotBlock(t *testing.T) {
 		started:   make(chan struct{}, 1),
 		releaseCh: make(chan struct{}),
 	}
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(20 * time.Millisecond)
 
 	hub.Post(NewEvent(eventID, "source", observer.id, NewValues(), nil))
@@ -242,10 +250,12 @@ func TestHubTerminateDoesNotBlockWhenHubActionChannelIsBusy(t *testing.T) {
 	hub := NewHubWithOptions(1, WithHubActionChanSize(1))
 	hubPtr := hub.(*hubImpl)
 
-	hub.Subscribe("/busy", NewSimpleObserver("existing", hub))
+	if err := hub.Subscribe("/busy", NewSimpleObserver("existing", hub)); err != nil {
+		t.Fatal(err)
+	}
 	blocker := &blockingIDObserver{releaseCh: make(chan struct{}), entered: make(chan struct{}, 1)}
-	firstResult := make(chan struct{})
-	go func() { hub.Subscribe("/busy", blocker); close(firstResult) }()
+	firstResult := make(chan *cd.Error, 1)
+	go func() { firstResult <- hub.Subscribe("/busy", blocker) }()
 	<-blocker.entered
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
@@ -254,7 +264,10 @@ func TestHubTerminateDoesNotBlockWhenHubActionChannelIsBusy(t *testing.T) {
 	}
 	close(blocker.releaseCh)
 	select {
-	case <-firstResult:
+	case err := <-firstResult:
+		if err != nil {
+			t.Fatal(err)
+		}
 	case <-time.After(time.Second):
 		t.Fatal("subscription failed to drain")
 	}
@@ -274,7 +287,9 @@ func TestHubSendDoesNotDeadlockOnReentrantSameLane(t *testing.T) {
 		hub:     hub,
 		errCh:   make(chan error, 4),
 	}
-	hub.Subscribe(eventID, observer)
+	if err := hub.Subscribe(eventID, observer); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(20 * time.Millisecond)
 
 	done := make(chan Result, 1)
