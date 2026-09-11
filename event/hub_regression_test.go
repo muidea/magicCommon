@@ -28,9 +28,13 @@ func (b *blockingObserver) Notify(event Event, result Result) {
 
 type blockingIDObserver struct {
 	releaseCh chan struct{}
+	entered   chan struct{}
 }
 
 func (b *blockingIDObserver) ID() string {
+	if b.entered != nil {
+		b.entered <- struct{}{}
+	}
 	<-b.releaseCh
 	return "/dest/block-id"
 }
@@ -111,6 +115,7 @@ func TestHubLaneContextDoesNotMutateOriginalEvent(t *testing.T) {
 		releaseCh: make(chan struct{}),
 	}
 	hub.Subscribe(eventID, observer)
+	defer close(observer.releaseCh)
 	time.Sleep(20 * time.Millisecond)
 
 	ev := NewEvent(eventID, "source", observer.id, NewValues(), nil)
@@ -123,14 +128,13 @@ func TestHubLaneContextDoesNotMutateOriginalEvent(t *testing.T) {
 		t.Fatal("observer did not start")
 	}
 
-	if got, ok := observerCtx.Value(laneExecutionContextKey{}).(string); !ok || got != observer.id {
+	if got, ok := observerCtx.Value(laneExecutionContextKey{}).(*laneExecutionFrame); !ok || got.key != observer.id {
 		t.Fatalf("observer context missing lane key, got=%v ok=%v", got, ok)
 	}
 	if got := ev.Context().Value(laneExecutionContextKey{}); got != nil {
 		t.Fatalf("hub mutated original event context, got lane key %v", got)
 	}
 
-	close(observer.releaseCh)
 }
 
 func TestHubSendNilEventReturnsError(t *testing.T) {
@@ -238,27 +242,24 @@ func TestHubTerminateDoesNotBlockWhenHubActionChannelIsBusy(t *testing.T) {
 	hub := NewHubWithOptions(1, WithHubActionChanSize(1))
 	hubPtr := hub.(*hubImpl)
 
-	blocker := &blockingIDObserver{releaseCh: make(chan struct{})}
-	firstResult := make(chan bool, 1)
-	hubPtr.hubActionChannel <- &subscribeData{eventID: "/busy", observer: blocker, result: firstResult}
-	hubPtr.hubActionChannel <- &postData{event: NewEvent("/queued", "src", "dst", NewValues(), nil)}
-
-	done := make(chan struct{})
-	go func() {
-		hub.Terminate(context.Background())
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-time.After(500 * time.Millisecond):
-		t.Fatal("Terminate blocked while hubActionChannel send timed out")
+	hub.Subscribe("/busy", NewSimpleObserver("existing", hub))
+	blocker := &blockingIDObserver{releaseCh: make(chan struct{}), entered: make(chan struct{}, 1)}
+	firstResult := make(chan struct{})
+	go func() { hub.Subscribe("/busy", blocker); close(firstResult) }()
+	<-blocker.entered
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	if err := hubPtr.TerminateChecked(ctx); err == nil {
+		t.Error("busy control action was reported as complete")
 	}
-
 	close(blocker.releaseCh)
 	select {
 	case <-firstResult:
-	case <-time.After(50 * time.Millisecond):
+	case <-time.After(time.Second):
+		t.Fatal("subscription failed to drain")
+	}
+	if err := hubPtr.TerminateChecked(context.Background()); err != nil {
+		t.Fatal(err)
 	}
 }
 

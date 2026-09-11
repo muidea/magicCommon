@@ -46,12 +46,16 @@ func (s *lifecycleAdapter) Run(ctx context.Context) *cd.Error {
 }
 
 func (s *lifecycleAdapter) Shutdown(ctx context.Context) {
-	if s.svc == nil {
-		return
-	}
-	if err := s.svc.Shutdown(ctx); err != nil {
+	if err := s.ShutdownChecked(ctx); err != nil {
 		slog.Error("lifecycle shutdown failed", "service", s.name, "error", err)
 	}
+}
+
+func (s *lifecycleAdapter) ShutdownChecked(ctx context.Context) *cd.Error {
+	if s.svc == nil {
+		return nil
+	}
+	return wrapLifecycleError("lifecycle shutdown failed", s.svc.Shutdown(ctx))
 }
 
 func wrapLifecycleError(message string, err error) *cd.Error {

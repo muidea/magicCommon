@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -95,18 +96,20 @@ func TestNewBackgroundRoutine(t *testing.T) {
 }
 
 type timerTask struct {
-	timerCount int
+	timerCount atomic.Int64
 }
 
 func (s *timerTask) Run() {
-	s.timerCount++
+	s.timerCount.Add(1)
 }
 
 func TestTimer(t *testing.T) {
 	timerTaskPtr := &timerTask{}
 	taskRoutine := NewBackgroundRoutine(300)
-	_ = taskRoutine.Timer(context.Background(), timerTaskPtr, 1*time.Second, 0)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() { cancel(); taskRoutine.Shutdown(context.Background()) }()
+	_ = taskRoutine.Timer(ctx, timerTaskPtr, 1*time.Second, 0)
 
 	time.Sleep(10 * time.Second)
-	assert.True(t, timerTaskPtr.timerCount > 8, "timerTaskPtr.timerCount>8")
+	assert.True(t, timerTaskPtr.timerCount.Load() > 8, "timerTaskPtr.timerCount>8")
 }

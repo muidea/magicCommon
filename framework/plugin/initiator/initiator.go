@@ -58,3 +58,8 @@ func Run(ctx context.Context) *cd.Error {
 func Teardown(ctx context.Context) {
 	initiatorMgr.Teardown(ctx)
 }
+
+func TeardownChecked(ctx context.Context) *cd.Error { return initiatorMgr.TeardownChecked(ctx) }
+
+func BeginShutdown(ctx context.Context) *cd.Error { return initiatorMgr.BeginShutdown(ctx) }
+func Quiesce(ctx context.Context) *cd.Error       { return initiatorMgr.Quiesce(ctx) }

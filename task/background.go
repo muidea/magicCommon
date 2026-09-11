@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
+	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/execute"
 )
 
@@ -25,7 +25,12 @@ func (s *routineTask) Run() {
 
 type BackgroundRoutine interface {
 	AsyncTask(task Task) error
+	// AsyncTaskContext bounds admission only. Accepted tasks must handle their
+	// own cancellation and cleanup, even if the context expires while queued.
+	AsyncTaskContext(ctx context.Context, task Task) error
 	SyncTask(task Task) error
+	// SyncTaskWithTimeOut bounds the completion wait after admission. -1 waits
+	// indefinitely. A timeout does not cancel an accepted task.
 	SyncTaskWithTimeOut(task Task, timeout time.Duration) error
 	AsyncFunction(function func()) error
 	SyncFunction(function func()) error
@@ -35,28 +40,38 @@ type BackgroundRoutine interface {
 }
 
 type syncTask struct {
-	resultChannel chan bool
+	resultChannel chan error
 	rawTask       Task
-	timedOut      atomic.Bool
 }
 
 func (s *syncTask) Run() {
+	var err error
+	defer func() {
+		if value := recover(); value != nil {
+			err = cd.NewError(cd.Unexpected, fmt.Sprintf("background task panicked: %v", value))
+		}
+		// One buffered completion, including panic, even if the waiter has left.
+		s.resultChannel <- err
+	}()
 	s.rawTask.Run()
-
-	if !s.timedOut.Load() {
-		s.resultChannel <- true
-	}
 }
 
-func (s *syncTask) Wait(timeout time.Duration) {
-	switch timeout {
-	case -1:
-		<-s.resultChannel
-	default:
+func (s *syncTask) Wait(timeout time.Duration) error {
+	if timeout == -1 {
+		return <-s.resultChannel
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case err := <-s.resultChannel:
+		return err
+	case <-timer.C:
+		// Prefer an already published completion over a simultaneously fired timer.
 		select {
-		case <-s.resultChannel:
-		case <-time.After(timeout):
-			s.timedOut.Store(true)
+		case err := <-s.resultChannel:
+			return err
+		default:
+			return cd.NewError(cd.Timeout, "background task completion wait timed out; task was not canceled")
 		}
 	}
 }
@@ -72,14 +87,22 @@ type backgroundRoutine struct {
 	closed      bool
 	closeOnce   sync.Once
 	loopDone    chan struct{}
+	stopping    chan struct{}
+	timers      sync.WaitGroup
+	timersDone  chan struct{}
 }
 
 // NewBackgroundRoutine new Background routine
 func NewBackgroundRoutine(capacitySize int) BackgroundRoutine {
+	if capacitySize <= 0 {
+		capacitySize = 10
+	}
 	bg := &backgroundRoutine{
 		Execute:     execute.NewExecute(capacitySize),
 		taskChannel: make(taskChannel, capacitySize),
 		loopDone:    make(chan struct{}),
+		stopping:    make(chan struct{}),
+		timersDone:  make(chan struct{}),
 	}
 
 	bg.run()
@@ -88,7 +111,9 @@ func NewBackgroundRoutine(capacitySize int) BackgroundRoutine {
 }
 
 func (s *backgroundRoutine) run() {
-	s.Run(s.loop)
+	// The dispatcher is tracked by loopDone, not the worker pool: otherwise
+	// it consumes the only worker at capacity one and cannot dispatch any job.
+	go s.loop()
 }
 
 func (s *backgroundRoutine) loop() {
@@ -104,19 +129,27 @@ func (s *backgroundRoutine) AsyncTask(task Task) error {
 	return s.submitTask(task)
 }
 
+func (s *backgroundRoutine) AsyncTaskContext(ctx context.Context, task Task) error {
+	if ctx == nil || ctx.Err() != nil {
+		return fmt.Errorf("background task admission context is unavailable")
+	}
+	return s.submitTaskContext(ctx, task)
+}
+
 func (s *backgroundRoutine) SyncTask(task Task) error {
-	_ = s.SyncTaskWithTimeOut(task, -1)
-	return nil
+	return s.SyncTaskWithTimeOut(task, -1)
 }
 
 func (s *backgroundRoutine) SyncTaskWithTimeOut(task Task, timeout time.Duration) error {
-	st := &syncTask{rawTask: task, resultChannel: make(chan bool, 1)}
+	if task == nil || (timeout < 0 && timeout != -1) {
+		return cd.NewError(cd.IllegalParam, "task is required and timeout must be non-negative or -1")
+	}
+	st := &syncTask{rawTask: task, resultChannel: make(chan error, 1)}
 	if err := s.submitTask(st); err != nil {
 		return err
 	}
 
-	st.Wait(timeout)
-	return nil
+	return st.Wait(timeout)
 }
 
 func (s *backgroundRoutine) AsyncFunction(function func()) error {
@@ -152,8 +185,23 @@ func (s *backgroundRoutine) Timer(ctx context.Context, task Task, intervalValue 
 	if intervalValue <= 0 {
 		return fmt.Errorf("intervalValue must be positive")
 	}
+	s.submitMu.RLock()
+	defer s.submitMu.RUnlock()
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	select {
+	case <-s.stopping:
+		return fmt.Errorf("background routine is closed")
+	default:
+	}
+	if s.closed {
+		return fmt.Errorf("background routine is closed")
+	}
+	s.timers.Add(1)
 
 	go func() {
+		defer s.timers.Done()
 		curOffset := func() time.Duration {
 			now := time.Now()
 			nowOffset := time.Duration(now.Hour())*time.Hour + time.Duration(now.Minute())*time.Minute + time.Duration(now.Second())*time.Second
@@ -168,12 +216,14 @@ func (s *backgroundRoutine) Timer(ctx context.Context, task Task, intervalValue 
 		defer timer.Stop()
 
 		select {
+		case <-s.stopping:
+			return
 		case <-ctx.Done():
 			return
 		case <-timer.C:
 		}
 
-		if err := s.AsyncTask(task); err != nil {
+		if err := s.AsyncTaskContext(ctx, task); err != nil {
 			return
 		}
 
@@ -181,10 +231,12 @@ func (s *backgroundRoutine) Timer(ctx context.Context, task Task, intervalValue 
 		defer timeOutTimer.Stop()
 		for {
 			select {
+			case <-s.stopping:
+				return
 			case <-ctx.Done():
 				return
 			case <-timeOutTimer.C:
-				if err := s.AsyncTask(task); err != nil {
+				if err := s.AsyncTaskContext(ctx, task); err != nil {
 					return
 				}
 			}
@@ -199,12 +251,20 @@ func (s *backgroundRoutine) Shutdown(ctx context.Context) bool {
 		ctx = context.Background()
 	}
 	s.closeOnce.Do(func() {
+		// Wake blocked submitters before taking the exclusive close lock.
+		close(s.stopping)
 		s.submitMu.Lock()
 		s.closed = true
 		close(s.taskChannel)
 		s.submitMu.Unlock()
+		go func() { s.timers.Wait(); close(s.timersDone) }()
 	})
 
+	select {
+	case <-s.timersDone:
+	case <-ctx.Done():
+		return false
+	}
 	select {
 	case <-s.loopDone:
 	case <-ctx.Done():
@@ -214,6 +274,10 @@ func (s *backgroundRoutine) Shutdown(ctx context.Context) bool {
 }
 
 func (s *backgroundRoutine) submitTask(task Task) error {
+	return s.submitTaskContext(context.Background(), task)
+}
+
+func (s *backgroundRoutine) submitTaskContext(ctx context.Context, task Task) error {
 	if task == nil {
 		return fmt.Errorf("task is nil")
 	}
@@ -225,6 +289,12 @@ func (s *backgroundRoutine) submitTask(task Task) error {
 		return fmt.Errorf("background routine is closed")
 	}
 
-	s.taskChannel <- task
-	return nil
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.stopping:
+		return fmt.Errorf("background routine is closed")
+	case s.taskChannel <- task:
+		return nil
+	}
 }

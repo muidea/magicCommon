@@ -37,14 +37,12 @@ func (s *Execute) Unlock() { /* for noCopy */ }
 
 func (s *Execute) Run(funcPtr func()) {
 	s.mu.Lock()
-	if s.queueLength >= s.capacitySize {
-		s.mu.Unlock()
-		slog.Warn("execute queue is full, length:s.queueLength, capacity:s.capacitySize", "field", s.queueLength, "error", s.capacitySize)
-	} else if s.queueLength >= int(math.Floor(float64(s.capacitySize)*0.8)) {
-		s.mu.Unlock()
-		slog.Warn("queue lengths are at warning levels, length:s.queueLength, capacity:s.capacitySize", "field", s.queueLength, "error", s.capacitySize)
-	} else {
-		s.mu.Unlock()
+	queueLength := s.queueLength
+	s.mu.Unlock()
+	if queueLength >= s.capacitySize {
+		slog.Warn("execute queue is full", "length", queueLength, "capacity", s.capacitySize)
+	} else if queueLength >= int(math.Floor(float64(s.capacitySize)*0.8)) {
+		slog.Warn("execute queue is nearly full", "length", queueLength, "capacity", s.capacitySize)
 	}
 
 	s.capacityQueue <- true

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"log/slog"
 
@@ -22,12 +23,28 @@ type Service interface {
 	Shutdown(ctx context.Context)
 }
 
+// Quiescer is the checked pre-release barrier used by Application shutdown.
+type Quiescer interface {
+	Quiesce(context.Context) *cd.Error
+}
+
+// CheckedShutdown reports final teardown failures without releasing downstream
+// runtime dependencies. Successfully released stages must not run twice.
+type CheckedShutdown interface {
+	ShutdownChecked(context.Context) *cd.Error
+}
+
 func DefaultService() Service {
 	return &defaultService{}
 }
 
 type defaultService struct {
-	serviceName string
+	serviceName       string
+	shutdownMu        sync.Mutex
+	quiesced          bool
+	tornDown          bool
+	initiatorsStarted bool
+	modulesStarted    bool
 }
 
 func (s *defaultService) Startup(ctx context.Context, serviceName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Error) {
@@ -35,6 +52,10 @@ func (s *defaultService) Startup(ctx context.Context, serviceName string, eventH
 		ctx = context.Background()
 	}
 	s.serviceName = serviceName
+	s.shutdownMu.Lock()
+	s.quiesced, s.tornDown = false, false
+	s.initiatorsStarted, s.modulesStarted = true, false
+	s.shutdownMu.Unlock()
 	manager := health.DefaultManager()
 	manager.SetService(serviceName)
 	manager.MarkStarting()
@@ -50,23 +71,20 @@ func (s *defaultService) Startup(ctx context.Context, serviceName string, eventH
 	if depErr != nil {
 		ret = cd.NewError(cd.Unexpected, depErr.Error())
 		manager.MarkFailed(ret)
-		initiator.Teardown(ctx)
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "dependency.config", "error", ret)
 		return
 	}
 	ret = manager.CheckDependencies(ctx, dependencies)
 	if ret != nil {
 		manager.MarkFailed(ret)
-		initiator.Teardown(ctx)
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "dependency.check", "error", ret)
 		return
 	}
 
+	s.modulesStarted = true
 	ret = module.Setup(ctx, eventHub, backgroundRoutine)
 	if ret != nil {
 		manager.MarkFailed(ret)
-		module.Teardown(ctx)
-		initiator.Teardown(ctx)
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "module.setup", "error", ret)
 		return
 	}
@@ -82,7 +100,8 @@ func (s *defaultService) Run(ctx context.Context) (ret *cd.Error) {
 	manager := health.DefaultManager()
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
-			manager.MarkFailed(cd.NewError(cd.Unexpected, "service run panicked"))
+			ret = cd.NewError(cd.Unexpected, "service run panicked")
+			manager.MarkFailed(ret)
 			slog.Error("service run panicked", "service", s.serviceName, "panic", errInfo)
 		}
 	}()
@@ -90,15 +109,12 @@ func (s *defaultService) Run(ctx context.Context) (ret *cd.Error) {
 	ret = initiator.Run(ctx)
 	if ret != nil {
 		manager.MarkFailed(ret)
-		initiator.Teardown(ctx)
 		slog.Error("service run failed", "service", s.serviceName, "stage", "initiator.run", "error", ret)
 		return
 	}
 	ret = module.Run(ctx)
 	if ret != nil {
 		manager.MarkFailed(ret)
-		module.Teardown(ctx)
-		initiator.Teardown(ctx)
 		slog.Error("service run failed", "service", s.serviceName, "stage", "module.run", "error", ret)
 		return
 	}
@@ -158,16 +174,68 @@ func loadConfiguredDependencies() ([]health.Dependency, error) {
 }
 
 func (s *defaultService) Shutdown(ctx context.Context) {
+	if err := s.ShutdownChecked(ctx); err != nil {
+		slog.Error("service shutdown incomplete; dependencies retained", "error", err)
+	}
+}
+
+func (s *defaultService) ShutdownChecked(ctx context.Context) *cd.Error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	defer func() {
-		if errInfo := recover(); errInfo != nil {
-			slog.Error("service shutdown panicked", "service", s.serviceName, "panic", errInfo)
+	if err := s.Quiesce(ctx); err != nil {
+		return err
+	}
+	s.shutdownMu.Lock()
+	defer s.shutdownMu.Unlock()
+	if s.tornDown {
+		return nil
+	}
+	if s.modulesStarted {
+		if err := module.TeardownChecked(ctx); err != nil {
+			return err
 		}
-	}()
+		s.modulesStarted = false
+	}
+	if s.initiatorsStarted {
+		if err := initiator.TeardownChecked(ctx); err != nil {
+			return err
+		}
+		s.initiatorsStarted = false
+	}
+	s.tornDown = true
+	return nil
+}
 
-	module.Teardown(ctx)
-	initiator.Teardown(ctx)
-	//slog.Info("s.serviceName shutdown success", "field", s.serviceName)
+func (s *defaultService) Quiesce(ctx context.Context) *cd.Error {
+	s.shutdownMu.Lock()
+	defer s.shutdownMu.Unlock()
+	if s.quiesced {
+		return nil
+	}
+	var initErr, moduleErr *cd.Error
+	if s.initiatorsStarted {
+		initErr = initiator.BeginShutdown(ctx)
+	}
+	if s.modulesStarted {
+		moduleErr = module.BeginShutdown(ctx)
+	}
+	if initErr != nil {
+		return initErr
+	}
+	if moduleErr != nil {
+		return moduleErr
+	}
+	if s.initiatorsStarted {
+		if err := initiator.Quiesce(ctx); err != nil {
+			return err
+		}
+	}
+	if s.modulesStarted {
+		if err := module.Quiesce(ctx); err != nil {
+			return err
+		}
+	}
+	s.quiesced = true
+	return nil
 }

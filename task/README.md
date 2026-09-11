@@ -34,31 +34,33 @@ type BackgroundRoutine interface {
 
 ### AsyncTask / AsyncFunction
 
-- 提交任务后立即返回。
+- 入队成功后返回；队列满时等待可用空间。需要约束入队等待时使用 `AsyncTaskContext(ctx, task)`。
 - 任务会先进入后台任务通道，再由内部执行器异步执行。
 
 ### SyncTask / SyncFunction
 
 - 等待任务完成。
-- 当前实现等价于无限等待的同步任务。
+- 等价于无限等待的同步任务；返回提交失败或任务 panic 错误，只有任务正常完成才返回 `nil`。
+- nil 任务/函数在提交前拒绝；任务 panic 返回 `*def.Error`（`Unexpected`），不会让等待方永久阻塞。
 
 ### SyncTaskWithTimeOut / SyncFunctionWithTimeOut
 
-- 等待任务完成直到超时。
-- 超时后调用方会返回，但底层任务不会被取消；任务仍可能在后台继续执行。
-- 当前实现已经避免了“超时后任务完成再向已关闭 channel 发送”的 panic 风险。
+- 入队成功后开始计算完成等待预算，`-1` 表示无限等待，其他负值拒绝；这个预算不覆盖入队等待。
+- 超时返回 `*def.Error`（`Timeout`），但底层任务不会被取消；任务仍可能在后台继续执行。
+- 完成结果使用单次缓冲回执，超时后任务仍能正常结束，不会向已关闭 channel 发送，也不会阻塞 worker。`Shutdown` 仍等待任务真实结束。
 
 ### Timer
 
-- `Timer(ctx, ...)` 会启动一个独立 goroutine。
+- `Timer(ctx, ...)` 校验 context、参数及调度器状态后注册受跟踪的 timer goroutine；已关闭调度器或已取消 context 会同步返回错误。
 - 首次执行时间按 `intervalValue` 和 `offsetValue` 计算。
 - 之后使用 `Ticker` 按固定周期触发。
-- 当 `ctx.Done()` 触发时，后续定时触发会停止。
-- 定时触发通过 `AsyncTask()` 进入后台队列，而不是直接在 timer goroutine 中执行。
+- 当 `ctx.Done()` 触发或调度器关闭时，后续定时触发及饱和队列中的入队等待会停止。
+- 首次和后续 tick 都通过 `AsyncTaskContext()` 进入后台队列，而不是直接在 timer goroutine 中执行。已经接受的任务仍由 owner 检查取消并释放回执。
+- Timer 返回成功仅表示注册成功，不是后续每次调度或业务执行的成功回执。
 
 ### Shutdown
 
-- `Shutdown(ctx)` 会停止接收新任务、关闭内部任务队列，并等待已提交任务排空。
+- `Shutdown(ctx)` 会停止接收新任务、唤醒阻塞提交者、关闭内部任务队列，并等待定时器退出及已提交任务排空。
 - 返回 `true` 表示在 `ctx` 结束前成功排空。
 - 返回 `false` 表示 `ctx` 结束后返回，此时可能仍有任务在内部执行器中运行。
 - `Shutdown()` 是幂等的。
@@ -66,6 +68,7 @@ type BackgroundRoutine interface {
 ## 与 execute 的关系
 
 - `BackgroundRoutine` 使用 `execute.Execute` 管理实际并发执行。
+- 调度循环独立于业务执行槽，并由关闭回执等待退出；容量 `1` 也能正常执行、排空任务。非正容量统一使用默认值 `10`，容量同时约束排队缓冲和业务并发数。
 - 如果调用方需要显式区分“真正完成”和“等待超时”，应理解：
   - `SyncTaskWithTimeOut()` 只影响等待方
   - 不会中断已经开始运行的任务
@@ -85,11 +88,14 @@ _ = routine.AsyncFunction(func() {
 
 ```go
 routine := task.NewBackgroundRoutine(32)
-_ = routine.SyncFunctionWithTimeOut(func() {
+err := routine.SyncFunctionWithTimeOut(func() {
     // maybe slow work
 }, 200*time.Millisecond)
 
-// 超时只表示调用方已返回，不表示任务一定停止
+if err != nil {
+    // 区分提交失败、任务 panic 和完成等待超时；超时不表示任务停止。
+    return err
+}
 ```
 
 ### 可取消定时任务

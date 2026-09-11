@@ -40,3 +40,8 @@ func Run(ctx context.Context) *cd.Error {
 func Teardown(ctx context.Context) {
 	moduleMgr.Teardown(ctx)
 }
+
+func TeardownChecked(ctx context.Context) *cd.Error { return moduleMgr.TeardownChecked(ctx) }
+
+func BeginShutdown(ctx context.Context) *cd.Error { return moduleMgr.BeginShutdown(ctx) }
+func Quiesce(ctx context.Context) *cd.Error       { return moduleMgr.Quiesce(ctx) }

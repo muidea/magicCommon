@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"sync"
 
-	_ "log/slog"
+	"log/slog"
 
 	cd "github.com/muidea/magicCommon/def"
 	"github.com/muidea/magicCommon/event"
@@ -42,6 +42,7 @@ type Application interface {
 	Startup(ctx context.Context, service service.Service) *cd.Error
 	Run(ctx context.Context) *cd.Error
 	Shutdown(ctx context.Context)
+	ShutdownChecked(ctx context.Context) *cd.Error
 	EventHub() event.Hub
 	BackgroundRoutine() task.BackgroundRoutine
 }
@@ -53,6 +54,7 @@ const (
 	StateStarting State = "starting"
 	StateRunning  State = "running"
 	StateFailed   State = "failed"
+	StateStopping State = "stopping"
 	StateShutdown State = "shutdown"
 )
 
@@ -93,6 +95,8 @@ func Shutdown(ctx context.Context) {
 	Get().Shutdown(ctx)
 }
 
+func ShutdownChecked(ctx context.Context) *cd.Error { return Get().ShutdownChecked(ctx) }
+
 func Get() Application {
 	applicationOnce.Do(func() {
 		application = newAppImpl(Options{})
@@ -116,6 +120,9 @@ func ResetForTesting() {
 
 type appImpl struct {
 	mu                sync.Mutex
+	shutdownActive    bool
+	queueDrained      bool
+	serviceReleased   bool
 	opts              Options
 	ownership         RuntimeOwnership
 	state             State
@@ -146,7 +153,7 @@ func (s *appImpl) startupWithOptions(ctx context.Context, svc service.Service, o
 	}
 
 	s.mu.Lock()
-	if s.state != StateNew && s.state != StateShutdown {
+	if s.shutdownActive || (s.state != StateNew && s.state != StateShutdown) {
 		state := s.state
 		s.mu.Unlock()
 		return cd.NewError(cd.IllegalParam, "application startup is only allowed from new or shutdown state, current state:"+string(state))
@@ -154,22 +161,40 @@ func (s *appImpl) startupWithOptions(ctx context.Context, svc service.Service, o
 	var oldHub event.Hub
 	var oldBackgroundRoutine task.BackgroundRoutine
 	var oldOwnership RuntimeOwnership
+	restart := s.state == StateShutdown
+	if restart && !replaceRuntime && ((s.opts.EventHub != nil && s.ownership.EventHub) ||
+		(s.opts.BackgroundRoutine != nil && s.ownership.BackgroundRoutine)) {
+		s.mu.Unlock()
+		return cd.NewError(cd.InvalidOperation, "restart requires fresh application-owned injected runtime")
+	}
 	if replaceRuntime {
 		oldHub = s.eventHub
 		oldBackgroundRoutine = s.backgroundRoutine
 		oldOwnership = s.ownership
+	}
+	s.state = StateStarting
+	s.mu.Unlock()
+
+	if replaceRuntime {
+		if err := shutdownRuntime(ctx, oldHub, oldBackgroundRoutine, oldOwnership); err != nil {
+			s.mu.Lock()
+			s.state = StateStopping
+			s.mu.Unlock()
+			return err
+		}
+	}
+	s.mu.Lock()
+	if replaceRuntime {
 		s.opts = opts
+	}
+	if replaceRuntime || restart {
 		s.resetRuntimeLocked()
 	}
 	hub := s.eventHub
 	backgroundRoutine := s.backgroundRoutine
 	s.service = svc
-	s.state = StateStarting
+	s.queueDrained, s.serviceReleased = false, false
 	s.mu.Unlock()
-
-	if replaceRuntime {
-		shutdownRuntime(ctx, oldHub, oldBackgroundRoutine, oldOwnership)
-	}
 
 	err := configuration.InitDefaultConfigManager(opts.ConfigDir)
 	if err != nil {
@@ -209,6 +234,12 @@ func (s *appImpl) Run(ctx context.Context) *cd.Error {
 }
 
 func (s *appImpl) Shutdown(ctx context.Context) {
+	if err := s.ShutdownChecked(ctx); err != nil {
+		slog.Error("application shutdown incomplete; runtime retained", "error", err)
+	}
+}
+
+func (s *appImpl) ShutdownChecked(ctx context.Context) (err *cd.Error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -220,23 +251,91 @@ func (s *appImpl) Shutdown(ctx context.Context) {
 	ownership := s.ownership
 	if s.state == StateShutdown {
 		s.mu.Unlock()
-		return
+		return nil
 	}
-	s.state = StateShutdown
-	s.service = nil
+	if s.shutdownActive {
+		s.mu.Unlock()
+		return cd.NewError(cd.InvalidOperation, "application shutdown is in progress")
+	}
+	s.shutdownActive = true
+	s.state = StateStopping
 	s.mu.Unlock()
+	defer func() { s.mu.Lock(); s.shutdownActive = false; s.mu.Unlock() }()
+	defer func() {
+		if recover() != nil {
+			err = cd.NewError(cd.Unexpected, "application shutdown phase panicked")
+		}
+	}()
 
-	if svc != nil {
-		svc.Shutdown(ctx)
+	guard, guarded := svc.(service.Quiescer)
+	if guarded && !s.serviceReleased {
+		if err := checkedQuiesce(ctx, guard); err != nil {
+			return err
+		}
 	}
-	shutdownRuntime(ctx, hub, backgroundRoutine, ownership)
+	releaseService := func() *cd.Error {
+		if svc == nil || s.serviceReleased {
+			return nil
+		}
+		if checked, ok := svc.(service.CheckedShutdown); ok {
+			if err := checked.ShutdownChecked(ctx); err != nil {
+				return err
+			}
+		} else {
+			svc.Shutdown(ctx)
+		}
+		s.serviceReleased = true
+		return nil
+	}
+	// A service without Quiesce owns its complete input/drain barrier inside
+	// Shutdown. It must stop its producers before the shared queue can drain.
+	if !guarded {
+		if err := releaseService(); err != nil {
+			return err
+		}
+	}
 
-	_ = configuration.CloseConfigManager()
+	// Drain accepted work while all plugin dependencies and command handlers
+	// still exist. A timeout is an incomplete phase, never a teardown receipt.
+	if ownership.BackgroundRoutine && backgroundRoutine != nil && !s.queueDrained {
+		if !backgroundRoutine.Shutdown(ctx) {
+			return cd.NewError(cd.Timeout, "background tasks are still running")
+		}
+		s.queueDrained = true
+	}
+	if hub, ok := hub.(event.DrainingHub); ok && ownership.EventHub {
+		if err := hub.Drain(ctx); err != nil {
+			return err
+		}
+	}
+	if err := releaseService(); err != nil {
+		return err
+	}
+	if err := shutdownRuntime(ctx, hub, nil, RuntimeOwnership{EventHub: ownership.EventHub}); err != nil {
+		return err
+	}
+
+	if err := configuration.CloseConfigManager(); err != nil {
+		return cd.NewError(cd.Unexpected, err.Error())
+	}
 	health.ResetDefaultManager()
 
 	s.mu.Lock()
-	s.resetRuntimeLocked()
+	s.state = StateShutdown
+	s.service = nil
+	// Keep the stopped runtime visible to existing callers. Only a subsequent
+	// Startup may create a new generation; Shutdown must not spawn new workers.
 	s.mu.Unlock()
+	return nil
+}
+
+func checkedQuiesce(ctx context.Context, guard service.Quiescer) (err *cd.Error) {
+	defer func() {
+		if recover() != nil {
+			err = cd.NewError(cd.Unexpected, "service shutdown guard panicked")
+		}
+	}()
+	return guard.Quiesce(ctx)
 }
 
 func (s *appImpl) EventHub() event.Hub {
@@ -252,21 +351,12 @@ func (s *appImpl) BackgroundRoutine() task.BackgroundRoutine {
 }
 
 func (s *appImpl) failStartup(ctx context.Context) {
+	// A partially started owner can still hold work. Use the same guard and
+	// retain its resources if cancellation/drain has not completed.
+	s.Shutdown(ctx)
 	s.mu.Lock()
 	s.state = StateFailed
-	svc := s.service
-	hub := s.eventHub
-	backgroundRoutine := s.backgroundRoutine
-	ownership := s.ownership
-	s.service = nil
 	s.mu.Unlock()
-
-	if svc != nil {
-		svc.Shutdown(ctx)
-	}
-	shutdownRuntime(ctx, hub, backgroundRoutine, ownership)
-	_ = configuration.CloseConfigManager()
-	health.ResetDefaultManager()
 }
 
 func (s *appImpl) resetRuntimeLocked() {
@@ -306,11 +396,17 @@ func resolveServiceName(explicitName string) string {
 	return nameVal
 }
 
-func shutdownRuntime(ctx context.Context, hub event.Hub, backgroundRoutine task.BackgroundRoutine, ownership RuntimeOwnership) {
+func shutdownRuntime(ctx context.Context, hub event.Hub, backgroundRoutine task.BackgroundRoutine, ownership RuntimeOwnership) *cd.Error {
 	if ownership.BackgroundRoutine && backgroundRoutine != nil {
-		backgroundRoutine.Shutdown(ctx)
+		if !backgroundRoutine.Shutdown(ctx) {
+			return cd.NewError(cd.Timeout, "background tasks are still running")
+		}
 	}
 	if ownership.EventHub && hub != nil {
-		hub.Terminate(ctx)
+		if checked, ok := hub.(event.DrainingHub); ok {
+			return checked.TerminateChecked(ctx)
+		}
+		hub.Terminate(ctx) // External implementations without a receipt own this guarantee.
 	}
+	return nil
 }

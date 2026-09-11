@@ -85,16 +85,10 @@ func main() {
 `event.Hub`、`task.BackgroundRoutine`、配置管理器和注入的
 `service.Service`。
 
-兼容入口保持不变：
+生产入口推荐统一执行与检查式停机：
 
 ```go
-err := application.Startup(ctx, service.DefaultService())
-if err != nil {
-    return err
-}
-defer application.Shutdown(ctx)
-
-err = application.Run(ctx)
+err := application.Execute(ctx, service.DefaultService())
 ```
 
 需要显式配置目录、服务名、队列大小或外部 runtime 组件时，使用
@@ -116,13 +110,24 @@ err := application.StartupWithOptions(ctx, service.DefaultService(), opts)
 `Shutdown` 或启动失败清理时终止对应组件。
 
 Application 内部维护 `new`、`starting`、`running`、`failed`、
-`shutdown` 状态：
+`stopping`、`shutdown` 状态：
 
 - `Run` 必须在成功 `Startup` 后调用。
 - 重复 `Startup` 会返回错误，除非前一次生命周期已经 `Shutdown`。
-- `Shutdown` 幂等，并会重建默认 runtime 组件以支持后续启动。
+- `Shutdown` 幂等，成功后保留已关闭的 runtime，不创建新队列/Hub；下一次 `Startup` 才重建默认组件。需要感知失败的调用方使用 `ShutdownChecked(ctx)`。
+- 已由 Application 关闭的外部注入对象不能直接复用；重启须通过 `StartupWithOptions` 提供新对象或创建新的 Application。调用方持有 ownership 的外部对象不会被 Application 关闭。
 - 启动失败会进入 `failed` 状态并执行 best-effort cleanup；调用方需要
   `Shutdown` 后再重试启动。
+
+`Execute` 封装默认 Application 的 Startup/Run 和最终检查式清理。正常退出、启动/运行失败以及 panic 都先进入清理；每次停机使用独立的 30 秒预算，失败等待 1 秒后重试，不继承已取消的运行 context。完成后返回原执行错误，panic 在清理后继续传播。它不会强制终止未配合取消的回调；这样的回调仍可能阻止进程退出。需要自行控制步骤的调用方仍可使用 Startup/Run/ShutdownChecked。
+
+默认 Service 支持分阶段停机：全部已进入 Setup 的插件先执行可选 `BeginShutdown(context.Context)` 关闭入口/请求取消，再执行 `Quiesce(context.Context) *def.Error` 等待在途操作；Application 随后确认后台队列、定时器和已接受的事件排空，才执行最终 `Teardown` 及 Hub 关闭。失败或 panic 返回错误并保留尚未释放的依赖，状态为 stopping，可再次尝试停机，不能重新 Run/Startup。最终清理按逆序遇错即停，重试不会重复执行已成功的阶段；已完成的释放不承诺回滚。自定义 Service 可实现 `service.Quiescer` 和 `service.CheckedShutdown` 接入屏障和最终清理回执；未实现 Quiescer 的 Service 必须在自己的 Shutdown 中先完成入口关闭与资源排空。
+
+插件 Setup 失败不再由单个 PluginMgr 提前回滚：已进入的插件（包括部分失败的插件）保留给进程级统一停机流程，未进入 Setup 的插件不参与清理。Application 在启动失败时仍自动尝试 `ShutdownChecked`；直接使用 DefaultService/PluginMgr 的调用方须显式执行检查式清理。插件需保证部分 Setup 后也可安全、幂等地清理。最终 Teardown 的错误及 panic、LifecycleService adapter 的清理错误均向上返回。
+
+`BackgroundRoutine.AsyncTaskContext` 的 context 约束入队等待；已接受的任务仍需由 owner 在执行时处理取消及释放回执。定时器首次和后续 tick 都使用此入口；注册拒绝已取消上下文和已关闭调度器，关闭会唤醒阻塞提交者并等待 timer goroutine 退出。注册成功不等于未来每次 tick 都已完成。
+
+同步 EventHub Send 保留仅在本 Hub、当前调用链仍活跃时有效的祖先通道，支持 A → B → A；独立调用链形成循环依赖时明确拒绝。排队中尚未执行的 Send 可取消，取消成功保证不再执行 handler；已经执行的回调必须等真实返回。不要把同步派发上下文用于并发调用或延迟重入。Post 总是排队，不能继承祖先重入权限。`event.DrainingHub.TerminateChecked` 拒绝新根调用，保留在途同步依赖，超时不清空订阅，支持继续排空和重试；旧的 void Terminate 入口仅记录未完成错误。
 
 `framework/service` 还提供 foreground lifecycle adapter：
 
@@ -221,11 +226,13 @@ make fmt-check # 代码格式检查
 6. 构建发布二进制文件（仅 master 分支）
 
 ### 发布流程
-1. 代码合并到 `master` 分支
-2. 创建版本标签 (`v1.0.0`)
-3. 自动触发发布构建
-4. 生成多平台二进制文件
-5. 创建 GitHub Release
+
+1. 完成升级说明及验证，将代码提交到 `master`。
+2. 创建并推送不可覆写的版本标签（例如 `v1.5.16`），供 Go module 按版本引用。
+3. 标签触发 `release-build.yml` 的构建、质量检查及 PostgreSQL/MySQL 测试。
+4. 当前工作流不自动创建 GitHub Release 条目，也不生成多平台二进制发布包。
+
+本次接口与生命周期升级要求见 [v1.5.16 发布说明](release-note-v1.5.16.md)。
 
 ## 项目结构
 

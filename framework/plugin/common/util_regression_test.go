@@ -226,7 +226,7 @@ func (s *rollbackPlugin) Teardown(_ context.Context) {
 	*s.order = append(*s.order, "teardown:"+s.id)
 }
 
-func TestPluginMgrSetupRollbackOnlyCompletedPlugins(t *testing.T) {
+func TestPluginMgrSetupRetainsEnteredOwnersForCheckedRollback(t *testing.T) {
 	pluginMgr := NewPluginMgr("abc")
 	order := []string{}
 
@@ -248,8 +248,21 @@ func TestPluginMgrSetupRollbackOnlyCompletedPlugins(t *testing.T) {
 		t.Fatalf("expected setup failure")
 	}
 
-	expected := []string{"setup:01", "setup:02", "setup:03", "teardown:02", "teardown:01"}
+	expected := []string{"setup:01", "setup:02", "setup:03"}
+	if !reflect.DeepEqual(order, expected) {
+		t.Fatalf("setup bypassed the process-wide shutdown barrier: %#v", order)
+	}
+	if err := pluginMgr.TeardownChecked(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	expected = append(expected, "teardown:03", "teardown:02", "teardown:01")
 	if !reflect.DeepEqual(order, expected) {
 		t.Fatalf("unexpected rollback order: %#v", order)
+	}
+	if err := pluginMgr.TeardownChecked(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(order, expected) {
+		t.Fatal("retry released owners twice")
 	}
 }
