@@ -41,7 +41,7 @@ func (s *Execute) Run(funcPtr func()) {
 	s.mu.Unlock()
 	if queueLength >= s.capacitySize {
 		slog.Warn("execute queue is full", "length", queueLength, "capacity", s.capacitySize)
-	} else if queueLength >= int(math.Floor(float64(s.capacitySize)*0.8)) {
+	} else if queueLength >= nearFullThreshold(s.capacitySize) {
 		slog.Warn("execute queue is nearly full", "length", queueLength, "capacity", s.capacitySize)
 	}
 
@@ -66,6 +66,10 @@ func (s *Execute) Run(funcPtr func()) {
 
 		funcPtr()
 	}()
+}
+
+func nearFullThreshold(capacity int) int {
+	return int(math.Ceil(float64(capacity) * 0.8))
 }
 
 func (s *Execute) Wait() {

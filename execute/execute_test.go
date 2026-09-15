@@ -6,6 +6,15 @@ import (
 	"time"
 )
 
+func TestExecuteCapacityOneDoesNotClassifyEmptyQueueAsNearlyFull(t *testing.T) {
+	if threshold := nearFullThreshold(1); threshold != 1 {
+		t.Fatalf("capacity-one near-full threshold = %d, want 1", threshold)
+	}
+	if threshold := nearFullThreshold(5); threshold != 4 {
+		t.Fatalf("capacity-five near-full threshold = %d, want 4", threshold)
+	}
+}
+
 func TestExecuteWaitTimeoutReturnsTrueWhenTasksDrain(t *testing.T) {
 	exec := NewExecute(2)
 	exec.Run(func() {
