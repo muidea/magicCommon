@@ -7,6 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
+
+	cd "github.com/muidea/magicCommon/def"
+	"github.com/muidea/magicCommon/foundation/profiling"
 
 	"log/slog"
 )
@@ -22,7 +26,17 @@ type HTTPRequestConfig struct {
 
 // executeHTTPRequest executes an HTTP request with the given configuration.
 // It handles common patterns like error logging, response reading, and JSON unmarshaling.
-func executeHTTPRequest(httpClient *http.Client, config *HTTPRequestConfig, result any) ([]byte, error) {
+func executeHTTPRequest(httpClient *http.Client, config *HTTPRequestConfig, result any) (content []byte, requestErr error) {
+	if profiling.Enabled() {
+		start := time.Now()
+		defer func() {
+			failed := requestErr != nil
+			if value, ok := result.(cd.ResultWithError); !failed && ok && value.GetError() != nil {
+				failed = true
+			}
+			profiling.Record("http-client", profiling.HTTPOperation(config.Method, config.URL), time.Since(start), failed)
+		}()
+	}
 	// Create request
 	request, err := http.NewRequest(config.Method, config.URL, config.Body)
 	if err != nil {
@@ -56,7 +70,7 @@ func executeHTTPRequest(httpClient *http.Client, config *HTTPRequestConfig, resu
 	}
 
 	// Read response
-	content, err := io.ReadAll(response.Body)
+	content, err = io.ReadAll(response.Body)
 	if err != nil {
 		slog.Error("read response data failed", "url", config.URL, "error", err)
 		return nil, err
