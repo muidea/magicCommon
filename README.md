@@ -335,3 +335,5 @@ magicCommon/
 ## 按窗口观测调用成本
 
 `foundation/profiling` 提供默认关闭的有界进程窗口统计。启动时设置 `MAGIC_PROFILE_WINDOW=60s` 可记录公共 HTTP helper 的调用次数、业务/传输错误、累计时间及耗时桶；不记录 URL 主机、动态标识或参数。标签有上限，并行调用累计时间不是 CPU 时间。配置与采集说明见工作区 [QPS 分析指南](../magicRunner/docs/guide-qps-analysis.md)。
+
+`foundation/retention` 提供与业务无关的日志保留限制、版本化配置文件、原子保存和后台读取调度；不包含应用权限、数据查询或删除逻辑。
