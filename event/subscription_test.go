@@ -46,6 +46,51 @@ func congestSubscriptions(t *testing.T, hub *hubImpl) func() {
 	return release
 }
 
+func TestSubscriptionAdmissionDeadlineArbitration(t *testing.T) {
+	for _, immediate := range []bool{false, true} {
+		for _, full := range []bool{false, true} {
+			name := "deadline"
+			if immediate {
+				name = "final_probe"
+			}
+			if full {
+				name += "/full"
+			} else {
+				name += "/available"
+			}
+			t.Run(name, func(t *testing.T) {
+				// 无 worker 的有界队列使 deadline 和容量状态完全确定。
+				hub := &hubImpl{hubActionChannel: make(actionChannel, 1)}
+				request := &subscribeData{eventID: "command", observer: NewSimpleObserver("owner", hub), result: make(chan *cd.Error, 1)}
+				filler := &subscribeData{eventID: "filler"}
+				if full {
+					hub.hubActionChannel <- filler
+				}
+				deadline := make(chan time.Time)
+				close(deadline)
+				var admitted bool
+				if immediate {
+					admitted = hub.tryAdmitSubscription(request)
+				} else {
+					admitted = hub.admitSubscription(request, deadline)
+				}
+				if admitted == full {
+					t.Fatalf("admission=%v, full=%v", admitted, full)
+				}
+				queued := <-hub.hubActionChannel
+				if (full && queued != filler) || (!full && queued != request) {
+					t.Fatal("仲裁改变已排队请求")
+				}
+				select {
+				case <-hub.hubActionChannel:
+					t.Fatal("释放容量后出现迟到或重复入队")
+				default:
+				}
+			})
+		}
+	}
+}
+
 func TestSubscriptionRejectionPreservesLocalStateAndAllowsRetry(t *testing.T) {
 	for _, remove := range []bool{false, true} {
 		t.Run(map[bool]string{false: "subscribe", true: "unsubscribe"}[remove], func(t *testing.T) {

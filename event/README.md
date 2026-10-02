@@ -90,7 +90,7 @@ type SimpleObserver interface {
 
 ### 订阅完成与失败
 
-- `Subscribe` / `Unsubscribe` 必须检查返回值。控制队列在 10ms 内无法接收时返回 `ResourceExhausted`，本次操作不会在稍后执行；Hub 开始关闭后返回 `InvalidOperation`。
+- `Subscribe` / `Unsubscribe` 必须检查返回值。控制队列的入队等待窗口为 10ms；到期时再做一次非阻塞探测，当前可入队则接受，否则返回 `ResourceExhausted`。这不是严格的 wall-clock 截止，也不增加等待窗口。拒绝的操作没有入队，不会在稍后执行；错误表示 admission 到期时队列不可用，不证明队列持续满载。Hub 开始关闭后返回 `InvalidOperation`。
 - 一旦入队，调用等待实际处理完成，回执不设丢弃超时，也不经过业务执行池的容量等待。`nil` 表示本次变更已经完成，不仅是“已提交”。
 - `SimpleObserver` 将本地回调更新与 Hub 回执串行化，失败不修改本地状态；取消失败可以重试。重复注册本地回调返回 `Duplicated`，重复取消已不存在的回调成功返回。
 - Observer 的 `ID()` / destination matcher 必须稳定、无副作用，不得阻塞或重新进入 Hub；自定义 ID 方法 panic 会返回错误，不会杀死订阅控制 worker。

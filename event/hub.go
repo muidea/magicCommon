@@ -727,11 +727,28 @@ func (s *hubImpl) changeSubscription(eventID string, observer Observer, add bool
 	// request is never queued and therefore cannot mutate subscriptions later.
 	timer := time.NewTimer(10 * time.Millisecond)
 	defer timer.Stop()
+	if !s.admitSubscription(request, timer.C) {
+		return cd.NewError(cd.ResourceExhausted, "event hub subscription admission timed out: control queue unavailable")
+	}
+	return <-result
+}
+
+func (s *hubImpl) admitSubscription(request action, deadline <-chan time.Time) bool {
 	select {
 	case s.hubActionChannel <- request:
-		return <-result
-	case <-timer.C:
-		return cd.NewError(cd.ResourceExhausted, "event hub subscription queue is full")
+		return true
+	case <-deadline:
+		// 到期与可入队可能同时就绪；最后只做即时探测，不延长等待或安排迟到发送。
+		return s.tryAdmitSubscription(request)
+	}
+}
+
+func (s *hubImpl) tryAdmitSubscription(request action) bool {
+	select {
+	case s.hubActionChannel <- request:
+		return true
+	default:
+		return false
 	}
 }
 

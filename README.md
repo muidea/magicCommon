@@ -232,7 +232,7 @@ make fmt-check # 代码格式检查
 3. 标签触发 `release-build.yml` 的构建、质量检查及 PostgreSQL/MySQL 测试。
 4. 当前工作流不自动创建 GitHub Release 条目，也不生成多平台二进制发布包。
 
-本次接口与生命周期升级要求见 [v1.5.16 发布说明](release-note-v1.5.16.md)。
+最新版本见 [v1.5.18 发布说明](release-note-v1.5.18.md)。从旧版本升级时，仍需核对 [v1.5.16 接口与生命周期升级要求](release-note-v1.5.16.md)。
 
 ## 项目结构
 
