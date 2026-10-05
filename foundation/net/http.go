@@ -12,7 +12,6 @@ import (
 	"net/textproto"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/muidea/magicCommon/foundation/util"
@@ -106,44 +105,13 @@ func GetHTTPRequestBody(req *http.Request) (ret []byte, err error) {
 	return
 }
 
-func HTTPBodyToFile(req *http.Request, dstFilePath, fileName string) (err error) {
-	var reader io.Reader = req.Body
-	var maxFormSize int64
-	if _, ok := req.Body.(*maxBytesReader); !ok {
-		maxFormSize = int64(10 << 20) // 10 MB is a lot of text.
-		reader = io.LimitReader(req.Body, maxFormSize+1)
+// HTTPBodyToFile writes the complete body or leaves the previous file unchanged.
+// Callers set their own body limit (for example with http.MaxBytesReader).
+func HTTPBodyToFile(req *http.Request, dstFilePath, fileName string) error {
+	if req == nil || req.Body == nil {
+		return errors.New("missing request body")
 	}
-	// 验证 dstFilePath 是否为合法的目录路径
-	if !isValidDirectory(dstFilePath) {
-		err = fmt.Errorf("invalid destination directory: %s", dstFilePath)
-		slog.Error("invalid destination directory, err", "error", err.Error())
-		return
-	}
-
-	// 验证文件名是否合法
-	if !isValidFileName(fileName) {
-		err = fmt.Errorf("invalid file name: %s", fileName)
-		slog.Error("invalid file name, err", "error", err.Error())
-		return
-	}
-
-	// 构建目标文件的完整路径
-	dstFullFilePath := filepath.Join(dstFilePath, fileName)
-	// 创建目标文件
-	dstFileHandle, dstFileErr := os.Create(dstFullFilePath)
-	if dstFileErr != nil {
-		err = dstFileErr
-		slog.Error("create destination file failed, err", "error", err.Error())
-		return
-	}
-	defer func() { _ = dstFileHandle.Close() }()
-
-	_, err = io.Copy(dstFileHandle, reader)
-	if err != nil {
-		slog.Error("copy destination file failed, err", "error", err.Error())
-		return
-	}
-	return
+	return WriteFileAtomic(req.Context(), req.Body, dstFilePath, fileName, req.ContentLength)
 }
 
 // ParseJSONBody 解析http body请求提交的json数据

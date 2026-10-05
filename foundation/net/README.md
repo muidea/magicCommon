@@ -21,7 +21,7 @@
 
 当前实现要点：
 
-- 默认 body 读取限制为 10MB
+- JSON body 默认读取上限为 10 MiB；二进制文件写入没有隐式业务上限
 - `ParseJSONBody` 仅接受 `application/json`
 - 响应封装默认写入 `application/json; charset=utf-8`
 
@@ -29,12 +29,16 @@
 
 - `MultipartFormFile(...)`
 - `HTTPBodyToFile(...)`
+- `WriteFileAtomic(ctx, reader, directory, name, expectedSize)`
 - `HTTPDownload(...)`
 - `HTTPUpload(...)`
 - `HTTPUploadStream(...)`
 
 当前实现要点：
 
+- 文件写入先暂存，完整复制、同步并关闭后原子替换目标；失败不改变旧目标
+- 写入、同步、关闭、长度不匹配及取消错误都向调用方返回，失败暂存会删除
+- 调用方使用 `http.MaxBytesReader` 等设置业务上限；`expectedSize=-1` 表示长度未知
 - 会校验目标目录与文件名
 - 非法目标目录或文件名会直接返回错误
 - 下载、上传、落盘路径都会显式关闭文件句柄和响应体

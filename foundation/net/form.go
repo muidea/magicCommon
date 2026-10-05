@@ -1,8 +1,6 @@
 package net
 
 import (
-	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,36 +29,8 @@ func MultipartFormFile(req *http.Request, fieldName, dstFilePath, fileName strin
 		fileName = fileHead.Filename
 	}
 
-	// 验证 dstFilePath 是否为合法的目录路径
-	if !isValidDirectory(dstFilePath) {
-		err = fmt.Errorf("invalid destination directory: %s", dstFilePath)
-		slog.Error("invalid destination directory, err: err.Error(", "field", err.Error())
-		return
-	}
-
-	// 验证文件名是否合法
-	if !isValidFileName(fileName) {
-		err = fmt.Errorf("invalid file name: %s", fileName)
-		slog.Error("invalid file name, err: err.Error(", "field", err.Error())
-		return
-	}
-
-	// 构建目标文件的完整路径
-	dstFullFilePath := filepath.Join(dstFilePath, fileName)
-	// 创建目标文件
-	dstFileHandle, dstFileErr := os.Create(dstFullFilePath)
-	if dstFileErr != nil {
-		err = dstFileErr
-		slog.Error("create destination file failed, err: err.Error(", "field", err.Error())
-		return
-	}
-	defer func() { _ = dstFileHandle.Close() }()
-
-	// 将文件内容从请求复制到目标文件中
-	_, err = io.Copy(dstFileHandle, fileContent)
-	if err != nil {
-		slog.Error("copy destination file failed, err: err.Error(", "field", err.Error())
-		return
+	if err = WriteFileAtomic(req.Context(), fileContent, dstFilePath, fileName, fileHead.Size); err != nil {
+		return "", err
 	}
 
 	// 设置返回值为文件名
@@ -88,5 +58,5 @@ func isValidDirectory(path string) bool {
 
 // isValidFileName 验证文件名是否合法
 func isValidFileName(name string) bool {
-	return len(name) > 0 && !strings.ContainsAny(name, `\/:*?"<>|`)
+	return name != "" && name != "." && name != ".." && !strings.ContainsRune(name, 0) && !strings.ContainsAny(name, `\/:*?"<>|`)
 }
