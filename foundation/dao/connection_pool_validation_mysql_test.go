@@ -189,36 +189,47 @@ func TestMySQLConnectionPoolStress(t *testing.T) {
 			return
 		}
 
-		// 压力测试：并发插入和查询
-		errors := make(chan *cd.Error, numIterations*numConcurrent)
+		// 共享连接池；每个并发操作独立持有 DAO 查询游标。
+		pool := dao.(*impl).dbHandle
+		errors := make(chan *cd.Error, 4*numIterations*numConcurrent)
 		done := make(chan bool, numIterations*numConcurrent)
 
 		for i := 0; i < numIterations; i++ {
 			for j := 0; j < numConcurrent; j++ {
 				go func(iteration, worker int) {
+					defer func() { done <- true }()
+					workerDao := NewBaseDao(pool)
+					defer func() {
+						if err := workerDao.Finish(); err != nil {
+							errors <- err
+						}
+					}()
 					// 插入数据
-					_, err := dao.Execute(
+					_, err := workerDao.Execute(
 						"INSERT INTO connection_pool_test (value) VALUES (?)",
 						time.Now().Format(time.RFC3339Nano))
 					if err != nil {
 						errors <- err
+						return
 					}
 
 					// 查询数据
-					err = dao.Query("SELECT COUNT(*) FROM connection_pool_test")
+					err = workerDao.Query("SELECT COUNT(*) FROM connection_pool_test")
 					if err != nil {
 						errors <- err
 					} else {
-						defer dao.Finish()
-						if dao.Next() {
+						if workerDao.Next() {
 							var count int
-							dao.GetField(&count)
+							if err := workerDao.GetField(&count); err != nil {
+								errors <- err
+								return
+							}
 							// 验证计数合理
-							assert.GreaterOrEqual(t, count, 0, "计数应该 >= 0")
+							assert.GreaterOrEqual(t, count, 1, "插入后计数应该 >= 1")
+						} else {
+							t.Error("计数查询应该返回一行")
 						}
 					}
-
-					done <- true
 				}(i, j)
 			}
 		}
@@ -237,6 +248,14 @@ func TestMySQLConnectionPoolStress(t *testing.T) {
 			t.Logf("压力测试完成: %d 次迭代 × %d 并发 = %d 次操作",
 				numIterations, numConcurrent, numIterations*numConcurrent)
 		}
+
+		if assert.Nil(t, dao.Query("SELECT COUNT(*) FROM connection_pool_test")) && assert.True(t, dao.Next()) {
+			var count int
+			if assert.Nil(t, dao.GetField(&count)) {
+				assert.Equal(t, numIterations*numConcurrent, count, "所有并发插入应该完成")
+			}
+		}
+		assert.Nil(t, dao.Finish())
 
 		// 清理测试表
 		_, err = dao.Execute("DROP TABLE IF EXISTS connection_pool_test")
