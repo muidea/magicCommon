@@ -232,7 +232,7 @@ make fmt-check # 代码格式检查
 3. 标签触发 `release-build.yml` 的构建、质量检查及 PostgreSQL/MySQL 测试。
 4. 当前工作流不自动创建 GitHub Release 条目，也不生成多平台二进制发布包。
 
-最新版本见 [v1.5.18 发布说明](release-note-v1.5.18.md)。从旧版本升级时，仍需核对 [v1.5.16 接口与生命周期升级要求](release-note-v1.5.16.md)。
+本次版本为 `v1.5.19`：新增 `foundation/net.WriteFileAtomic`，仅在完整复制、同步并关闭文件后原子提交；HTTP 与 multipart 上传复用该实现，并正确返回保留策略锁与临时文件清理错误。升级时使用 `go get github.com/muidea/magicCommon@v1.5.19`，再同步调用项目的 vendor。此前变更见 [v1.5.18 发布说明](release-note-v1.5.18.md)；从旧版本升级时仍须核对 [v1.5.16 接口与生命周期升级要求](release-note-v1.5.16.md)。
 
 ## 项目结构
 
