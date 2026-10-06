@@ -100,7 +100,7 @@ func Read(file string) (*Document, error) {
 
 // Save serializes writers across processes and atomically replaces an existing
 // document. A missing or corrupt document is never silently overwritten.
-func Save(file string, policies map[string]Policy, expected int64, actor string) (*Document, error) {
+func Save(file string, policies map[string]Policy, expected int64, actor string) (ret *Document, err error) {
 	if actor == "" || expected < 0 || expected == int64(^uint64(0)>>1) {
 		return nil, fmt.Errorf("invalid retention update identity")
 	}
@@ -112,7 +112,11 @@ func Save(file string, policies map[string]Policy, expected int64, actor string)
 	if err != nil {
 		return nil, err
 	}
-	defer unlock()
+	defer func() {
+		if closeErr := unlock(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("close retention lock: %w", closeErr))
+		}
+	}()
 	current, err := Read(file)
 	if err != nil {
 		return nil, err
@@ -128,7 +132,11 @@ func Save(file string, policies map[string]Policy, expected int64, actor string)
 	if err != nil {
 		return nil, err
 	}
-	defer os.Remove(tmp.Name())
+	defer func() {
+		if removeErr := os.Remove(tmp.Name()); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
+			err = errors.Join(err, fmt.Errorf("remove retention temporary file: %w", removeErr))
+		}
+	}()
 	if _, err = tmp.Write(data); err == nil {
 		err = tmp.Chmod(0644)
 	}

@@ -88,7 +88,11 @@ func TestMultipartFileHasNoImplicitBinaryLimit(t *testing.T) {
 	if err := req.ParseMultipartForm(1024); err != nil {
 		t.Fatal(err)
 	}
-	defer req.MultipartForm.RemoveAll()
+	t.Cleanup(func() {
+		if err := req.MultipartForm.RemoveAll(); err != nil {
+			t.Errorf("remove multipart temporary files: %v", err)
+		}
+	})
 	dir := t.TempDir()
 	if _, err := MultipartFormFile(req, "file", dir, ""); err != nil {
 		t.Fatal(err)

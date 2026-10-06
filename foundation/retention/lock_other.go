@@ -4,6 +4,6 @@ package retention
 
 import "fmt"
 
-func lock(string) (func(), error) {
+func lock(string) (func() error, error) {
 	return nil, fmt.Errorf("retention policy writes require a supported Unix host")
 }
