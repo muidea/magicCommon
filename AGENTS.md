@@ -2,6 +2,14 @@
 
 This document provides guidelines for agentic coding agents working in the magicCommon Go project.
 
+## Model and Workflow Boundaries
+
+For model, DTO, lifecycle, recovery or cleanup changes, read [Workspace Boundary Rules](../docs/model-state-boundary-rules.md) and use its change-review template.
+
+- Keep event, lifecycle, task, session and infrastructure APIs owner-neutral. Do not add Namespace creation, platform application, deployment-stage, or compensation-policy branches to the framework.
+- Generic cancellation, conditional operation and lifecycle semantics require neutral regression cases. Platform workflow journals and business DTOs stay in their owning application repository.
+- Change source owners first; never edit vendor manually. Sync direct dependents through the workspace `upgrade_vendor.sh`, update affected contracts and product materials, and record source regression separately from Live acceptance.
+
 ## Project Overview
 
 magicCommon is a Go library providing common utilities, foundations, and frameworks for building applications. The project uses Go 1.26+ and follows standard Go conventions.
