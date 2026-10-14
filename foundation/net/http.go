@@ -12,7 +12,6 @@ import (
 	"net/textproto"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/muidea/magicCommon/foundation/util"
 	"log/slog"
@@ -70,14 +69,7 @@ func (l *maxBytesReader) Close() error {
 
 // GetHTTPRemoteAddress get http remote address
 func GetHTTPRemoteAddress(req *http.Request) (ret string) {
-	ret = req.Header.Get("x-forwarded-for")
-	if ret == "" {
-		ret = req.RemoteAddr
-	}
-
-	ret = strings.Split(ret, ", ")[0]
-
-	return
+	return RequestHTTPSource(req).Address
 }
 
 // GetHTTPRequestBody get http request body

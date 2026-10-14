@@ -232,7 +232,7 @@ make fmt-check # 代码格式检查
 3. 标签触发 `release-build.yml` 的构建、质量检查及 PostgreSQL/MySQL 测试。
 4. 当前工作流不自动创建 GitHub Release 条目，也不生成多平台二进制发布包。
 
-当前版本为 `v1.5.21`，补充框架与业务模型边界维护规则；框架保持通用能力，平台业务流程记录由应用项目负责。升级时使用 `go get github.com/muidea/magicCommon@v1.5.21`，再同步调用项目的 vendor。
+当前版本为 `v1.5.22`，新增可信 HTTP 来源解析与请求上下文传递，默认不信任代理；`GetHTTPRemoteAddress` 不再直接采用任意转发头。升级时使用 `go get github.com/muidea/magicCommon@v1.5.22`，再同步调用项目的 vendor，并按 [v1.5.22 发布说明](release-note-v1.5.22.md) 配置入口。此前 `v1.5.21` 补充框架与业务模型边界维护规则；框架保持通用能力，平台业务流程记录由应用项目负责。
 
 此前 `v1.5.20`：新增 `foundation/net.WriteFileAtomic`，仅在完整复制、同步并关闭文件后原子提交；HTTP 与 multipart 上传复用该实现，并正确返回保留策略锁与临时文件清理错误。`v1.5.20` 同时修正 MySQL 连接池压力测试：各并发操作独立持有 DAO 查询游标，共享底层连接池，并校验全部插入完成。此前变更见 [v1.5.18 发布说明](release-note-v1.5.18.md)；从旧版本升级时仍须核对 [v1.5.16 接口与生命周期升级要求](release-note-v1.5.16.md)。
 
@@ -339,3 +339,7 @@ magicCommon/
 `foundation/profiling` 提供默认关闭的有界进程窗口统计。启动时设置 `MAGIC_PROFILE_WINDOW=60s` 可记录公共 HTTP helper 的调用次数、业务/传输错误、累计时间及耗时桶；不记录 URL 主机、动态标识或参数。标签有上限，并行调用累计时间不是 CPU 时间。配置与采集说明见工作区 [QPS 分析指南](../magicRunner/docs/guide-qps-analysis.md)。
 
 `foundation/retention` 提供与业务无关的日志保留限制、版本化配置文件、原子保存和后台读取调度；不包含应用权限、数据查询或删除逻辑。
+
+## HTTP 来源 IP
+
+`foundation/net.HTTPSourceResolver` 按显式 CIDR/服务发现主机名校验代理并绑定请求上下文。`GetHTTPRemoteAddress` 返回规范化访问来源，没有入口绑定时只使用连接 IP；不再直接相信任意转发头。参见[跨项目来源合同](../docs/request-source-ip-contract.md)。
