@@ -3,7 +3,7 @@
 [![CI Pipeline](https://github.com/muidea/magicCommon/actions/workflows/ci.yml/badge.svg)](https://github.com/muidea/magicCommon/actions/workflows/ci.yml)
 [![Release Build](https://github.com/muidea/magicCommon/actions/workflows/release-build.yml/badge.svg)](https://github.com/muidea/magicCommon/actions/workflows/release-build.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://golang.org)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](~/codespace/magicCommon/LICENSE)
 
 一个 Go 语言库，提供通用的工具、基础框架和应用构建模块。
 
@@ -81,7 +81,7 @@ func main() {
 
 ### Framework 生命周期
 
-`framework/application` 负责进程级 runtime 容器，包括默认
+`~/codespace/magicCommon/framework/application` 负责进程级 runtime 容器，包括默认
 `event.Hub`、`task.BackgroundRoutine`、配置管理器和注入的
 `service.Service`。
 
@@ -129,7 +129,7 @@ Application 内部维护 `new`、`starting`、`running`、`failed`、
 
 同步 EventHub Send 保留仅在本 Hub、当前调用链仍活跃时有效的祖先通道，支持 A → B → A；独立调用链形成循环依赖时明确拒绝。排队中尚未执行的 Send 可取消，取消成功保证不再执行 handler；已经执行的回调必须等真实返回。不要把同步派发上下文用于并发调用或延迟重入。Post 总是排队，不能继承祖先重入权限。`event.DrainingHub.TerminateChecked` 拒绝新根调用，保留在途同步依赖，超时不清空订阅，支持继续排空和重试；旧的 void Terminate 入口仅记录未完成错误。
 
-`framework/service` 还提供 foreground lifecycle adapter：
+`~/codespace/magicCommon/framework/service` 还提供 foreground lifecycle adapter：
 
 ```go
 type localService struct{}
@@ -151,7 +151,7 @@ module.MustRegister(plugin)
 
 `Register` 仍保留原签名并记录注册错误；`RegisterE` 返回重复 ID、nil、
 非指针、缺失 `ID` / `Run` 或方法签名不匹配等错误。新插件可实现
-`framework/plugin/common` 中的显式接口，旧插件的反射兼容路径仍可用。
+`~/codespace/magicCommon/framework/plugin/common` 中的显式接口，旧插件的反射兼容路径仍可用。
 
 ### 环境要求
 - Go 1.26+
@@ -232,9 +232,9 @@ make fmt-check # 代码格式检查
 3. 标签触发 `release-build.yml` 的构建、质量检查及 PostgreSQL/MySQL 测试。
 4. 当前工作流不自动创建 GitHub Release 条目，也不生成多平台二进制发布包。
 
-当前版本为 `v1.5.22`，新增可信 HTTP 来源解析与请求上下文传递，默认不信任代理；`GetHTTPRemoteAddress` 不再直接采用任意转发头。升级时使用 `go get github.com/muidea/magicCommon@v1.5.22`，再同步调用项目的 vendor，并按 [v1.5.22 发布说明](release-note-v1.5.22.md) 配置入口。此前 `v1.5.21` 补充框架与业务模型边界维护规则；框架保持通用能力，平台业务流程记录由应用项目负责。
+当前版本为 `v1.5.22`，新增可信 HTTP 来源解析与请求上下文传递，默认不信任代理；`GetHTTPRemoteAddress` 不再直接采用任意转发头。升级时使用 `go get github.com/muidea/magicCommon@v1.5.22`，再同步调用项目的 vendor，并按 [v1.5.22 发布说明](~/codespace/magicCommon/release-note-v1.5.22.md) 配置入口。此前 `v1.5.21` 补充框架与业务模型边界维护规则；框架保持通用能力，平台业务流程记录由应用项目负责。
 
-此前 `v1.5.20`：新增 `foundation/net.WriteFileAtomic`，仅在完整复制、同步并关闭文件后原子提交；HTTP 与 multipart 上传复用该实现，并正确返回保留策略锁与临时文件清理错误。`v1.5.20` 同时修正 MySQL 连接池压力测试：各并发操作独立持有 DAO 查询游标，共享底层连接池，并校验全部插入完成。此前变更见 [v1.5.18 发布说明](release-note-v1.5.18.md)；从旧版本升级时仍须核对 [v1.5.16 接口与生命周期升级要求](release-note-v1.5.16.md)。
+此前 `v1.5.20`：新增 `foundation/net.WriteFileAtomic`，仅在完整复制、同步并关闭文件后原子提交；HTTP 与 multipart 上传复用该实现，并正确返回保留策略锁与临时文件清理错误。`v1.5.20` 同时修正 MySQL 连接池压力测试：各并发操作独立持有 DAO 查询游标，共享底层连接池，并校验全部插入完成。此前变更见 [v1.5.18 发布说明](~/codespace/magicCommon/release-note-v1.5.18.md)；从旧版本升级时仍须核对 [v1.5.16 接口与生命周期升级要求](~/codespace/magicCommon/release-note-v1.5.16.md)。
 
 ## 项目结构
 
@@ -267,19 +267,19 @@ magicCommon/
 
 ## 核心基础设施文档
 
-- [technical-note-infra-hardening-2026-03.md](./technical-note-infra-hardening-2026-03.md): 本轮基础设施修复与稳定语义总结
-- [release-note-2026-03-lifecycle-cache-monitoring.md](./release-note-2026-03-lifecycle-cache-monitoring.md): 本轮 lifecycle、cache、monitoring 变化摘要
-- [framework-lifecycle-improvement-plan.md](./framework-lifecycle-improvement-plan.md): framework lifecycle、plugin 注册安全、Application options 与 lifecycle adapter 收口记录
-- [event/README.md](./event/README.md): 事件中心、投递、关闭与匹配语义
-- [execute/README.md](./execute/README.md): 执行器并发限制与等待语义
-- [task/README.md](./task/README.md): 后台任务与超时等待语义
-- [foundation/cache/README.md](./foundation/cache/README.md): 内存缓存、过期清理与释放语义
-- [foundation/net/README.md](./foundation/net/README.md): HTTP helper、文件上传下载与 DNS client 语义
-- [foundation/pool/README.md](./foundation/pool/README.md): 泛型资源池、关闭与预创建语义
-- [foundation/path/README.md](./foundation/path/README.md): 路径工具与目录监控语义
-- [foundation/signal/README.md](./foundation/signal/README.md): 进程内信号协调与关闭语义
-- [framework/configuration/README.md](./framework/configuration/README.md): 配置框架与 watcher 行为
-- [monitoring/README.md](./monitoring/README.md): 监控系统入口说明
+- [technical-note-infra-hardening-2026-03.md](~/codespace/magicCommon/technical-note-infra-hardening-2026-03.md): 本轮基础设施修复与稳定语义总结
+- [release-note-2026-03-lifecycle-cache-monitoring.md](~/codespace/magicCommon/release-note-2026-03-lifecycle-cache-monitoring.md): 本轮 lifecycle、cache、monitoring 变化摘要
+- [framework-lifecycle-improvement-plan.md](~/codespace/magicCommon/framework-lifecycle-improvement-plan.md): framework lifecycle、plugin 注册安全、Application options 与 lifecycle adapter 收口记录
+- [event/README.md](~/codespace/magicCommon/event/README.md): 事件中心、投递、关闭与匹配语义
+- [execute/README.md](~/codespace/magicCommon/execute/README.md): 执行器并发限制与等待语义
+- [task/README.md](~/codespace/magicCommon/task/README.md): 后台任务与超时等待语义
+- [foundation/cache/README.md](~/codespace/magicCommon/foundation/cache/README.md): 内存缓存、过期清理与释放语义
+- [foundation/net/README.md](~/codespace/magicCommon/foundation/net/README.md): HTTP helper、文件上传下载与 DNS client 语义
+- [foundation/pool/README.md](~/codespace/magicCommon/foundation/pool/README.md): 泛型资源池、关闭与预创建语义
+- [foundation/path/README.md](~/codespace/magicCommon/foundation/path/README.md): 路径工具与目录监控语义
+- [foundation/signal/README.md](~/codespace/magicCommon/foundation/signal/README.md): 进程内信号协调与关闭语义
+- [framework/configuration/README.md](~/codespace/magicCommon/framework/configuration/README.md): 配置框架与 watcher 行为
+- [monitoring/README.md](~/codespace/magicCommon/monitoring/README.md): 监控系统入口说明
 
 ## 代码规范
 
@@ -318,7 +318,7 @@ magicCommon/
 
 ## 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+本项目采用 MIT 许可证 - 查看 [LICENSE](~/codespace/magicCommon/LICENSE) 文件了解详情。
 
 ## 联系方式
 
@@ -336,10 +336,10 @@ magicCommon/
 
 ## 按窗口观测调用成本
 
-`foundation/profiling` 提供默认关闭的有界进程窗口统计。启动时设置 `MAGIC_PROFILE_WINDOW=60s` 可记录公共 HTTP helper 的调用次数、业务/传输错误、累计时间及耗时桶；不记录 URL 主机、动态标识或参数。标签有上限，并行调用累计时间不是 CPU 时间。配置与采集说明见工作区 [QPS 分析指南](../magicRunner/docs/guide-qps-analysis.md)。
+`~/codespace/magicCommon/foundation/profiling` 提供默认关闭的有界进程窗口统计。启动时设置 `MAGIC_PROFILE_WINDOW=60s` 可记录公共 HTTP helper 的调用次数、业务/传输错误、累计时间及耗时桶；不记录 URL 主机、动态标识或参数。标签有上限，并行调用累计时间不是 CPU 时间。配置与采集说明见工作区 [QPS 分析指南](~/codespace/magicRunner/docs/guide-qps-analysis.md)。
 
-`foundation/retention` 提供与业务无关的日志保留限制、版本化配置文件、原子保存和后台读取调度；不包含应用权限、数据查询或删除逻辑。
+`~/codespace/magicCommon/foundation/retention` 提供与业务无关的日志保留限制、版本化配置文件、原子保存和后台读取调度；不包含应用权限、数据查询或删除逻辑。
 
 ## HTTP 来源 IP
 
-`foundation/net.HTTPSourceResolver` 按显式 CIDR/服务发现主机名校验代理并绑定请求上下文。`GetHTTPRemoteAddress` 返回规范化访问来源，没有入口绑定时只使用连接 IP；不再直接相信任意转发头。参见[跨项目来源合同](../docs/request-source-ip-contract.md)。
+`foundation/net.HTTPSourceResolver` 按显式 CIDR/服务发现主机名校验代理并绑定请求上下文。`GetHTTPRemoteAddress` 返回规范化访问来源，没有入口绑定时只使用连接 IP；不再直接相信任意转发头。参见[跨项目来源合同](~/dataspace/magicPlatform/docs/technical/request-source-ip-contract.md)。

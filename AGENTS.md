@@ -4,7 +4,7 @@ This document provides guidelines for agentic coding agents working in the magic
 
 ## Model and Workflow Boundaries
 
-For model, DTO, lifecycle, recovery or cleanup changes, read [Workspace Boundary Rules](../docs/model-state-boundary-rules.md) and use its change-review template.
+For model, DTO, lifecycle, recovery or cleanup changes, read [Workspace Boundary Rules](~/dataspace/magicPlatform/docs/technical/model-state-boundary-rules.md) and use its change-review template.
 
 - Keep event, lifecycle, task, session and infrastructure APIs owner-neutral. Do not add Namespace creation, platform application, deployment-stage, or compensation-policy branches to the framework.
 - Generic cancellation, conditional operation and lifecycle semantics require neutral regression cases. Platform workflow journals and business DTOs stay in their owning application repository.
@@ -186,7 +186,7 @@ magicCommon/
 - Tests run on push to master, feature/*, and bugfix/* branches
 - MySQL and PostgreSQL services are provisioned for testing
 - Go 1.26 is used for builds and tests
-- CI workflow: `.github/workflows/ci.yml`
+- CI workflow: `~/codespace/magicCommon/.github/workflows/ci.yml`
 - MySQL test database: `testdb` with root password `rootkit`
 - PostgreSQL test database: `testdb` with user `postgres` and password `rootkit`
 
