@@ -35,3 +35,5 @@
 - 先修改语义 owner，再更新公开合同及直接消费者。工作区内使用 `upgrade_vendor.sh <目标项目...>` 同步依赖；重建前检查工作树和暂存区，保护 vendor 独有修改、原字节及补丁，保护失败即停止。禁止手改 vendor；同步后审查差异，并以默认 vendor 模式验证消费者。本地 replace 模式不能替代此验证；独立检出缺少同步环境时明确记录未验范围。
 - 先运行最小受影响测试，再验证直接消费者。仅文档修改不要求格式化未改动的源码或执行部署；代码变化使用 gofmt／goimports、相关测试、go vet 和构建，按风险选择 race／真实数据库验证。源码、vendor、发行包、镜像和 Live 结果分别记录，夹具成功不能替代持久 owner 回读或现场验收。
 - 合同或行为变化同时更新本仓使用说明、设计和对应平台材料；本文件的定位和边界直接同步更新，不把必要规则改成外部文档链接。提交按仓库分开使用 Conventional Commits，不提交凭据、密钥、运行数据或构建产物。
+
+- 默认 Service 在 Setup 后执行有界依赖检查，在 Run 后启动 `framework/health.DependencyMonitor`。基础设施 adapter 可注册依赖声明或 context checker；无声明的 checker 按 required 处理，与配置同名但不一致时拒绝启动。required 缺少 target/checker 失败关闭；每轮先验证全部声明，再按原有顺序先执行 required、optional 仅使用剩余预算，其超时只记录而不覆盖已成功的 required。父 context 取消仍拒绝启动。默认每 5 秒探测、每轮总预算 3 秒，required 正结果最大陈旧期 15 秒，可通过 `health.dependencyProbe.{intervalSeconds,timeoutSeconds,maxAgeSeconds}` 配置（最大陈旧期至少为周期与预算之和）。HTTP ready 只读取完整快照，运行期 required 失败或快照过期返回 503，恢复后重新返回 200；live 不随外部依赖降级。定时探测按原始 tick 时间合并已完成轮次覆盖的积压，避免派发抖动误跳过新周期。停机先关闭 ready、取消探测并通知全部已进入生命周期的 Initiator/Module 关闭输入，再等待真实完成；通知失败或未排空不得释放依赖，支持重试。Common 不声明平台依赖或 Schema 语义。

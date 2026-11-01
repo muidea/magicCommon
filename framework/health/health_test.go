@@ -57,12 +57,12 @@ func TestManagerCheckDependenciesWithoutChecker(t *testing.T) {
 	err := manager.CheckDependencies(context.Background(), []Dependency{
 		Required("magicCas"),
 	})
-	if err != nil {
-		t.Fatalf("expected declaration-only dependency to pass before checker is registered, got %v", err)
+	if err == nil {
+		t.Fatal("required dependency without checker or target was accepted")
 	}
 
 	snapshot := manager.Snapshot()
-	if snapshot.Checks["magicCas"].Status != "declared" {
-		t.Fatalf("expected declared check status, got %#v", snapshot.Checks["magicCas"])
+	if snapshot.Checks["magicCas"].Status != "failed" {
+		t.Fatalf("expected failed check status, got %#v", snapshot.Checks["magicCas"])
 	}
 }

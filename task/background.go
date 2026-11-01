@@ -15,6 +15,27 @@ type Task interface {
 	Run()
 }
 
+// ScheduledTask optionally receives the timer's planned tick time, preserved
+// through queue delays. Non-timer submissions still invoke Run.
+type ScheduledTask interface {
+	Task
+	RunScheduled(scheduledAt time.Time)
+}
+
+type timerInvocation struct {
+	task        ScheduledTask
+	scheduledAt time.Time
+}
+
+func (s *timerInvocation) Run() { s.task.RunScheduled(s.scheduledAt) }
+
+func scheduledTimerInvocation(task Task, scheduledAt time.Time) Task {
+	if scheduled, ok := task.(ScheduledTask); ok {
+		return &timerInvocation{task: scheduled, scheduledAt: scheduledAt}
+	}
+	return task
+}
+
 type routineTask struct {
 	funcPtr func()
 }
@@ -215,15 +236,16 @@ func (s *backgroundRoutine) Timer(ctx context.Context, task Task, intervalValue 
 		timer := time.NewTimer(curOffset)
 		defer timer.Stop()
 
+		var scheduledAt time.Time
 		select {
 		case <-s.stopping:
 			return
 		case <-ctx.Done():
 			return
-		case <-timer.C:
+		case scheduledAt = <-timer.C:
 		}
 
-		if err := s.AsyncTaskContext(ctx, task); err != nil {
+		if err := s.AsyncTaskContext(ctx, scheduledTimerInvocation(task, scheduledAt)); err != nil {
 			return
 		}
 
@@ -235,8 +257,8 @@ func (s *backgroundRoutine) Timer(ctx context.Context, task Task, intervalValue 
 				return
 			case <-ctx.Done():
 				return
-			case <-timeOutTimer.C:
-				if err := s.AsyncTaskContext(ctx, task); err != nil {
+			case scheduledAt := <-timeOutTimer.C:
+				if err := s.AsyncTaskContext(ctx, scheduledTimerInvocation(task, scheduledAt)); err != nil {
 					return
 				}
 			}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"log/slog"
 
@@ -45,6 +46,10 @@ type defaultService struct {
 	tornDown          bool
 	initiatorsStarted bool
 	modulesStarted    bool
+	backgroundRoutine task.BackgroundRoutine
+	dependencies      []health.Dependency
+	probePolicy       health.ProbePolicy
+	monitor           *health.DependencyMonitor
 }
 
 func (s *defaultService) Startup(ctx context.Context, serviceName string, eventHub event.Hub, backgroundRoutine task.BackgroundRoutine) (ret *cd.Error) {
@@ -52,14 +57,26 @@ func (s *defaultService) Startup(ctx context.Context, serviceName string, eventH
 		ctx = context.Background()
 	}
 	s.serviceName = serviceName
+	s.backgroundRoutine = backgroundRoutine
+	s.monitor = nil
 	s.shutdownMu.Lock()
 	s.quiesced, s.tornDown = false, false
-	s.initiatorsStarted, s.modulesStarted = true, false
+	s.initiatorsStarted, s.modulesStarted = false, false
 	s.shutdownMu.Unlock()
 	manager := health.DefaultManager()
 	manager.SetService(serviceName)
 	manager.MarkStarting()
+	s.probePolicy = health.ProbePolicy{
+		Interval: time.Duration(configuration.GetIntWithDefault("health.dependencyProbe.intervalSeconds", 5)) * time.Second,
+		Timeout:  time.Duration(configuration.GetIntWithDefault("health.dependencyProbe.timeoutSeconds", 3)) * time.Second,
+		MaxAge:   time.Duration(configuration.GetIntWithDefault("health.dependencyProbe.maxAgeSeconds", 15)) * time.Second,
+	}
+	if err := s.probePolicy.Validate(); err != nil {
+		manager.MarkFailed(err)
+		return err
+	}
 
+	s.initiatorsStarted = true
 	ret = initiator.Setup(ctx, eventHub, backgroundRoutine)
 	if ret != nil {
 		manager.MarkFailed(ret)
@@ -74,7 +91,18 @@ func (s *defaultService) Startup(ctx context.Context, serviceName string, eventH
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "dependency.config", "error", ret)
 		return
 	}
-	ret = manager.CheckDependencies(ctx, dependencies)
+	s.dependencies = dependencies
+	dependencies, ret = manager.Dependencies(dependencies)
+	if ret != nil {
+		manager.MarkFailed(ret)
+		return ret
+	}
+	checkCtx, cancel := context.WithTimeout(ctx, s.probePolicy.Timeout)
+	ret = manager.CheckDependencies(checkCtx, dependencies)
+	cancel()
+	if ret == nil && ctx.Err() != nil {
+		ret = cd.NewError(cd.Timeout, "service startup context is unavailable")
+	}
 	if ret != nil {
 		manager.MarkFailed(ret)
 		slog.Error("service startup failed", "service", s.serviceName, "stage", "dependency.check", "error", ret)
@@ -119,6 +147,16 @@ func (s *defaultService) Run(ctx context.Context) (ret *cd.Error) {
 		return
 	}
 
+	dependencies, depErr := manager.Dependencies(s.dependencies)
+	if depErr != nil {
+		manager.MarkFailed(depErr)
+		return depErr
+	}
+	s.monitor, ret = manager.StartDependencyMonitoring(ctx, s.backgroundRoutine, dependencies, s.probePolicy)
+	if ret != nil {
+		manager.MarkFailed(ret)
+		return ret
+	}
 	manager.MarkReady()
 
 	//slog.Info("s.serviceName running!", "field", s.serviceName)
@@ -208,11 +246,18 @@ func (s *defaultService) ShutdownChecked(ctx context.Context) *cd.Error {
 }
 
 func (s *defaultService) Quiesce(ctx context.Context) *cd.Error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	s.shutdownMu.Lock()
 	defer s.shutdownMu.Unlock()
 	if s.quiesced {
 		return nil
 	}
+	health.DefaultManager().MarkStopping()
+	s.monitor.BeginShutdown()
+	// Notify every input owner before waiting for any work to drain, even if
+	// another owner's notification fails or a dependency probe ignores cancel.
 	var initErr, moduleErr *cd.Error
 	if s.initiatorsStarted {
 		initErr = initiator.BeginShutdown(ctx)
@@ -225,6 +270,9 @@ func (s *defaultService) Quiesce(ctx context.Context) *cd.Error {
 	}
 	if moduleErr != nil {
 		return moduleErr
+	}
+	if err := s.monitor.Stop(ctx); err != nil {
+		return err
 	}
 	if s.initiatorsStarted {
 		if err := initiator.Quiesce(ctx); err != nil {

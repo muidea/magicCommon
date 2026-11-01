@@ -18,8 +18,15 @@ type Task interface {
     Run()
 }
 
+// Timer 可选任务合同：收到原始计划 tick 时间，队列等待不改变它。
+type ScheduledTask interface {
+    Task
+    RunScheduled(scheduledAt time.Time)
+}
+
 type BackgroundRoutine interface {
     AsyncTask(task Task) error
+    AsyncTaskContext(ctx context.Context, task Task) error
     SyncTask(task Task) error
     SyncTaskWithTimeOut(task Task, timeout time.Duration) error
     AsyncFunction(function func()) error
@@ -56,6 +63,7 @@ type BackgroundRoutine interface {
 - 之后使用 `Ticker` 按固定周期触发。
 - 当 `ctx.Done()` 触发或调度器关闭时，后续定时触发及饱和队列中的入队等待会停止。
 - 首次和后续 tick 都通过 `AsyncTaskContext()` 进入后台队列，而不是直接在 timer goroutine 中执行。已经接受的任务仍由 owner 检查取消并释放回执。
+- 任务可实现 `ScheduledTask` 接收首次 Timer 和后续 Ticker 的原始触发时间；入队或执行延迟不改写时间。动态依赖 monitor 据此合并上一实际探测已覆盖的积压 tick，新周期不因上轮派发延迟被跳过。普通 Task 仍调用 Run，ScheduledTask 的非 Timer 提交也仍调用 Run。
 - Timer 返回成功仅表示注册成功，不是后续每次调度或业务执行的成功回执。
 
 ### Shutdown

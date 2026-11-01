@@ -347,3 +347,11 @@ magicCommon/
 ## HTTP 来源 IP
 
 `foundation/net.HTTPSourceResolver` 按显式 CIDR/服务发现主机名校验代理并绑定请求上下文。`GetHTTPRemoteAddress` 返回规范化访问来源，没有入口绑定时只使用连接 IP；不再直接相信任意转发头。参见[跨项目来源合同](~/dataspace/magicPlatform/docs/technical/request-source-ip-contract.md)。
+
+## Live12 源码收口（2026-11-01）
+
+默认 Service 在 Setup 后执行有界依赖检查，在 Run 后启动 `framework/health.DependencyMonitor`。基础设施 adapter 可注册依赖声明或 context checker；无声明的 checker 按 required 处理，与配置同名但不一致时拒绝启动。required 缺少 target/checker 失败关闭；每轮先验证全部声明，再按原有顺序先执行 required、optional 仅使用剩余预算，其超时只记录而不覆盖已成功的 required。父 context 取消仍拒绝启动。默认每 5 秒探测、每轮总预算 3 秒，required 正结果最大陈旧期 15 秒，可通过 `health.dependencyProbe.{intervalSeconds,timeoutSeconds,maxAgeSeconds}` 配置（最大陈旧期至少为周期与预算之和）。HTTP ready 只读取完整快照，运行期 required 失败或快照过期返回 503，恢复后重新返回 200；live 不随外部依赖降级。定时探测按原始 tick 时间合并已完成轮次覆盖的积压，避免派发抖动误跳过新周期。停机先关闭 ready、取消探测并通知全部已进入生命周期的 Initiator/Module 关闭输入，再等待真实完成；通知失败或未排空不得释放依赖，支持重试。Common 不声明平台依赖或 Schema 语义。
+
+本批源码、依赖同步与测试记录见[实施台账](~/dataspace/magicPlatform/docs/technical/history/platform-live12-code-closeout-2026-11-01.md)。镜像与部署后回归需另行确认，原 Live12 裁决不因源码检查改变。
+
+2026-11-01 评审 R1—R3 已补齐停机输入屏障、required 优先预算和保留计划 tick 的调度合同，正式测试与消费者验证见[评审修复记录](~/dataspace/magicPlatform/docs/technical/history/platform-live12-review-fixes-2026-11-01.md)。
