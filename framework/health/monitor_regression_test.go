@@ -50,7 +50,11 @@ func TestOptionalTimeoutCannotStarveRequiredChecks(t *testing.T) {
 			if err != nil {
 				t.Fatal("optional timeout rejected startup:", err)
 			}
-			defer monitor.Stop(context.Background())
+			defer func() {
+				if err := monitor.Stop(context.Background()); err != nil {
+					t.Errorf("stop dependency monitor: %v", err)
+				}
+			}()
 			m.MarkReady()
 			for range 2 {
 				assertReadyHTTP(t, m, http.StatusOK)

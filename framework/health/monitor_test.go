@@ -274,7 +274,11 @@ func TestOptionalOnlyStalenessDoesNotRemoveReadiness(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer monitor.Stop(context.Background())
+	defer func() {
+		if err := monitor.Stop(context.Background()); err != nil {
+			t.Errorf("stop dependency monitor: %v", err)
+		}
+	}()
 	m.MarkReady()
 	m.mu.Lock()
 	m.checkedAt = time.Now().Add(-time.Hour)
@@ -302,7 +306,11 @@ func TestHTTPDependencyMonitorFailureRecoveryAndSnapshotOnlyHandler(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer monitor.Stop(context.Background())
+	defer func() {
+		if err := monitor.Stop(context.Background()); err != nil {
+			t.Errorf("stop dependency monitor: %v", err)
+		}
+	}()
 	m.MarkReady()
 	assertReadyHTTP(t, m, http.StatusOK)
 	if requests.Load() != 1 {

@@ -345,7 +345,10 @@ func (s *Manager) checkDependency(ctx context.Context, dep Dependency) (err *cd.
 	if requestErr != nil {
 		return cd.NewError(cd.ServiceUnavailable, "dependency request failed")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		// Readiness depends on the status, not closing the unused response body.
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		return cd.NewError(cd.ServiceUnavailable, fmt.Sprintf("dependency not ready, status:%d", resp.StatusCode))
 	}
