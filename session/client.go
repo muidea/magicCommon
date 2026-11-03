@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 
 	fnet "github.com/muidea/magicCommon/foundation/net"
 )
@@ -99,12 +100,24 @@ func (c *defaultHeaderContext) GetAll() url.Values {
 }
 
 func NewBaseClient(serverUrl string) BaseClient {
-	return BaseClient{serverURL: serverUrl, httpClient: fnet.NewDNSCacheHttpClient()}
+	return BaseClient{serverURL: serverUrl, transport: newClientTransport(fnet.NewDNSCacheHttpClient())}
+}
+
+// Keep the atomic behind a pointer: BaseClient is embedded and copied by SDKs.
+// Explicit Clone snapshots the handle into a separate release lifecycle.
+type clientTransport struct {
+	client atomic.Pointer[http.Client]
+}
+
+func newClientTransport(client *http.Client) *clientTransport {
+	transport := &clientTransport{}
+	transport.client.Store(client)
+	return transport
 }
 
 type BaseClient struct {
-	serverURL  string
-	httpClient *http.Client
+	serverURL string
+	transport *clientTransport
 
 	sessionAuthorization string
 	headerContext        Context
@@ -131,11 +144,15 @@ func (s *BaseClient) GetServerURL() string {
 }
 
 func (s *BaseClient) GetHTTPClient() *http.Client {
-	return s.httpClient
+	if s.transport == nil {
+		return nil
+	}
+	return s.transport.client.Load()
 }
 
 func (s *BaseClient) Clone() BaseClient {
 	clone := *s
+	clone.transport = newClientTransport(s.GetHTTPClient())
 	clone.headerContext = cloneContext(s.headerContext)
 	return clone
 }
@@ -226,8 +243,9 @@ func IsBearerAuthorization(authorization string) bool {
 }
 
 func (s *BaseClient) Release() {
-	if s.httpClient != nil {
-		s.httpClient.CloseIdleConnections()
-		s.httpClient = nil
+	if s.transport != nil {
+		if client := s.transport.client.Swap(nil); client != nil {
+			client.CloseIdleConnections()
+		}
 	}
 }

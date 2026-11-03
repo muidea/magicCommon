@@ -1,5 +1,7 @@
 # magicCommon
 
+2026-11-03 客户端生命周期：`session.BaseClient` 的 HTTP 句柄读取、释放及显式 Clone 快照使用原子状态；Release 幂等，未初始化／已释放返回 nil，不创建默认连接。显式 Clone 保留独立释放生命周期，共享原 HTTP 连接池；释放不会取消已接受的 HTTP 请求，调用方仍须先排空工作。该保证不涵盖并发修改会话头或 HTTP 配置。见[源码验证与边界](~/dataspace/magicPlatform/docs/technical/history/platform-live18-cas-shutdown-closeout-2026-11-03.md)。
+
 ## 项目定位与开发边界
 
 本仓 `AGENTS.md` 直接列出项目定位、公开能力、职责边界及开发验证要求，单独检出即可执行；跨项目配合使用项目名和 Git 地址识别。先修改事实 owner，再同步消费者和交付材料。平台架构长文作为补充设计依据，不是读取本仓规则的前置依赖。下文日期化记录保留各批范围，不代表当前部署全部验收通过。
