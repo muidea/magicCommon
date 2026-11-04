@@ -3,7 +3,7 @@ package event
 import (
 	"context"
 	"fmt"
-	"strings"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -104,6 +104,8 @@ type Hub interface {
 	// waits for actual completion; acknowledgement is never discarded.
 	Subscribe(eventID string, observer Observer) *cd.Error
 	Unsubscribe(eventID string, observer Observer) *cd.Error
+	// PostChecked reports asynchronous admission, not handler or business completion.
+	PostChecked(event Event) *cd.Error
 	Post(event Event)
 	Send(event Event) Result
 	Terminate(ctx context.Context)
@@ -313,92 +315,6 @@ func NewSimpleObserverWithMatchID(id, matchID string, hub Hub) SimpleObserver {
 	return &simpleObserver{id: id, matchID: matchID, eventHub: hub, eventID2ObserverFunc: ID2ObserverFuncMap{}}
 }
 
-func MatchValue(pattern, val string) bool {
-	pIdx := 0
-	pOffset := 0
-	pItems := strings.Split(pattern, "/")
-
-	iIdx := 0
-	iOffset := 0
-	iItems := strings.Split(val, "/")
-	for iIdx < len(iItems) {
-		iv := iItems[iIdx]
-		if pIdx >= len(pItems) {
-			return false
-		}
-
-		pv := pItems[pIdx]
-		if pv == iv {
-			pIdx++
-			iIdx++
-			continue
-		}
-
-		if (pv == "+" || pv == ":id") && iv != "" {
-			pIdx++
-			iIdx++
-			continue
-		}
-
-		if pv == "#" && iv != "" {
-			pOffset++
-			if pIdx+pOffset >= len(pItems) {
-				return true
-			}
-
-			iOffset++
-			if iIdx+iOffset >= len(iItems) {
-				return false
-			}
-
-			for iIdx+iOffset < len(iItems) {
-				if pIdx+pOffset >= len(pItems) {
-					return false
-				}
-
-				pn := pItems[pIdx+pOffset]
-				in := iItems[iIdx+iOffset]
-				if pn == in {
-					pIdx += pOffset + 1
-					pOffset = 0
-					break
-				}
-				if pn == "+" || pn == ":id" {
-					if pIdx+pOffset+1 >= len(pItems) {
-						return true
-					}
-
-					pnn := pItems[pIdx+pOffset+1]
-					if pnn == in {
-						pIdx += pOffset + 2
-						pOffset = 0
-						break
-					}
-
-					if pv != "#" {
-						pOffset++
-					}
-				}
-
-				iOffset++
-				continue
-			}
-
-			iIdx += iOffset + 1
-			iOffset = 0
-			if pIdx > iIdx {
-				return false
-			}
-
-			continue
-		}
-
-		return false
-	}
-
-	return pIdx == len(pItems)
-}
-
 const (
 	subscribe   = 1
 	unsubscribe = 2
@@ -499,10 +415,18 @@ func (s *laneActionChannel) run(hubPtr *hubImpl) {
 	}
 }
 
+type observerRecord struct {
+	observer Observer
+	matchID  string
+	filters  int
+}
+
 type hubImpl struct {
 	execute.Execute
 	event2ObserverlLock sync.RWMutex
 	event2Observer      ID2ObserverMap
+	topicFilters        map[string]TopicFilter
+	observerRecords     map[string]observerRecord
 	eventMatchCacheLock sync.RWMutex
 
 	hubActionChannel      actionChannel
@@ -709,8 +633,11 @@ func (s *hubImpl) Unsubscribe(eventID string, observer Observer) *cd.Error {
 }
 
 func (s *hubImpl) changeSubscription(eventID string, observer Observer, add bool) *cd.Error {
-	if eventID == "" || observer == nil {
+	if observer == nil {
 		return cd.NewError(cd.IllegalParam, "event ID and observer are required")
+	}
+	if err := ValidateTopicFilter(eventID); err != nil {
+		return err
 	}
 	if !s.beginOperation(context.TODO()) {
 		return cd.NewError(cd.InvalidOperation, "event hub is stopping")
@@ -760,20 +687,36 @@ func (s *hubImpl) applySubscription(eventID string, observer Observer, add bool)
 			err = cd.NewError(cd.Unexpected, fmt.Sprintf("event subscription failed: %v", value))
 		}
 	}()
-	if observer.ID() == "" {
+	id := observer.ID()
+	if id == "" {
 		return cd.NewError(cd.IllegalParam, "observer ID is required")
 	}
 	if add {
-		s.subscribeInternal(eventID, observer)
+		return s.subscribeInternal(eventID, observer, id)
 	} else {
-		s.unsubscribeInternal(eventID, observer)
+		s.unsubscribeInternal(eventID, id)
 	}
 	return nil
 }
 
 func (s *hubImpl) Post(ev Event) {
-	if ev == nil || !s.beginOperation(ev.Context()) {
-		return
+	if err := s.PostChecked(ev); err != nil {
+		slog.Warn("event publish rejected", "code", err.Code, "reason", err.Message)
+	}
+}
+
+func (s *hubImpl) PostChecked(ev Event) *cd.Error {
+	if ev == nil {
+		return cd.NewError(cd.IllegalParam, "event is nil")
+	}
+	if err := ValidateTopicName(ev.ID()); err != nil {
+		return err
+	}
+	if ev.Context().Err() != nil {
+		return cd.NewError(cd.Timeout, "event context is canceled")
+	}
+	if !s.beginOperation(ev.Context()) {
+		return cd.NewError(cd.InvalidOperation, "event hub is stopping")
 	}
 	queued := false
 	defer func() {
@@ -781,21 +724,18 @@ func (s *hubImpl) Post(ev Event) {
 			s.endOperation()
 		}
 	}()
-
 	laneKey := eventLaneKey(ev)
 	actionData := &postData{event: ev}
 	for {
 		laneChannel := s.getOrCreateLaneActionChannel(laneKey)
-
-		switch laneChannel.enqueue(actionData, 100*time.Millisecond) {
+		switch laneChannel.enqueueContext(ev.Context(), actionData, 100*time.Millisecond) {
 		case laneEnqueueOK:
 			queued = true
-			return
+			return nil
 		case laneEnqueueClosed:
 			continue
-		case laneEnqueueTimeout:
-			slog.Warn("timeout sending post data to channel")
-			return
+		case laneEnqueueTimeout, laneEnqueueCanceled:
+			return cd.NewError(cd.Timeout, "event admission timed out or was canceled")
 		}
 	}
 }
@@ -804,6 +744,11 @@ func (s *hubImpl) Send(ev Event) (ret Result) {
 	if ev == nil {
 		result := NewResult("", "", "")
 		result.Set(nil, cd.NewError(cd.IllegalParam, "event is nil"))
+		return result
+	}
+	if err := ValidateTopicName(ev.ID()); err != nil {
+		result := NewResult("", "", "")
+		result.Set(nil, err)
 		return result
 	}
 	if ev.Context().Err() != nil {
@@ -943,56 +888,88 @@ func (s *hubImpl) run() {
 	s.hubActionChannel.run(s)
 }
 
-func (s *hubImpl) subscribeInternal(eventID string, observer Observer) {
-	s.event2ObserverlLock.Lock()
-	defer s.event2ObserverlLock.Unlock()
-
-	observerList, observerOK := s.event2Observer[eventID]
-	if !observerOK {
-		observerList = ObserverList{}
-	}
-	existFlag := false
-	for _, val := range observerList {
-		if val.ID() == observer.ID() {
-			existFlag = true
-			break
-		}
-	}
-	if !existFlag {
-		observerList = append(observerList, observer)
-	}
-	s.event2Observer[eventID] = observerList
-
-	// 订阅关系变更，清空匹配缓存
-	s.eventMatchCacheLock.Lock()
-	s.eventMatchCache = map[string]ObserverList{}
-	s.eventMatchCacheLock.Unlock()
+// sameObserver checks values as well as types: an interface field can contain
+// a slice or map even when its containing type is comparable.
+func sameObserver(left, right Observer) bool {
+	return left != nil && right != nil && reflect.TypeOf(left) == reflect.TypeOf(right) &&
+		reflect.ValueOf(left).Comparable() && reflect.ValueOf(right).Comparable() && left == right
 }
 
-func (s *hubImpl) unsubscribeInternal(eventID string, observer Observer) {
+func (s *hubImpl) subscribeInternal(eventID string, observer Observer, id string) *cd.Error {
+	filter, err := ParseTopicFilter(eventID)
+	if err != nil {
+		return err
+	}
+	matchID := observerMatchIDWithFallback(observer, id)
 	s.event2ObserverlLock.Lock()
 	defer s.event2ObserverlLock.Unlock()
+	if existing, ok := s.observerRecords[id]; ok {
+		if !sameObserver(existing.observer, observer) {
+			return cd.NewError(cd.Duplicated, "observer ID is already registered")
+		}
+		if existing.matchID != matchID {
+			return cd.NewError(cd.IllegalParam, "observer match ID changed")
+		}
+	}
+	for _, existing := range s.event2Observer[eventID] {
+		if existing.ID() == id {
+			return nil
+		}
+	}
+	if s.observerRecords == nil {
+		s.observerRecords = map[string]observerRecord{}
+	}
+	if s.topicFilters == nil {
+		s.topicFilters = map[string]TopicFilter{}
+	}
+	record := s.observerRecords[id]
+	record.observer, record.matchID = observer, matchID
+	record.filters++
+	s.observerRecords[id] = record
+	s.event2Observer[eventID] = append(s.event2Observer[eventID], observer)
+	s.topicFilters[eventID] = filter
+	s.invalidateMatchCache()
+	return nil
+}
 
-	observerList, observerOK := s.event2Observer[eventID]
-	if !observerOK {
+func (s *hubImpl) unsubscribeInternal(eventID, id string) {
+	s.event2ObserverlLock.Lock()
+	defer s.event2ObserverlLock.Unlock()
+	list, ok := s.event2Observer[eventID]
+	if !ok {
 		return
 	}
-
-	newList := ObserverList{}
-	for _, val := range observerList {
-		if val.ID() == observer.ID() {
+	// Build the replacement before publishing any registry or cache changes.
+	remaining := make(ObserverList, 0, len(list))
+	removed := false
+	for _, value := range list {
+		if value.ID() == id {
+			removed = true
 			continue
 		}
-
-		newList = append(newList, val)
+		remaining = append(remaining, value)
 	}
-	if len(newList) > 0 {
-		s.event2Observer[eventID] = newList
+	if !removed {
+		return
+	}
+	if len(remaining) > 0 {
+		s.event2Observer[eventID] = remaining
 	} else {
 		delete(s.event2Observer, eventID)
+		delete(s.topicFilters, eventID)
 	}
+	record := s.observerRecords[id]
+	record.filters--
+	if record.filters <= 0 {
+		delete(s.observerRecords, id)
+	} else {
+		s.observerRecords[id] = record
+	}
+	s.invalidateMatchCache()
+}
 
-	// 订阅关系变更，清空匹配缓存
+// Caller holds the subscription write lock, pairing registry and cache publication.
+func (s *hubImpl) invalidateMatchCache() {
 	s.eventMatchCacheLock.Lock()
 	s.eventMatchCache = map[string]ObserverList{}
 	s.eventMatchCacheLock.Unlock()
@@ -1064,32 +1041,36 @@ func (s *hubImpl) setCachedObservers(cacheKey string, observers ObserverList) {
 
 func (s *hubImpl) findMatchingObservers(ev Event) ObserverList {
 	matchList := make(ObserverList, 0, 4)
-
+	if ValidateTopicName(ev.ID()) != nil {
+		return matchList
+	}
+	seen := make(map[string]bool)
 	for key, value := range s.event2Observer {
-		if MatchValue(key, ev.ID()) {
-			for _, sv := range value {
-				if matchDestination(ev.Destination(), observerMatchID(sv)) {
-					matchList = append(matchList, sv)
+		if s.topicFilters[key].matchTopic(ev.ID()) {
+			for _, observer := range value {
+				id := observer.ID()
+				if !seen[id] && matchDestination(ev.Destination(), observerMatchIDWithFallback(observer, id)) {
+					matchList = append(matchList, observer)
+					seen[id] = true
 				}
 			}
 		}
 	}
-
 	return matchList
 }
 
 func matchDestination(destination, matchID string) bool {
-	return MatchValue(destination, matchID) || MatchValue(matchID, destination)
+	return matchAddressPattern(destination, matchID) || matchAddressPattern(matchID, destination)
 }
 
-func observerMatchID(observer Observer) string {
+func observerMatchIDWithFallback(observer Observer, id string) string {
 	if matcher, ok := observer.(destinationMatcher); ok {
 		if matchID := matcher.MatchID(); matchID != "" {
 			return matchID
 		}
 	}
 
-	return observer.ID()
+	return id
 }
 
 type simpleObserver struct {
@@ -1097,6 +1078,7 @@ type simpleObserver struct {
 	matchID              string
 	eventHub             Hub
 	eventID2ObserverFunc ID2ObserverFuncMap
+	topicFilters         map[string]TopicFilter
 	eventIDLock          sync.RWMutex
 }
 
@@ -1116,10 +1098,13 @@ func (s *simpleObserver) Notify(ev Event, re Result) {
 		s.eventIDLock.RLock()
 		defer s.eventIDLock.RUnlock()
 
-		for k, v := range s.eventID2ObserverFunc {
-			if ev.Match(k) {
-				funcVal = v
-				break
+		if ValidateTopicName(ev.ID()) != nil {
+			return
+		}
+		var selected TopicFilter
+		for key, filter := range s.topicFilters {
+			if filter.matchTopic(ev.ID()) && filter.moreSpecific(selected) {
+				selected, funcVal = filter, s.eventID2ObserverFunc[key]
 			}
 		}
 	}()
@@ -1146,6 +1131,10 @@ func (s *simpleObserver) Subscribe(eventID string, observerFunc ObserverFunc) *c
 	if eventID == "" || observerFunc == nil || s.eventHub == nil {
 		return cd.NewError(cd.IllegalParam, "event ID, handler and hub are required")
 	}
+	filter, err := ParseTopicFilter(eventID)
+	if err != nil {
+		return err
+	}
 	// Serialize local changes with Hub completion. Notify cannot observe a
 	// partially registered handler, and failed operations leave state retryable.
 	s.eventIDLock.Lock()
@@ -1156,6 +1145,10 @@ func (s *simpleObserver) Subscribe(eventID string, observerFunc ObserverFunc) *c
 	if err := s.eventHub.Subscribe(eventID, s); err != nil {
 		return err
 	}
+	if s.topicFilters == nil {
+		s.topicFilters = map[string]TopicFilter{}
+	}
+	s.topicFilters[eventID] = filter
 	s.eventID2ObserverFunc[eventID] = observerFunc
 	return nil
 }
@@ -1170,5 +1163,6 @@ func (s *simpleObserver) Unsubscribe(eventID string) *cd.Error {
 		return err
 	}
 	delete(s.eventID2ObserverFunc, eventID)
+	delete(s.topicFilters, eventID)
 	return nil
 }

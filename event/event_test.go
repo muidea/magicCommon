@@ -162,63 +162,10 @@ func TestNewResult(t *testing.T) {
 	}
 }
 
+// Detailed MQTT and address vectors live in topic_test.go and hub_test.go.
 func TestMatchValue(t *testing.T) {
-	// Simple matches
-	if !MatchValue("a", "a") {
-		t.Error("MatchValue(\"a\", \"a\") = false, want true")
-	}
-	if MatchValue("a", "b") {
-		t.Error("MatchValue(\"a\", \"b\") = true, want false")
-	}
-	if !MatchValue("a/b", "a/b") {
-		t.Error("MatchValue(\"a/b\", \"a/b\") = false, want true")
-	}
-
-	// Plus wildcard
-	if !MatchValue("a/+", "a/b") {
-		t.Error("MatchValue(\"a/+\", \"a/b\") = false, want true")
-	}
-	if MatchValue("a/+", "a") {
-		t.Error("MatchValue(\"a/+\", \"a\") = true, want false")
-	}
-	if !MatchValue("a/+/c", "a/b/c") {
-		t.Error("MatchValue(\"a/+/c\", \"a/b/c\") = false, want true")
-	}
-
-	// ID wildcard
-	if !MatchValue("a/:id", "a/123") {
-		t.Error("MatchValue(\"a/:id\", \"a/123\") = false, want true")
-	}
-	if MatchValue("a/:id", "a") {
-		t.Error("MatchValue(\"a/:id\", \"a\") = true, want false")
-	}
-
-	// Hash wildcard
-	if !MatchValue("a/#", "a/b") {
-		t.Error("MatchValue(\"a/#\", \"a/b\") = false, want true")
-	}
-	if !MatchValue("a/#", "a/b/c") {
-		t.Error("MatchValue(\"a/#\", \"a/b/c\") = false, want true")
-	}
-	if MatchValue("a/#", "a") {
-		t.Error("MatchValue(\"a/#\", \"a\") = true, want false")
-	}
-	if !MatchValue("a/b/#", "a/b/c/d") {
-		t.Error("MatchValue(\"a/b/#\", \"a/b/c/d\") = false, want true")
-	}
-
-	// Complex patterns
-	if !MatchValue("a/+/c/#", "a/b/c/d") {
-		t.Error("MatchValue(\"a/+/c/#\", \"a/b/c/d\") = false, want true")
-	}
-	if MatchValue("a/+/x/#", "a/b/c/d") {
-		t.Error("MatchValue(\"a/+/x/#\", \"a/b/c/d\") = true, want false")
-	}
-	if !MatchValue("a/#/c", "a/b/c") {
-		t.Error("MatchValue(\"a/#/c\", \"a/b/c\") = false, want true")
-	}
-	if !MatchValue("a/#/c", "a/b/x/c") {
-		t.Error("MatchValue(\"a/#/c\", \"a/b/x/c\") = false, want true")
+	if !MatchValue("a/+", "a/") || !MatchValue("a/#", "a") || MatchValue("a/:id", "a/123") || MatchValue("a/#/c", "a/b/c") {
+		t.Fatal("MatchValue must use the single MQTT filter contract")
 	}
 }
 

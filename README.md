@@ -6,6 +6,8 @@
 
 本仓 `AGENTS.md` 直接列出项目定位、公开能力、职责边界及开发验证要求，单独检出即可执行；跨项目配合使用项目名和 Git 地址识别。先修改事实 owner，再同步消费者和交付材料。平台架构长文作为补充设计依据，不是读取本仓规则的前置依赖。下文日期化记录保留各批范围，不代表当前部署全部验收通过。
 
+2026-11-04 [EventHub MQTT Topic 标准化](~/codespace/magicCommon/docs/magicCommon_mqtt_topic_alignment_design.md)已完成源码和已知消费者适配：Topic Name／Filter 分开校验，重叠订阅一次通知并确定选择回调，`PostChecked` 返回异步准入结果，Destination 保持独立地址算法。Base、Runner、ModulesRepo、CAS、File 配套变化与验证见[实施记录](~/dataspace/magicPlatform/docs/technical/history/eventhub-topic-implementation-2026-11-04.md)；须成套切换，镜像和 Live 尚未验收。
+
 [![CI Pipeline](https://github.com/muidea/magicCommon/actions/workflows/ci.yml/badge.svg)](https://github.com/muidea/magicCommon/actions/workflows/ci.yml)
 [![Release Build](https://github.com/muidea/magicCommon/actions/workflows/release-build.yml/badge.svg)](https://github.com/muidea/magicCommon/actions/workflows/release-build.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://golang.org)

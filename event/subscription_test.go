@@ -284,6 +284,7 @@ func TestConcurrentSimpleObserverChangesStayConsistent(t *testing.T) {
 }
 
 type cacheGateObserver struct {
+	armed         atomic.Bool
 	entered       chan struct{}
 	release       chan struct{}
 	removing      atomic.Bool
@@ -298,6 +299,9 @@ func (s *cacheGateObserver) ID() string {
 	return "owner"
 }
 func (s *cacheGateObserver) MatchID() string {
+	if !s.armed.Load() {
+		return "owner"
+	}
 	close(s.entered)
 	<-s.release
 	return "owner"
@@ -311,6 +315,7 @@ func TestUnsubscribeCannotBeUndoneByConcurrentCachePublication(t *testing.T) {
 	if err := hub.Subscribe("command", observer); err != nil {
 		t.Fatal(err)
 	}
+	observer.armed.Store(true)
 	lookupDone := make(chan struct{})
 	go func() { hub.matchingObservers(NewEvent("command", "caller", "owner", nil, nil)); close(lookupDone) }()
 	<-observer.entered

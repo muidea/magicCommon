@@ -2,7 +2,7 @@
 
 ## 概述
 
-`magicCommon/event` 是一个基于 Go 语言实现的高性能、线程安全的事件发布-订阅系统。该模块提供了灵活的事件匹配机制、同步/异步投递能力、上下文传递支持以及类型安全的泛型辅助函数，适用于微服务架构中的事件驱动通信。
+`magicCommon/event` 是一个基于 Go 语言实现的高性能、线程安全的事件发布-订阅系统。该模块提供了灵活的事件匹配机制、同步/异步投递能力、上下文传递支持以及类型安全的泛型辅助函数，用于进程内运行单元协作；跨进程通信仍使用正式服务和 SDK。
 
 ## 核心设计理念
 
@@ -70,7 +70,8 @@ type Observer interface {
 type Hub interface {
     Subscribe(eventID string, observer Observer) *cd.Error   // 订阅事件
     Unsubscribe(eventID string, observer Observer) *cd.Error // 取消订阅
-    Post(event Event)                              // 异步发送事件（无返回）
+    PostChecked(event Event) *cd.Error             // 检查式异步准入（不证明执行完成）
+    Post(event Event)                              // 委托 PostChecked，拒绝时记录有界日志
     Send(event Event) Result                       // 同步发送事件（有返回）
     Terminate(ctx context.Context)                 // 终止事件中心，未完成时记录错误
 }
@@ -114,18 +115,23 @@ func (s Values) GetBool(key string) bool
 
 ### 事件匹配模式
 
-支持 MQTT 风格的通配符匹配：
+`Event.ID()` 是具体 Topic Name，订阅参数是普通 MQTT Topic Filter。两者必须非空、有效 UTF-8、不含 NUL，且不超过 65,535 字节；Topic Name 不允许 `+` 或 `#`。
 
-| 通配符 | 说明 | 示例 |
-|--------|------|------|
-| `+` | 单级通配符，匹配一个非空段 | `/user/+` 匹配 `/user/123` |
-| `#` | 多级通配符，匹配零个或多个段 | `/user/#` 匹配 `/user/123/profile` |
-| `:id` | 参数通配符，与 `+` 相同 | `/user/:id` 匹配 `/user/123` |
+| 表达式 | 规则 | 示例 |
+|---|---|---|
+| `+` | 独占一层，匹配一个层级，包括空层 | `a/+` 匹配 `a/`，不匹配 `a` |
+| `#` | 独占末尾层，匹配零层或多层 | `a/#` 匹配 `a`、`a/`、`a/b/c` |
+| `:id` | 普通字面量 | `a/:id` 只匹配 `a/:id` |
 
-**匹配规则**：
-- 路径使用 `/` 分隔
-- 通配符必须匹配非空段（`#` 除外，它可以匹配空段后的内容）
-- 匹配算法支持复杂嵌套模式
+`a/#/b`、`a+`、`a/+x` 等 Filter 非法。以 `+` 或 `#` 开始的 Filter 不匹配 `$` 根 Topic；`$SYS/#` 可以匹配 `$SYS/status`。不归一化大小写、Unicode 或空层，也不解析共享订阅分组。
+
+`ValidateTopicName`、`ValidateTopicFilter` 返回 `*cd.Error`；`ParseTopicFilter` 生成不可变的 `TopicFilter`，其 `MatchTopic` 对非法 Name 返回 false，零值不匹配。`MatchValue(filter, topic)` 只有这一套单向合同，不能用于 HTTP 路由或 Destination。
+
+Hub 预编译订阅 Filter，按 `Event.ID()` 匹配，不调用外部可覆写的 `Event.Match`。同一 Observer.ID 每事件最多收到一次通知；不同对象复用 ID 返回 `Duplicated`，同一对象改变 MatchID 返回 `IllegalParam`。同一对象同 Filter 的 Hub 重复注册幂等，SimpleObserver 重复 handler 仍返回 `Duplicated`。按实际值检查可比较性，包括 interface 字段及嵌套结构／数组内的切片或 map；不可比较的值复用 ID 返回 `Duplicated`，不触发 interface 比较 panic，不影响原订阅。
+
+SimpleObserver 只选择一个 handler：精确字面量优先；再逐层按字面量、`+`、`#` 排序；共同层相同则更长的 Filter 优先；仍相同按原 Filter 字节升序。注册顺序不影响选择。退订只删除指定 Filter，全部撤销后不再命中；在途通知仍按原生命周期完成。
+
+Destination 使用独立私有地址 matcher 的双向匹配，保留原寻址规则，不能宣称它符合 MQTT。`Source`、`MatchID` 和 `LaneKey` 也不是 Topic Filter。配套设计与切换规则见[Topic 标准化设计](~/codespace/magicCommon/docs/magicCommon_mqtt_topic_alignment_design.md)。
 
 ### hubImpl 实现
 
@@ -137,8 +143,8 @@ func (s Values) GetBool(key string) bool
 4. **优雅关闭**：支持 `Terminate()` 方法安全关闭所有协程
 
 **运行语义**：
-- `Post()` 是异步投递，如果内部 channel 在超时窗口内无法接收，当前实现会记录告警并放弃这次投递，而不是无限阻塞调用方。
-- `Send()` 是同步投递，入队等待超时或尚未执行时的 context 取消会返回错误，取消成功的 handler 不再执行；已经开始执行的 handler 必须等实际返回，不因 deadline 到期脱离调用方。
+- `PostChecked()` 在任何准入、Lane 和缓存副作用前校验 Event。nil／非法 Topic 返回 `IllegalParam`；取消或 100ms 入队超时返回 `Timeout`；停止新根准入返回 `InvalidOperation`。nil 只证明异步入队，不证明 handler 或业务提交。`Post()` 只委托一次，拒绝时记录有界错误码及原因，不输出 Data、Header 或完整非法输入，也不自动重放。
+- `Send()` 对 nil／非法 Topic 返回带 `IllegalParam` 的非 nil Result；其他同步投递规则不变，入队等待超时或尚未执行时的 context 取消会返回错误，取消成功的 handler 不再执行；已经开始执行的 handler 必须等实际返回，不因 deadline 到期脱离调用方。
 - `Send()` 和 `Post()` 都按 `LaneKey()` 做顺序调度；同一个 lane 内严格顺序，不同 lane 之间允许并行。
 - `LaneKey()` 默认等于 `Destination()`，因此旧代码在不显式设置 lane 时行为保持不变。
 - 同一同步调用链可重入仍活跃的祖先 lane；独立调用链形成循环依赖会被拒绝，不并发执行同一 lane 的 handler。Post 始终排队且不继承祖先权限。
@@ -182,7 +188,7 @@ observer := NewSimpleObserverWithMatchID(
 
 这里的两个参数具有独立且不可互换的语义：
 
-- `id` 是观察者的唯一订阅身份，由 `Observer.ID()` 返回，Hub 仅使用它完成同一事件模式下的订阅去重和取消订阅。
+- `id` 是观察者的唯一订阅身份，由 `Observer.ID()` 返回，Hub 使用它完成跨 Filter 身份核对、通知去重和指定 Filter 的取消订阅。
 - `matchID` 是 destination 匹配模式，仅用于匹配 `Event.Destination()`；为空时回退为 `id`，以保持 `NewSimpleObserver` 的默认行为。
 - 多个观察者可以共享同一个 `matchID`，但必须使用不同的 `id`。它们会分别收到匹配事件，也可以互不影响地取消订阅。
 
@@ -483,21 +489,8 @@ go test -v -run "TestHighConcurrency|TestHighThroughput|TestManySubscribers|Test
 go test -v ./...
 ```
 
-## 扩展建议
+## 使用边界
 
-1. **持久化支持**：添加事件持久化存储
-2. **重试机制**：实现失败事件的重试策略
-3. **监控指标**：添加事件处理统计和监控
-4. **分布式支持**：扩展为跨服务的事件总线
-5. **序列化优化**：支持多种数据序列化格式
+Hub 不提供持久消息、业务重试、MQTT Broker 或跨进程投递。业务 owner 持有实际执行、持久结果及恢复证明；需要可靠提交时，不能将 PostChecked 的入队成功写成业务成功。
 
-## 注意事项
-
-1. **内存泄漏**：确保及时调用 `Terminate()` 释放资源
-2. **死锁风险**：避免在通知回调中执行阻塞操作
-3. **通配符性能**：复杂通配符模式可能影响匹配性能
-4. **上下文传递**：合理使用上下文传递请求级数据
-
-## 总结
-
-`magicCommon/event` 模块是一个功能完善、设计优雅的事件系统，适用于需要解耦和异步通信的 Go 应用程序。其灵活的匹配机制、类型安全的 API 和健壮的错误处理使其成为构建事件驱动架构的理想选择。
+配套变更先停止生产者并排空旧 Hub，再整体切换依赖；不混用旧 Topic 实现，不自动迁移历史计数定义。本次不改变物理 Schema，也不改变 Destination 地址规则。源码测试、vendor 同步、制品与 Live 验收分别记录。
