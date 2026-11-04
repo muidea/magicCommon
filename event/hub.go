@@ -468,10 +468,6 @@ func (s *laneActionChannel) touch() {
 	s.lastActive.Store(time.Now().UnixNano())
 }
 
-func (s *laneActionChannel) enqueue(actionData action, timeout time.Duration) laneEnqueueResult {
-	return s.enqueueContext(context.Background(), actionData, timeout)
-}
-
 func (s *laneActionChannel) enqueueContext(ctx context.Context, actionData action, timeout time.Duration) laneEnqueueResult {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
