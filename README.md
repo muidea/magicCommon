@@ -1,12 +1,12 @@
 # magicCommon
 
-2026-11-03 客户端生命周期：`session.BaseClient` 的 HTTP 句柄读取、释放及显式 Clone 快照使用原子状态；Release 幂等，未初始化／已释放返回 nil，不创建默认连接。显式 Clone 保留独立释放生命周期，共享原 HTTP 连接池；释放不会取消已接受的 HTTP 请求，调用方仍须先排空工作。该保证不涵盖并发修改会话头或 HTTP 配置。见[源码验证与边界](~/dataspace/magicPlatform/docs/technical/history/platform-live18-cas-shutdown-closeout-2026-11-03.md)。
+2026-11-03 客户端生命周期：`session.BaseClient` 的 HTTP 句柄读取、释放及显式 Clone 快照使用原子状态；Release 幂等，未初始化／已释放返回 nil，不创建默认连接。显式 Clone 保留独立释放生命周期，共享原 HTTP 连接池；释放不会取消已接受的 HTTP 请求，调用方仍须先排空工作。该保证不涵盖并发修改会话头或 HTTP 配置。见源码验证与边界。
 
 ## 项目定位与开发边界
 
 本仓 `AGENTS.md` 直接列出项目定位、公开能力、职责边界及开发验证要求，单独检出即可执行；跨项目配合使用项目名和 Git 地址识别。先修改事实 owner，再同步消费者和交付材料。平台架构长文作为补充设计依据，不是读取本仓规则的前置依赖。下文日期化记录保留各批范围，不代表当前部署全部验收通过。
 
-2026-11-04 [EventHub MQTT Topic 标准化](~/codespace/magicCommon/docs/magicCommon_mqtt_topic_alignment_design.md)已完成源码和已知消费者适配：Topic Name／Filter 分开校验，重叠订阅一次通知并确定选择回调，`PostChecked` 返回异步准入结果，Destination 保持独立地址算法。Base、Runner、ModulesRepo、CAS、File 配套变化与验证见[实施记录](~/dataspace/magicPlatform/docs/technical/history/eventhub-topic-implementation-2026-11-04.md)；须成套切换，镜像和 Live 尚未验收。
+2026-11-04 [EventHub MQTT Topic 标准化](~/codespace/magicCommon/docs/magicCommon_mqtt_topic_alignment_design.md)已完成源码和已知消费者适配：Topic Name／Filter 分开校验，重叠订阅一次通知并确定选择回调，`PostChecked` 返回异步准入结果，Destination 保持独立地址算法。Base、Runner、ModulesRepo、CAS、File 配套变化与验证见实施记录；须成套切换，镜像和 Live 尚未验收。
 
 [![CI Pipeline](https://github.com/muidea/magicCommon/actions/workflows/ci.yml/badge.svg)](https://github.com/muidea/magicCommon/actions/workflows/ci.yml)
 [![Release Build](https://github.com/muidea/magicCommon/actions/workflows/release-build.yml/badge.svg)](https://github.com/muidea/magicCommon/actions/workflows/release-build.yml)
@@ -356,6 +356,6 @@ magicCommon/
 
 默认 Service 在 Setup 后执行有界依赖检查，在 Run 后启动 `framework/health.DependencyMonitor`。基础设施 adapter 可注册依赖声明或 context checker；无声明的 checker 按 required 处理，与配置同名但不一致时拒绝启动。required 缺少 target/checker 失败关闭；每轮先验证全部声明，再按原有顺序先执行 required、optional 仅使用剩余预算，其超时只记录而不覆盖已成功的 required。父 context 取消仍拒绝启动。默认每 5 秒探测、每轮总预算 3 秒，required 正结果最大陈旧期 15 秒，可通过 `health.dependencyProbe.{intervalSeconds,timeoutSeconds,maxAgeSeconds}` 配置（最大陈旧期至少为周期与预算之和）。HTTP ready 只读取完整快照，运行期 required 失败或快照过期返回 503，恢复后重新返回 200；live 不随外部依赖降级。定时探测按原始 tick 时间合并已完成轮次覆盖的积压，避免派发抖动误跳过新周期。停机先关闭 ready、取消探测并通知全部已进入生命周期的 Initiator/Module 关闭输入，再等待真实完成；通知失败或未排空不得释放依赖，支持重试。Common 不声明平台依赖或 Schema 语义。
 
-本批源码、依赖同步与测试记录见[实施台账](~/dataspace/magicPlatform/docs/technical/history/platform-live12-code-closeout-2026-11-01.md)。镜像与部署后回归需另行确认，原 Live12 裁决不因源码检查改变。
+本批源码、依赖同步与测试记录见实施台账。镜像与部署后回归需另行确认，原 Live12 裁决不因源码检查改变。
 
-2026-11-01 评审 R1—R3 已补齐停机输入屏障、required 优先预算和保留计划 tick 的调度合同，正式测试与消费者验证见[评审修复记录](~/dataspace/magicPlatform/docs/technical/history/platform-live12-review-fixes-2026-11-01.md)。
+2026-11-01 评审 R1—R3 已补齐停机输入屏障、required 优先预算和保留计划 tick 的调度合同，正式测试与消费者验证见评审修复记录。
