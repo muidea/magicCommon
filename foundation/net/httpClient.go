@@ -70,6 +70,8 @@ func NewDNSCacheHttpClient() *http.Client {
 
 	transport := baseTransport.Clone()
 	transport.DialContext = dialContext
+	transport.MaxIdleConns = 128
+	transport.MaxIdleConnsPerHost = 32
 	transport.ResponseHeaderTimeout = defaultHTTPResponseHeaderTimeout
 	transport.TLSHandshakeTimeout = defaultHTTPTLSHandshakeTimeout
 	transport.ExpectContinueTimeout = defaultHTTPExpectContinueTimeout
