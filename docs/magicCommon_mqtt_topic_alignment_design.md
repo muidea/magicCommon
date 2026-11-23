@@ -30,7 +30,7 @@ magicCommon 的 EventHub 已经采用 `/` 分层 Topic、`+` 和 `#` 通配，�
 
 ## 2. 改造前源码核查与差异
 
-源码基线：Common `bb440bfe9c`、Base `2ea38c7cab`、Runner `7356d69056`、ModulesRepo `3232a17d7f`。以下表格保留改造前的核查事实，不描述当前实现。当前源码、依赖和测试证据见[实施记录](~/dataspace/magicPlatform/docs/technical/history/eventhub-topic-implementation-2026-11-04.md)。
+源码基线：Common `bb440bfe9c`、Base `2ea38c7cab`、Runner `7356d69056`、ModulesRepo `3232a17d7f`。以下表格保留改造前的核查事实，不描述当前实现。当前源码、依赖和测试证据见原实施记录（历史临时归档）。
 
 - [Hub](~/codespace/magicCommon/event/hub.go)：`MatchValue`、订阅控制面、`findMatchingObservers`、`simpleObserver.Notify`、Destination、缓存与 Lane；
 - [Event](~/codespace/magicCommon/event/event.go)：`baseEvent.Match` 直接调用 `MatchValue`；
@@ -338,7 +338,7 @@ Common 通过后，先按工作树／暂存区保护规则，从 `~/codespace` �
 - 评审运行 `go test ./event -run '^(TestMatchID|TestSubscriptionRejectionPreservesLocalStateAndAllowsRetry|TestUnsubscribeInvalidatesConcurrentMatchCache)$' -count=1` 通过；其中最后一个选择项当前无同名测试，不计为已覆盖的缓存检查。
 - 随后运行 `go test -race ./event -run '^(TestMatchID|TestSubscriptionRejectionPreservesLocalStateAndAllowsRetry|TestUnsubscribeCannotBeUndoneByConcurrentCachePublication|TestHubCacheRespectsDestination)$' -count=1` 通过，覆盖实际缓存竞争与定向匹配基线。
 - 临时最小程序实测 `/#/query/+` 对 `/device/query/:id` 当前为 true；同 Observer 的 `a/b`、`a/+` 重叠订阅使单次发布调用 handler 两次。刷新时另对第 5 节寻址边界取基线结果；这些反例证明现状，不证明目标实现。
-- 本轮已完成 Common 源码、全部已知直接消费者、Hub 替身和文档适配，已执行 vendor 同步、源码检查、race、正式 Engine 代理及隔离数据库计数链验证。完整命令、逐合同证据、性能数据和非 MQTT 业务测试的初次失败均见[实施记录](~/dataspace/magicPlatform/docs/technical/history/eventhub-topic-implementation-2026-11-04.md)。
+- 本轮已完成 Common 源码、全部已知直接消费者、Hub 替身和文档适配，已执行 vendor 同步、源码检查、race、正式 Engine 代理及隔离数据库计数链验证。完整命令、逐合同证据、性能数据和非 MQTT 业务测试的初次失败均见原实施记录（历史临时归档）。
 - Runner 代理测试隔离了 CAS 认证，Portal 测试的持久 owner 是替身；真实 PostgreSQL 验证的是 Base owner，不证明跨服务 Bearer 授权和 Live 通过。未构建新镜像、发布包或执行部署，MC-05 和最终交付门禁保持开放。
 
 **完成定义（Definition of Done）**：Common、直接消费者、默认 vendor、正式代理／计数链、并发与性能回归、配套制品／Live、切换与清理证明、README、发布说明及实测记录齐全；每条 Contract 分别记录证据与缺口，才能将整个工作包标记完成。**当前源码及已知消费者已实施，制品和 Live 尚未验收，整个工作包不能标记关闭。**
